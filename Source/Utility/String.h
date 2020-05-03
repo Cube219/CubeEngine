@@ -52,7 +52,7 @@ namespace cube
 
         DstChar tempBuffer[8];
         const SrcChar* srcCurrent = src.data();
-        const SrcChar* srcEnd = srcCurrent + src.length();
+        const SrcChar* srcEnd = srcCurrent + src.size();
 
         while(srcCurrent != srcEnd) {
             int size = internal::ConvertCodeAndMove(srcCurrent, tempBuffer);

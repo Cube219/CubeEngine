@@ -40,6 +40,8 @@ namespace cube
         using value_type = T;
 
         FormatAllocator(const char* pName = nullptr) {}
+        template <typename U>
+        FormatAllocator(const FormatAllocator<U>& other) noexcept {}
         ~FormatAllocator() {}
 
         T* allocate(size_t n, int flags = 0)
@@ -74,7 +76,7 @@ namespace cube
     // Same string type
     template <typename S, typename T>
     inline typename std::enable_if<
-        fmt::v6::internal::is_string<T>::value&&
+        fmt::v6::internal::is_string<T>::value &&
         IS_SAME_STR_TYPE(S, T), const T&>::type
         convert_string(const T& value)
     {
@@ -102,16 +104,18 @@ namespace cube
     template <typename Char>
     using custom_memory_buffer = fmt::basic_memory_buffer<Char, fmt::inline_buffer_size, FormatAllocator<Char>>;
 
+    template <typename...> struct WhichType;
+
     template <typename Char, typename StringAllocator>
-    inline std::basic_string<Char, StringAllocator> vformat_custom(
+    inline std::basic_string<Char, std::char_traits<Char>, StringAllocator> vformat_custom(
         fmt::basic_string_view<Char> format_str,
-        fmt::basic_format_args<typename fmt::buffer_context<Char>::type> args)
+        fmt::basic_format_args<fmt::buffer_context<Char>> args)
     {
 
         custom_memory_buffer<Char> buffer;
         fmt::internal::vformat_to(buffer, format_str, args);
 
-        std::basic_string<Char, StringAllocator> res(buffer.data(), buffer.size());
+        std::basic_string<Char, std::char_traits<Char>, StringAllocator> res(buffer.data(), buffer.size());
 
         format::internal::DiscardAllocations();
 
@@ -119,23 +123,20 @@ namespace cube
     }
 
     template <typename S, typename StringAllocator, typename ...Args>
-    inline std::basic_string<typename fmt::v6::char_t<S>::type, StringAllocator> cube_format(const S& format_str, const Args& ...args)
+    inline std::basic_string<fmt::v6::char_t<S>, std::char_traits<fmt::v6::char_t<S>>, StringAllocator> cube_format(const S& format_str, const Args& ...args)
     {
-        using Char = typename fmt::v6::char_t<S>::type;
+        using Char = fmt::v6::char_t<S>;
 
-        // return vformat_custom<Char, StringAllocator>(
-        //     fmt::to_string_view(format_str),
-        //     *fmt::internal::checked_args<S, Args...>(format_str, args...));
          return vformat_custom<Char, StringAllocator>(
              fmt::to_string_view(format_str),
-             fmt::make_format_args(args...));
+             fmt::make_format_args<fmt::v6::buffer_context<Char>>(args...));
     }
 
     // Formats arguments and returns a basic string
     template <typename S, typename ...Args>
-    inline std::basic_string<typename fmt::v6::char_t<S>::type> Format(const S& format_str, const Args& ...args)
+    inline std::basic_string<fmt::v6::char_t<S>> Format(const S& format_str, const Args& ...args)
     {
-        using Char = typename fmt::v6::char_t<S>::type;
+        using Char = fmt::v6::char_t<S>;
 
         return cube_format<S, std::allocator<Char>>(format_str, convert_string<Char>(args)...);
     }
@@ -144,9 +145,9 @@ namespace cube
     // ex)
     //     Format_CustomString<CustomAllocator>("Test {0}", 123);
     template <typename StringAllocator, typename S, typename ...Args>
-    inline std::basic_string<typename fmt::v6::char_t<S>::type, StringAllocator> Format_CustomString(const S& format_str, const Args& ...args)
+    inline std::basic_string<fmt::v6::char_t<S>, StringAllocator> Format_CustomString(const S& format_str, const Args& ...args)
     {
-        using Char = typename fmt::v6::char_t<S>::type;
+        using Char = fmt::v6::char_t<S>;
 
         return cube_format<S, StringAllocator>(format_str, convert_string<Char>(args)...);
     }
