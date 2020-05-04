@@ -145,7 +145,7 @@ namespace cube
     // ex)
     //     Format_CustomString<CustomAllocator>("Test {0}", 123);
     template <typename StringAllocator, typename S, typename ...Args>
-    inline std::basic_string<fmt::v6::char_t<S>, StringAllocator> Format_CustomString(const S& format_str, const Args& ...args)
+    inline std::basic_string<fmt::v6::char_t<S>, std::char_traits<fmt::v6::char_t<S>>, StringAllocator> Format_CustomString(const S& format_str, const Args& ...args)
     {
         using Char = fmt::v6::char_t<S>;
 
