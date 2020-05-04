@@ -1,7 +1,21 @@
+#include "Engine/Engine.h"
+
 namespace cube
 {
     void MainImpl()
-    {}
+    {
+        EngineInitOption initOption;
+        initOption.title = CUBE_T("Test Title");
+        initOption.windowWidth = 1040;
+        initOption.windowHeight = 807;
+        initOption.isWindowMode = true;
+
+        Engine::Initialize(initOption);
+
+        Engine::Run();
+
+        Engine::ShutDown();
+    }
 }
 
 #ifdef _WIN32

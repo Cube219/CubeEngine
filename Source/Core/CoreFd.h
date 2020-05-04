@@ -5,6 +5,15 @@ namespace cube
     // Allocator/FrameAllocator.h
     class FrameAllocator;
 
+    // Renderer/RenderingThread.h
+    class RenderingThread;
+
+    // Thread/Async.h
+    class AsyncSignal;
+    class Async;
+    // Thread/TaskQueue.h
+    class TaskQueue;
+
     // Time/TimeManager.h
     class TimeManager;
     // Time/GameTime.h
@@ -12,6 +21,9 @@ namespace cube
 
     // Core.h
     class Core;
+
+    // GameThread.h
+    class GameThread;
 
     // Handler.h
     template <typename T>

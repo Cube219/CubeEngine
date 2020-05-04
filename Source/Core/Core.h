@@ -25,6 +25,8 @@ namespace cube
         void SetFPSLimit(Uint64 fps);
 
     private:
+        friend class GameThread;
+
         void OnUpdate();
         void OnResize(Uint32 width, Uint32 height);
 

@@ -7,6 +7,12 @@
     <Filter Include="Time">
       <UniqueIdentifier>{7f54f1c4-0256-43e1-84be-73a1c7586c59}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Renderer">
+      <UniqueIdentifier>{9885a379-5037-42f8-8661-9d77b514f17a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Thread">
+      <UniqueIdentifier>{e2e63612-6336-43e4-9e2f-2001dfe6abb0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Allocator\AllocatorUtility.h">
@@ -27,6 +33,19 @@
     <ClInclude Include="Time\GameTime.h">
       <Filter>Time</Filter>
     </ClInclude>
+    <ClInclude Include="Renderer\RenderingThread.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="GameThread.h" />
+    <ClInclude Include="Thread\MutexLock.h">
+      <Filter>Thread</Filter>
+    </ClInclude>
+    <ClInclude Include="Thread\Async.h">
+      <Filter>Thread</Filter>
+    </ClInclude>
+    <ClInclude Include="Thread\TaskQueue.h">
+      <Filter>Thread</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Allocator\FrameAllocator.cpp">
@@ -40,5 +59,9 @@
     <ClCompile Include="Time\GameTime.cpp">
       <Filter>Time</Filter>
     </ClCompile>
+    <ClCompile Include="Renderer\RenderingThread.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="GameThread.cpp" />
   </ItemGroup>
 </Project>
