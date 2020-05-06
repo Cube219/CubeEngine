@@ -6,12 +6,7 @@
 
 namespace cube
 {
-    static Core gCore;
-
-    Core& GetCore()
-    {
-        return gCore;
-    }
+    Uint64 Core::mFPSLimit = 0;
 
     void Core::PreInitialize()
     {
@@ -20,23 +15,23 @@ namespace cube
 
     void Core::Initialize()
     {
-        GetTimeManager().Initialize();
+        TimeManager::Initialize();
     }
 
     void Core::Shutdown()
     {
-        GetTimeManager().ShutDown();
+        TimeManager::ShutDown();
     }
 
     void Core::Start()
     {
-        GetTimeManager().Start();
+        TimeManager::Start();
     }
 
     float Core::GetFPS()
     {
         // TODO: 더 좋은 방법으로 개선
-        return 1.0f / GetTimeManager().GetGlobalGameTime().GetDeltaTime();
+        return 1.0f / TimeManager::GetGlobalGameTime().GetDeltaTime();
     }
 
     void Core::SetFPSLimit(Uint64 fps)
@@ -46,14 +41,14 @@ namespace cube
 
     void Core::OnUpdate()
     {
-        GetTimeManager().Update();
+        TimeManager::Update();
 
         // Limit FPS
-        double currentTime = GetTimeManager().GetSystemTime();
+        double currentTime = TimeManager::GetSystemTime();
 
         if(mFPSLimit > 0) {
             double nextTime = currentTime + (1.0 / mFPSLimit);
-            currentTime = GetTimeManager().GetSystemTime();
+            currentTime = TimeManager::GetSystemTime();
 
             double waitTime = nextTime - currentTime;
 
@@ -61,7 +56,7 @@ namespace cube
                 platform::Platform::Sleep(SCast(int)(waitTime * 1000));
             } else if(waitTime > 0.0) {
                 while(nextTime > currentTime) {
-                    currentTime = GetTimeManager().GetSystemTime();
+                    currentTime = TimeManager::GetSystemTime();
                 }
             }
         }

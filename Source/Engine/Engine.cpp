@@ -18,7 +18,7 @@ namespace cube
             initOption.windowWidth, initOption.windowHeight, initOption.windowPositionX, initOption.windowPositionY);
         Platform::ShowWindow();
 
-        GetCore().PreInitialize();
+        Core::PreInitialize();
 
         RenderingThread::Init();
         GameThread::Init();
@@ -28,7 +28,7 @@ namespace cube
         gtPrepareAsync.WaitUntilFinished();
 
         closingEventFunc = Platform::GetClosingEvent().AddListener(&Engine::DefaultClosingFunction);
-        GetCore().SetFPSLimit(60);
+        Core::SetFPSLimit(60);
     }
 
     void Engine::ShutDown()

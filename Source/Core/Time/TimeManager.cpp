@@ -11,12 +11,11 @@ namespace cube
     using TimePoint = std::chrono::time_point<std::chrono::high_resolution_clock, std::chrono::nanoseconds>;
     using Duration = std::chrono::nanoseconds;
 
-    static TimeManager gTimeManager;
+    Uint64 TimeManager::mPreviousSystemTimePoint;
+    Uint64 TimeManager::mCurrentSystemTimePoint;
 
-    TimeManager& GetTimeManager()
-    {
-        return gTimeManager;
-    }
+    GameTime TimeManager::mGlobalGameTime;
+    Array<GameTime, 10> TimeManager::mGameTimes;
 
     void TimeManager::Initialize()
     {
@@ -51,7 +50,7 @@ namespace cube
         }
     }
 
-    Uint64 TimeManager::GetNow() const
+    Uint64 TimeManager::GetNow()
     {
         return std::chrono::time_point_cast<Duration>(std::chrono::high_resolution_clock::now()).time_since_epoch().count();
     }

@@ -4,32 +4,30 @@
 
 namespace cube
 {
-    CORE_EXPORT Core& GetCore();
-
     class CORE_EXPORT Core
     {
     public:
-        Core() : mFPSLimit(0) {}
-        ~Core() {}
+        Core() = delete;
+        ~Core() = delete;
 
         Core(const Core& other) = delete;
         Core& operator=(const Core& rhs) = delete;
 
-        void PreInitialize();
-        void Initialize();
-        void Shutdown();
+        static void PreInitialize();
+        static void Initialize();
+        static void Shutdown();
 
-        void Start();
+        static void Start();
 
-        float GetFPS();
-        void SetFPSLimit(Uint64 fps);
+        static float GetFPS();
+        static void SetFPSLimit(Uint64 fps);
 
     private:
         friend class GameThread;
 
-        void OnUpdate();
-        void OnResize(Uint32 width, Uint32 height);
+        static void OnUpdate();
+        static void OnResize(Uint32 width, Uint32 height);
 
-        Uint64 mFPSLimit;
+        static Uint64 mFPSLimit;
     };
 } // namespace cube

@@ -124,7 +124,7 @@ namespace cube
     {
         GetFrameAllocator().Initialize("Game Thread FrameAllocator", 10 * 1024 * 1024); // 10 MiB
 
-        GetCore().Initialize();
+        Core::Initialize();
     }
 
     void GameThread::ExecuteTaskQueueAndSimulateInternal()
@@ -139,7 +139,7 @@ namespace cube
     {
         GetFrameAllocator().DiscardAllocations();
 
-        GetCore().OnUpdate();
+        Core::OnUpdate();
     }
 
     void GameThread::PrepareDestroyInternal()
@@ -149,7 +149,7 @@ namespace cube
 
     void GameThread::DestroyInternal()
     {
-        GetCore().Shutdown();
+        Core::Shutdown();
         mTaskQueue.Flush();
 
         GetFrameAllocator().ShutDown();

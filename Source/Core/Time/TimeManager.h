@@ -8,37 +8,35 @@ namespace cube
 {
     constexpr double systemTimeRatio = 1000000000.0;
 
-    CORE_EXPORT TimeManager& GetTimeManager();
-
     class CORE_EXPORT TimeManager
     {
     public:
-        TimeManager() {}
-        ~TimeManager() {}
+        TimeManager() = delete;
+        ~TimeManager() = delete;
 
         TimeManager(const TimeManager& other) = delete;
         TimeManager& operator=(const TimeManager& rhs) = delete;
 
-        void Initialize();
-        void ShutDown();
+        static void Initialize();
+        static void ShutDown();
 
-        double GetSystemTime();
+        static double GetSystemTime();
 
-        const GameTime& GetGlobalGameTime() const { return mGlobalGameTime; };
+        static const GameTime& GetGlobalGameTime() { return mGlobalGameTime; };
 
-        GameTime& GetGameTime(Uint32 index) { return mGameTimes[index]; }
+        static GameTime& GetGameTime(Uint32 index) { return mGameTimes[index]; }
 
-        void Start();
+        static void Start();
 
-        void Update();
+        static void Update();
 
     private:
-        Uint64 GetNow() const;
+        static Uint64 GetNow();
 
-        Uint64 mPreviousSystemTimePoint;
-        Uint64 mCurrentSystemTimePoint;
+        static Uint64 mPreviousSystemTimePoint;
+        static Uint64 mCurrentSystemTimePoint;
 
-        GameTime mGlobalGameTime;
-        Array<GameTime, 10> mGameTimes;
+        static GameTime mGlobalGameTime;
+        static Array<GameTime, 10> mGameTimes;
     };
 } // namespace cube
