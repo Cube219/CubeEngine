@@ -19,6 +19,7 @@ namespace cube
         TimeManager::Initialize();
 
         ModuleManager::Initialize();
+        ModuleManager::LoadModule(CUBE_T("InputModule"));
         ModuleManager::InitModules();
     }
 
