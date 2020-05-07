@@ -3,6 +3,7 @@
 #include "Platform/Platform.h"
 #include "LogWriter.h"
 #include "Time/TimeManager.h"
+#include "Module/ModuleManager.h"
 
 namespace cube
 {
@@ -16,10 +17,14 @@ namespace cube
     void Core::Initialize()
     {
         TimeManager::Initialize();
+
+        ModuleManager::Initialize();
+        ModuleManager::InitModules();
     }
 
     void Core::Shutdown()
     {
+        ModuleManager::ShutDown();
         TimeManager::ShutDown();
     }
 
@@ -42,6 +47,9 @@ namespace cube
     void Core::OnUpdate()
     {
         TimeManager::Update();
+        float dt = TimeManager::GetGlobalGameTime().GetDeltaTime();
+
+        ModuleManager::UpdateAllModules(dt);
 
         // Limit FPS
         double currentTime = TimeManager::GetSystemTime();

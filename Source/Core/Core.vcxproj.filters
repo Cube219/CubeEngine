@@ -13,6 +13,9 @@
     <Filter Include="Thread">
       <UniqueIdentifier>{e2e63612-6336-43e4-9e2f-2001dfe6abb0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Module">
+      <UniqueIdentifier>{48d3c618-1dfa-4eff-a001-fd39d3475d1d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Allocator\AllocatorUtility.h">
@@ -46,6 +49,12 @@
     <ClInclude Include="Thread\TaskQueue.h">
       <Filter>Thread</Filter>
     </ClInclude>
+    <ClInclude Include="Module\ModuleManager.h">
+      <Filter>Module</Filter>
+    </ClInclude>
+    <ClInclude Include="Module\Module.h">
+      <Filter>Module</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Allocator\FrameAllocator.cpp">
@@ -63,5 +72,11 @@
       <Filter>Renderer</Filter>
     </ClCompile>
     <ClCompile Include="GameThread.cpp" />
+    <ClCompile Include="Module\ModuleManager.cpp">
+      <Filter>Module</Filter>
+    </ClCompile>
+    <ClCompile Include="Module\Module.cpp">
+      <Filter>Module</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

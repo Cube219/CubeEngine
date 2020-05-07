@@ -163,6 +163,8 @@
     <ClInclude Include="GameThread.h" />
     <ClInclude Include="Handler.h" />
     <ClInclude Include="LogWriter.h" />
+    <ClInclude Include="Module\Module.h" />
+    <ClInclude Include="Module\ModuleManager.h" />
     <ClInclude Include="Renderer\RenderingThread.h" />
     <ClInclude Include="Thread\Async.h" />
     <ClInclude Include="Thread\MutexLock.h" />
@@ -175,6 +177,8 @@
     <ClCompile Include="GameThread.cpp" />
     <ClCompile Include="LogWriter.cpp" />
     <ClCompile Include="Core.cpp" />
+    <ClCompile Include="Module\Module.cpp" />
+    <ClCompile Include="Module\ModuleManager.cpp" />
     <ClCompile Include="Renderer\RenderingThread.cpp" />
     <ClCompile Include="Time\GameTime.cpp" />
     <ClCompile Include="Time\TimeManager.cpp" />

@@ -5,6 +5,13 @@ namespace cube
     // Allocator/FrameAllocator.h
     class FrameAllocator;
 
+    // Module/Module.h
+    struct ModuleInfo;
+    class Module;
+    // Module/ModuleManager.h
+    struct ModuleNode;
+    class ModuleManager;
+
     // Renderer/RenderingThread.h
     class RenderingThread;
 
