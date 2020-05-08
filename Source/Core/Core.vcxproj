@@ -166,6 +166,9 @@
     <ClInclude Include="Module\Module.h" />
     <ClInclude Include="Module\ModuleManager.h" />
     <ClInclude Include="Renderer\RenderingThread.h" />
+    <ClInclude Include="Resource\Resource.h" />
+    <ClInclude Include="Resource\ResourceImporter.h" />
+    <ClInclude Include="Resource\ResourceManager.h" />
     <ClInclude Include="Thread\Async.h" />
     <ClInclude Include="Thread\MutexLock.h" />
     <ClInclude Include="Thread\TaskQueue.h" />
@@ -180,6 +183,8 @@
     <ClCompile Include="Module\Module.cpp" />
     <ClCompile Include="Module\ModuleManager.cpp" />
     <ClCompile Include="Renderer\RenderingThread.cpp" />
+    <ClCompile Include="Resource\Resource.cpp" />
+    <ClCompile Include="Resource\ResourceManager.cpp" />
     <ClCompile Include="Time\GameTime.cpp" />
     <ClCompile Include="Time\TimeManager.cpp" />
   </ItemGroup>

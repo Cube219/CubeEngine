@@ -4,6 +4,7 @@
 #include "LogWriter.h"
 #include "Time/TimeManager.h"
 #include "Module/ModuleManager.h"
+#include "Resource/ResourceManager.h"
 
 namespace cube
 {
@@ -18,6 +19,8 @@ namespace cube
     {
         TimeManager::Initialize();
 
+        ResourceManager::Initialize();
+
         ModuleManager::Initialize();
         ModuleManager::LoadModule(CUBE_T("InputModule"));
         ModuleManager::InitModules();
@@ -26,6 +29,9 @@ namespace cube
     void Core::Shutdown()
     {
         ModuleManager::ShutDown();
+
+        ResourceManager::ShutDown();
+
         TimeManager::ShutDown();
     }
 

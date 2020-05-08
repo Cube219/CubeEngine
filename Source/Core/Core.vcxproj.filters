@@ -16,6 +16,9 @@
     <Filter Include="Module">
       <UniqueIdentifier>{48d3c618-1dfa-4eff-a001-fd39d3475d1d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resource">
+      <UniqueIdentifier>{bbaad7a6-d9df-4fed-980d-c7440a01a167}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Allocator\AllocatorUtility.h">
@@ -55,6 +58,15 @@
     <ClInclude Include="Module\Module.h">
       <Filter>Module</Filter>
     </ClInclude>
+    <ClInclude Include="Resource\ResourceManager.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource\Resource.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource\ResourceImporter.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Allocator\FrameAllocator.cpp">
@@ -77,6 +89,12 @@
     </ClCompile>
     <ClCompile Include="Module\Module.cpp">
       <Filter>Module</Filter>
+    </ClCompile>
+    <ClCompile Include="Resource\ResourceManager.cpp">
+      <Filter>Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="Resource\Resource.cpp">
+      <Filter>Resource</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

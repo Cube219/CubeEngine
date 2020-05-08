@@ -12,6 +12,15 @@ namespace cube
     struct ModuleNode;
     class ModuleManager;
 
+    // Resource/Resource.h
+    class Resource;
+    template <typename T>
+    class ResourcePointer;
+    // Resource/ResourceImporter.h
+    class ResourceImporter;
+    // Resource/ResourceManager.h
+    class ResourceManager;
+
     // Renderer/RenderingThread.h
     class RenderingThread;
 
