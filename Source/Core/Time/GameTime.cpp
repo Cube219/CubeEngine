@@ -43,7 +43,7 @@ namespace cube
 
     void GameTime::Update(Uint64 systemDeltaTime)
     {
-        if(!mIsStarted | mIsPaused)
+        if(!mIsStarted || mIsPaused)
             return;
 
         mCurrentTime += SCast(Uint64)(systemDeltaTime * mTimeScale);

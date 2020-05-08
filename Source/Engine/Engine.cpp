@@ -48,7 +48,7 @@ namespace cube
 
     void Engine::Run()
     {
-        Async gtSimulateAsync = GameThread::SimulateAsync();
+        Async gtSimulateAsync = GameThread::StartAndSimulateAsync();
         gtSimulateAsync.WaitUntilFinished();
         RenderingThread::Run();
     }

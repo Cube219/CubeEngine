@@ -21,6 +21,7 @@ namespace cube
         static Async PrepareAsync();
 
         static Async SimulateAsync();
+        static Async StartAndSimulateAsync();
         static Async ExecuteTaskQueueAndSimulateAsync();
 
         static Async PrepareDestroyAsync();
@@ -46,6 +47,7 @@ namespace cube
 
         static void PrepareInternal();
 
+        static void StartAndSimulateInternal();
         static void ExecuteTaskQueueAndSimulateInternal();
         static void SimulateInternal();
 

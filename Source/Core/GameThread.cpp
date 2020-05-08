@@ -52,6 +52,19 @@ namespace cube
         return Async(mFinishSignal);
     }
 
+    Async GameThread::StartAndSimulateAsync()
+    {
+        Async a = Async(mFinishSignal);
+        a.WaitUntilFinished();
+
+        mRunFunction = &GameThread::StartAndSimulateInternal;
+        mStartSignal.DispatchCompletion();
+
+        mFinishSignal.Reset();
+
+        return Async(mFinishSignal);
+    }
+
     Async GameThread::ExecuteTaskQueueAndSimulateAsync()
     {
         Async a = Async(mFinishSignal);
@@ -125,6 +138,13 @@ namespace cube
         GetFrameAllocator().Initialize("Game Thread FrameAllocator", 10 * 1024 * 1024); // 10 MiB
 
         Core::Initialize();
+    }
+
+    void GameThread::StartAndSimulateInternal()
+    {
+        Core::Start();
+
+        SimulateInternal();
     }
 
     void GameThread::ExecuteTaskQueueAndSimulateInternal()

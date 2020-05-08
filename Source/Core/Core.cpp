@@ -48,12 +48,14 @@ namespace cube
     void Core::OnUpdate()
     {
         TimeManager::Update();
+
+        double currentTime = TimeManager::GetSystemTime();
+
         float dt = TimeManager::GetGlobalGameTime().GetDeltaTime();
 
         ModuleManager::UpdateAllModules(dt);
 
         // Limit FPS
-        double currentTime = TimeManager::GetSystemTime();
 
         if(mFPSLimit > 0) {
             double nextTime = currentTime + (1.0 / mFPSLimit);
