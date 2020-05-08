@@ -2,6 +2,7 @@
 
 #include "Module.h"
 #include "../LogWriter.h"
+#include "../Assertion.h"
 #include "Platform/Platform.h"
 
 namespace cube
@@ -27,8 +28,8 @@ namespace cube
 
     void ModuleManager::LoadModule(StringView moduleName)
     {
-        auto temp = mModuleLookupTable.find(moduleName.data());
-        if(temp != mModuleLookupTable.end()) {
+        auto findIter = mModuleLookupTable.find(moduleName.data());
+        if(findIter != mModuleLookupTable.end()) {
             CUBE_LOG(LogType::Error, "Already module name '{0}' loaded.", moduleName);
             return;
         }
@@ -60,7 +61,9 @@ namespace cube
 
     SPtr<Module> ModuleManager::GetModule(StringView moduleName)
     {
-        auto temp = mModuleLookupTable.find(moduleName.data());
-        return SPtr<Module>();
+        auto findIter = mModuleLookupTable.find(moduleName.data());
+        CHECK(findIter != mModuleLookupTable.end(), "Cannot find module '{0}'.", moduleName);
+
+        return findIter->second;
     }
 } // namespace cube
