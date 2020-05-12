@@ -29,7 +29,6 @@
     </ClInclude>
     <ClInclude Include="LogWriter.h" />
     <ClInclude Include="Assertion.h" />
-    <ClInclude Include="CoreFd.h" />
     <ClInclude Include="CoreHeader.h" />
     <ClInclude Include="Handler.h" />
     <ClInclude Include="Core.h" />
@@ -67,6 +66,7 @@
     <ClInclude Include="Resource\ResourceImporter.h">
       <Filter>Resource</Filter>
     </ClInclude>
+    <ClInclude Include="CoreFwd.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Allocator\FrameAllocator.cpp">

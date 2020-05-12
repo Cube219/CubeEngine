@@ -2,7 +2,7 @@
 #pragma warning(disable:4251)
 
 #include "Utility/Types.h"
-#include "CoreFd.h"
+#include "CoreFwd.h"
 
 #ifdef CORE_EXPORTS
 #define CORE_EXPORT __declspec(dllexport) 

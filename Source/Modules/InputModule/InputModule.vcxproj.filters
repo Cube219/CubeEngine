@@ -2,10 +2,10 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClInclude Include="InputModule.h" />
-    <ClInclude Include="InputModuleFd.h" />
     <ClInclude Include="KeyboardMouseInput.h" />
     <ClInclude Include="XboxControllerInput.h" />
     <ClInclude Include="InputModuleHeader.h" />
+    <ClInclude Include="InputModuleFwd.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="InputModule.cpp" />

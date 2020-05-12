@@ -159,7 +159,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="InputModule.h" />
-    <ClInclude Include="InputModuleFd.h" />
+    <ClInclude Include="InputModuleFwd.h" />
     <ClInclude Include="InputModuleHeader.h" />
     <ClInclude Include="KeyboardMouseInput.h" />
     <ClInclude Include="XboxControllerInput.h" />

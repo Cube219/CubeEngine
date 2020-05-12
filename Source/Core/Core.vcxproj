@@ -162,7 +162,7 @@
     <ClInclude Include="Allocator\FrameAllocator.h" />
     <ClInclude Include="Assertion.h" />
     <ClInclude Include="Core.h" />
-    <ClInclude Include="CoreFd.h" />
+    <ClInclude Include="CoreFwd.h" />
     <ClInclude Include="CoreHeader.h" />
     <ClInclude Include="GameThread.h" />
     <ClInclude Include="Handler.h" />
