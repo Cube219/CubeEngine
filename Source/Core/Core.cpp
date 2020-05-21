@@ -9,6 +9,9 @@
 namespace cube
 {
     Uint64 Core::mFPSLimit = 0;
+    entt::registry Core::mRegistry;
+
+    World Core::mWorld(mRegistry);
 
     void Core::PreInitialize()
     {
@@ -24,10 +27,20 @@ namespace cube
         ModuleManager::Initialize();
         ModuleManager::LoadModule(CUBE_T("InputModule"));
         ModuleManager::InitModules();
+
+        mWorld.Initialize();
+
+        HWorldObject wo = WorldObject::Create();
+        HWorldObject wo2 = WorldObject::Create();
+
+        wo->Destroy();
+        wo2->Destroy();
     }
 
     void Core::Shutdown()
     {
+        mWorld.Shutdown();
+
         ModuleManager::ShutDown();
 
         ResourceManager::ShutDown();
@@ -58,6 +71,8 @@ namespace cube
         double currentTime = TimeManager::GetSystemTime();
 
         float dt = TimeManager::GetGlobalGameTime().GetDeltaTime();
+
+        mWorld.Update(dt);
 
         ModuleManager::UpdateAllModules(dt);
 

@@ -178,6 +178,8 @@
     <ClInclude Include="Thread\TaskQueue.h" />
     <ClInclude Include="Time\TimeManager.h" />
     <ClInclude Include="Time\GameTime.h" />
+    <ClInclude Include="World\World.h" />
+    <ClInclude Include="World\WorldObject.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Allocator\FrameAllocator.cpp" />
@@ -191,6 +193,8 @@
     <ClCompile Include="Resource\ResourceManager.cpp" />
     <ClCompile Include="Time\GameTime.cpp" />
     <ClCompile Include="Time\TimeManager.cpp" />
+    <ClCompile Include="World\World.cpp" />
+    <ClCompile Include="World\WorldObject.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Platform\Platform.vcxproj">

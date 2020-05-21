@@ -7,7 +7,7 @@
 namespace cube
 {
     template <typename T>
-    class Handler
+    class CORE_EXPORT Handler
     {
     public:
         Handler() :
@@ -92,7 +92,7 @@ namespace cube
         Uint64 mID;
     };
 
-    class Handlable
+    class CORE_EXPORT Handlable
     {
     public:
         Handlable() :
@@ -103,6 +103,7 @@ namespace cube
         Handler<Handlable> GetHandler() const
         {
             ASSERTION_FAILED("You must overload GetHandler function in a child class.");
+            return Handler<Handlable>();
         }
 
         Uint64 GetID() const { return mID; }

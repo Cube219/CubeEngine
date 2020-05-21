@@ -2,6 +2,9 @@
 
 namespace cube
 {
+    template <typename T>
+    class Handler;
+
     // Allocator/FrameAllocator.h
     class FrameAllocator;
 
@@ -11,6 +14,13 @@ namespace cube
     // Module/ModuleManager.h
     struct ModuleNode;
     class ModuleManager;
+
+    // World/World.h
+    class World;
+    // World/WorldObject.h
+    struct Transform;
+    class WorldObject;
+    using HWorldObject = Handler<WorldObject>;
 
     // Resource/Resource.h
     class Resource;
@@ -42,8 +52,6 @@ namespace cube
     class GameThread;
 
     // Handler.h
-    template <typename T>
-    class Handler;
     class Handlable;
     class HandlerTable;
 } // namespace cube

@@ -19,6 +19,9 @@
     <Filter Include="Resource">
       <UniqueIdentifier>{bbaad7a6-d9df-4fed-980d-c7440a01a167}</UniqueIdentifier>
     </Filter>
+    <Filter Include="World">
+      <UniqueIdentifier>{c6bed8ec-042b-4e61-bc6f-66292f709db6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Allocator\AllocatorUtility.h">
@@ -67,6 +70,12 @@
       <Filter>Resource</Filter>
     </ClInclude>
     <ClInclude Include="CoreFwd.h" />
+    <ClInclude Include="World\World.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="World\WorldObject.h">
+      <Filter>World</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Allocator\FrameAllocator.cpp">
@@ -95,6 +104,12 @@
     </ClCompile>
     <ClCompile Include="Resource\Resource.cpp">
       <Filter>Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="World\World.cpp">
+      <Filter>World</Filter>
+    </ClCompile>
+    <ClCompile Include="World\WorldObject.cpp">
+      <Filter>World</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
