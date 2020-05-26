@@ -20,6 +20,8 @@ namespace cube
 
     void Core::Initialize()
     {
+        // RendererManager will be initialized in RenderingThread
+
         TimeManager::Initialize();
 
         ResourceManager::Initialize();
@@ -39,6 +41,8 @@ namespace cube
 
     void Core::Shutdown()
     {
+        // RendererManager will be initialized in RenderingThread
+
         mWorld.Shutdown();
 
         ModuleManager::Shutdown();

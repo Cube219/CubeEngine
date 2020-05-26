@@ -3,6 +3,7 @@
 #include "Platform/Platform.h"
 #include "../GameThread.h"
 #include "../Allocator/FrameAllocator.h"
+#include "RendererManager.h"
 
 namespace cube
 {
@@ -27,6 +28,8 @@ namespace cube
     {
         GetFrameAllocator().Initialize("Rendering Thread FrameAllocator", 10 * 1024 * 1024); // 10 MiB
 
+        RendererManager::Initialize(RenderAPIType::Vulkan);
+
         mLoopEventFunc = platform::Platform::GetLoopEvent().AddListener(&RenderingThread::Loop);
         mResizeEventFunc = platform::Platform::GetResizeEvent().AddListener(&RenderingThread::OnResize);
     }
@@ -40,6 +43,8 @@ namespace cube
 
         mLastTaskQueue.ExecuteAll();
         mLastTaskQueue.Flush();
+
+        RendererManager::Render();
 
         platform::Platform::StartLoop();
     }
@@ -57,6 +62,8 @@ namespace cube
     {
         mTaskQueue.ExecuteAll();
         mTaskQueue.Flush();
+
+        RendererManager::Shutdown();
 
         GetFrameAllocator().Shutdown();
     }
@@ -92,16 +99,11 @@ namespace cube
 
     void RenderingThread::Rendering()
     {
-    }
-
-    void RenderingThread::DestroyInternal()
-    {
-        mSyncTaskQueue.Flush();
-        mTaskQueue.Flush();
-        mLastTaskQueue.Flush();
+        RendererManager::Render();
     }
 
     void RenderingThread::OnResize(Uint32 width, Uint32 height)
     {
+        RendererManager::Resize(width, height);
     }
 } // namespace cube

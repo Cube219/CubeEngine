@@ -76,6 +76,9 @@
     <ClInclude Include="World\WorldObject.h">
       <Filter>World</Filter>
     </ClInclude>
+    <ClInclude Include="Renderer\RendererManager.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Allocator\FrameAllocator.cpp">
@@ -110,6 +113,9 @@
     </ClCompile>
     <ClCompile Include="World\WorldObject.cpp">
       <Filter>World</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\RendererManager.cpp">
+      <Filter>Renderer</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

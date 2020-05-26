@@ -50,7 +50,6 @@ namespace cube
 
         static void Sync();
         static void Rendering();
-        static void DestroyInternal();
 
         static void OnResize(Uint32 width, Uint32 height);
 

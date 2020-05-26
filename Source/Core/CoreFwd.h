@@ -31,6 +31,8 @@ namespace cube
     // Resource/ResourceManager.h
     class ResourceManager;
 
+    // Renderer/RendererManager.h
+    class RendererManager;
     // Renderer/RenderingThread.h
     class RenderingThread;
 
