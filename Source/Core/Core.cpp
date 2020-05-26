@@ -41,11 +41,11 @@ namespace cube
     {
         mWorld.Shutdown();
 
-        ModuleManager::ShutDown();
+        ModuleManager::Shutdown();
 
-        ResourceManager::ShutDown();
+        ResourceManager::Shutdown();
 
-        TimeManager::ShutDown();
+        TimeManager::Shutdown();
     }
 
     void Core::Start()

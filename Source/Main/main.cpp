@@ -14,7 +14,7 @@ namespace cube
 
         Engine::Run();
 
-        Engine::ShutDown();
+        Engine::Shutdown();
     }
 }
 

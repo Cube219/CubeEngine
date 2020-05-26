@@ -58,7 +58,7 @@ namespace cube
         mTaskQueue.ExecuteAll();
         mTaskQueue.Flush();
 
-        GetFrameAllocator().ShutDown();
+        GetFrameAllocator().Shutdown();
     }
 
     void RenderingThread::Loop()

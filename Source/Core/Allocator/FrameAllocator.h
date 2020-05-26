@@ -63,7 +63,7 @@ namespace cube
         FrameAllocator& operator=(const FrameAllocator& rhs) = delete;
 
         void Initialize(const char* debugName, Uint64 blockSize = 1 * 1024 * 1024); // 1 MiB
-        void ShutDown();
+        void Shutdown();
 
         void* Allocate(Uint64 size);
         void Free(void* ptr);

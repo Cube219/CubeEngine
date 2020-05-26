@@ -16,7 +16,7 @@ namespace cube
         ResourceManager& operator=(const ResourceManager& rhs) = delete;
 
         static void Initialize();
-        static void ShutDown();
+        static void Shutdown();
 
         static void RegisterImporter(UPtr<ResourceImporter> importer);
 

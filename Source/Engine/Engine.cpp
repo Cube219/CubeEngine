@@ -31,7 +31,7 @@ namespace cube
         Core::SetFPSLimit(60);
     }
 
-    void Engine::ShutDown()
+    void Engine::Shutdown()
     {
         platform::Platform::GetClosingEvent().RemoveListener(closingEventFunc);
 

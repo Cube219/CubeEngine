@@ -21,7 +21,7 @@ namespace cube
     {
     }
 
-    void TimeManager::ShutDown()
+    void TimeManager::Shutdown()
     {
     }
 

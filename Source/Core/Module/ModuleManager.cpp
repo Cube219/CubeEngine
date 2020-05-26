@@ -14,7 +14,7 @@ namespace cube
     {
     }
 
-    void ModuleManager::ShutDown()
+    void ModuleManager::Shutdown()
     {
         for(auto& m : mModules) {
             m.module->OnDestroy();

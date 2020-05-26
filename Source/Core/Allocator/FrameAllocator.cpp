@@ -126,7 +126,7 @@ namespace cube
         mMemoryBlock = MemoryBlock(blockSize);
     }
 
-    void FrameAllocator::ShutDown()
+    void FrameAllocator::Shutdown()
     {
         mAdditionalMemBlocks.clear();
         mMemoryBlock = MemoryBlock(0);

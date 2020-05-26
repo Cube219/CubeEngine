@@ -172,7 +172,7 @@ namespace cube
         Core::Shutdown();
         mTaskQueue.Flush();
 
-        GetFrameAllocator().ShutDown();
+        GetFrameAllocator().Shutdown();
 
         mDestroySignal.DispatchCompletion();
     }

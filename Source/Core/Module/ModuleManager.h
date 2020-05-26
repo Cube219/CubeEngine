@@ -30,7 +30,7 @@ namespace cube
         ModuleManager& operator=(const ModuleManager& rhs) = delete;
 
         static void Initialize();
-        static void ShutDown();
+        static void Shutdown();
 
         static void LoadModule(StringView moduleName);
 

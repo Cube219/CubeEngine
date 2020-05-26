@@ -18,7 +18,7 @@ namespace cube
         TimeManager& operator=(const TimeManager& rhs) = delete;
 
         static void Initialize();
-        static void ShutDown();
+        static void Shutdown();
 
         static double GetSystemTime();
 

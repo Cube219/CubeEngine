@@ -15,7 +15,7 @@ namespace cube
     {
     }
 
-    void ResourceManager::ShutDown()
+    void ResourceManager::Shutdown()
     {
         UnloadUnusedResources();
 

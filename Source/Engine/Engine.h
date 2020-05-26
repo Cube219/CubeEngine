@@ -22,7 +22,7 @@ namespace cube
         ~Engine() = delete;
 
         static void Initialize(const EngineInitOption& initOption);
-        static void ShutDown();
+        static void Shutdown();
 
         static void Run();
 
