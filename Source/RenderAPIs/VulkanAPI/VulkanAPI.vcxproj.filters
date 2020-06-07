@@ -1,12 +1,32 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="a.cpp" />
     <ClCompile Include="VulkanAPI.cpp" />
+    <ClCompile Include="VulkanUtility.cpp" />
+    <ClCompile Include="VulkanDevice.cpp" />
+    <ClCompile Include="Interface\TextureVk.cpp">
+      <Filter>Interface</Filter>
+    </ClCompile>
+    <ClCompile Include="VulkanTypeConversion.cpp" />
+    <ClCompile Include="VulkanMemoryAllocator.cpp" />
+    <ClCompile Include="VulkanDebug.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="VulkanAPI.h" />
     <ClInclude Include="VulkanAPIHeader.h" />
     <ClInclude Include="VulkanAPIFwd.h" />
+    <ClInclude Include="VulkanUtility.h" />
+    <ClInclude Include="VulkanDevice.h" />
+    <ClInclude Include="Interface\TextureVk.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="VulkanTypeConversion.h" />
+    <ClInclude Include="VulkanMemoryAllocator.h" />
+    <ClInclude Include="VulkanDebug.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Interface">
+      <UniqueIdentifier>{dd56b90f-6da5-4724-a8cf-e3eec1cf0178}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>

@@ -2,8 +2,24 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClInclude Include="RenderAPI.h" />
+    <ClInclude Include="Interface\Texture.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderAPIHeader.h" />
+    <ClInclude Include="RenderAPIFwd.h" />
+    <ClInclude Include="Interface\RenderTypes.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\Resource.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="a.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Interface">
+      <UniqueIdentifier>{8727b28a-68ab-4ba7-a95c-10426bc8a565}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>

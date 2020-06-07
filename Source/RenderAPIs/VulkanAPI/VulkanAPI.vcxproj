@@ -47,21 +47,21 @@
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)Bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>obj\$(Platform)\$(Configuration)\</IntDir>
-    <IncludePath>$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
+    <IncludePath>$(VULKAN_SDK)\Include;$(SolutionDir)Dependencies\VulkanMemoryAllocator\src;$(IncludePath)</IncludePath>
     <LibraryPath>$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)Bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>obj\$(Platform)\$(Configuration)\</IntDir>
-    <IncludePath>$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
+    <IncludePath>$(VULKAN_SDK)\Include;$(SolutionDir)Dependencies\VulkanMemoryAllocator\src;$(IncludePath)</IncludePath>
     <LibraryPath>$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>VK_API_EXPORTS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>VK_API_EXPORTS;VK_USE_PLATFORM_WIN32_KHR;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalIncludeDirectories>$(SolutionDir)Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -78,7 +78,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>VK_API_EXPORTS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>VK_API_EXPORTS;VK_USE_PLATFORM_WIN32_KHR;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalIncludeDirectories>$(SolutionDir)Source;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -92,8 +92,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="a.cpp" />
+    <ClCompile Include="Interface\TextureVk.cpp" />
     <ClCompile Include="VulkanAPI.cpp" />
+    <ClCompile Include="VulkanDebug.cpp" />
+    <ClCompile Include="VulkanDevice.cpp" />
+    <ClCompile Include="VulkanMemoryAllocator.cpp" />
+    <ClCompile Include="VulkanTypeConversion.cpp" />
+    <ClCompile Include="VulkanUtility.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Core\Core.vcxproj">
@@ -107,9 +112,15 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Interface\TextureVk.h" />
     <ClInclude Include="VulkanAPI.h" />
     <ClInclude Include="VulkanAPIFwd.h" />
     <ClInclude Include="VulkanAPIHeader.h" />
+    <ClInclude Include="VulkanDebug.h" />
+    <ClInclude Include="VulkanDevice.h" />
+    <ClInclude Include="VulkanMemoryAllocator.h" />
+    <ClInclude Include="VulkanTypeConversion.h" />
+    <ClInclude Include="VulkanUtility.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

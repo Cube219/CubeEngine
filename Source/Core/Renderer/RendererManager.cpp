@@ -24,6 +24,8 @@ namespace cube
         using CreateRenderAPIFunction = rapi::RenderAPI*(*)();
         auto createRenderAPIFunc = RCast(CreateRenderAPIFunction)(mRenderAPIDLib->GetFunction(CUBE_T("CreateRenderAPI")));
         mRenderAPI = SPtr<rapi::RenderAPI>(createRenderAPIFunc());
+
+        mRenderAPI->Initialize();
     }
 
     void RendererManager::Shutdown()

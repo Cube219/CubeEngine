@@ -215,6 +215,11 @@ namespace cube
         StdAllocator<char> mStdAllocator;
     };
 
+    template <typename T1, typename T2>
+    bool operator==(const FrameAllocator::StdAllocator<T1>& lhs, const FrameAllocator::StdAllocator<T2>& rhs) noexcept { return true; }
+    template <typename T1, typename T2>
+    bool operator!=(const FrameAllocator::StdAllocator<T1>& lhs, const FrameAllocator::StdAllocator<T2>& rhs) noexcept { return false; }
+
     // Define strings with frame allocator
     using FrameU8String = std::basic_string<U8Character, std::char_traits<U8Character>, FrameAllocator::StdAllocator<U8Character>>;
     using FrameU8StringRef = BaseStringRef<U8Character, FrameU8String>;
