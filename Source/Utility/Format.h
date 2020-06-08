@@ -90,21 +90,19 @@ namespace cube
         !IS_SAME_STR_TYPE(S, T), fmt::v6::basic_string_view<S>>::type
         convert_string(const T& value)
     {
-        // temp will be deallocated at the end of the function.
-        // But in FormatAllocator, its allocations still alive before
-        // calling DiscardAllocations function.
-        // So, its string view is validate out of this function.
-        FormatString<S> temp;
-        String_ConvertAndAppend(temp, fmt::to_string_view(value));
+        // temp will be deallocated when format::internal::DiscardAllocations() is called.
+        // (At the end of formatting)
+        void* tempMem = format::internal::Allocate(sizeof(FormatString<S>));
+        FormatString<S>* temp = new(tempMem) FormatString<S>;
 
-        fmt::v6::basic_string_view<S> view(temp.data(), temp.size());
+        String_ConvertAndAppend(*temp, fmt::to_string_view(value));
+
+        fmt::v6::basic_string_view<S> view(temp->data(), temp->size());
         return view;
     }
 
     template <typename Char>
     using custom_memory_buffer = fmt::basic_memory_buffer<Char, fmt::inline_buffer_size, FormatAllocator<Char>>;
-
-    template <typename...> struct WhichType;
 
     template <typename Char, typename StringAllocator>
     inline std::basic_string<Char, std::char_traits<Char>, StringAllocator> vformat_custom(
