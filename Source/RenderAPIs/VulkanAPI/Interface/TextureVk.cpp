@@ -120,5 +120,5 @@ namespace cube
             TextureCube(info.usage, info.size, info.format, info.bindTypeFlags, info.mipLevels, info.samplesNum, info.debugName),
             TextureVk(device, info.usage, VK_IMAGE_VIEW_TYPE_CUBE, info.format, info.size, info.size, 1, 6, info.bindTypeFlags, info.mipLevels, info.samplesNum, info.debugName)
         {}
-} // namespace rapi
+    } // namespace rapi
 } // namespace cube

@@ -2,6 +2,7 @@
 
 #include "Core.h"
 #include "Allocator/FrameAllocator.h"
+#include "Assertion.h"
 
 namespace cube
 {
@@ -106,6 +107,8 @@ namespace cube
 
     void GameThread::Loop()
     {
+        GLOBAL_TRY_CATCH_BEGIN
+
         while(1) {
             { // Wait until start
                 Async a = Async(mStartSignal);
@@ -131,6 +134,8 @@ namespace cube
         }
 
         mFinishSignal.DispatchCompletion();
+
+        GLOBAL_TRY_CATCH_END
     }
 
     void GameThread::PrepareInternal()

@@ -4,6 +4,7 @@
 #include "Core/Core.h"
 #include "Core/GameThread.h"
 #include "Core/Renderer/RenderingThread.h"
+#include "Core/Assertion.h"
 
 namespace cube
 {
@@ -20,6 +21,8 @@ namespace cube
 
         Core::PreInitialize();
 
+        GLOBAL_TRY_CATCH_BEGIN
+
         RenderingThread::Init();
         GameThread::Init();
 
@@ -29,10 +32,14 @@ namespace cube
 
         closingEventFunc = Platform::GetClosingEvent().AddListener(&Engine::DefaultClosingFunction);
         Core::SetFPSLimit(60);
+
+        GLOBAL_TRY_CATCH_END
     }
 
     void Engine::Shutdown()
     {
+        GLOBAL_TRY_CATCH_BEGIN
+
         platform::Platform::GetClosingEvent().RemoveListener(closingEventFunc);
 
         Async gtPrepareDestroyAsync = GameThread::PrepareDestroyAsync();
@@ -44,6 +51,8 @@ namespace cube
         RenderingThread::Destroy();
 
         GameThread::Join();
+
+        GLOBAL_TRY_CATCH_END
     }
 
     void Engine::Run()

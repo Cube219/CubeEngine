@@ -4,6 +4,7 @@
 #include "../GameThread.h"
 #include "../Allocator/FrameAllocator.h"
 #include "RendererManager.h"
+#include "../Assertion.h"
 
 namespace cube
 {
@@ -36,6 +37,8 @@ namespace cube
 
     void RenderingThread::Run()
     {
+        GLOBAL_TRY_CATCH_BEGIN
+
         // For flushing initial resources
         Sync();
 
@@ -47,6 +50,8 @@ namespace cube
         RendererManager::Render();
 
         platform::Platform::StartLoop();
+
+        GLOBAL_TRY_CATCH_END
     }
 
     void RenderingThread::PrepareDestroy()
