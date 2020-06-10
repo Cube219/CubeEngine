@@ -28,7 +28,7 @@ namespace cube
                 case VK_IMAGE_VIEW_TYPE_CUBE:
                 case VK_IMAGE_VIEW_TYPE_CUBE_ARRAY:
                     info.flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
-                    // Fallback
+                    // Fallthrough
                 case VK_IMAGE_VIEW_TYPE_2D:
                 case VK_IMAGE_VIEW_TYPE_2D_ARRAY:
                     info.imageType = VK_IMAGE_TYPE_2D;
