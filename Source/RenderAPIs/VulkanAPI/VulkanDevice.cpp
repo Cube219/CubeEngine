@@ -9,7 +9,7 @@ namespace cube
     namespace rapi
     {
         VulkanDevice::VulkanDevice(VkInstance instance, VkPhysicalDevice gpu) :
-            mGPU(gpu), mDevice(nullptr)
+            mGPU(gpu), mDevice(nullptr), mFencePool(*this), mSemaphorePool(*this), mQueueManager(*this)
         {
             vkGetPhysicalDeviceProperties(mGPU, &mProps);
             switch(mProps.deviceType)
@@ -38,19 +38,21 @@ namespace cube
 
             vkGetPhysicalDeviceMemoryProperties(mGPU, &mMemProps);
 
-            Uint32 queueFamilyNum = 0;
-            vkGetPhysicalDeviceQueueFamilyProperties(mGPU, &queueFamilyNum, nullptr);
-            CHECK(queueFamilyNum > 0, "Cannot find physical device queue family.");
-            mQueueFamilyProps.resize(queueFamilyNum);
-            vkGetPhysicalDeviceQueueFamilyProperties(mGPU, &queueFamilyNum, mQueueFamilyProps.data());
-
             CreateDevice();
 
             mAllocator.Initialize(instance, mGPU, mDevice);
+            mStagingManager.Initialize();
+            mFencePool.Initialize();
+            mSemaphorePool.Initialize();
+            mQueueManager.Initialize(mGPU);
         }
 
         VulkanDevice::~VulkanDevice()
         {
+            mQueueManager.Shutdown();
+            mSemaphorePool.Shutdown();
+            mFencePool.Shutdown();
+            mStagingManager.Shutdown();
             mAllocator.Shutdown();
 
             if(mDevice != nullptr) {
@@ -67,16 +69,23 @@ namespace cube
             deviceCreateInfo.pNext = nullptr;
             deviceCreateInfo.flags = 0;
 
+            Uint32 queueFamilyNum = 0;
+            vkGetPhysicalDeviceQueueFamilyProperties(mGPU, &queueFamilyNum, nullptr);
+            CHECK(queueFamilyNum > 0, "Cannot find physical device queue family.");
+
+            FrameVector<VkQueueFamilyProperties> queueFamilyProps(queueFamilyNum);
+            vkGetPhysicalDeviceQueueFamilyProperties(mGPU, &queueFamilyNum, queueFamilyProps.data());
+
             // Put all queue familiy of the physical device into device queue
-            FrameVector<VkDeviceQueueCreateInfo> queueInfos(mQueueFamilyProps.size());
+            FrameVector<VkDeviceQueueCreateInfo> queueInfos(queueFamilyProps.size());
             int prioritiesNum = 0;
-            for(Uint64 i = 0; i < mQueueFamilyProps.size(); i++) {
+            for(Uint64 i = 0; i < queueFamilyProps.size(); i++) {
                 VkDeviceQueueCreateInfo info;
                 info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
                 info.pNext = nullptr;
                 info.flags = 0;
                 info.queueFamilyIndex = (Uint32)i;
-                info.queueCount = mQueueFamilyProps[i].queueCount;
+                info.queueCount = queueFamilyProps[i].queueCount;
                 prioritiesNum += info.queueCount;
 
                 queueInfos[i] = info;

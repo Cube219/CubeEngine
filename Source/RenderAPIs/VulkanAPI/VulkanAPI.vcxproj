@@ -92,11 +92,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Interface\BufferVk.cpp" />
     <ClCompile Include="Interface\TextureVk.cpp" />
     <ClCompile Include="VulkanAPI.cpp" />
     <ClCompile Include="VulkanDebug.cpp" />
     <ClCompile Include="VulkanDevice.cpp" />
+    <ClCompile Include="VulkanFencePool.cpp" />
     <ClCompile Include="VulkanMemoryAllocator.cpp" />
+    <ClCompile Include="VulkanQueueManager.cpp" />
+    <ClCompile Include="VulkanSemaphorePool.cpp" />
+    <ClCompile Include="VulkanStagingManager.cpp" />
     <ClCompile Include="VulkanTypeConversion.cpp" />
     <ClCompile Include="VulkanUtility.cpp" />
   </ItemGroup>
@@ -112,13 +117,18 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Interface\BufferVk.h" />
     <ClInclude Include="Interface\TextureVk.h" />
     <ClInclude Include="VulkanAPI.h" />
     <ClInclude Include="VulkanAPIFwd.h" />
     <ClInclude Include="VulkanAPIHeader.h" />
     <ClInclude Include="VulkanDebug.h" />
     <ClInclude Include="VulkanDevice.h" />
+    <ClInclude Include="VulkanFencePool.h" />
     <ClInclude Include="VulkanMemoryAllocator.h" />
+    <ClInclude Include="VulkanQueueManager.h" />
+    <ClInclude Include="VulkanSemaphorePool.h" />
+    <ClInclude Include="VulkanStagingManager.h" />
     <ClInclude Include="VulkanTypeConversion.h" />
     <ClInclude Include="VulkanUtility.h" />
   </ItemGroup>

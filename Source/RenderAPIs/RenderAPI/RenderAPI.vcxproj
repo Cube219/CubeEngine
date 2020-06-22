@@ -86,6 +86,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Interface\Buffer.h" />
     <ClInclude Include="Interface\Resource.h" />
     <ClInclude Include="Interface\RenderTypes.h" />
     <ClInclude Include="Interface\Texture.h" />

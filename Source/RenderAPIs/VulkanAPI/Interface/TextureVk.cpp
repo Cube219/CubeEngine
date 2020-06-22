@@ -10,7 +10,7 @@ namespace cube
 {
     namespace rapi
     {
-        TextureVk::TextureVk(VulkanDevice& device, ResourceUsage resUsage, VkImageViewType type, TextureFormat format, Uint32 width, Uint32 height, Uint32 depth, Uint32 arraySize, TextureBindTypeFlags bindTypeFlags, Uint32 mipLevels, Uint32 samplesNum, const char* debugName) :
+        TextureVk::TextureVk(VulkanDevice& device, ResourceUsage resUsage, VkImageViewType type, Uint64 size, const void* pData, TextureFormat format, Uint32 width, Uint32 height, Uint32 depth, Uint32 arraySize, TextureBindTypeFlags bindTypeFlags, Uint32 mipLevels, Uint32 samplesNum, const char* debugName) :
             mDevice(device)
         {
             VkResult res;
@@ -47,27 +47,13 @@ namespace cube
             info.arrayLayers = arraySize;
             switch(samplesNum)
             {
-                case 1:
-                    info.samples = VK_SAMPLE_COUNT_1_BIT;
-                    break;
-                case 2:
-                    info.samples = VK_SAMPLE_COUNT_2_BIT;
-                    break;
-                case 4:
-                    info.samples = VK_SAMPLE_COUNT_4_BIT;
-                    break;
-                case 8:
-                    info.samples = VK_SAMPLE_COUNT_8_BIT;
-                    break;
-                case 16:
-                    info.samples = VK_SAMPLE_COUNT_16_BIT;
-                    break;
-                case 32:
-                    info.samples = VK_SAMPLE_COUNT_32_BIT;
-                    break;
-                case 64:
-                    info.samples = VK_SAMPLE_COUNT_64_BIT;
-                    break;
+                case 1:  info.samples = VK_SAMPLE_COUNT_1_BIT;  break;
+                case 2:  info.samples = VK_SAMPLE_COUNT_2_BIT;  break;
+                case 4:  info.samples = VK_SAMPLE_COUNT_4_BIT;  break;
+                case 8:  info.samples = VK_SAMPLE_COUNT_8_BIT;  break;
+                case 16: info.samples = VK_SAMPLE_COUNT_16_BIT; break;
+                case 32: info.samples = VK_SAMPLE_COUNT_32_BIT; break;
+                case 64: info.samples = VK_SAMPLE_COUNT_64_BIT; break;
                 default:
                     CUBE_LOG(LogType::Warning, "Unsupported sampler count ({}). Use sampler count 1 instead.");
                     info.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -89,18 +75,22 @@ namespace cube
             info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
             info.tiling = VK_IMAGE_TILING_OPTIMAL;
 
-            res = vkCreateImage(device.GetDevice(), &info, nullptr, &mImage);
+            res = vkCreateImage(device.GetHandle(), &info, nullptr, &mImage);
             CHECK_VK(res, "Failed to craete VkImage.");
-            VULKAN_SET_OBJ_NAME(device.GetDevice(), mImage, debugName);
+            VULKAN_SET_OBJ_NAME(device.GetHandle(), mImage, debugName);
 
             // Allocate memory
             mAllocation = device.GetAllocator().Allocate(resUsage, info, &mImage);
+
+            // Initialize data if it is existed
+            if(pData != nullptr && size > 0) {
+            }
         }
 
         TextureVk::~TextureVk()
         {
             mDevice.GetAllocator().Free(mAllocation);
-            vkDestroyImage(mDevice.GetDevice(), mImage, nullptr);
+            vkDestroyImage(mDevice.GetHandle(), mImage, nullptr);
         }
 
         Texture2DVk::Texture2DVk(VulkanDevice& device, const Texture2DCreateInfo& info) :

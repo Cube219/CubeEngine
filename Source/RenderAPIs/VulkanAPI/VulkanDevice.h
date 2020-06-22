@@ -3,6 +3,10 @@
 #include "VulkanAPIHeader.h"
 
 #include "VulkanMemoryAllocator.h"
+#include "VulkanStagingManager.h"
+#include "VulkanFencePool.h"
+#include "VulkanSemaphorePool.h"
+#include "VulkanQueueManager.h"
 
 namespace cube
 {
@@ -25,8 +29,13 @@ namespace cube
             ~VulkanDevice();
 
             GPUType GetGPUType() const { return mType; }
-            VkDevice GetDevice() const { return mDevice; }
-            VulkanMemoryAllocator GetAllocator() { return mAllocator; }
+            VkDevice GetHandle() const { return mDevice; }
+
+            VulkanMemoryAllocator& GetAllocator() { return mAllocator; }
+            VulkanStagingManager& GetStagingManager() { return mStagingManager; }
+            VulkanFencePool& GetFencePool() { return mFencePool; }
+            VulkanSemaphorePool& GetSemaphorePool() { return mSemaphorePool; }
+            VulkanQueueManager& GetQueueManager() { return mQueueManager; }
 
         private:
             void CreateDevice();
@@ -35,12 +44,16 @@ namespace cube
             VkPhysicalDeviceProperties mProps;
             VkPhysicalDeviceFeatures mFeatures;
             VkPhysicalDeviceMemoryProperties mMemProps;
-            Vector<VkQueueFamilyProperties> mQueueFamilyProps;
 
             GPUType mType;
 
             VkDevice mDevice;
+
             VulkanMemoryAllocator mAllocator;
+            VulkanStagingManager mStagingManager;
+            VulkanFencePool mFencePool;
+            VulkanSemaphorePool mSemaphorePool;
+            VulkanQueueManager mQueueManager;
         };
     } // namespace rapi
 } // namespace cube

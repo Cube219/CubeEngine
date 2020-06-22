@@ -10,6 +10,7 @@ namespace cube
     {
         struct TextureCreateInfo : public ResourceCreateInfo
         {
+            const void* pData = nullptr;
             TextureFormat format;
             TextureBindTypeFlags bindTypeFlags;
             Uint32 mipLevels;
@@ -19,7 +20,7 @@ namespace cube
         {
         public:
             Texture(ResourceUsage usage,
-                TextureFormat format, TextureBindTypeFlags bindTypeFlags, Uint32 mipLevels, Uint32 samplesNum, const char* debugName) :
+                Uint64 size, const void* pData, TextureFormat format, TextureBindTypeFlags bindTypeFlags, Uint32 mipLevels, Uint32 samplesNum, const char* debugName) :
                 Resource(usage, debugName),
                 mFormat(format), mBindTypeFlags(bindTypeFlags),  mMipLevels(mipLevels), mSamplesNum(samplesNum)
             {}

@@ -4,6 +4,11 @@ namespace cube
 {
     namespace rapi
     {
+        // Interface/BufferVk.h
+        class BufferVk;
+        class VertexBufferVk;
+        class IndexBufferVk;
+
         // Interface/TextureVk.h
         class TextureVk;
         class Texture2DVk;
@@ -20,8 +25,23 @@ namespace cube
         // VulkanDevice.h
         class VulkanDevice;
 
+        // VulkanFencePool.h
+        class VulkanFence;
+        class VulkanFencePool;
+
         // VulkanMemoryAllocator.h
         struct VulkanAllocation;
         class VulkanMemoryAllocator;
+
+        // VulkanQueueManager.h
+        class VulkanQueueManager;
+
+        // VulkanSemaphoreManager.h
+        class VulkanSemaphore;
+        class VulkanSemaphoreManager;
+
+        // VulkanStagingManager.h
+        class VulkanStagingBuffer;
+        class VulkanStagingManager;
     } // namespace rapi
 } // namespace cube

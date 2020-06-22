@@ -10,6 +10,13 @@
     <ClCompile Include="VulkanTypeConversion.cpp" />
     <ClCompile Include="VulkanMemoryAllocator.cpp" />
     <ClCompile Include="VulkanDebug.cpp" />
+    <ClCompile Include="Interface\BufferVk.cpp">
+      <Filter>Interface</Filter>
+    </ClCompile>
+    <ClCompile Include="VulkanStagingManager.cpp" />
+    <ClCompile Include="VulkanFencePool.cpp" />
+    <ClCompile Include="VulkanQueueManager.cpp" />
+    <ClCompile Include="VulkanSemaphorePool.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="VulkanAPI.h" />
@@ -23,6 +30,13 @@
     <ClInclude Include="VulkanTypeConversion.h" />
     <ClInclude Include="VulkanMemoryAllocator.h" />
     <ClInclude Include="VulkanDebug.h" />
+    <ClInclude Include="Interface\BufferVk.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="VulkanStagingManager.h" />
+    <ClInclude Include="VulkanFencePool.h" />
+    <ClInclude Include="VulkanQueueManager.h" />
+    <ClInclude Include="VulkanSemaphorePool.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Interface">

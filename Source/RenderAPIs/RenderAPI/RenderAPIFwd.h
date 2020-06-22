@@ -4,6 +4,14 @@ namespace cube
 {
     namespace rapi
     {
+        // Interface/Buffer.h
+        struct BufferCreateInfo;
+        class Buffer;
+        struct VertexBufferCreateInfo;
+        class VertexBuffer;
+        struct IndexBufferCreateInfo;
+        class IndexBuffer;
+
         // Interface/Resource.h
         struct ResourceCreateInfo;
         class Resource;

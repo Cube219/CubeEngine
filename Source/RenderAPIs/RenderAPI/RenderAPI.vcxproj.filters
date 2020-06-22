@@ -13,6 +13,9 @@
     <ClInclude Include="Interface\Resource.h">
       <Filter>Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\Buffer.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="a.cpp" />

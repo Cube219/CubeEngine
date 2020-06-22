@@ -13,7 +13,7 @@ namespace cube
         class TextureVk
         {
         public:
-            TextureVk(VulkanDevice& device, ResourceUsage resUsage, VkImageViewType type, TextureFormat format, Uint32 width, Uint32 height, Uint32 depth, Uint32 arraySize, TextureBindTypeFlags bindTypeFlags, Uint32 mipLevels, Uint32 samplesNum, const char* debugName);
+            TextureVk(VulkanDevice& device, ResourceUsage resUsage, VkImageViewType type, Uint64 size, const void* pData, TextureFormat format, Uint32 width, Uint32 height, Uint32 depth, Uint32 arraySize, TextureBindTypeFlags bindTypeFlags, Uint32 mipLevels, Uint32 samplesNum, const char* debugName);
             virtual ~TextureVk();
 
         private:
