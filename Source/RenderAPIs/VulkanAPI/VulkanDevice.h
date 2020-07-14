@@ -7,6 +7,7 @@
 #include "VulkanFencePool.h"
 #include "VulkanSemaphorePool.h"
 #include "VulkanQueueManager.h"
+#include "Interface/DeviceContextVk.h"
 
 namespace cube
 {
@@ -37,6 +38,8 @@ namespace cube
             VulkanSemaphorePool& GetSemaphorePool() { return mSemaphorePool; }
             VulkanQueueManager& GetQueueManager() { return mQueueManager; }
 
+            DeviceContextVk& GetImmediateContext() { return *mpImmediateContext; }
+
         private:
             void CreateDevice();
 
@@ -54,6 +57,8 @@ namespace cube
             VulkanFencePool mFencePool;
             VulkanSemaphorePool mSemaphorePool;
             VulkanQueueManager mQueueManager;
+
+            DeviceContextVk* mpImmediateContext;
         };
     } // namespace rapi
 } // namespace cube

@@ -18,13 +18,18 @@ namespace cube
             };
             ResourceType resourceType;
             void* pResource;
+
             VmaAllocation allocation;
+            Uint64 size;
+            void* pMappedPtr;
         };
 
         class VulkanMemoryAllocator
         {
         public:
-            VulkanMemoryAllocator() {}
+            VulkanMemoryAllocator() :
+                mAllocator(VK_NULL_HANDLE)
+            {}
             ~VulkanMemoryAllocator() {}
 
             void Initialize(VkInstance instance, VkPhysicalDevice GPU, VkDevice device);

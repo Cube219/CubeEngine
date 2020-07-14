@@ -9,7 +9,7 @@ namespace cube
     namespace rapi
     {
         VulkanDevice::VulkanDevice(VkInstance instance, VkPhysicalDevice gpu) :
-            mGPU(gpu), mDevice(nullptr), mFencePool(*this), mSemaphorePool(*this), mQueueManager(*this)
+            mGPU(gpu), mDevice(nullptr), mStagingManager(*this), mFencePool(*this), mSemaphorePool(*this), mQueueManager(*this)
         {
             vkGetPhysicalDeviceProperties(mGPU, &mProps);
             switch(mProps.deviceType)
@@ -45,10 +45,14 @@ namespace cube
             mFencePool.Initialize();
             mSemaphorePool.Initialize();
             mQueueManager.Initialize(mGPU);
+
+            mpImmediateContext = new DeviceContextVk(*this);
         }
 
         VulkanDevice::~VulkanDevice()
         {
+            delete mpImmediateContext;
+
             mQueueManager.Shutdown();
             mSemaphorePool.Shutdown();
             mFencePool.Shutdown();

@@ -12,6 +12,9 @@ namespace cube
         struct IndexBufferCreateInfo;
         class IndexBuffer;
 
+        // Interface/DeviceContext.h
+        class DeviceContext;
+
         // Interface/Resource.h
         struct ResourceCreateInfo;
         class Resource;

@@ -33,7 +33,7 @@ namespace cube
             void GetDevices();
 
             VkInstance mInstance;
-            Vector<VulkanDevice> mAllDevices;
+            Vector<VulkanDevice*> mAllDevices;
             VulkanDevice* mDevice;
         };
     } // namespace rapi

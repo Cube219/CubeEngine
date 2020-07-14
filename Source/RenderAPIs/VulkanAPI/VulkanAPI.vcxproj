@@ -93,8 +93,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Interface\BufferVk.cpp" />
+    <ClCompile Include="Interface\DeviceContextVk.cpp" />
     <ClCompile Include="Interface\TextureVk.cpp" />
     <ClCompile Include="VulkanAPI.cpp" />
+    <ClCompile Include="VulkanCommandPool.cpp" />
     <ClCompile Include="VulkanDebug.cpp" />
     <ClCompile Include="VulkanDevice.cpp" />
     <ClCompile Include="VulkanFencePool.cpp" />
@@ -118,10 +120,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Interface\BufferVk.h" />
+    <ClInclude Include="Interface\DeviceContextVk.h" />
     <ClInclude Include="Interface\TextureVk.h" />
     <ClInclude Include="VulkanAPI.h" />
     <ClInclude Include="VulkanAPIFwd.h" />
     <ClInclude Include="VulkanAPIHeader.h" />
+    <ClInclude Include="VulkanCommandPool.h" />
     <ClInclude Include="VulkanDebug.h" />
     <ClInclude Include="VulkanDevice.h" />
     <ClInclude Include="VulkanFencePool.h" />

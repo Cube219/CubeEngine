@@ -9,6 +9,9 @@ namespace cube
         class VertexBufferVk;
         class IndexBufferVk;
 
+        // Interface/DeviceContextVk.h
+        class DeviceContextVk;
+
         // Interface/TextureVk.h
         class TextureVk;
         class Texture2DVk;
@@ -18,6 +21,10 @@ namespace cube
 
         // VulkanAPI.h
         class VulkanAPI;
+
+        // VulkanCommandPool.h
+        class VulkanCommandBuffer;
+        class VulkanCommandPool;
 
         // VulkanDebug.h
         class VulkanDebug;

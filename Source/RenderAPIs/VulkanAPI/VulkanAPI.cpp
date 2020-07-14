@@ -28,6 +28,12 @@ namespace cube
 
         void VulkanAPI::Shutdown()
         {
+            mDevice = nullptr;
+            for(auto device : mAllDevices) {
+                delete device;
+            }
+            mAllDevices.clear();
+
             VULKAN_DEBUG_SHUTDOWN();
         }
 
@@ -105,17 +111,17 @@ namespace cube
 
             mAllDevices.reserve(deviceCount);
             for(Uint32 i = 0; i < deviceCount; i++) {
-                mAllDevices.emplace_back(mInstance, physicalDevices[i]);
+                mAllDevices.push_back(new VulkanDevice(mInstance, physicalDevices[i]));
             }
 
             mDevice = nullptr;
             for(Uint32 i = 0; i < deviceCount; i++) {
-                if(mAllDevices[i].GetGPUType() == GPUType::Discrete) {
-                    mDevice = &mAllDevices[i];
+                if(mAllDevices[i]->GetGPUType() == GPUType::Discrete) {
+                    mDevice = mAllDevices[i];
                     break;
                 }
             }
-            if(mDevice == nullptr) mDevice = &mAllDevices[0];
+            if(mDevice == nullptr) mDevice = mAllDevices[0];
         }
     } // namespace rapi
 } // namespace cube

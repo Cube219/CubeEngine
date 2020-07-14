@@ -45,13 +45,18 @@ namespace cube
                     break;
                 case ResourceUsage::Staging:
                     info.usage = VMA_MEMORY_USAGE_CPU_ONLY;
+                    info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
                     break;
                 default:
                     ASSERTION_FAILED("Invalid resource type {}", (int)usage);
                     break;
             }
 
-            vmaCreateBuffer(mAllocator, &bufCreateInfo, &info, pBuf, &(alloc.allocation), nullptr);
+            VmaAllocationInfo aInfo;
+            vmaCreateBuffer(mAllocator, &bufCreateInfo, &info, pBuf, &(alloc.allocation), &aInfo);
+            
+            alloc.pMappedPtr = aInfo.pMappedData;
+            alloc.size = aInfo.size;
             
             return alloc;
         }
@@ -80,7 +85,11 @@ namespace cube
                     break;
             }
 
-            vmaCreateImage(mAllocator, &imageCreateInfo, &info, pImage, &(alloc.allocation), nullptr);
+            VmaAllocationInfo aInfo;
+            vmaCreateImage(mAllocator, &imageCreateInfo, &info, pImage, &(alloc.allocation), &aInfo);
+
+            alloc.pMappedPtr = aInfo.pMappedData;
+            alloc.size = aInfo.size;
 
             return alloc;
         }

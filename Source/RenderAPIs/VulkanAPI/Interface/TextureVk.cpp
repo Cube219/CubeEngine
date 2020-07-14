@@ -84,6 +84,30 @@ namespace cube
 
             // Initialize data if it is existed
             if(pData != nullptr && size > 0) {
+                VulkanStagingBuffer stagingBuf = mDevice.GetStagingManager().GetBuffer(size, debugName);
+                memcpy(stagingBuf.GetMappedPtr(), pData, size);
+
+                VulkanCommandBuffer& uploadCmdBuf = mDevice.GetImmediateContext().GetUploadCommandBuffer();
+
+                VkBufferImageCopy region;
+                region.bufferOffset = 0;
+                region.bufferRowLength = 0;
+                region.bufferImageHeight = 0;
+
+                region.imageSubresource.aspectMask = 0;
+                if(bindTypeFlags.IsSet(TextureBindTypeFlag::DepthStencil)) {
+                    region.imageSubresource.aspectMask |= VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+                } else {
+                    region.imageSubresource.aspectMask |= VK_IMAGE_ASPECT_COLOR_BIT;
+                }
+                region.imageSubresource.mipLevel = 0;
+                region.imageSubresource.baseArrayLayer = 0;
+                region.imageSubresource.layerCount = arraySize;
+
+                region.imageOffset = { 0, 0, 0 };
+                region.imageExtent = { width, height, depth };
+
+                uploadCmdBuf.CopyBufferToImage(stagingBuf.GetHandle(), mImage, region);
             }
         }
 
@@ -95,20 +119,20 @@ namespace cube
 
         Texture2DVk::Texture2DVk(VulkanDevice& device, const Texture2DCreateInfo& info) :
             Texture2D(info.usage, info.width, info.height, info.format, info.bindTypeFlags, info.mipLevels, info.samplesNum, info.debugName),
-            TextureVk(device, info.usage, VK_IMAGE_VIEW_TYPE_2D, info.format, info.width, info.height, 1, 1, info.bindTypeFlags, info.mipLevels, info.samplesNum, info.debugName)
+            TextureVk(device, info.usage, VK_IMAGE_VIEW_TYPE_2D, info.textureSize, info.pData, info.format, info.width, info.height, 1, 1, info.bindTypeFlags, info.mipLevels, info.samplesNum, info.debugName)
         {}
         Texture2DArrayVk::Texture2DArrayVk(VulkanDevice& device, const Texture2DArrayCreateInfo& info) :
             Texture2DArray(info.usage, info.arraySize, info.width, info.height, info.format, info.bindTypeFlags, info.mipLevels, info.samplesNum, info.debugName),
-            TextureVk(device, info.usage, VK_IMAGE_VIEW_TYPE_2D_ARRAY, info.format, info.width, info.height, 1, info.arraySize, info.bindTypeFlags, info.mipLevels, info.samplesNum, info.debugName)
+            TextureVk(device, info.usage, VK_IMAGE_VIEW_TYPE_2D_ARRAY, info.textureSize, info.pData, info.format, info.width, info.height, 1, info.arraySize, info.bindTypeFlags, info.mipLevels, info.samplesNum, info.debugName)
         {}
         Texture3DVk::Texture3DVk(VulkanDevice& device, const Texture3DCreateInfo& info) :
             Texture3D(info.usage, info.width, info.height, info.depth, info.format, info.bindTypeFlags, info.mipLevels, info.samplesNum, info.debugName),
-            TextureVk(device, info.usage, VK_IMAGE_VIEW_TYPE_3D, info.format, info.width, info.height, info.depth, 1, info.bindTypeFlags, info.mipLevels, info.samplesNum, info.debugName)
+            TextureVk(device, info.usage, VK_IMAGE_VIEW_TYPE_3D, info.textureSize, info.pData, info.format, info.width, info.height, info.depth, 1, info.bindTypeFlags, info.mipLevels, info.samplesNum, info.debugName)
 
         {}
         TextureCubeVk::TextureCubeVk(VulkanDevice& device, const TextureCubeCreateInfo& info) :
             TextureCube(info.usage, info.size, info.format, info.bindTypeFlags, info.mipLevels, info.samplesNum, info.debugName),
-            TextureVk(device, info.usage, VK_IMAGE_VIEW_TYPE_CUBE, info.format, info.size, info.size, 1, 6, info.bindTypeFlags, info.mipLevels, info.samplesNum, info.debugName)
+            TextureVk(device, info.usage, VK_IMAGE_VIEW_TYPE_CUBE, info.textureSize, info.pData, info.format, info.size, info.size, 1, 6, info.bindTypeFlags, info.mipLevels, info.samplesNum, info.debugName)
         {}
     } // namespace rapi
 } // namespace cube
