@@ -18,7 +18,6 @@ namespace cube
         void VulkanAPI::Initialize(bool enableDebugLayer)
         {
             InitTypeConversion();
-
             CreateInstance(enableDebugLayer);
             if(enableDebugLayer == true) {
                 VULKAN_DEBUG_INIT(mInstance);
@@ -70,6 +69,7 @@ namespace cube
 #endif // VK_USE_PLATFORM_WIN32_KHR
             if(enableDebugLayer == true) {
                 layers.push_back("VK_LAYER_KHRONOS_validation");
+                extensions.push_back("VK_EXT_debug_utils");
             }
 
             VkApplicationInfo appInfo;

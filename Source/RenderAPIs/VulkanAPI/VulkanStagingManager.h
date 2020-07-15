@@ -64,6 +64,9 @@ namespace cube
             {}
             ~VulkanStagingManager() {}
 
+            VulkanStagingManager(const VulkanStagingManager& other) = delete;
+            VulkanStagingManager& operator=(const VulkanStagingManager& rhs) = delete;
+
             void Initialize();
             void Shutdown();
 

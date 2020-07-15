@@ -42,6 +42,9 @@ namespace cube
             {}
             ~VulkanFencePool() {}
 
+            VulkanFencePool(const VulkanFencePool& other) = delete;
+            VulkanFencePool& operator=(const VulkanFencePool& rhs) = delete;
+
             void Initialize();
             void Shutdown();
 

@@ -32,6 +32,9 @@ namespace cube
             {}
             ~VulkanMemoryAllocator() {}
 
+            VulkanMemoryAllocator(const VulkanMemoryAllocator& other) = delete;
+            VulkanMemoryAllocator& operator=(const VulkanMemoryAllocator& rhs) = delete;
+
             void Initialize(VkInstance instance, VkPhysicalDevice GPU, VkDevice device);
             void Shutdown();
 

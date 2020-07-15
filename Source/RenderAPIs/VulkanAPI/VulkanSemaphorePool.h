@@ -35,6 +35,9 @@ namespace cube
             {}
             ~VulkanSemaphorePool() {}
 
+            VulkanSemaphorePool(const VulkanSemaphorePool& other) = delete;
+            VulkanSemaphorePool& operator=(const VulkanSemaphorePool& rhs) = delete;
+
             void Initialize();
             void Shutdown();
 

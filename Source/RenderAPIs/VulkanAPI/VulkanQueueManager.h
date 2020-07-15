@@ -26,6 +26,9 @@ namespace cube
             {}
             ~VulkanQueueManager() {}
 
+            VulkanQueueManager(const VulkanQueueManager& other) = delete;
+            VulkanQueueManager& operator=(const VulkanQueueManager& rhs) = delete;
+
             void Initialize(VkPhysicalDevice gpu);
             void Shutdown();
 
