@@ -9,7 +9,13 @@ namespace cube
     namespace rapi
     {
         VulkanDevice::VulkanDevice(VkInstance instance, VkPhysicalDevice gpu) :
-            mGPU(gpu), mDevice(nullptr), mStagingManager(*this), mFencePool(*this), mSemaphorePool(*this), mQueueManager(*this)
+            mGPU(gpu),
+            mDevice(nullptr),
+            mStagingManager(*this),
+            mFencePool(*this),
+            mSemaphorePool(*this),
+            mQueueManager(*this),
+            mUploadCommandPool(*this)
         {
             vkGetPhysicalDeviceProperties(mGPU, &mProps);
             switch(mProps.deviceType)
@@ -47,10 +53,14 @@ namespace cube
             mQueueManager.Initialize(mGPU);
 
             mpImmediateContext = new DeviceContextVk(*this);
+
+            mUploadCommandPool.CreatePool(VulkanCommandBufferType::Transfer, true);
         }
 
         VulkanDevice::~VulkanDevice()
         {
+            mUploadCommandPool.DestroyPool();
+
             delete mpImmediateContext;
 
             mQueueManager.Shutdown();
@@ -62,6 +72,16 @@ namespace cube
             if(mDevice != nullptr) {
                 vkDestroyDevice(mDevice, nullptr);
             }
+        }
+
+        VulkanCommandBuffer VulkanDevice::GetUploadCommandBuffer(const char* debugName)
+        {
+            return mUploadCommandPool.AllocateCommandBuffer(debugName);
+        }
+
+        void VulkanDevice::SubmitUploadCommandBuffer(VulkanCommandBuffer& cmdBuf)
+        {
+            mUploadCommandBuffersToSubmit.push_back(std::move(cmdBuf));
         }
 
         void VulkanDevice::CreateDevice()

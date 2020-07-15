@@ -33,6 +33,24 @@ namespace cube
         {
         }
 
+        void VulkanQueueManager::SubmitCommandBuffer(VulkanCommandBuffer& commandBuffer)
+        {
+            switch(commandBuffer.GetType())
+            {
+                case VulkanCommandBufferType::Graphics:
+                    SubmitGraphicsQueue(commandBuffer);
+                    break;
+                case VulkanCommandBufferType::Compute:
+                    SubmitComputeQueue(commandBuffer);
+                    break;
+                case VulkanCommandBufferType::Transfer:
+                    SubmitTransferQueue(commandBuffer);
+                    break;
+                default:
+                    break;
+            }
+        }
+
         bool VulkanQueueManager::InitGraphicsQueue(VkQueueFamilyProperties* pProps, Uint64 propNum)
         {
             Uint32 familyIndex = FindQueueFamilyIndex(pProps, propNum, VK_QUEUE_GRAPHICS_BIT, 0);
@@ -157,6 +175,18 @@ namespace cube
             }
 
             return Uint32InvalidValue;
+        }
+
+        void VulkanQueueManager::SubmitGraphicsQueue(VulkanCommandBuffer& commandBuffer)
+        {
+        }
+
+        void VulkanQueueManager::SubmitComputeQueue(VulkanCommandBuffer& commandBuffer)
+        {
+        }
+
+        void VulkanQueueManager::SubmitTransferQueue(VulkanCommandBuffer& commandBuffer)
+        {
         }
     } // namespace rapi
 } // namespace cube

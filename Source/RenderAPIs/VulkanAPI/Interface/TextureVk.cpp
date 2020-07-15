@@ -87,7 +87,7 @@ namespace cube
                 VulkanStagingBuffer stagingBuf = mDevice.GetStagingManager().GetBuffer(size, debugName);
                 memcpy(stagingBuf.GetMappedPtr(), pData, size);
 
-                VulkanCommandBuffer& uploadCmdBuf = mDevice.GetImmediateContext().GetUploadCommandBuffer();
+                VulkanCommandBuffer uploadCmdBuf = mDevice.GetUploadCommandBuffer();
 
                 VkBufferImageCopy region;
                 region.bufferOffset = 0;
@@ -108,6 +108,9 @@ namespace cube
                 region.imageExtent = { width, height, depth };
 
                 uploadCmdBuf.CopyBufferToImage(stagingBuf.GetHandle(), mImage, region);
+
+                mDevice.SubmitUploadCommandBuffer(uploadCmdBuf);
+                mDevice.GetStagingManager().ReleaseBuffer(std::move(stagingBuf));
             }
         }
 

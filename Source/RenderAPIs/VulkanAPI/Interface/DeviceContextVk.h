@@ -16,13 +16,11 @@ namespace cube
             DeviceContextVk(VulkanDevice& device);
             virtual ~DeviceContextVk();
 
-            VulkanCommandBuffer& GetUploadCommandBuffer() { return mUploadCommandBuffer; }
-
         private:
             VulkanDevice& mDevice;
 
-            VulkanCommandPool mCommandPool;
-            VulkanCommandBuffer mUploadCommandBuffer;
+            VulkanCommandPool mGraphicsCommandPool;
+            VulkanCommandPool mComputeCommandPool;
         };
     }
 } // namespace cube

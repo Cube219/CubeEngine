@@ -11,21 +11,10 @@ namespace cube
         VulkanCommandBuffer::VulkanCommandBuffer(VulkanDevice& device, VulkanCommandPool& commandPool) :
             mDevice(device),
             mCommandPool(commandPool),
-            mCommandBuffer(VK_NULL_HANDLE)
+            mCommandBuffer(VK_NULL_HANDLE),
+            mIsTransient(false)
         {
             // Allocated VkCommandBuffer in VulkanCommandPool
-            /*
-            VkResult res;
-
-            VkCommandBufferAllocateInfo info;
-            info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-            info.pNext = nullptr;
-            info.commandPool = commandPool.GetHandle();
-            info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-            info.commandBufferCount = 1;
-
-            res = vkAllocateCommandBuffers(mDevice.GetHandle(), &info, &mCommandBuffer);
-            CHECK_VK(res, "Failed to allocate command buffer.");*/
         }
 
         VulkanCommandBuffer::~VulkanCommandBuffer()
@@ -43,6 +32,7 @@ namespace cube
             beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
             beginInfo.pNext = nullptr;
             beginInfo.flags = 0;
+            if(mIsTransient == true) beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
             beginInfo.pInheritanceInfo = nullptr;
 
             res = vkBeginCommandBuffer(mCommandBuffer, &beginInfo);
@@ -63,6 +53,13 @@ namespace cube
 
             res = vkResetCommandBuffer(mCommandBuffer, 0);
             CHECK_VK(res, "Failed to reset command buffer.");
+        }
+
+        void VulkanCommandBuffer::Free(bool immediately)
+        {
+            if(mCommandBuffer != VK_NULL_HANDLE) {
+                mCommandPool.FreeCommandBuffer(*this, immediately);
+            }
         }
 
         void VulkanCommandBuffer::SetMemoryBarrier(VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkBuffer buffer, Uint64 size)
@@ -97,31 +94,33 @@ namespace cube
             vkCmdCopyBufferToImage(mCommandBuffer, src, dst, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
         }
 
-        void VulkanCommandBuffer::FreeCommandBuffer()
+        void VulkanCommandPool::CreatePool(VulkanCommandBufferType type, bool isTransient)
         {
-            if(mCommandBuffer != VK_NULL_HANDLE) {
-                mCommandPool.FreeCommandBuffer(*this, true);
-            }
-        }
+            VulkanQueueManager& queueManager = mDevice.GetQueueManager();
 
-        VulkanCommandPool::VulkanCommandPool(VulkanDevice& device, Uint32 queueFamilyIndex, bool isTransient) :
-            mDevice(device),
-            mCommandPool(VK_NULL_HANDLE)
-        {
+            switch(type)
+            {
+                case VulkanCommandBufferType::Graphics: mQueueFamilyIndex = queueManager.GetGraphicsQueueFamilyIndex(); break;
+                case VulkanCommandBufferType::Compute:  mQueueFamilyIndex = queueManager.GetComputeQueueFamilyIndex(); break;
+                case VulkanCommandBufferType::Transfer: mQueueFamilyIndex = queueManager.GetTransferQueueFamilyIndex(); break;
+                default:                                mQueueFamilyIndex = 0; break;
+            }
+            mIsTransient = isTransient;
+
             VkResult res;
 
             VkCommandPoolCreateInfo info;
             info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
             info.pNext = nullptr;
-            if(isTransient == true) info.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
-            else                    info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-            info.queueFamilyIndex = queueFamilyIndex;
+            if(mIsTransient == true) info.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+            else                     info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+            info.queueFamilyIndex = mQueueFamilyIndex;
 
             res = vkCreateCommandPool(mDevice.GetHandle(), &info, nullptr, &mCommandPool);
             CHECK_VK(res, "Failed to create command pool.");
         }
 
-        VulkanCommandPool::~VulkanCommandPool()
+        void VulkanCommandPool::DestroyPool()
         {
             vkDestroyCommandPool(mDevice.GetHandle(), mCommandPool, nullptr);
         }
@@ -143,6 +142,9 @@ namespace cube
             CHECK_VK(res, "Failed to allocate command buffer.");
             VULKAN_SET_OBJ_NAME(mDevice.GetHandle(), cmdBuf.mCommandBuffer, debugName);
 
+            cmdBuf.mIsTransient = mIsTransient;
+            cmdBuf.mType = mType;
+
             return cmdBuf;
         }
 
@@ -155,6 +157,14 @@ namespace cube
             }
 
             cmdBuf.mCommandBuffer = VK_NULL_HANDLE;
+        }
+
+        void VulkanCommandPool::FreeCommandBuffersInQueue()
+        {
+            for(auto cmdBuf : mFreeCommandBuffers) {
+                vkFreeCommandBuffers(mDevice.GetHandle(), mCommandPool, 1, &cmdBuf);
+            }
+            mFreeCommandBuffers.clear();
         }
     }
 } // namespace cube

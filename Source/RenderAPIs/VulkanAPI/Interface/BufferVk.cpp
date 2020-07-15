@@ -40,9 +40,12 @@ namespace cube
                 VulkanStagingBuffer stagingBuf = mDevice.GetStagingManager().GetBuffer(size, debugName);
                 memcpy(stagingBuf.GetMappedPtr(), pData, size);
 
-                VulkanCommandBuffer& uploadCmdBuf = mDevice.GetImmediateContext().GetUploadCommandBuffer();
+                VulkanCommandBuffer uploadCmdBuf = mDevice.GetUploadCommandBuffer();
                 uploadCmdBuf.SetMemoryBarrier(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, VK_ACCESS_TRANSFER_WRITE_BIT, mBuffer, size);
                 uploadCmdBuf.CopyBuffer(mBuffer, stagingBuf.GetHandle(), 0, 0, size);
+
+                mDevice.SubmitUploadCommandBuffer(uploadCmdBuf);
+                mDevice.GetStagingManager().ReleaseBuffer(std::move(stagingBuf));
             }          
         }
 

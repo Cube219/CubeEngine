@@ -8,14 +8,19 @@ namespace cube
     {
         DeviceContextVk::DeviceContextVk(VulkanDevice& device) :
             mDevice(device),
-            mCommandPool(device, 0),
-            mUploadCommandBuffer(device, mCommandPool)
+            mGraphicsCommandPool(device),
+            mComputeCommandPool(device)
         {
-            mUploadCommandBuffer.Begin();
+            auto& queueManager = device.GetQueueManager();
+
+            mGraphicsCommandPool.CreatePool(VulkanCommandBufferType::Graphics);
+            mComputeCommandPool.CreatePool(VulkanCommandBufferType::Compute);
         }
 
         DeviceContextVk::~DeviceContextVk()
         {
+            mComputeCommandPool.DestroyPool();
+            mGraphicsCommandPool.DestroyPool();
         }
     } // namespace rapi
 } // namespace cube
