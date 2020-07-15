@@ -9,12 +9,12 @@ namespace cube
 {
     namespace rapi
     {
-        VulkanFence::WaitResult VulkanFence::Wait(VkDevice device, double timeInSec)
+        VulkanFence::WaitResult VulkanFence::Wait(double timeInSec)
         {
             CHECK(mFence != VK_NULL_HANDLE, "The fence is already released.");
 
             Uint64 nanoSecond = (Uint64)(timeInSec * 1000.0 * 1000.0 * 1000.0);
-            VkResult res = vkWaitForFences(device, 1, &mFence, VK_TRUE, nanoSecond);
+            VkResult res = vkWaitForFences(mDeviceHandle, 1, &mFence, VK_TRUE, nanoSecond);
 
             switch(res) {
                 case VK_SUCCESS: return WaitResult::Success;
@@ -23,11 +23,11 @@ namespace cube
             }
         }
 
-        void VulkanFence::Reset(VkDevice device)
+        void VulkanFence::Reset()
         {
             CHECK(mFence != VK_NULL_HANDLE, "The fence is already released.");
 
-            VkResult res = vkResetFences(device, 1, &mFence);
+            VkResult res = vkResetFences(mDeviceHandle, 1, &mFence);
             CHECK_VK(res, "Failed to reset the fence.");
         }
 
@@ -50,7 +50,7 @@ namespace cube
                 res = vkCreateFence(mDevice.GetHandle(), &info, nullptr, &fence);
                 CHECK_VK(res, "Failed to create VkFence.");
 
-                mFreeFences[i] = VulkanFence(fence);
+                mFreeFences[i] = VulkanFence(mDevice.GetHandle(), fence);
             }
         }
 

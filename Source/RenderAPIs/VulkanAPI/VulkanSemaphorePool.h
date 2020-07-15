@@ -41,7 +41,7 @@ namespace cube
             void Initialize();
             void Shutdown();
 
-            VulkanSemaphore AllocateSemaphore(const char* debugName = "");
+            VulkanSemaphore AllocateSemaphore(const char* debugName = nullptr);
             void FreeSemaphore(VulkanSemaphore& semaphore);
 
         private:

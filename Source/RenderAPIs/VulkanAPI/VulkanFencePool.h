@@ -11,8 +11,12 @@ namespace cube
         class VulkanFence
         {
         public:
-            VulkanFence() : mFence(VK_NULL_HANDLE) {}
-            VulkanFence(VkFence fence) :
+            VulkanFence() :
+                mDeviceHandle(VK_NULL_HANDLE),
+                mFence(VK_NULL_HANDLE)
+            {}
+            VulkanFence(VkDevice deviceHandle, VkFence fence) :
+                mDeviceHandle(deviceHandle),
                 mFence(fence)
             {}
             ~VulkanFence() {}
@@ -25,11 +29,13 @@ namespace cube
                 Timeout,
                 Error
             };
-            WaitResult Wait(VkDevice device, double timeInSec);
-            void Reset(VkDevice device);
+            WaitResult Wait(double timeInSec);
+            void Reset();
 
         private:
             friend class VulkanFencePool;
+
+            VkDevice mDeviceHandle;
 
             VkFence mFence;
         };

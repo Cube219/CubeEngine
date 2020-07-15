@@ -3,6 +3,8 @@
 #include "VulkanAPIHeader.h"
 
 #include "Core/Thread/MutexLock.h"
+#include "VulkanFencePool.h"
+#include "VulkanSemaphorePool.h"
 
 namespace cube
 {
@@ -51,6 +53,9 @@ namespace cube
             VulkanDevice& mDevice;
 
             VulkanQueue mGraphicsQueue;
+            VulkanFence mGraphicsQueueFence;
+            Mutex mGraphicsWaitSemaphoresMutex;
+            Vector<VulkanSemaphore> mGraphicsWaitSemaphores;
 
             Vector<VulkanQueue> mComputeQueues;
             Uint64 mComputeQueuesCurrentIndex;

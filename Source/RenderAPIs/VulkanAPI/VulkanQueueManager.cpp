@@ -4,6 +4,7 @@
 #include "Core/Allocator/FrameAllocator.h"
 
 #include "VulkanDevice.h"
+#include "VulkanUtility.h"
 
 namespace cube
 {
@@ -21,6 +22,7 @@ namespace cube
             bool res;
             res = InitGraphicsQueue(queueFamilyProps.data(), queueFamilyNum);
             CHECK(res, "Cannot find graphics queue family.");
+            mGraphicsQueueFence = mDevice.GetFencePool().AllocateFence("Graphics queue fence");
 
             res = InitComputeQueue(queueFamilyProps.data(), queueFamilyNum);
             CHECK(res, "Cannot find compute queue family.");
@@ -31,6 +33,7 @@ namespace cube
 
         void VulkanQueueManager::Shutdown()
         {
+            mDevice.GetFencePool().FreeFence(mGraphicsQueueFence);
         }
 
         void VulkanQueueManager::SubmitCommandBuffer(VulkanCommandBuffer& commandBuffer)
@@ -179,14 +182,123 @@ namespace cube
 
         void VulkanQueueManager::SubmitGraphicsQueue(VulkanCommandBuffer& commandBuffer)
         {
+            VkResult res;
+
+            VulkanFence::WaitResult waitResult = mGraphicsQueueFence.Wait(120.0);
+            switch(waitResult) {
+                case VulkanFence::WaitResult::Timeout:
+                    ASSERTION_FAILED("Failed to submit graphcis queue. Last submit isn't completed too long(over 120s).");
+                    return;
+                case VulkanFence::WaitResult::Error:
+                    ASSERTION_FAILED("Failed to submit graphcis queue. Last submit has some error.");
+                    return;
+                default:
+                    break;
+            }
+
+            mGraphicsQueueFence.Reset();
+
+            VkCommandBuffer cmdBuf = commandBuffer.GetHandle();
+
+            FrameVector<VulkanSemaphore> waitSemaphores;
+            {
+                Lock lock(mGraphicsWaitSemaphoresMutex);
+
+                waitSemaphores.insert(waitSemaphores.cend(), mGraphicsWaitSemaphores.begin(), mGraphicsWaitSemaphores.end());
+                mGraphicsWaitSemaphores.clear();
+            }
+
+            FrameVector<VkSemaphore> waitVkSemaphores(mGraphicsWaitSemaphores.size());
+            FrameVector<VkPipelineStageFlags> waitSemaphoreStages(mGraphicsWaitSemaphores.size());
+            for(Uint64 i = 0; i < mGraphicsWaitSemaphores.size(); i++) {
+                waitVkSemaphores[i] = mGraphicsWaitSemaphores[i].GetHandle();
+                waitSemaphoreStages[i] = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            }
+
+            VkSubmitInfo submitInfo = {};
+            submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            submitInfo.pNext = nullptr;
+            submitInfo.waitSemaphoreCount = SCast(Uint32)(waitVkSemaphores.size());
+            submitInfo.pWaitSemaphores = waitVkSemaphores.data();
+            submitInfo.pWaitDstStageMask = waitSemaphoreStages.data();
+            submitInfo.commandBufferCount = 1;
+            submitInfo.pCommandBuffers = &cmdBuf;
+            submitInfo.signalSemaphoreCount = 0;
+            submitInfo.pSignalSemaphores = nullptr;
+
+            res = vkQueueSubmit(mGraphicsQueue.queue, 1, &submitInfo, mGraphicsQueueFence.GetHandle());
+            CHECK_VK(res, "Failed to submit command buffer to the graphics queue.");
+
+            for(auto& s : waitSemaphores) {
+                mDevice.GetSemaphorePool().FreeSemaphore(s);
+            }
         }
 
         void VulkanQueueManager::SubmitComputeQueue(VulkanCommandBuffer& commandBuffer)
         {
+            VkResult res;
+
+            VkCommandBuffer cmdBuf = commandBuffer.GetHandle();
+
+            VkSubmitInfo submitInfo = {};
+            submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            submitInfo.pNext = nullptr;
+            submitInfo.waitSemaphoreCount = 0;
+            submitInfo.pWaitSemaphores = nullptr;
+            submitInfo.pWaitDstStageMask = nullptr;
+            submitInfo.commandBufferCount = 1;
+            submitInfo.pCommandBuffers = &cmdBuf;
+            submitInfo.signalSemaphoreCount = 0;
+            submitInfo.pSignalSemaphores = nullptr;
+
+            VkQueue queueToSubmit;
+            {
+                Lock lock(mComputeQueuesMutex);
+
+                queueToSubmit = mComputeQueues[mComputeQueuesCurrentIndex++].queue;
+                mComputeQueuesCurrentIndex %= mComputeQueues.size();
+            }
+
+            res = vkQueueSubmit(queueToSubmit, 1, &submitInfo, VK_NULL_HANDLE);
+            CHECK_VK(res, "Failed to submit command buffer to the compute queue.");
         }
 
         void VulkanQueueManager::SubmitTransferQueue(VulkanCommandBuffer& commandBuffer)
         {
+            VkResult res;
+
+            VkCommandBuffer cmdBuf = commandBuffer.GetHandle();
+
+            VulkanSemaphore signalSemaphore = mDevice.GetSemaphorePool().AllocateSemaphore("Semaphore to signal that transfer queue submit is completed");
+            VkSemaphore signalVkSemaphore = signalSemaphore.GetHandle();
+
+            {
+                Lock lock(mGraphicsWaitSemaphoresMutex);
+
+                mGraphicsWaitSemaphores.push_back(signalSemaphore);
+            }
+
+            VkSubmitInfo submitInfo = {};
+            submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            submitInfo.pNext = nullptr;
+            submitInfo.waitSemaphoreCount = 0;
+            submitInfo.pWaitSemaphores = nullptr;
+            submitInfo.pWaitDstStageMask = nullptr;
+            submitInfo.commandBufferCount = 1;
+            submitInfo.pCommandBuffers = &cmdBuf;
+            submitInfo.signalSemaphoreCount = 1;
+            submitInfo.pSignalSemaphores = &signalVkSemaphore;
+
+            VkQueue queueToSubmit;
+            {
+                Lock lock(mTransferQueuesMutex);
+
+                queueToSubmit = mTransferQueues[mTransferQueuesCurrentIndex++].queue;
+                mTransferQueuesCurrentIndex %= mTransferQueues.size();
+            }
+
+            res = vkQueueSubmit(queueToSubmit, 1, &submitInfo, VK_NULL_HANDLE);
+            CHECK_VK(res, "Failed to submit command buffer to the transfer queue.");
         }
     } // namespace rapi
 } // namespace cube
