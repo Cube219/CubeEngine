@@ -5,6 +5,7 @@
 #include "Core/Assertion.h"
 #include "../VulkanTypeConversion.h"
 #include "../VulkanDebug.h"
+#include "Core/LogWriter.h"
 
 namespace cube
 {

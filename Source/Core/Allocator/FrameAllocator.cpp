@@ -2,6 +2,7 @@
 
 #include "Platform/Platform.h"
 #include "AllocatorUtility.h"
+#include "../LogWriter.h"
 
 namespace cube
 {
