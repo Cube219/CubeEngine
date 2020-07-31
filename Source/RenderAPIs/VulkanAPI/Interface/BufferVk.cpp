@@ -79,5 +79,15 @@ namespace cube
                     break;
             }
         }
+
+        ConstantBufferVk::ConstantBufferVk(VulkanDevice& device, const ConstantBufferCreateInfo& info) :
+            ConstantBuffer(info.usage, info.size, info.debugName),
+            BufferVk(device, info.usage, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, info.size, info.pData, info.debugName)
+        {}
+
+        StructuredBufferVk::StructuredBufferVk(VulkanDevice& device, const StructuredBufferCreateInfo& info) :
+            StructuredBuffer(info.usage, info.size, info.debugName),
+            BufferVk(device, info.usage, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, info.size, info.pData, info.debugName)
+        {}
     } // namespace rapi
 } // namespace cube

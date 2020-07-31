@@ -42,5 +42,19 @@ namespace cube
         private:
             VkIndexType mIndexType;
         };
+
+        class ConstantBufferVk : public ConstantBuffer, public BufferVk
+        {
+        public:
+            ConstantBufferVk(VulkanDevice& device, const ConstantBufferCreateInfo& info);
+            virtual ~ConstantBufferVk() {}
+        };
+
+        class StructuredBufferVk : public StructuredBuffer, public BufferVk
+        {
+        public:
+            StructuredBufferVk(VulkanDevice& device, const StructuredBufferCreateInfo& info);
+            virtual ~StructuredBufferVk() {}
+        };
     } // namespace rapi
 } // namespace cube

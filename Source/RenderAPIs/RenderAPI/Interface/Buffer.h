@@ -58,5 +58,29 @@ namespace cube
             {}
             virtual ~IndexBuffer() {}
         };
+
+        struct ConstantBufferCreateInfo : public BufferCreateInfo
+        {
+        };
+        class ConstantBuffer : public Buffer
+        {
+        public:
+            ConstantBuffer(ResourceUsage usage, Uint64 size, const char* debugName) :
+                Buffer(usage, size, debugName)
+            {}
+            virtual ~ConstantBuffer() {}
+        };
+
+        struct StructuredBufferCreateInfo : public BufferCreateInfo
+        {
+        };
+        class StructuredBuffer : public Buffer
+        {
+        public:
+            StructuredBuffer(ResourceUsage usage, Uint64 size, const char* debugName) :
+                Buffer(usage, size, debugName)
+            {}
+            virtual ~StructuredBuffer() {}
+        };
     } // namespace rapi
 } // namespace cube

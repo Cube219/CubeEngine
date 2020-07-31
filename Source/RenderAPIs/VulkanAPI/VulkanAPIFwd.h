@@ -8,6 +8,8 @@ namespace cube
         class BufferVk;
         class VertexBufferVk;
         class IndexBufferVk;
+        class ConstantBufferVk;
+        class StructuredBufferVk;
 
         // Interface/DeviceContextVk.h
         class DeviceContextVk;

@@ -11,6 +11,10 @@ namespace cube
         class VertexBuffer;
         struct IndexBufferCreateInfo;
         class IndexBuffer;
+        struct ConstantBufferCreateInfo;
+        class ConstantBuffer;
+        struct StructuredBufferCreateInfo;
+        class StructuredBuffer;
 
         // Interface/DeviceContext.h
         class DeviceContext;
