@@ -39,6 +39,7 @@ namespace cube
             Uint32 GetTransferQueueFamilyIndex() const { return mTransferQueues[0].familyIndex; }
 
             void SubmitCommandBuffer(VulkanCommandBuffer& commandBuffer);
+            VulkanFence SubmitCommandBufferWithFence(VulkanCommandBuffer& commandBuffer);
 
         private:
             bool InitGraphicsQueue(VkQueueFamilyProperties* pProps, Uint64 propNum);
@@ -46,14 +47,13 @@ namespace cube
             bool InitTransferQueue(VkQueueFamilyProperties* pProps, Uint64 propNum);
             Uint32 FindQueueFamilyIndex(VkQueueFamilyProperties* pProps, Uint64 propNum, VkQueueFlags flags, VkQueueFlags prohibitFlags);
 
-            void SubmitGraphicsQueue(VulkanCommandBuffer& commandBuffer);
-            void SubmitComputeQueue(VulkanCommandBuffer& commandBuffer);
-            void SubmitTransferQueue(VulkanCommandBuffer& commandBuffer);
+            VulkanFence SubmitGraphicsQueue(VulkanCommandBuffer& commandBuffer, bool getFence);
+            VulkanFence SubmitComputeQueue(VulkanCommandBuffer& commandBuffer, bool getFence);
+            VulkanFence SubmitTransferQueue(VulkanCommandBuffer& commandBuffer, bool getFence);
 
             VulkanDevice& mDevice;
 
             VulkanQueue mGraphicsQueue;
-            VulkanFence mGraphicsQueueFence;
             Mutex mGraphicsWaitSemaphoresMutex;
             Vector<VulkanSemaphore> mGraphicsWaitSemaphores;
 

@@ -40,7 +40,7 @@ namespace cube
 
             DeviceContextVk& GetImmediateContext() { return *mpImmediateContext; }
             VulkanCommandBuffer GetUploadCommandBuffer(const char* debugName = nullptr);
-            void SubmitUploadCommandBuffer(VulkanCommandBuffer& cmdBuf);
+            void SubmitUploadCommandBuffer(VulkanCommandBuffer& cmdBuf, bool waitUntilFinished = false);
 
         private:
             void CreateDevice();
@@ -62,7 +62,6 @@ namespace cube
 
             DeviceContextVk* mpImmediateContext;
             VulkanCommandPool mUploadCommandPool;
-            Vector<VulkanCommandBuffer> mUploadCommandBuffersToSubmit;
         };
     } // namespace rapi
 } // namespace cube

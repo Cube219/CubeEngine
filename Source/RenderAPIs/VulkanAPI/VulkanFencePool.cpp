@@ -31,6 +31,13 @@ namespace cube
             CHECK_VK(res, "Failed to reset the fence.");
         }
 
+        void VulkanFence::Release()
+        {
+            CHECK(mFence != VK_NULL_HANDLE, "The fence is already released.");
+
+            mpFencePool->FreeFence(*this);
+        }
+
         void VulkanFencePool::Initialize()
         {
             VkResult res;
@@ -50,7 +57,7 @@ namespace cube
                 res = vkCreateFence(mDevice.GetHandle(), &info, nullptr, &fence);
                 CHECK_VK(res, "Failed to create VkFence.");
 
-                mFreeFences[i] = VulkanFence(mDevice.GetHandle(), fence);
+                mFreeFences[i] = VulkanFence(mDevice.GetHandle(), this, fence);
             }
         }
 

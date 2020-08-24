@@ -79,9 +79,15 @@ namespace cube
             return mUploadCommandPool.AllocateCommandBuffer(debugName);
         }
 
-        void VulkanDevice::SubmitUploadCommandBuffer(VulkanCommandBuffer& cmdBuf)
+        void VulkanDevice::SubmitUploadCommandBuffer(VulkanCommandBuffer& cmdBuf, bool waitUntilFinished)
         {
-            mUploadCommandBuffersToSubmit.push_back(std::move(cmdBuf));
+            if(waitUntilFinished == true) {
+                VulkanFence fence = mQueueManager.SubmitCommandBufferWithFence(cmdBuf);
+                fence.Wait();
+            } else {
+                mQueueManager.SubmitCommandBuffer(cmdBuf);
+            }
+            mUploadCommandPool.FreeCommandBuffer(cmdBuf, true);
         }
 
         void VulkanDevice::CreateDevice()

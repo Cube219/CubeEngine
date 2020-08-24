@@ -85,7 +85,7 @@ namespace cube
 
             // Initialize data if it is existed
             if(pData != nullptr && size > 0) {
-                VulkanStagingBuffer stagingBuf = mDevice.GetStagingManager().GetBuffer(size, debugName);
+                VulkanStagingBuffer stagingBuf = mDevice.GetStagingManager().GetBuffer(size, VulkanStagingBuffer::Type::Write, debugName);
                 memcpy(stagingBuf.GetMappedPtr(), pData, size);
 
                 VulkanCommandBuffer uploadCmdBuf = mDevice.GetUploadCommandBuffer();

@@ -25,6 +25,9 @@ namespace cube
 
             Uint64 GetSize() const { return mSize; }
 
+            virtual void Map(ResourceMapType type, void*& pMappedResource) = 0;
+            virtual void Unmap() = 0;
+
         protected:
             Uint64 mSize;
         };

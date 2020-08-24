@@ -4,6 +4,7 @@
 
 #include <vk_mem_alloc.h>
 
+#include "VulkanUtility.h"
 #include "RenderAPIs/RenderAPI/Interface/RenderTypes.h"
 
 namespace cube
@@ -19,9 +20,27 @@ namespace cube
             ResourceType resourceType;
             void* pResource;
 
+            VmaAllocator allocator;
             VmaAllocation allocation;
             Uint64 size;
             void* pMappedPtr;
+            bool isHostVisible;
+
+            void Map()
+            {
+                if(pMappedPtr != nullptr) return;
+
+                VkResult res = vmaMapMemory(allocator, allocation, &pMappedPtr);
+                CHECK_VK(res, "Failed to map memory.");
+            }
+
+            void Unmap()
+            {
+                if(pMappedPtr == nullptr) return;
+
+                vmaUnmapMemory(allocator, allocation);
+                pMappedPtr = nullptr;
+            }
         };
 
         class VulkanMemoryAllocator
@@ -44,6 +63,9 @@ namespace cube
             void Free(VulkanAllocation alloc);
 
         private:
+            VmaAllocationCreateInfo CreateVmaAllocationCreateInfo(ResourceUsage usage);
+            void UpdateVulkanAllocation(VulkanAllocation& allocation, VmaAllocation vmaAllocation, const VmaAllocationInfo& info);
+
             VmaAllocator mAllocator;
         };
     } // namespace rapi

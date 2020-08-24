@@ -9,11 +9,19 @@ namespace cube
 {
     namespace rapi
     {
-        VulkanStagingBuffer::VulkanStagingBuffer(VulkanDevice& device, Uint64 size, const char* debugName) :
-            mDevice(device),
-            mBuffer(VK_NULL_HANDLE)
+        void VulkanStagingManager::Initialize()
+        {
+        }
+
+        void VulkanStagingManager::Shutdown()
+        {
+        }
+
+        VulkanStagingBuffer VulkanStagingManager::GetBuffer(Uint64 size, VulkanStagingBuffer::Type type, const char* debugName)
         {
             VkResult res;
+
+            ResourceUsage usage;
 
             VkBufferCreateInfo info;
             info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -23,41 +31,27 @@ namespace cube
             info.queueFamilyIndexCount = 0;
             info.pQueueFamilyIndices = nullptr;
             info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-            info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+            if(type == VulkanStagingBuffer::Type::Read) {
+                info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+                usage = ResourceUsage::Staging;
+            } else if(type == VulkanStagingBuffer::Type::Write) {
+                info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+                usage = ResourceUsage::Dynamic;
+            } else {
+                info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+                usage = ResourceUsage::Dynamic;
+            }
 
-            res = vkCreateBuffer(device.GetHandle(), &info, nullptr, &mBuffer);
+            VkBuffer buffer;
+            res = vkCreateBuffer(mDevice.GetHandle(), &info, nullptr, &buffer);
             CHECK_VK(res, "Failed to create VkBuffer.");
             auto debugNameTemp = FrameFormat("Staging buffer for '{}'", debugName);
-            VULKAN_SET_OBJ_NAME(mDevice.GetHandle(), mBuffer, debugNameTemp.data());
+            VULKAN_SET_OBJ_NAME(mDevice.GetHandle(), buffer, debugNameTemp.data());
 
-            mAllocation = device.GetAllocator().Allocate(ResourceUsage::Staging, info, &mBuffer);
-        }
+            VulkanAllocation alloc;
+            alloc = mDevice.GetAllocator().Allocate(usage, info, &buffer);
 
-        VulkanStagingBuffer::~VulkanStagingBuffer()
-        {
-            if(mAllocation.allocation != VK_NULL_HANDLE) {
-                mDevice.GetAllocator().Free(mAllocation);
-            }
-            if(mBuffer != VK_NULL_HANDLE) {
-                vkDestroyBuffer(mDevice.GetHandle(), mBuffer, nullptr);
-            }
-
-            mBuffer = VK_NULL_HANDLE;
-            mAllocation.allocation = VK_NULL_HANDLE;
-        }
-
-        void VulkanStagingManager::Initialize()
-        {
-        }
-
-        void VulkanStagingManager::Shutdown()
-        {
-        }
-
-        VulkanStagingBuffer VulkanStagingManager::GetBuffer(Uint64 size, const char* debugName)
-        {
-
-            return VulkanStagingBuffer(mDevice, size, debugName);
+            return VulkanStagingBuffer(type, buffer, alloc);
         }
 
         void VulkanStagingManager::ReleaseBuffer(VulkanStagingBuffer&& stagingBuf)
@@ -71,6 +65,14 @@ namespace cube
         {
             Lock lock(mStagingBuffersMutex);
 
+            for(auto& stagingBuf : mStagingBuffersToRelease) {
+                if(stagingBuf.mAllocation.allocation != VK_NULL_HANDLE) {
+                    mDevice.GetAllocator().Free(stagingBuf.mAllocation);
+                }
+                if(stagingBuf.mBuffer != VK_NULL_HANDLE) {
+                    vkDestroyBuffer(mDevice.GetHandle(), stagingBuf.mBuffer, nullptr);
+                }
+            }
             mStagingBuffersToRelease.clear();
         }
     } // namespace rapi

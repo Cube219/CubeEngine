@@ -12,15 +12,30 @@ namespace cube
         class VulkanStagingBuffer
         {
         public:
-            VulkanStagingBuffer(VulkanDevice& device, Uint64 size, const char* debugName);
-            ~VulkanStagingBuffer();
+            enum class Type
+            {
+                Read,
+                Write,
+                ReadWrite
+            };
+
+        public:
+            VulkanStagingBuffer() :
+                mBuffer(VK_NULL_HANDLE)
+            {}
+            VulkanStagingBuffer(Type type, VkBuffer buffer, VulkanAllocation allocation) :
+                mType(type),
+                mBuffer(buffer),
+                mAllocation(allocation)
+            {}
+            ~VulkanStagingBuffer() {}
 
             VulkanStagingBuffer(const VulkanStagingBuffer& other) = delete;
             VulkanStagingBuffer& operator=(const VulkanStagingBuffer& rhs) = delete;
 
-            VulkanStagingBuffer(VulkanStagingBuffer&& other) noexcept :
-                mDevice(other.mDevice)
+            VulkanStagingBuffer(VulkanStagingBuffer&& other) noexcept
             {
+                mType = other.mType;
                 mBuffer = other.mBuffer;
                 mAllocation = other.mAllocation;
 
@@ -31,10 +46,7 @@ namespace cube
             {
                 if(this == &rhs) return *this;
 
-                if(mBuffer != VK_NULL_HANDLE) {
-                    this->~VulkanStagingBuffer();
-                }
-
+                mType = rhs.mType;
                 mBuffer = rhs.mBuffer;
                 mAllocation = rhs.mAllocation;
 
@@ -46,12 +58,16 @@ namespace cube
 
             VkBuffer GetHandle() const { return mBuffer; }
 
+            bool IsValid() const { return mBuffer != VK_NULL_HANDLE; }
+
+            Type GetType() const { return mType; }
             void* GetMappedPtr() { return mAllocation.pMappedPtr; }
             Uint64 GetSize() const { return mAllocation.size; }
 
         private:
-            VulkanDevice& mDevice;
+            friend class VulkanStagingManager;
 
+            Type mType;
             VkBuffer mBuffer;
             VulkanAllocation mAllocation;
         };
@@ -70,7 +86,7 @@ namespace cube
             void Initialize();
             void Shutdown();
 
-            VulkanStagingBuffer GetBuffer(Uint64 size, const char* debugName = nullptr);
+            VulkanStagingBuffer GetBuffer(Uint64 size, VulkanStagingBuffer::Type type, const char* debugName = nullptr);
             void ReleaseBuffer(VulkanStagingBuffer&& stagingBuf);
 
             void ReleaseAllBuffers();

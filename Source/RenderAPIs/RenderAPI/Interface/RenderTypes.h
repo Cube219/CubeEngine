@@ -16,6 +16,13 @@ namespace cube
             Staging
         };
 
+        enum class ResourceMapType
+        {
+            Read,
+            Write,
+            ReadWrite
+        };
+
         // TODO: 형식들 정리(안쓰는 것들 제거...)
         enum class TextureFormat : Uint32
         {

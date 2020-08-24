@@ -22,7 +22,6 @@ namespace cube
             bool res;
             res = InitGraphicsQueue(queueFamilyProps.data(), queueFamilyNum);
             CHECK(res, "Cannot find graphics queue family.");
-            mGraphicsQueueFence = mDevice.GetFencePool().AllocateFence("Graphics queue fence");
 
             res = InitComputeQueue(queueFamilyProps.data(), queueFamilyNum);
             CHECK(res, "Cannot find compute queue family.");
@@ -33,7 +32,6 @@ namespace cube
 
         void VulkanQueueManager::Shutdown()
         {
-            mDevice.GetFencePool().FreeFence(mGraphicsQueueFence);
         }
 
         void VulkanQueueManager::SubmitCommandBuffer(VulkanCommandBuffer& commandBuffer)
@@ -41,16 +39,31 @@ namespace cube
             switch(commandBuffer.GetType())
             {
                 case VulkanCommandBufferType::Graphics:
-                    SubmitGraphicsQueue(commandBuffer);
+                    SubmitGraphicsQueue(commandBuffer, false);
                     break;
                 case VulkanCommandBufferType::Compute:
-                    SubmitComputeQueue(commandBuffer);
+                    SubmitComputeQueue(commandBuffer, false);
                     break;
                 case VulkanCommandBufferType::Transfer:
-                    SubmitTransferQueue(commandBuffer);
+                    SubmitTransferQueue(commandBuffer, false);
                     break;
                 default:
                     break;
+            }
+        }
+
+        VulkanFence VulkanQueueManager::SubmitCommandBufferWithFence(VulkanCommandBuffer& commandBuffer)
+        {
+            switch(commandBuffer.GetType())
+            {
+                case VulkanCommandBufferType::Graphics:
+                    return SubmitGraphicsQueue(commandBuffer, true);
+                case VulkanCommandBufferType::Compute:
+                    return SubmitComputeQueue(commandBuffer, true);
+                case VulkanCommandBufferType::Transfer:
+                    return SubmitTransferQueue(commandBuffer, true);
+                default:
+                    return VulkanFence();
             }
         }
 
@@ -180,23 +193,9 @@ namespace cube
             return Uint32InvalidValue;
         }
 
-        void VulkanQueueManager::SubmitGraphicsQueue(VulkanCommandBuffer& commandBuffer)
+        VulkanFence VulkanQueueManager::SubmitGraphicsQueue(VulkanCommandBuffer& commandBuffer, bool getFence)
         {
             VkResult res;
-
-            VulkanFence::WaitResult waitResult = mGraphicsQueueFence.Wait(120.0);
-            switch(waitResult) {
-                case VulkanFence::WaitResult::Timeout:
-                    ASSERTION_FAILED("Failed to submit graphcis queue. Last submit isn't completed too long(over 120s).");
-                    return;
-                case VulkanFence::WaitResult::Error:
-                    ASSERTION_FAILED("Failed to submit graphcis queue. Last submit has some error.");
-                    return;
-                default:
-                    break;
-            }
-
-            mGraphicsQueueFence.Reset();
 
             VkCommandBuffer cmdBuf = commandBuffer.GetHandle();
 
@@ -226,15 +225,20 @@ namespace cube
             submitInfo.signalSemaphoreCount = 0;
             submitInfo.pSignalSemaphores = nullptr;
 
-            res = vkQueueSubmit(mGraphicsQueue.queue, 1, &submitInfo, mGraphicsQueueFence.GetHandle());
+            VulkanFence fence = mDevice.GetFencePool().AllocateFence("Fence to complete to submit graphics queue");
+
+            res = vkQueueSubmit(mGraphicsQueue.queue, 1, &submitInfo, fence.GetHandle());
+
             CHECK_VK(res, "Failed to submit command buffer to the graphics queue.");
 
             for(auto& s : waitSemaphores) {
                 mDevice.GetSemaphorePool().FreeSemaphore(s);
             }
+
+            return fence;
         }
 
-        void VulkanQueueManager::SubmitComputeQueue(VulkanCommandBuffer& commandBuffer)
+        VulkanFence VulkanQueueManager::SubmitComputeQueue(VulkanCommandBuffer& commandBuffer, bool getFence)
         {
             VkResult res;
 
@@ -259,11 +263,15 @@ namespace cube
                 mComputeQueuesCurrentIndex %= mComputeQueues.size();
             }
 
-            res = vkQueueSubmit(queueToSubmit, 1, &submitInfo, VK_NULL_HANDLE);
+            VulkanFence fence = mDevice.GetFencePool().AllocateFence("Fence to complete to submit compute queue");
+
+            res = vkQueueSubmit(queueToSubmit, 1, &submitInfo, fence.GetHandle());
             CHECK_VK(res, "Failed to submit command buffer to the compute queue.");
+
+            return fence;
         }
 
-        void VulkanQueueManager::SubmitTransferQueue(VulkanCommandBuffer& commandBuffer)
+        VulkanFence VulkanQueueManager::SubmitTransferQueue(VulkanCommandBuffer& commandBuffer, bool getFence)
         {
             VkResult res;
 
@@ -297,8 +305,12 @@ namespace cube
                 mTransferQueuesCurrentIndex %= mTransferQueues.size();
             }
 
+            VulkanFence fence = mDevice.GetFencePool().AllocateFence("Fence to complete to submit transfer queue");
+
             res = vkQueueSubmit(queueToSubmit, 1, &submitInfo, VK_NULL_HANDLE);
             CHECK_VK(res, "Failed to submit command buffer to the transfer queue.");
+
+            return fence;
         }
     } // namespace rapi
 } // namespace cube
