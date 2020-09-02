@@ -94,6 +94,11 @@ namespace cube
             vkCmdCopyBufferToImage(mCommandBuffer, src, dst, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
         }
 
+        void VulkanCommandBuffer::CopyImageToBuffer(VkImage src, VkBuffer dst, const VkBufferImageCopy& region)
+        {
+            vkCmdCopyImageToBuffer(mCommandBuffer, src, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dst, 1, &region);
+        }
+
         void VulkanCommandPool::CreatePool(VulkanCommandBufferType type, bool isTransient)
         {
             VulkanQueueManager& queueManager = mDevice.GetQueueManager();

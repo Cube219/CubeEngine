@@ -8,6 +8,7 @@ namespace cube
 {
     namespace rapi
     {
+        // TODO: Format에 맞는 정보들 저장
         static Array<VkFormat, (Uint32)TextureFormat::TextureFormatCount> texFmtToVkFmt;
 
         void InitTypeConversion();

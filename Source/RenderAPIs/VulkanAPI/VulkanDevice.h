@@ -31,6 +31,7 @@ namespace cube
 
             GPUType GetGPUType() const { return mType; }
             VkDevice GetHandle() const { return mDevice; }
+            VkPhysicalDevice GetGPU() const { return mGPU; }
 
             VulkanMemoryAllocator& GetAllocator() { return mAllocator; }
             VulkanStagingManager& GetStagingManager() { return mStagingManager; }

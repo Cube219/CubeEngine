@@ -41,4 +41,19 @@ namespace cube
     {
         return std::tanf(rad);
     }
+
+    float Math::Log(float v)
+    {
+        return std::log(v);
+    }
+
+    float Math::Log10(float v)
+    {
+        return std::log10(v);
+    }
+
+    float Math::Log2(float v)
+    {
+        return std::log2(v);
+    }
 }

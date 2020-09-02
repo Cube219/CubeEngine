@@ -21,6 +21,10 @@ namespace cube
         static float PrecisionCos(float rad);
         static float PrecisionTan(float rad);
 
+        static float Log(float v);
+        static float Log10(float v);
+        static float Log2(float v);
+
         template <typename T>
         static T Min(const T a, const T b)
         {

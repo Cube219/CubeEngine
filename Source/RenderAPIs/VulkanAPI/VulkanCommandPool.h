@@ -53,9 +53,11 @@ namespace cube
 
             void Free(bool immediately = false);
 
+            // TODO: 그냥 지우고 쓰는 함수에서 알아서 사용하게 만들기
             void SetMemoryBarrier(VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkBuffer buffer, Uint64 size);
             void CopyBuffer(VkBuffer src, VkBuffer dst, Uint64 srcOffset, Uint64 dstOffset, Uint64 size);
             void CopyBufferToImage(VkBuffer src, VkImage dst, VkBufferImageCopy& region);
+            void CopyImageToBuffer(VkImage src, VkBuffer dst, const VkBufferImageCopy& region);
 
         private:
             friend class VulkanCommandPool;

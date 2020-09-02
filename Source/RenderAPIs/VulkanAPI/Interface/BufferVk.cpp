@@ -41,11 +41,16 @@ namespace cube
 
             // Initialize data if it is existed
             if(pData != nullptr && size > 0) {
+                // Change the usage temporarily to enable map
+                if(usage == ResourceUsage::Immutable) mUsage = ResourceUsage::Default;
+
                 void* p;
                 MapImpl(ResourceMapType::Write, p);
                 memcpy(p, pData, size);
 
                 UnmapImpl();
+
+                mUsage = usage;
             }          
         }
 

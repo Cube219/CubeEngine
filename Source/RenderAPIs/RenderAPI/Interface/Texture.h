@@ -3,18 +3,24 @@
 #include "../RenderAPIHeader.h"
 
 #include "Resource.h"
+#include "Core/Allocator/FrameAllocator.h"
 
 namespace cube
 {
     namespace rapi
     {
+        struct TextureData
+        {
+            const void* pData;
+            Uint32 size;
+        };
+
         struct TextureCreateInfo : public ResourceCreateInfo
         {
-            const void* pData = nullptr;
-            Uint64 textureSize;
+            FrameVector<TextureData> data;
             TextureFormat format;
             TextureBindTypeFlags bindTypeFlags;
-            Uint32 mipLevels;
+            bool generateMipmaps; // If it is true, only the first texture data will be used
             Uint32 samplesNum;
         };
         class Texture : public Resource
@@ -29,6 +35,9 @@ namespace cube
 
             TextureFormat GetFormat() const { return mFormat; }
             Uint32 GetMipLevels() const { return mMipLevels; }
+
+            virtual void Map(ResourceMapType type, Uint32 mipmapIndex, void*& pMappedResource) = 0;
+            virtual void Unmap(Uint32 mipmapIndex) = 0;
 
         protected:
             TextureFormat mFormat;
