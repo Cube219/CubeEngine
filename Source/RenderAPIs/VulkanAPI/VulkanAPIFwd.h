@@ -14,6 +14,9 @@ namespace cube
         // Interface/DeviceContextVk.h
         class DeviceContextVk;
 
+        // Interface/ShaderVk.h
+        class ShaderVk;
+
         // Interface/TextureVk.h
         class TextureVk;
         class Texture2DVk;
@@ -45,9 +48,9 @@ namespace cube
         // VulkanQueueManager.h
         class VulkanQueueManager;
 
-        // VulkanSemaphoreManager.h
+        // VulkanSemaphorePool.h
         class VulkanSemaphore;
-        class VulkanSemaphoreManager;
+        class VulkanSemaphorePool;
 
         // VulkanStagingManager.h
         class VulkanStagingBuffer;

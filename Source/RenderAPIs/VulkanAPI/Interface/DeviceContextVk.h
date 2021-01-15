@@ -16,6 +16,10 @@ namespace cube
             DeviceContextVk(VulkanDevice& device);
             virtual ~DeviceContextVk();
 
+            virtual void SetViewports(Uint32 numViewports, const Viewport* pViewports);
+
+            virtual void SetScissors(Uint32 numScissors, const Rect2D* pScissors);
+
         private:
             VulkanDevice& mDevice;
 

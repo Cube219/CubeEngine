@@ -21,6 +21,12 @@
     <ClCompile Include="Interface\DeviceContextVk.cpp">
       <Filter>Interface</Filter>
     </ClCompile>
+    <ClCompile Include="Interface\ShaderVk.cpp">
+      <Filter>Interface</Filter>
+    </ClCompile>
+    <ClCompile Include="Tools\GLSLTool.cpp">
+      <Filter>Tools</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="VulkanAPI.h" />
@@ -45,10 +51,19 @@
     <ClInclude Include="Interface\DeviceContextVk.h">
       <Filter>Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\ShaderVk.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Tools\GLSLTool.h">
+      <Filter>Tools</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Interface">
       <UniqueIdentifier>{dd56b90f-6da5-4724-a8cf-e3eec1cf0178}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Tools">
+      <UniqueIdentifier>{b2bde556-70a0-4060-8a72-04a2a0357480}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

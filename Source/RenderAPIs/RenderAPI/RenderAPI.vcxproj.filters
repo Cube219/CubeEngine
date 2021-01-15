@@ -19,6 +19,9 @@
     <ClInclude Include="Interface\DeviceContext.h">
       <Filter>Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\Shader.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="a.cpp" />

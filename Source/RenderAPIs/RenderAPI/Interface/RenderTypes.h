@@ -7,6 +7,24 @@ namespace cube
 {
     namespace rapi
     {
+        // Shader
+        enum class ShaderType
+        {
+            Vertex,
+            Pixel,
+            Geometry,
+            Hull,
+            Domain,
+            Compute
+        };
+
+        enum class ShaderLanguage
+        {
+            HLSL,
+            GLSL,
+            SPIRV
+        };
+
         // Resource (Buffer, Texture)
         enum class ResourceUsage
         {

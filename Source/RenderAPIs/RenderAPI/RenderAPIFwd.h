@@ -23,6 +23,9 @@ namespace cube
         struct ResourceCreateInfo;
         class Resource;
 
+        // Interface/Shader.h
+        class Shader;
+
         // Interface/Texture.h
         struct TextureCreateInfo;
         class Texture;
