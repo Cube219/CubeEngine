@@ -14,6 +14,7 @@ namespace cube
             mStagingManager(*this),
             mFencePool(*this),
             mSemaphorePool(*this),
+            mShaderVariableManager(*this),
             mQueueManager(*this),
             mUploadCommandPool(*this)
         {
@@ -50,6 +51,7 @@ namespace cube
             mStagingManager.Initialize();
             mFencePool.Initialize();
             mSemaphorePool.Initialize();
+            mShaderVariableManager.Initialize();
             mQueueManager.Initialize(mGPU);
 
             mpImmediateContext = new DeviceContextVk(*this);
@@ -64,6 +66,7 @@ namespace cube
             delete mpImmediateContext;
 
             mQueueManager.Shutdown();
+            mShaderVariableManager.Shutdown();
             mSemaphorePool.Shutdown();
             mFencePool.Shutdown();
             mStagingManager.Shutdown();

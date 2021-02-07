@@ -6,6 +6,7 @@
 #include "VulkanStagingManager.h"
 #include "VulkanFencePool.h"
 #include "VulkanSemaphorePool.h"
+#include "VulkanShaderVariableManager.h"
 #include "VulkanQueueManager.h"
 #include "Interface/DeviceContextVk.h"
 
@@ -32,11 +33,13 @@ namespace cube
             GPUType GetGPUType() const { return mType; }
             VkDevice GetHandle() const { return mDevice; }
             VkPhysicalDevice GetGPU() const { return mGPU; }
+            const VkPhysicalDeviceProperties& GetProperties() const { return mProps; }
 
             VulkanMemoryAllocator& GetAllocator() { return mAllocator; }
             VulkanStagingManager& GetStagingManager() { return mStagingManager; }
             VulkanFencePool& GetFencePool() { return mFencePool; }
             VulkanSemaphorePool& GetSemaphorePool() { return mSemaphorePool; }
+            VulkanShaderVariableManager& GetShaderVariableManager() { return mShaderVariableManager; }
             VulkanQueueManager& GetQueueManager() { return mQueueManager; }
 
             DeviceContextVk& GetImmediateContext() { return *mpImmediateContext; }
@@ -59,6 +62,7 @@ namespace cube
             VulkanStagingManager mStagingManager;
             VulkanFencePool mFencePool;
             VulkanSemaphorePool mSemaphorePool;
+            VulkanShaderVariableManager mShaderVariableManager;
             VulkanQueueManager mQueueManager;
 
             DeviceContextVk* mpImmediateContext;

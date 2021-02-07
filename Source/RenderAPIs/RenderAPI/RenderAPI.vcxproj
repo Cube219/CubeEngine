@@ -91,6 +91,7 @@
     <ClInclude Include="Interface\Resource.h" />
     <ClInclude Include="Interface\RenderTypes.h" />
     <ClInclude Include="Interface\Shader.h" />
+    <ClInclude Include="Interface\ShaderVariables.h" />
     <ClInclude Include="Interface\Texture.h" />
     <ClInclude Include="RenderAPI.h" />
     <ClInclude Include="RenderAPIFwd.h" />
@@ -98,6 +99,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="a.cpp" />
+    <ClCompile Include="Utilities\VariableSizeMemoryPage.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -25,6 +25,13 @@ namespace cube
             SPIRV
         };
 
+        // ShaderVariable
+        enum class ShaderVariableType
+        {
+            Constant,
+            Storage
+        };
+
         // Resource (Buffer, Texture)
         enum class ResourceUsage
         {

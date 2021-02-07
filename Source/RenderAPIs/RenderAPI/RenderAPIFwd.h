@@ -26,6 +26,12 @@ namespace cube
         // Interface/Shader.h
         class Shader;
 
+        // Interface/ShaderVariables.h
+        struct ShaderVariableInfo;
+        class ShaderVariables;
+        struct ShaderVariablesLayoutCreateInfo;
+        class ShaderVariablesLayout;
+
         // Interface/Texture.h
         struct TextureCreateInfo;
         class Texture;

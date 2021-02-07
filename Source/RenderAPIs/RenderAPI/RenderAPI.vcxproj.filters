@@ -22,13 +22,22 @@
     <ClInclude Include="Interface\Shader.h">
       <Filter>Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\ShaderVariables.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="a.cpp" />
+    <ClCompile Include="Utilities\VariableSizeMemoryPage.h">
+      <Filter>Utilities</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Interface">
       <UniqueIdentifier>{8727b28a-68ab-4ba7-a95c-10426bc8a565}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utilities">
+      <UniqueIdentifier>{1ee62c5a-6546-4cd4-89a9-16726cb8f928}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

@@ -17,6 +17,10 @@ namespace cube
         // Interface/ShaderVk.h
         class ShaderVk;
 
+        // Interface/ShaderVariablesVk.h
+        class ShaderVariablesVk;
+        class ShaderVariablesLayoutVk;
+
         // Interface/TextureVk.h
         class TextureVk;
         class Texture2DVk;
@@ -40,6 +44,9 @@ namespace cube
         // VulkanFencePool.h
         class VulkanFence;
         class VulkanFencePool;
+
+        // VulkanLayout.h
+        class VulkanLayout;
 
         // VulkanMemoryAllocator.h
         struct VulkanAllocation;

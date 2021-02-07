@@ -27,6 +27,11 @@
     <ClCompile Include="Tools\GLSLTool.cpp">
       <Filter>Tools</Filter>
     </ClCompile>
+    <ClCompile Include="VulkanLayout.cpp" />
+    <ClCompile Include="VulkanShaderVariableManager.cpp" />
+    <ClCompile Include="Interface\ShaderVariablesVk.cpp">
+      <Filter>Interface</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="VulkanAPI.h" />
@@ -56,6 +61,11 @@
     </ClInclude>
     <ClInclude Include="Tools\GLSLTool.h">
       <Filter>Tools</Filter>
+    </ClInclude>
+    <ClInclude Include="VulkanLayout.h" />
+    <ClInclude Include="VulkanShaderVariableManager.h" />
+    <ClInclude Include="Interface\ShaderVariablesVk.h">
+      <Filter>Interface</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
