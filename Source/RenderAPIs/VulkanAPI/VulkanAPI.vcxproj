@@ -95,6 +95,7 @@
   <ItemGroup>
     <ClCompile Include="Interface\BufferVk.cpp" />
     <ClCompile Include="Interface\DeviceContextVk.cpp" />
+    <ClCompile Include="Interface\PipelineStateVk.cpp" />
     <ClCompile Include="Interface\ShaderVariablesVk.cpp" />
     <ClCompile Include="Interface\ShaderVk.cpp" />
     <ClCompile Include="Interface\TextureVk.cpp" />
@@ -127,6 +128,7 @@
   <ItemGroup>
     <ClInclude Include="Interface\BufferVk.h" />
     <ClInclude Include="Interface\DeviceContextVk.h" />
+    <ClInclude Include="Interface\PipelineStateVk.h" />
     <ClInclude Include="Interface\ShaderVariablesVk.h" />
     <ClInclude Include="Interface\ShaderVk.h" />
     <ClInclude Include="Interface\TextureVk.h" />

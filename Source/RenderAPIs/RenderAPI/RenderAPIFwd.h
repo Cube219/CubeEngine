@@ -4,6 +4,9 @@ namespace cube
 {
     namespace rapi
     {
+        // Interface/BlendState.h
+        struct BlendState;
+
         // Interface/Buffer.h
         struct BufferCreateInfo;
         class Buffer;
@@ -16,8 +19,21 @@ namespace cube
         struct StructuredBufferCreateInfo;
         class StructuredBuffer;
 
+        // Interface/DepthStencilState.h
+        struct DepthStencilState;
+
         // Interface/DeviceContext.h
         class DeviceContext;
+
+        // Interface/InputLayout.h
+        struct InputLayout;
+
+        // Interface/PipelineState.h
+        struct GraphicsPipelineStateCreateInfo;
+        class GraphicsPipelineState;
+
+        // Interface/RasterizerState.h
+        struct RasterizerState;
 
         // Interface/Resource.h
         struct ResourceCreateInfo;

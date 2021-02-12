@@ -32,6 +32,48 @@ namespace cube
             Storage
         };
 
+        // Pipeline
+        enum class PrimitiveTopology
+        {
+            TriangleList,
+            TriangleStrip,
+            LineList,
+            LineStrip,
+
+            ControlPointPatchList1,
+            ControlPointPatchList2,
+            ControlPointPatchList3,
+            ControlPointPatchList4,
+            ControlPointPatchList5,
+            ControlPointPatchList6,
+            ControlPointPatchList7,
+            ControlPointPatchList8,
+            ControlPointPatchList9,
+            ControlPointPatchList10,
+            ControlPointPatchList11,
+            ControlPointPatchList12,
+            ControlPointPatchList13,
+            ControlPointPatchList14,
+            ControlPointPatchList15,
+            ControlPointPatchList16,
+            ControlPointPatchList17,
+            ControlPointPatchList18,
+            ControlPointPatchList19,
+            ControlPointPatchList20,
+            ControlPointPatchList21,
+            ControlPointPatchList22,
+            ControlPointPatchList23,
+            ControlPointPatchList24,
+            ControlPointPatchList25,
+            ControlPointPatchList26,
+            ControlPointPatchList27,
+            ControlPointPatchList28,
+            ControlPointPatchList29,
+            ControlPointPatchList30,
+            ControlPointPatchList31,
+            ControlPointPatchList32,
+        };
+
         // Resource (Buffer, Texture)
         enum class ResourceUsage
         {

@@ -25,6 +25,21 @@
     <ClInclude Include="Interface\ShaderVariables.h">
       <Filter>Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\PipelineState.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\BlendState.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\RasterizerState.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\DepthStencilState.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\InputLayout.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="a.cpp" />

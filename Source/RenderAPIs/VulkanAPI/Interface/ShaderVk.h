@@ -8,11 +8,15 @@ namespace cube
 {
     namespace rapi
     {
+        VkShaderStageFlagBits ConvertToVkShaderStageFlagBits(ShaderType shaderType);
+
         class ShaderVk : public Shader
         {
         public:
             ShaderVk(VulkanDevice& device, const ShaderCreateInfo& info);
             virtual ~ShaderVk();
+
+            VkPipelineShaderStageCreateInfo GetVkPipelineShaderStageCreateInfo() const { return mShaderStageInfo; }
 
         private:
             void LoadFromGLSL(const ShaderCreateInfo& info);
@@ -22,6 +26,7 @@ namespace cube
             VulkanDevice& mDevice;
 
             VkShaderModule mShaderModule;
+            VkPipelineShaderStageCreateInfo mShaderStageInfo;
             Vector<Uint32> mSPIRV;
         };
     } // namespace rapi

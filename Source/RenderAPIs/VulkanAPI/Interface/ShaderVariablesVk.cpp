@@ -14,7 +14,7 @@ namespace cube
         {
             auto& variableManager = mDevice.GetShaderVariableManager();
 
-            mDescriptorSet = variableManager.AllocateDescriptorSet(layout.GetDescriptorSetLayout(), debugName);
+            mDescriptorSet = variableManager.AllocateDescriptorSet(layout.GetVkDescriptorSetLayout(), debugName);
 
             const Vector<ShaderVariableInfo>& variableInfos = layout.GetVariableInfos();
 

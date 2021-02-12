@@ -33,7 +33,7 @@ namespace cube
 
             virtual SPtr<ShaderVariables> CreateVariables() override;
 
-            VkDescriptorSetLayout GetDescriptorSetLayout() const { return mDescriptorSetLayout; }
+            VkDescriptorSetLayout GetVkDescriptorSetLayout() const { return mDescriptorSetLayout; }
             const Vector<ShaderVariableInfo>& GetVariableInfos() const { return mVariableInfos; }
 
         private:

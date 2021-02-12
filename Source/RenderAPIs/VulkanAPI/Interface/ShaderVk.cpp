@@ -9,6 +9,23 @@ namespace cube
 {
     namespace rapi
     {
+        VkShaderStageFlagBits ConvertToVkShaderStageFlagBits(ShaderType shaderType)
+        {
+            switch(shaderType) {
+                case ShaderType::Vertex:   return VK_SHADER_STAGE_VERTEX_BIT;
+                case ShaderType::Pixel:    return VK_SHADER_STAGE_FRAGMENT_BIT;
+                case ShaderType::Geometry: return VK_SHADER_STAGE_GEOMETRY_BIT;
+                case ShaderType::Hull:     return VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
+                case ShaderType::Domain:   return VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
+                case ShaderType::Compute:  return VK_SHADER_STAGE_COMPUTE_BIT;
+                default:
+                    break;
+            }
+
+            ASSERTION_FAILED("Invalid ShaderType({}).", shaderType);
+            return VK_SHADER_STAGE_ALL;
+        }
+
         ShaderVk::ShaderVk(VulkanDevice& device, const ShaderCreateInfo& info) :
             Shader(info.debugName),
             mDevice(device)
@@ -31,6 +48,15 @@ namespace cube
             res = vkCreateShaderModule(device.GetHandle(), &moduleInfo, nullptr, &mShaderModule);
             CHECK_VK(res, "Failed to create VkShaderModule.");
             VULKAN_SET_OBJ_NAME(device.GetHandle(), mShaderModule, info.debugName);
+
+            // Create pipeline shader stage info
+            mShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+            mShaderStageInfo.pNext = nullptr;
+            mShaderStageInfo.flags = 0;
+            mShaderStageInfo.pSpecializationInfo = nullptr;
+            mShaderStageInfo.stage = ConvertToVkShaderStageFlagBits(info.type);
+            mShaderStageInfo.pName = "main";
+            mShaderStageInfo.module = mShaderModule;
         }
 
         ShaderVk::~ShaderVk()
