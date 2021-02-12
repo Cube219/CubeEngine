@@ -35,8 +35,8 @@ namespace cube
 
             // TODO: RenderPass
 
-            ShaderVariablesLayout** shaderVariablesLayouts;
             Uint32 numShaderVariablesLayouts;
+            ShaderVariablesLayout** shaderVariablesLayouts;
 
             const char* debugName = "";
         };
@@ -46,6 +46,23 @@ namespace cube
         public:
             GraphicsPipelineState() = default;
             virtual ~GraphicsPipelineState() = default;
+        };
+
+        struct ComputePipelineStateCreateInfo
+        {
+            Shader* shader;
+
+            Uint32 numShaderVariablesLayouts;
+            ShaderVariablesLayout** shaderVariablesLayouts;
+
+            const char* debugName = "";
+        };
+
+        class ComputePipelineState
+        {
+        public:
+            ComputePipelineState() = default;
+            virtual ~ComputePipelineState() = default;
         };
     } // namespace rapi
 } // namespace cube

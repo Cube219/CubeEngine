@@ -31,6 +31,8 @@ namespace cube
         // Interface/PipelineState.h
         struct GraphicsPipelineStateCreateInfo;
         class GraphicsPipelineState;
+        struct ComputePipelineStateCreateInfo;
+        class ComputePipelineState;
 
         // Interface/RasterizerState.h
         struct RasterizerState;

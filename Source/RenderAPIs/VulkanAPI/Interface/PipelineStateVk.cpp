@@ -445,5 +445,55 @@ namespace cube
             vkDestroyPipeline(mDevice.GetHandle(), mPipeline, nullptr);
             vkDestroyPipelineLayout(mDevice.GetHandle(), mPipelineLayout, nullptr);
         }
+
+        ComputePipelineStateVk::ComputePipelineStateVk(VulkanDevice& device, const ComputePipelineStateCreateInfo& info) :
+            mDevice(device)
+        {
+            VkResult res;
+
+            // Shader stage
+            VkPipelineShaderStageCreateInfo shaderStage;
+            shaderStage = DCast(ShaderVk*)(info.shader)->GetVkPipelineShaderStageCreateInfo();
+
+            // Pipeline layout (ShaderParametersLayout)
+            FrameVector<VkDescriptorSetLayout> descSetLayouts(info.numShaderVariablesLayouts);
+
+            for(Uint32 i = 0; i < info.numShaderVariablesLayouts; ++i) {
+                ShaderVariablesLayoutVk* layout = DCast(ShaderVariablesLayoutVk*)(info.shaderVariablesLayouts[i]);
+                descSetLayouts[i] = layout->GetVkDescriptorSetLayout();
+            }
+
+            VkPipelineLayoutCreateInfo layoutInfo;
+            layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+            layoutInfo.pNext = nullptr;
+            layoutInfo.flags = 0;
+            layoutInfo.setLayoutCount = SCast(Uint32)(descSetLayouts.size());
+            layoutInfo.pSetLayouts = descSetLayouts.data();
+            layoutInfo.pushConstantRangeCount = 0;
+            layoutInfo.pPushConstantRanges = nullptr;
+            res = vkCreatePipelineLayout(mDevice.GetHandle(), &layoutInfo, nullptr, &mPipelineLayout);
+            CHECK_VK(res, "Failed to create VkPipelineLayout");
+            VULKAN_SET_OBJ_NAME(mDevice.GetHandle(), mPipelineLayout, FrameFormat("PipelineLayout of {}", info.debugName).c_str());
+
+            // Compute pipeline
+            VkComputePipelineCreateInfo pipelineCreateInfo;
+            pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+            pipelineCreateInfo.pNext = nullptr;
+            pipelineCreateInfo.flags = 0;
+            pipelineCreateInfo.stage = shaderStage;
+            pipelineCreateInfo.layout = mPipelineLayout;
+            pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
+            pipelineCreateInfo.basePipelineIndex = 0;
+
+            res = vkCreateComputePipelines(mDevice.GetHandle(), VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &mPipeline);
+            CHECK_VK(res, "Failed to create VkComputePipeline");
+            VULKAN_SET_OBJ_NAME(mDevice.GetHandle(), mPipeline, info.debugName);
+        }
+
+        ComputePipelineStateVk::~ComputePipelineStateVk()
+        {
+            vkDestroyPipeline(mDevice.GetHandle(), mPipeline, nullptr);
+            vkDestroyPipelineLayout(mDevice.GetHandle(), mPipelineLayout, nullptr);
+        }
     } // namespace rapi
 } // namespace cube

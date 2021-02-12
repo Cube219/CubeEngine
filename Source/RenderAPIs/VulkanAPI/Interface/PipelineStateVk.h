@@ -33,5 +33,18 @@ namespace cube
             VkPipeline mPipeline;
             VkPipelineLayout mPipelineLayout;
         };
+
+        class ComputePipelineStateVk : public ComputePipelineState
+        {
+        public:
+            ComputePipelineStateVk(VulkanDevice& device, const ComputePipelineStateCreateInfo& info);
+            virtual ~ComputePipelineStateVk();
+
+        private:
+            VulkanDevice& mDevice;
+
+            VkPipeline mPipeline;
+            VkPipelineLayout mPipelineLayout;
+        };
     } // namespace rapi
 } // namespace cube

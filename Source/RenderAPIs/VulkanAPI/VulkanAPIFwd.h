@@ -14,6 +14,10 @@ namespace cube
         // Interface/DeviceContextVk.h
         class DeviceContextVk;
 
+        // Interface/PipelineStateVk.h
+        class GraphicsPipelineStateVk;
+        class ComputePipelineStateVk;
+
         // Interface/ShaderVk.h
         class ShaderVk;
 
