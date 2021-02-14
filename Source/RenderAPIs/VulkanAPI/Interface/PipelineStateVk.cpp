@@ -3,6 +3,7 @@
 #include "../VulkanDevice.h"
 #include "../VulkanTypeConversion.h"
 #include "../VulkanUtility.h"
+#include "RenderPassVk.h"
 #include "ShaderVariablesVk.h"
 #include "ShaderVk.h"
 #include "Core/Allocator/FrameAllocator.h"
@@ -432,8 +433,8 @@ namespace cube
             pipelineCreateInfo.pDepthStencilState = &depthStencilStateCreateInfo;
             pipelineCreateInfo.stageCount = SCast(Uint32)(shaderStages.size());
             pipelineCreateInfo.pStages = shaderStages.data();
-            // pipelineCreateInfo.renderPass = DPCast(RenderPassVk)(attr.renderPass)->GetHandle();
-            // pipelineCreateInfo.subpass = 0;
+            pipelineCreateInfo.renderPass = DCast(RenderPassVk*)(info.renderPass)->GetVkRenderPass();
+            pipelineCreateInfo.subpass = 0;
 
             res = vkCreateGraphicsPipelines(mDevice.GetHandle(), VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &mPipeline);
             CHECK_VK(res, "Failed to create VkGraphicsPipeline");

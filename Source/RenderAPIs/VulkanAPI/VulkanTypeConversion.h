@@ -17,5 +17,10 @@ namespace cube
         {
             return texFmtToVkFmt[(Uint32)format];
         }
+
+        static VkSampleCountFlagBits ConvertToVkSampleCountFlagBits(Uint8 sampleCount)
+        {
+            return (VkSampleCountFlagBits)(sampleCount);
+        }
     }
 } // namespace cube

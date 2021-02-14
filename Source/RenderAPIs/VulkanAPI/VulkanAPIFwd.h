@@ -18,6 +18,9 @@ namespace cube
         class GraphicsPipelineStateVk;
         class ComputePipelineStateVk;
 
+        // Interface/RenderPassVk.h
+        class RenderPassVk;
+
         // Interface/ShaderVk.h
         class ShaderVk;
 

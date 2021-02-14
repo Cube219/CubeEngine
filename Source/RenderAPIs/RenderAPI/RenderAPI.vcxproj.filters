@@ -40,6 +40,9 @@
     <ClInclude Include="Interface\InputLayout.h">
       <Filter>Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\RenderPass.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="a.cpp" />

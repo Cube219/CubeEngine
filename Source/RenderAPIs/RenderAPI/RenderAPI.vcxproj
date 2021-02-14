@@ -93,6 +93,7 @@
     <ClInclude Include="Interface\InputLayout.h" />
     <ClInclude Include="Interface\PipelineState.h" />
     <ClInclude Include="Interface\RasterizerState.h" />
+    <ClInclude Include="Interface\RenderPass.h" />
     <ClInclude Include="Interface\Resource.h" />
     <ClInclude Include="Interface\RenderTypes.h" />
     <ClInclude Include="Interface\Shader.h" />

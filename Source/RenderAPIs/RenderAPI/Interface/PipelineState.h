@@ -21,22 +21,22 @@ namespace cube
             Shader* hullShader = nullptr;
             Shader* geometryShader = nullptr;
 
-            const InputLayout* inputLayouts;
-            Uint32 numInputLayouts;
+            const InputLayout* inputLayouts = nullptr;
+            Uint32 numInputLayouts = 0;
 
             RasterizerState rasterizerState;
             PrimitiveTopology topology = PrimitiveTopology::TriangleList;
             DepthStencilState depthStencilState;
 
-            Uint32 numRenderTargets;
+            Uint32 numRenderTargets = 0;
             BlendState blendStates[MAX_RENDER_TARGET_NUM];
             TextureFormat renderTargetFormats[MAX_RENDER_TARGET_NUM];
             TextureFormat depthStencilFormat;
 
-            // TODO: RenderPass
+            RenderPass* renderPass;
 
-            Uint32 numShaderVariablesLayouts;
-            ShaderVariablesLayout** shaderVariablesLayouts;
+            Uint32 numShaderVariablesLayouts = 0;
+            ShaderVariablesLayout** shaderVariablesLayouts = nullptr;
 
             const char* debugName = "";
         };

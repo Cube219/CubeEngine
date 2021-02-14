@@ -37,6 +37,13 @@ namespace cube
         // Interface/RasterizerState.h
         struct RasterizerState;
 
+        // Interface/RenderPass.h
+        struct RenderPassAttachmentInfo;
+        struct Subpass;
+        struct SubpassDependency;
+        struct RenderPassCreateInfo;
+        class RenderPass;
+
         // Interface/Resource.h
         struct ResourceCreateInfo;
         class Resource;
