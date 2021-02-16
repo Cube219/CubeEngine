@@ -38,8 +38,12 @@ namespace cube
             Uint32 GetComputeQueueFamilyIndex() const { return mComputeQueues[0].familyIndex; }
             Uint32 GetTransferQueueFamilyIndex() const { return mTransferQueues[0].familyIndex; }
 
+            VkQueue GetPresentQueue(VkSurfaceKHR surface);
+
             void SubmitCommandBuffer(VulkanCommandBuffer& commandBuffer);
             VulkanFence SubmitCommandBufferWithFence(VulkanCommandBuffer& commandBuffer);
+
+            void AddWaitSemaphoreForGraphics(const VulkanSemaphore& semaphore, VkPipelineStageFlags stageFlags);
 
         private:
             bool InitGraphicsQueue(VkQueueFamilyProperties* pProps, Uint64 propNum);
@@ -56,6 +60,7 @@ namespace cube
             VulkanQueue mGraphicsQueue;
             Mutex mGraphicsWaitSemaphoresMutex;
             Vector<VulkanSemaphore> mGraphicsWaitSemaphores;
+            Vector<VkPipelineStageFlags> mGraphicsWaitSemaphoreStages;
 
             Vector<VulkanQueue> mComputeQueues;
             Uint64 mComputeQueuesCurrentIndex;
@@ -64,8 +69,6 @@ namespace cube
             Vector<VulkanQueue> mTransferQueues;
             Uint64 mTransferQueuesCurrentIndex;
             Mutex mTransferQueuesMutex;
-
-            // VulkanQueue mPresentQueue; // TODO: Implement
         };
     } // namespace rapi
 } // namespace cube

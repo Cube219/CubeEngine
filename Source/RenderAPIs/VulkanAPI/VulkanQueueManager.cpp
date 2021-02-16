@@ -34,6 +34,32 @@ namespace cube
         {
         }
 
+        VkQueue VulkanQueueManager::GetPresentQueue(VkSurfaceKHR surface)
+        {
+            VkResult res;
+
+            VkPhysicalDevice physicalDevice = mDevice.GetGPU();
+
+            // Check compute queue family if it is supported to present
+            VkBool32 isSupported;
+            res = vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, mComputeQueues[0].familyIndex, surface, &isSupported);
+            CHECK_VK(res, "Failed to get if compute queue family supports present.");
+            if(isSupported == VK_TRUE) {
+                return mComputeQueues[0].queue;
+            }
+
+            // Check graphics queue family
+            res = vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, mGraphicsQueue.familyIndex, surface, &isSupported);
+            CHECK_VK(res, "Failed to get if graphics queue family supports present.");
+            if(isSupported == VK_TRUE) {
+                return mGraphicsQueue.queue;
+            }
+
+            ASSERTION_FAILED("There's no queue families that support present.");
+
+            return mGraphicsQueue.queue;
+        }
+
         void VulkanQueueManager::SubmitCommandBuffer(VulkanCommandBuffer& commandBuffer)
         {
             switch(commandBuffer.GetType())
@@ -65,6 +91,14 @@ namespace cube
                 default:
                     return VulkanFence();
             }
+        }
+
+        void VulkanQueueManager::AddWaitSemaphoreForGraphics(const VulkanSemaphore& semaphore, VkPipelineStageFlags stageFlags)
+        {
+            Lock lock(mGraphicsWaitSemaphoresMutex);
+
+            mGraphicsWaitSemaphores.push_back(semaphore);
+            mGraphicsWaitSemaphoreStages.push_back(stageFlags);
         }
 
         bool VulkanQueueManager::InitGraphicsQueue(VkQueueFamilyProperties* pProps, Uint64 propNum)
@@ -199,19 +233,21 @@ namespace cube
 
             VkCommandBuffer cmdBuf = commandBuffer.GetHandle();
 
-            FrameVector<VulkanSemaphore> waitSemaphores;
+            FrameVector<VulkanSemaphore> waitSemaphores(mGraphicsWaitSemaphores.size());
+            FrameVector<VkPipelineStageFlags> waitSemaphoreStages(mGraphicsWaitSemaphoreStages.size());
             {
                 Lock lock(mGraphicsWaitSemaphoresMutex);
 
-                waitSemaphores.insert(waitSemaphores.cend(), mGraphicsWaitSemaphores.begin(), mGraphicsWaitSemaphores.end());
+                waitSemaphores.assign(mGraphicsWaitSemaphores.begin(), mGraphicsWaitSemaphores.end());
+                waitSemaphoreStages.assign(mGraphicsWaitSemaphoreStages.begin(), mGraphicsWaitSemaphoreStages.end());
+
                 mGraphicsWaitSemaphores.clear();
+                mGraphicsWaitSemaphoreStages.clear();
             }
 
             FrameVector<VkSemaphore> waitVkSemaphores(mGraphicsWaitSemaphores.size());
-            FrameVector<VkPipelineStageFlags> waitSemaphoreStages(mGraphicsWaitSemaphores.size());
-            for(Uint64 i = 0; i < mGraphicsWaitSemaphores.size(); i++) {
+            for(Uint32 i = 0; i < SCast(Uint32)(mGraphicsWaitSemaphores.size()); ++i) {
                 waitVkSemaphores[i] = mGraphicsWaitSemaphores[i].GetHandle();
-                waitSemaphoreStages[i] = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             }
 
             VkSubmitInfo submitInfo = {};
@@ -284,6 +320,7 @@ namespace cube
                 Lock lock(mGraphicsWaitSemaphoresMutex);
 
                 mGraphicsWaitSemaphores.push_back(signalSemaphore);
+                mGraphicsWaitSemaphoreStages.push_back(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
             }
 
             VkSubmitInfo submitInfo = {};

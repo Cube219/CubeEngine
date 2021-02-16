@@ -28,6 +28,9 @@ namespace cube
         class ShaderVariablesVk;
         class ShaderVariablesLayoutVk;
 
+        // Interface/SwapChain.h
+        class SwapChainVk;
+
         // Interface/TextureVk.h
         class TextureVk;
         class Texture2DVk;

@@ -98,6 +98,7 @@
     <ClInclude Include="Interface\RenderTypes.h" />
     <ClInclude Include="Interface\Shader.h" />
     <ClInclude Include="Interface\ShaderVariables.h" />
+    <ClInclude Include="Interface\SwapChain.h" />
     <ClInclude Include="Interface\Texture.h" />
     <ClInclude Include="RenderAPI.h" />
     <ClInclude Include="RenderAPIFwd.h" />

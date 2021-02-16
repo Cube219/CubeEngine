@@ -38,6 +38,9 @@
     <ClCompile Include="Interface\RenderPassVk.cpp">
       <Filter>Interface</Filter>
     </ClCompile>
+    <ClCompile Include="Interface\SwapChainVk.cpp">
+      <Filter>Interface</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="VulkanAPI.h" />
@@ -77,6 +80,9 @@
       <Filter>Interface</Filter>
     </ClInclude>
     <ClInclude Include="Interface\RenderPassVk.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\SwapChainVk.h">
       <Filter>Interface</Filter>
     </ClInclude>
   </ItemGroup>

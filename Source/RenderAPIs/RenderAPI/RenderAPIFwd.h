@@ -57,6 +57,10 @@ namespace cube
         struct ShaderVariablesLayoutCreateInfo;
         class ShaderVariablesLayout;
 
+        // Interface/SwapChain.h
+        struct SwapChainCreateInfo;
+        class SwapChain;
+
         // Interface/Texture.h
         struct TextureCreateInfo;
         class Texture;
