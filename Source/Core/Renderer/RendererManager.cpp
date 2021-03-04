@@ -25,7 +25,8 @@ namespace cube
         auto createRenderAPIFunc = RCast(CreateRenderAPIFunction)(mRenderAPIDLib->GetFunction(CUBE_T("CreateRenderAPI")));
         mRenderAPI = SPtr<rapi::RenderAPI>(createRenderAPIFunc());
 
-        mRenderAPI->Initialize();
+        rapi::RenderAPICreateInfo apiCreateInfo; // TODO: Multi-thread 구현시 CommandPool 개수 넣기
+        mRenderAPI->Initialize(apiCreateInfo);
     }
 
     void RendererManager::Shutdown()

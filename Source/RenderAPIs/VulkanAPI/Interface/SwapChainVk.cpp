@@ -5,6 +5,7 @@
 #include "RenderAPIs/VulkanAPI/VulkanTypeConversion.h"
 
 #include "Core/Allocator/FrameAllocator.h"
+#include "Core/LogWriter.h"
 #include "Platform/Win32/Win32Platform.h"
 
 namespace cube

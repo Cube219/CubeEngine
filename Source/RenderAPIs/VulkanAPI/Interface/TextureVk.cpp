@@ -1,5 +1,8 @@
 #include "TextureVk.h"
 
+#include "FenceVk.h"
+
+
 #include "../VulkanDevice.h"
 #include "../VulkanUtility.h"
 #include "Core/Assertion.h"
@@ -114,15 +117,18 @@ namespace cube
 
                 for(Uint32 i = 0; i < numToCreate; i++) {
                     void* p;
-                    MapImpl(ResourceMapType::Write, i, p);
+                    MapImpl(ResourceMapType::Write, i, p, true);
                     memcpy(p, data[i].pData, data[i].size);
-                    UnmapImpl(i);
+                    UnmapImpl(i, true);
                 }
 
                 if(generateMipmaps) {
-                    VulkanCommandBuffer uploadCmdBuf = mDevice.GetUploadCommandBuffer();
+                    CommandListAllocateInfo cmdInfo;
+                    cmdInfo.type = CommandListType::Transfer;
+
+                    VulkanCommandBuffer uploadCmdBuf = mDevice.GetCommandPoolManager().AllocateCommandBuffer(cmdInfo);
                     GenerateMipmaps(uploadCmdBuf);
-                    mDevice.SubmitUploadCommandBuffer(uploadCmdBuf);
+                    mDevice.GetQueueManager().SubmitCommandBuffer(uploadCmdBuf);
                 }
 
                 mUsage = usage;
@@ -132,10 +138,15 @@ namespace cube
         TextureVk::~TextureVk()
         {
             mDevice.GetAllocator().Free(mAllocation);
+            for(auto& stagingBuf : mStagingBuffers) {
+                if(stagingBuf.IsValid()) {
+                    mDevice.GetStagingManager().ReleaseBuffer(std::move(stagingBuf));
+                }
+            }
             vkDestroyImage(mDevice.GetHandle(), mImage, nullptr);
         }
 
-        void TextureVk::MapImpl(ResourceMapType type, Uint32 mipIndex, void*& pMappedResource)
+        SPtr<Fence> TextureVk::MapImpl(ResourceMapType type, Uint32 mipIndex, void*& pMappedResource, bool waitUntilFinished)
         {
             CHECK(mUsage != ResourceUsage::Immutable, "Cannot map immutable resource.");
             if(mUsage == ResourceUsage::Staging) {
@@ -147,7 +158,7 @@ namespace cube
 
                 // Dynamic resource is always mapped
                 pMappedResource = mAllocation.pMappedPtr;
-                return;
+                return nullptr;
             }
 
             VulkanStagingBuffer::Type stagingBufType;
@@ -165,11 +176,12 @@ namespace cube
             Uint32 mipDepth = Math::Max(mDepth >> mipIndex, 1u);
             Uint64 bufSize = mipWidth * mipHeight * mipDepth * 4;
             mStagingBuffers[mipIndex] = mDevice.GetStagingManager().GetBuffer(bufSize, stagingBufType, mDebugName);
+            pMappedResource = mStagingBuffers[mipIndex].GetMappedPtr();
 
             if(type != ResourceMapType::Write) {
-                VulkanCommandBuffer uploadCmdBuf = mDevice.GetUploadCommandBuffer();
+                mStagingBuffers[mipIndex].InitCommandBuffer();
 
-                TransitionLayout(uploadCmdBuf, mipIndex, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+                TransitionLayout(mStagingBuffers[mipIndex].GetCommandBuffer(), mipIndex, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 
                 VkBufferImageCopy region;
                 region.bufferOffset = 0;
@@ -181,35 +193,43 @@ namespace cube
                 region.imageSubresource.layerCount = 1;
                 region.imageOffset = { 0, 0, 0 };
                 region.imageExtent = { mipWidth, mipHeight, mipDepth };
-                uploadCmdBuf.CopyImageToBuffer(mImage, mStagingBuffers[mipIndex].GetHandle(), region);
+                mStagingBuffers[mipIndex].CopyImage(mImage, region);
 
-                TransitionLayout(uploadCmdBuf, mipIndex, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+                TransitionLayout(mStagingBuffers[mipIndex].GetCommandBuffer(), mipIndex, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-                uploadCmdBuf.SetMemoryBarrier(VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_HOST_BIT, VK_ACCESS_MEMORY_READ_BIT, VK_ACCESS_HOST_READ_BIT, mStagingBuffers[mipIndex].GetHandle(), bufSize);
-
-                mDevice.SubmitUploadCommandBuffer(uploadCmdBuf, true);
+                auto fence = mStagingBuffers[mipIndex].SubmitCommandBuffer();
+                if(waitUntilFinished == true) {
+                    fence->Wait(10.0f);
+                    return nullptr;
+                } else {
+                    return fence;
+                }
             }
 
-            pMappedResource = mStagingBuffers[mipIndex].GetMappedPtr();
+            if(waitUntilFinished == true) {
+                return nullptr;
+            } else {
+                return mDevice.GetFencePool().CreateNullFence();
+            }
         }
 
-        void TextureVk::UnmapImpl(Uint32 mipIndex)
+        SPtr<Fence> TextureVk::UnmapImpl(Uint32 mipIndex, bool waitUntilFinished)
         {
             CHECK(mUsage != ResourceUsage::Immutable, "Cannot unmap immutable resource.");
 
             if(mUsage == ResourceUsage::Dynamic) {
                 // Dynamic resource is always mapped
-                return;
+                return nullptr;
             }
 
-            if(mStagingBuffers[mipIndex].IsValid() && mStagingBuffers[mipIndex].GetType() != VulkanStagingBuffer::Type::Read) {
-                VulkanCommandBuffer uploadCmdBuf = mDevice.GetUploadCommandBuffer();
+            Uint32 mipWidth = Math::Max(mWidth >> mipIndex, 1u);
+            Uint32 mipHeight = Math::Max(mHeight >> mipIndex, 1u);
+            Uint32 mipDepth = Math::Max(mDepth >> mipIndex, 1u);
 
-                TransitionLayout(uploadCmdBuf, mipIndex, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-                
-                Uint32 mipWidth = Math::Max(mWidth >> mipIndex, 1u);
-                Uint32 mipHeight = Math::Max(mHeight >> mipIndex, 1u);
-                Uint32 mipDepth = Math::Max(mDepth >> mipIndex, 1u);
+            if(mStagingBuffers[mipIndex].IsValid() && mStagingBuffers[mipIndex].GetType() != VulkanStagingBuffer::Type::Read) {
+                mStagingBuffers[mipIndex].InitCommandBuffer();
+
+                TransitionLayout(mStagingBuffers[mipIndex].GetCommandBuffer(), mipIndex, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, true);
 
                 VkBufferImageCopy region;
                 region.bufferOffset = 0;
@@ -221,14 +241,28 @@ namespace cube
                 region.imageSubresource.layerCount = 1;
                 region.imageOffset = { 0, 0, 0 };
                 region.imageExtent = { mipWidth, mipHeight, mipDepth };
+                mStagingBuffers[mipIndex].FlushImage(mImage, region);
 
-                uploadCmdBuf.CopyBufferToImage(mStagingBuffers[mipIndex].GetHandle(), mImage, region);
+                TransitionLayout(mStagingBuffers[mipIndex].GetCommandBuffer(), mipIndex, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-                TransitionLayout(uploadCmdBuf, mipIndex, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-                mDevice.SubmitUploadCommandBuffer(uploadCmdBuf);
-
+                auto fence = mStagingBuffers[mipIndex].SubmitCommandBuffer();
                 mDevice.GetStagingManager().ReleaseBuffer(std::move(mStagingBuffers[mipIndex]));
+                if(waitUntilFinished == true) {
+                    fence->Wait(10.0f);
+                    return nullptr;
+                } else {
+                    return fence;
+                }
+            }
+
+            if(mStagingBuffers[mipIndex].IsValid() == true) {
+                mDevice.GetStagingManager().ReleaseBuffer(std::move(mStagingBuffers[mipIndex]));
+            }
+            
+            if(waitUntilFinished == true) {
+                return nullptr;
+            } else {
+                return mDevice.GetFencePool().CreateNullFence();
             }
         }
 
@@ -279,7 +313,7 @@ namespace cube
                 blit.dstSubresource.mipLevel = i;
                 blit.dstOffsets[1] = { newMipWidth, newMipHeight, newMipDepth };
 
-                vkCmdBlitImage(cmdBuf.GetHandle(), mImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, mImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_LINEAR);
+                vkCmdBlitImage(cmdBuf.handle, mImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, mImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_LINEAR);
 
                 TransitionLayout(cmdBuf, i - 1, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
@@ -326,7 +360,7 @@ namespace cube
             imgBarrier.subresourceRange.baseArrayLayer = 0;
             imgBarrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
 
-            vkCmdPipelineBarrier(cmdBuf.GetHandle(), srcPipelineStages, dstPipelineStages, 0, 0, nullptr, 0, nullptr, 1, &imgBarrier);
+            vkCmdPipelineBarrier(cmdBuf.handle, srcPipelineStages, dstPipelineStages, 0, 0, nullptr, 0, nullptr, 1, &imgBarrier);
 
             mCurrentLayouts[mipIndex] = newLayout;
         }

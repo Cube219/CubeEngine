@@ -88,8 +88,9 @@
   <ItemGroup>
     <ClInclude Include="Interface\Buffer.h" />
     <ClInclude Include="Interface\BlendState.h" />
+    <ClInclude Include="Interface\CommandList.h" />
     <ClInclude Include="Interface\DepthStencilState.h" />
-    <ClInclude Include="Interface\DeviceContext.h" />
+    <ClInclude Include="Interface\Fence.h" />
     <ClInclude Include="Interface\InputLayout.h" />
     <ClInclude Include="Interface\PipelineState.h" />
     <ClInclude Include="Interface\RasterizerState.h" />

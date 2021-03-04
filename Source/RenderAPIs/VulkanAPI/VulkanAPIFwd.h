@@ -11,8 +11,11 @@ namespace cube
         class ConstantBufferVk;
         class StructuredBufferVk;
 
-        // Interface/DeviceContextVk.h
-        class DeviceContextVk;
+        // Interface/CommandList.h
+        class CommandListVk;
+
+        // Interface/FenceVk.h
+        class FenceVk;
 
         // Interface/PipelineStateVk.h
         class GraphicsPipelineStateVk;
@@ -41,9 +44,9 @@ namespace cube
         // VulkanAPI.h
         class VulkanAPI;
 
-        // VulkanCommandPool.h
-        class VulkanCommandBuffer;
-        class VulkanCommandPool;
+        // VulkanCommandPoolManager.h
+        struct VulkanCommandBuffer;
+        class VulkanCommandPoolManager;
 
         // VulkanDebug.h
         class VulkanDebug;
@@ -52,7 +55,6 @@ namespace cube
         class VulkanDevice;
 
         // VulkanFencePool.h
-        class VulkanFence;
         class VulkanFencePool;
 
         // VulkanLayout.h

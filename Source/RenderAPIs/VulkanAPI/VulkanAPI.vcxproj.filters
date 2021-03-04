@@ -17,10 +17,6 @@
     <ClCompile Include="VulkanFencePool.cpp" />
     <ClCompile Include="VulkanQueueManager.cpp" />
     <ClCompile Include="VulkanSemaphorePool.cpp" />
-    <ClCompile Include="VulkanCommandPool.cpp" />
-    <ClCompile Include="Interface\DeviceContextVk.cpp">
-      <Filter>Interface</Filter>
-    </ClCompile>
     <ClCompile Include="Interface\ShaderVk.cpp">
       <Filter>Interface</Filter>
     </ClCompile>
@@ -39,6 +35,13 @@
       <Filter>Interface</Filter>
     </ClCompile>
     <ClCompile Include="Interface\SwapChainVk.cpp">
+      <Filter>Interface</Filter>
+    </ClCompile>
+    <ClCompile Include="Interface\CommandListVk.cpp">
+      <Filter>Interface</Filter>
+    </ClCompile>
+    <ClCompile Include="VulkanCommandPoolManager.cpp" />
+    <ClCompile Include="Interface\FenceVk.cpp">
       <Filter>Interface</Filter>
     </ClCompile>
   </ItemGroup>
@@ -61,10 +64,6 @@
     <ClInclude Include="VulkanFencePool.h" />
     <ClInclude Include="VulkanQueueManager.h" />
     <ClInclude Include="VulkanSemaphorePool.h" />
-    <ClInclude Include="VulkanCommandPool.h" />
-    <ClInclude Include="Interface\DeviceContextVk.h">
-      <Filter>Interface</Filter>
-    </ClInclude>
     <ClInclude Include="Interface\ShaderVk.h">
       <Filter>Interface</Filter>
     </ClInclude>
@@ -83,6 +82,13 @@
       <Filter>Interface</Filter>
     </ClInclude>
     <ClInclude Include="Interface\SwapChainVk.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\CommandListVk.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="VulkanCommandPoolManager.h" />
+    <ClInclude Include="Interface\FenceVk.h">
       <Filter>Interface</Filter>
     </ClInclude>
   </ItemGroup>

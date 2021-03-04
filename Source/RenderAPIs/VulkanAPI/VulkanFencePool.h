@@ -8,49 +8,13 @@ namespace cube
 {
     namespace rapi
     {
-        class VulkanFence
-        {
-        public:
-            VulkanFence() :
-                mDeviceHandle(VK_NULL_HANDLE),
-                mpFencePool(nullptr),
-                mFence(VK_NULL_HANDLE)
-            {}
-            VulkanFence(VkDevice deviceHandle, VulkanFencePool* pFencePool, VkFence fence) :
-                mDeviceHandle(deviceHandle),
-                mpFencePool(pFencePool),
-                mFence(fence)
-            {}
-            ~VulkanFence() {}
-
-            VkFence GetHandle() const { return mFence; }
-
-            enum class WaitResult
-            {
-                Success,
-                Timeout,
-                Error
-            };
-            WaitResult Wait(double timeInSec = 5.0);
-            void Reset();
-            void Release();
-
-        private:
-            friend class VulkanFencePool;
-
-            VkDevice mDeviceHandle;
-            VulkanFencePool* mpFencePool;
-
-            VkFence mFence;
-        };
-
         class VulkanFencePool
         {
         public:
             VulkanFencePool(VulkanDevice& device) :
                 mDevice(device)
             {}
-            ~VulkanFencePool() {}
+            ~VulkanFencePool() = default;
 
             VulkanFencePool(const VulkanFencePool& other) = delete;
             VulkanFencePool& operator=(const VulkanFencePool& rhs) = delete;
@@ -58,15 +22,16 @@ namespace cube
             void Initialize();
             void Shutdown();
 
-            VulkanFence AllocateFence(const char* debugName = nullptr);
-            void FreeFence(VulkanFence& fence);
+            SPtr<FenceVk> AllocateFence(const char* debugName = nullptr);
+            void FreeFence(FenceVk& fence);
+
+            SPtr<FenceVk> CreateNullFence();
 
         private:
             VulkanDevice& mDevice;
 
             Mutex mFencesMutex;
-            Vector<VulkanFence> mFreeFences;
-            Vector<VulkanFence> mUsedFences;
+            Vector<VkFence> mFreeFences;
         };
     } // namespace rapi
 } // namespace cube

@@ -3,8 +3,8 @@
 #include "VulkanAPIHeader.h"
 
 #include "Core/Thread/MutexLock.h"
-#include "VulkanFencePool.h"
 #include "VulkanSemaphorePool.h"
+#include "Interface/CommandListVk.h"
 
 namespace cube
 {
@@ -40,8 +40,11 @@ namespace cube
 
             VkQueue GetPresentQueue(VkSurfaceKHR surface);
 
+            void SubmitCommandList(SPtr<CommandListVk>& commandList);
+            SPtr<FenceVk> SubmitCommandListWithFence(SPtr<CommandListVk>& commandList);
+
             void SubmitCommandBuffer(VulkanCommandBuffer& commandBuffer);
-            VulkanFence SubmitCommandBufferWithFence(VulkanCommandBuffer& commandBuffer);
+            SPtr<FenceVk> SubmitCommandBufferWithFence(VulkanCommandBuffer& commandBuffer);
 
             void AddWaitSemaphoreForGraphics(const VulkanSemaphore& semaphore, VkPipelineStageFlags stageFlags);
 
@@ -51,9 +54,9 @@ namespace cube
             bool InitTransferQueue(VkQueueFamilyProperties* pProps, Uint64 propNum);
             Uint32 FindQueueFamilyIndex(VkQueueFamilyProperties* pProps, Uint64 propNum, VkQueueFlags flags, VkQueueFlags prohibitFlags);
 
-            VulkanFence SubmitGraphicsQueue(VulkanCommandBuffer& commandBuffer, bool getFence);
-            VulkanFence SubmitComputeQueue(VulkanCommandBuffer& commandBuffer, bool getFence);
-            VulkanFence SubmitTransferQueue(VulkanCommandBuffer& commandBuffer, bool getFence);
+            SPtr<FenceVk> SubmitGraphicsQueue(VulkanCommandBuffer& commandBuffer, bool getFence);
+            SPtr<FenceVk> SubmitComputeQueue(VulkanCommandBuffer& commandBuffer, bool getFence);
+            SPtr<FenceVk> SubmitTransferQueue(VulkanCommandBuffer& commandBuffer, bool getFence);
 
             VulkanDevice& mDevice;
 

@@ -73,7 +73,9 @@ namespace cube
 
         void VulkanSemaphorePool::FreeSemaphore(VulkanSemaphore& semaphore)
         {
-            CHECK(semaphore.mSemaphore != VK_NULL_HANDLE, "The semaphore is already freed.");
+            if(semaphore.mSemaphore == VK_NULL_HANDLE) {
+                return;
+            }
 
             Lock lock(mSemaphoresMutex);
 

@@ -17,8 +17,8 @@ namespace cube
             BufferVk(VulkanDevice& device, ResourceUsage usage, VkBufferUsageFlags bufUsage, Uint64 size, const void* pData, const char* debugName);
             virtual ~BufferVk();
 
-            void MapImpl(ResourceMapType type, void*& pMappedResource);
-            void UnmapImpl();
+            SPtr<Fence> MapImpl(ResourceMapType type, void*& pMappedResource, bool waitUntilFinished);
+            SPtr<Fence> UnmapImpl(bool waitUntilFinished);
 
         protected:
             VulkanDevice& mDevice;
@@ -40,11 +40,19 @@ namespace cube
 
             virtual void Map(ResourceMapType type, void*& pMappedResource) override
             {
-                MapImpl(type, pMappedResource);
+                MapImpl(type, pMappedResource, true);
             }
             virtual void Unmap() override
             {
-                UnmapImpl();
+                UnmapImpl(true);
+            }
+            virtual SPtr<Fence> MapAsync(ResourceMapType type, void*& pMappedResource) override
+            {
+                return MapImpl(type, pMappedResource, false);
+            }
+            virtual SPtr<Fence> UnmapAsync() override
+            {
+                return UnmapImpl(false);
             }
         };
 
@@ -56,11 +64,19 @@ namespace cube
 
             virtual void Map(ResourceMapType type, void*& pMappedResource) override
             {
-                MapImpl(type, pMappedResource);
+                MapImpl(type, pMappedResource, true);
             }
             virtual void Unmap() override
             {
-                UnmapImpl();
+                UnmapImpl(true);
+            }
+            virtual SPtr<Fence> MapAsync(ResourceMapType type, void*& pMappedResource) override
+            {
+                return MapImpl(type, pMappedResource, false);
+            }
+            virtual SPtr<Fence> UnmapAsync() override
+            {
+                return UnmapImpl(false);
             }
 
             VkIndexType GetIndexType() const { return mIndexType; }
@@ -77,11 +93,19 @@ namespace cube
 
             virtual void Map(ResourceMapType type, void*& pMappedResource) override
             {
-                MapImpl(type, pMappedResource);
+                MapImpl(type, pMappedResource, true);
             }
             virtual void Unmap() override
             {
-                UnmapImpl();
+                UnmapImpl(true);
+            }
+            virtual SPtr<Fence> MapAsync(ResourceMapType type, void*& pMappedResource) override
+            {
+                return MapImpl(type, pMappedResource, false);
+            }
+            virtual SPtr<Fence> UnmapAsync() override
+            {
+                return UnmapImpl(false);
             }
         };
 
@@ -93,11 +117,19 @@ namespace cube
 
             virtual void Map(ResourceMapType type, void*& pMappedResource) override
             {
-                MapImpl(type, pMappedResource);
+                MapImpl(type, pMappedResource, true);
             }
             virtual void Unmap() override
             {
-                UnmapImpl();
+                UnmapImpl(true);
+            }
+            virtual SPtr<Fence> MapAsync(ResourceMapType type, void*& pMappedResource) override
+            {
+                return MapImpl(type, pMappedResource, false);
+            }
+            virtual SPtr<Fence> UnmapAsync() override
+            {
+                return UnmapImpl(false);
             }
         };
     } // namespace rapi

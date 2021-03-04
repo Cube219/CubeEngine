@@ -38,6 +38,8 @@ namespace cube
 
             virtual void Map(ResourceMapType type, Uint32 mipmapIndex, void*& pMappedResource) = 0;
             virtual void Unmap(Uint32 mipmapIndex) = 0;
+            virtual SPtr<Fence> MapAsync(ResourceMapType type, Uint32 mipmapIndex, void*& pMappedResource) = 0;
+            virtual SPtr<Fence> UnmapAsync(Uint32 mipmapIndex) = 0;
 
         protected:
             TextureFormat mFormat;

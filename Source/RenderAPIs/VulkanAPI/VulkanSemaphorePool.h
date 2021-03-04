@@ -19,6 +19,26 @@ namespace cube
             {}
             ~VulkanSemaphore() {}
 
+            // VulkanSemaphore(const VulkanSemaphore& other) = delete;
+            // VulkanSemaphore& operator=(const VulkanSemaphore& rhs) = delete;
+            //
+            // VulkanSemaphore(VulkanSemaphore&& other) noexcept
+            // {
+            //     mSemaphore = other.mSemaphore;
+            //
+            //     other.mSemaphore = VK_NULL_HANDLE;
+            // }
+            // VulkanSemaphore& operator=(VulkanSemaphore&& rhs) noexcept
+            // {
+            //     if(this == &rhs) return *this;
+            //
+            //     mSemaphore = rhs.mSemaphore;
+            //
+            //     rhs.mSemaphore = VK_NULL_HANDLE;
+            //
+            //     return *this;
+            // }
+
             VkSemaphore GetHandle() const { return mSemaphore; }
 
         private:
@@ -41,7 +61,7 @@ namespace cube
             void Initialize();
             void Shutdown();
 
-            VulkanSemaphore AllocateSemaphore(const char* debugName = nullptr);
+            VulkanSemaphore AllocateSemaphore(const char* debugName = "");
             void FreeSemaphore(VulkanSemaphore& semaphore);
 
         private:

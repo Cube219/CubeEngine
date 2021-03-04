@@ -2,13 +2,13 @@
 
 #include "VulkanAPIHeader.h"
 
+#include "VulkanCommandPoolManager.h"
 #include "VulkanMemoryAllocator.h"
 #include "VulkanStagingManager.h"
 #include "VulkanFencePool.h"
 #include "VulkanSemaphorePool.h"
 #include "VulkanShaderVariableManager.h"
 #include "VulkanQueueManager.h"
-#include "Interface/DeviceContextVk.h"
 
 namespace cube
 {
@@ -27,7 +27,7 @@ namespace cube
         class VulkanDevice
         {
         public:
-            VulkanDevice(VkInstance instance, VkPhysicalDevice gpu);
+            VulkanDevice(const RenderAPICreateInfo& apiInfo, VkInstance instance, VkPhysicalDevice gpu);
             ~VulkanDevice();
 
             GPUType GetGPUType() const { return mType; }
@@ -35,16 +35,13 @@ namespace cube
             VkPhysicalDevice GetGPU() const { return mGPU; }
             const VkPhysicalDeviceProperties& GetProperties() const { return mProps; }
 
+            VulkanCommandPoolManager& GetCommandPoolManager() { return mCommandPoolManager; }
             VulkanMemoryAllocator& GetAllocator() { return mAllocator; }
             VulkanStagingManager& GetStagingManager() { return mStagingManager; }
             VulkanFencePool& GetFencePool() { return mFencePool; }
             VulkanSemaphorePool& GetSemaphorePool() { return mSemaphorePool; }
             VulkanShaderVariableManager& GetShaderVariableManager() { return mShaderVariableManager; }
             VulkanQueueManager& GetQueueManager() { return mQueueManager; }
-
-            DeviceContextVk& GetImmediateContext() { return *mpImmediateContext; }
-            VulkanCommandBuffer GetUploadCommandBuffer(const char* debugName = nullptr);
-            void SubmitUploadCommandBuffer(VulkanCommandBuffer& cmdBuf, bool waitUntilFinished = false);
 
         private:
             void CreateDevice();
@@ -58,15 +55,13 @@ namespace cube
 
             VkDevice mDevice;
 
+            VulkanCommandPoolManager mCommandPoolManager;
             VulkanMemoryAllocator mAllocator;
             VulkanStagingManager mStagingManager;
             VulkanFencePool mFencePool;
             VulkanSemaphorePool mSemaphorePool;
             VulkanShaderVariableManager mShaderVariableManager;
             VulkanQueueManager mQueueManager;
-
-            DeviceContextVk* mpImmediateContext;
-            VulkanCommandPool mUploadCommandPool;
         };
     } // namespace rapi
 } // namespace cube

@@ -27,6 +27,8 @@ namespace cube
 
             virtual void Map(ResourceMapType type, void*& pMappedResource) = 0;
             virtual void Unmap() = 0;
+            virtual SPtr<Fence> MapAsync(ResourceMapType  type, void*& pMappedResource) = 0;
+            virtual SPtr<Fence> UnmapAsync() = 0;
 
         protected:
             Uint64 mSize;

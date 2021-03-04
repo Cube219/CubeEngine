@@ -17,7 +17,7 @@ namespace cube
             VulkanAPI() {}
             virtual ~VulkanAPI() {}
 
-            virtual void Initialize(bool enableDebugLayer = false) override;
+            virtual void Initialize(const RenderAPICreateInfo& info) override;
             virtual void Shutdown() override;
 
             virtual SPtr<Texture2D> CreateTexture2D(const Texture2DCreateInfo& info) override;
@@ -30,7 +30,7 @@ namespace cube
 
         private:
             void CreateInstance(bool enableDebugLayer);
-            void GetDevices();
+            void GetDevices(const RenderAPICreateInfo& info);
 
             VkInstance mInstance;
             Vector<VulkanDevice*> mAllDevices;

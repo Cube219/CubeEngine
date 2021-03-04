@@ -4,19 +4,21 @@
 #include "VulkanUtility.h"
 #include "Core/Allocator/FrameAllocator.h"
 
+#include "RenderAPIs/RenderAPI/RenderAPI.h"
+
 namespace cube
 {
     namespace rapi
     {
-        VulkanDevice::VulkanDevice(VkInstance instance, VkPhysicalDevice gpu) :
+        VulkanDevice::VulkanDevice(const RenderAPICreateInfo& apiInfo, VkInstance instance, VkPhysicalDevice gpu) :
             mGPU(gpu),
             mDevice(nullptr),
+            mCommandPoolManager(*this),
             mStagingManager(*this),
             mFencePool(*this),
             mSemaphorePool(*this),
             mShaderVariableManager(*this),
-            mQueueManager(*this),
-            mUploadCommandPool(*this)
+            mQueueManager(*this)
         {
             vkGetPhysicalDeviceProperties(mGPU, &mProps);
             switch(mProps.deviceType)
@@ -47,50 +49,28 @@ namespace cube
 
             CreateDevice();
 
+            mCommandPoolManager.Initialize(apiInfo.numGraphicsCommandPools, apiInfo.numTransferCommandPools, apiInfo.numComputeCommandPools);
             mAllocator.Initialize(instance, mGPU, mDevice);
             mStagingManager.Initialize();
             mFencePool.Initialize();
             mSemaphorePool.Initialize();
             mShaderVariableManager.Initialize();
             mQueueManager.Initialize(mGPU);
-
-            mpImmediateContext = new DeviceContextVk(*this);
-
-            mUploadCommandPool.CreatePool(VulkanCommandBufferType::Transfer, true);
         }
 
         VulkanDevice::~VulkanDevice()
         {
-            mUploadCommandPool.DestroyPool();
-
-            delete mpImmediateContext;
-
             mQueueManager.Shutdown();
             mShaderVariableManager.Shutdown();
             mSemaphorePool.Shutdown();
             mFencePool.Shutdown();
             mStagingManager.Shutdown();
             mAllocator.Shutdown();
+            mCommandPoolManager.Shutdown();
 
             if(mDevice != nullptr) {
                 vkDestroyDevice(mDevice, nullptr);
             }
-        }
-
-        VulkanCommandBuffer VulkanDevice::GetUploadCommandBuffer(const char* debugName)
-        {
-            return mUploadCommandPool.AllocateCommandBuffer(debugName);
-        }
-
-        void VulkanDevice::SubmitUploadCommandBuffer(VulkanCommandBuffer& cmdBuf, bool waitUntilFinished)
-        {
-            if(waitUntilFinished == true) {
-                VulkanFence fence = mQueueManager.SubmitCommandBufferWithFence(cmdBuf);
-                fence.Wait();
-            } else {
-                mQueueManager.SubmitCommandBuffer(cmdBuf);
-            }
-            mUploadCommandPool.FreeCommandBuffer(cmdBuf, true);
         }
 
         void VulkanDevice::CreateDevice()

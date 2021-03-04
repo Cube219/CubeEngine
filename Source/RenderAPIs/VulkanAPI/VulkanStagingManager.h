@@ -2,7 +2,9 @@
 
 #include "VulkanAPIHeader.h"
 
+#include "VulkanCommandPoolManager.h"
 #include "VulkanMemoryAllocator.h"
+
 #include "Core/Thread/MutexLock.h"
 
 namespace cube
@@ -20,41 +22,15 @@ namespace cube
             };
 
         public:
-            VulkanStagingBuffer() :
-                mBuffer(VK_NULL_HANDLE)
-            {}
-            VulkanStagingBuffer(Type type, VkBuffer buffer, VulkanAllocation allocation) :
-                mType(type),
-                mBuffer(buffer),
-                mAllocation(allocation)
-            {}
-            ~VulkanStagingBuffer() {}
+            VulkanStagingBuffer();
+            VulkanStagingBuffer(VulkanDevice& device, Type type, VkBuffer buffer, VulkanAllocation allocation);
+            ~VulkanStagingBuffer();
 
             VulkanStagingBuffer(const VulkanStagingBuffer& other) = delete;
             VulkanStagingBuffer& operator=(const VulkanStagingBuffer& rhs) = delete;
 
-            VulkanStagingBuffer(VulkanStagingBuffer&& other) noexcept
-            {
-                mType = other.mType;
-                mBuffer = other.mBuffer;
-                mAllocation = other.mAllocation;
-
-                other.mBuffer = VK_NULL_HANDLE;
-                other.mAllocation.allocation = VK_NULL_HANDLE;
-            }
-            VulkanStagingBuffer& operator=(VulkanStagingBuffer&& rhs) noexcept
-            {
-                if(this == &rhs) return *this;
-
-                mType = rhs.mType;
-                mBuffer = rhs.mBuffer;
-                mAllocation = rhs.mAllocation;
-
-                rhs.mBuffer = VK_NULL_HANDLE;
-                rhs.mAllocation.allocation = VK_NULL_HANDLE;
-
-                return *this;
-            }
+            VulkanStagingBuffer(VulkanStagingBuffer&& other) noexcept;
+            VulkanStagingBuffer& operator=(VulkanStagingBuffer&& rhs) noexcept;
 
             VkBuffer GetHandle() const { return mBuffer; }
 
@@ -64,12 +40,26 @@ namespace cube
             void* GetMappedPtr() { return mAllocation.pMappedPtr; }
             Uint64 GetSize() const { return mAllocation.size; }
 
+            VulkanCommandBuffer& GetCommandBuffer() { return mSubmitCommandBuffer; }
+            void InitCommandBuffer();
+
+            void CopyBuffer(VkBuffer srcBuffer, Uint64 srcOffset, Uint64 size);
+            void FlushBuffer(VkBuffer dstBuffer, Uint64 dstOffset, Uint64 size);
+            void CopyImage(VkImage srcImage, const VkBufferImageCopy& region);
+            void FlushImage(VkImage dstImage, const VkBufferImageCopy& region);
+
+            SPtr<FenceVk> SubmitCommandBuffer();
+
         private:
             friend class VulkanStagingManager;
+
+            VulkanDevice* mpDevice;
 
             Type mType;
             VkBuffer mBuffer;
             VulkanAllocation mAllocation;
+
+            VulkanCommandBuffer mSubmitCommandBuffer;
         };
 
         class VulkanStagingManager
@@ -78,7 +68,7 @@ namespace cube
             VulkanStagingManager(VulkanDevice& device) :
                 mDevice(device)
             {}
-            ~VulkanStagingManager() {}
+            ~VulkanStagingManager() = default;
 
             VulkanStagingManager(const VulkanStagingManager& other) = delete;
             VulkanStagingManager& operator=(const VulkanStagingManager& rhs) = delete;

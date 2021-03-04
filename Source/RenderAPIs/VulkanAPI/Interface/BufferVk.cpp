@@ -4,6 +4,7 @@
 #include "../VulkanUtility.h"
 #include "Core/Assertion.h"
 #include "../VulkanDebug.h"
+#include "FenceVk.h"
 #include "Core/Allocator/FrameAllocator.h"
 
 namespace cube
@@ -45,10 +46,10 @@ namespace cube
                 if(usage == ResourceUsage::Immutable) mUsage = ResourceUsage::Default;
 
                 void* p;
-                MapImpl(ResourceMapType::Write, p);
+                MapImpl(ResourceMapType::Write, p, true);
                 memcpy(p, pData, size);
 
-                UnmapImpl();
+                UnmapImpl(true);
 
                 mUsage = usage;
             }          
@@ -57,11 +58,14 @@ namespace cube
         BufferVk::~BufferVk()
         {
             mDevice.GetAllocator().Free(mAllocation);
+            if(mStagingBuffer.IsValid()) {
+                mDevice.GetStagingManager().ReleaseBuffer(std::move(mStagingBuffer));
+            }
 
             vkDestroyBuffer(mDevice.GetHandle(), mBuffer, nullptr);
         }
 
-        void BufferVk::MapImpl(ResourceMapType type, void*& pMappedResource)
+        SPtr<Fence> BufferVk::MapImpl(ResourceMapType type, void*& pMappedResource, bool waitUntilFinished)
         {
             CHECK(mUsage != ResourceUsage::Immutable, "Cannot map immutable resource.");
             if(mUsage == ResourceUsage::Staging) {
@@ -71,19 +75,20 @@ namespace cube
             if(mUsage == ResourceUsage::Dynamic) {
                 // Dynamic resource is always mapped
                 pMappedResource = mAllocation.pMappedPtr;
-                return;
+                return nullptr;
             }
 
             if(mAllocation.isHostVisible == true) {
                 mAllocation.Map();
                 pMappedResource = mAllocation.pMappedPtr;
-                return;
+                return nullptr;
             }
 
+            // Using staging buffer
             VulkanStagingBuffer::Type stagingBufType;
             switch(type)
             {
-                case ResourceMapType::Read:      stagingBufType = VulkanStagingBuffer::Type::Read; break;
+                case ResourceMapType::Read:      stagingBufType = VulkanStagingBuffer::Type::Read;  break;
                 case ResourceMapType::Write:     stagingBufType = VulkanStagingBuffer::Type::Write; break;
                 case ResourceMapType::ReadWrite: // Fallthrough
                 default:
@@ -91,40 +96,63 @@ namespace cube
                     break;
             }
             mStagingBuffer = mDevice.GetStagingManager().GetBuffer(mSize, stagingBufType, mDebugName);
+            pMappedResource = mStagingBuffer.GetMappedPtr();
 
             if(type != ResourceMapType::Write) {
-                VulkanCommandBuffer uploadCmdBuf = mDevice.GetUploadCommandBuffer();
-                uploadCmdBuf.SetMemoryBarrier(VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_MEMORY_WRITE_BIT, VK_ACCESS_MEMORY_READ_BIT, mBuffer, mSize);
-                uploadCmdBuf.CopyBuffer(mBuffer, mStagingBuffer.GetHandle(), 0, 0, mSize);
-                uploadCmdBuf.SetMemoryBarrier(VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_HOST_BIT, VK_ACCESS_MEMORY_READ_BIT, VK_ACCESS_HOST_READ_BIT, mStagingBuffer.GetHandle(), mSize);
-
-                mDevice.SubmitUploadCommandBuffer(uploadCmdBuf, true);
+                mStagingBuffer.InitCommandBuffer();
+                mStagingBuffer.CopyBuffer(mBuffer, 0, mSize);
+                auto fence = mStagingBuffer.SubmitCommandBuffer();
+                if(waitUntilFinished == true) {
+                    fence->Wait(10.0f);
+                    return nullptr;
+                } else {
+                    return fence;
+                }
             }
 
-            pMappedResource = mStagingBuffer.GetMappedPtr();
+            if(waitUntilFinished == true) {
+                return nullptr;
+            } else {
+                return mDevice.GetFencePool().CreateNullFence();
+            }
         }
 
-        void BufferVk::UnmapImpl()
+        SPtr<Fence> BufferVk::UnmapImpl(bool waitUntilFinished)
         {
             CHECK(mUsage != ResourceUsage::Immutable, "Cannot unmap immutable resource.");
 
             if(mUsage == ResourceUsage::Dynamic) {
                 // Dynamic resource is always mapped
-                return;
+                return nullptr;
             }
 
             if(mAllocation.isHostVisible == true) {
                 mAllocation.Unmap();
-                return;
+                return nullptr;
             }
 
             if(mStagingBuffer.IsValid() && mStagingBuffer.GetType() != VulkanStagingBuffer::Type::Read) {
-                VulkanCommandBuffer uploadCmdBuf = mDevice.GetUploadCommandBuffer();
-                uploadCmdBuf.CopyBuffer(mStagingBuffer.GetHandle(), mBuffer, 0, 0, mSize);
-
-                mDevice.SubmitUploadCommandBuffer(uploadCmdBuf);
-
+                mStagingBuffer.InitCommandBuffer();
+                mStagingBuffer.FlushBuffer(mBuffer, 0, mSize);
+                auto fence = mStagingBuffer.SubmitCommandBuffer();
                 mDevice.GetStagingManager().ReleaseBuffer(std::move(mStagingBuffer));
+
+                if(waitUntilFinished == true) {
+                    fence->Wait(10.0f);
+                    return nullptr;
+                } else {
+                    return fence;
+                }
+            }
+
+            if(mStagingBuffer.IsValid() == true) {
+                mDevice.GetStagingManager().ReleaseBuffer(std::move(mStagingBuffer));
+            }
+
+            if(waitUntilFinished == true) {
+                return nullptr;
+            } else {
+                return mDevice.GetFencePool().CreateNullFence();
             }
         }
 

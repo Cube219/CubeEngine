@@ -16,9 +16,6 @@
     <ClInclude Include="Interface\Buffer.h">
       <Filter>Interface</Filter>
     </ClInclude>
-    <ClInclude Include="Interface\DeviceContext.h">
-      <Filter>Interface</Filter>
-    </ClInclude>
     <ClInclude Include="Interface\Shader.h">
       <Filter>Interface</Filter>
     </ClInclude>
@@ -44,6 +41,12 @@
       <Filter>Interface</Filter>
     </ClInclude>
     <ClInclude Include="Interface\SwapChain.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\CommandList.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\Fence.h">
       <Filter>Interface</Filter>
     </ClInclude>
   </ItemGroup>

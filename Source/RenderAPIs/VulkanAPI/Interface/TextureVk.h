@@ -22,8 +22,8 @@ namespace cube
                 TextureBindTypeFlags bindTypeFlags, bool generateMipmaps, Uint32 samplesNum, const char* debugName);
             virtual ~TextureVk();
 
-            void MapImpl(ResourceMapType type, Uint32 mipIndex, void*& pMappedResource);
-            void UnmapImpl(Uint32 mipIndex);
+            SPtr<Fence> MapImpl(ResourceMapType type, Uint32 mipIndex, void*& pMappedResource, bool waitUntilFinished);
+            SPtr<Fence> UnmapImpl(Uint32 mipIndex, bool waitUntilFinished);
 
             Uint32 GetMipLevelsInTextureVk() const { return mMipLevelsInVk; }
 
@@ -59,11 +59,20 @@ namespace cube
 
             virtual void Map(ResourceMapType type, Uint32 mipIndex, void*& pMappedResource) override
             {
-                MapImpl(type, mipIndex, pMappedResource);
+                MapImpl(type, mipIndex, pMappedResource, true);
             }
             virtual void Unmap(Uint32 mipIndex) override
             {
-                UnmapImpl(mipIndex);
+                UnmapImpl(mipIndex, true);
+            }
+
+            virtual SPtr<Fence> MapAsync(ResourceMapType type, Uint32 mipmapIndex, void*& pMappedResource) override
+            {
+                return MapImpl(type, mipmapIndex, pMappedResource, false);
+            }
+            virtual SPtr<Fence> UnmapAsync(Uint32 mipmapIndex) override
+            {
+                return UnmapImpl(mipmapIndex, false);
             }
         };
 
@@ -75,11 +84,20 @@ namespace cube
 
             virtual void Map(ResourceMapType type, Uint32 mipIndex, void*& pMappedResource) override
             {
-                MapImpl(type, mipIndex, pMappedResource);
+                MapImpl(type, mipIndex, pMappedResource, true);
             }
             virtual void Unmap(Uint32 mipIndex) override
             {
-                UnmapImpl(mipIndex);
+                UnmapImpl(mipIndex, true);
+            }
+
+            virtual SPtr<Fence> MapAsync(ResourceMapType type, Uint32 mipmapIndex, void*& pMappedResource) override
+            {
+                return MapImpl(type, mipmapIndex, pMappedResource, false);
+            }
+            virtual SPtr<Fence> UnmapAsync(Uint32 mipmapIndex) override
+            {
+                return UnmapImpl(mipmapIndex, false);
             }
         };
 
@@ -91,11 +109,20 @@ namespace cube
 
             virtual void Map(ResourceMapType type, Uint32 mipIndex, void*& pMappedResource) override
             {
-                MapImpl(type, mipIndex, pMappedResource);
+                MapImpl(type, mipIndex, pMappedResource, true);
             }
             virtual void Unmap(Uint32 mipIndex) override
             {
-                UnmapImpl(mipIndex);
+                UnmapImpl(mipIndex, true);
+            }
+
+            virtual SPtr<Fence> MapAsync(ResourceMapType type, Uint32 mipmapIndex, void*& pMappedResource) override
+            {
+                return MapImpl(type, mipmapIndex, pMappedResource, false);
+            }
+            virtual SPtr<Fence> UnmapAsync(Uint32 mipmapIndex) override
+            {
+                return UnmapImpl(mipmapIndex, false);
             }
         };
 
@@ -107,11 +134,20 @@ namespace cube
 
             virtual void Map(ResourceMapType type, Uint32 mipIndex, void*& pMappedResource) override
             {
-                MapImpl(type, mipIndex, pMappedResource);
+                MapImpl(type, mipIndex, pMappedResource, true);
             }
             virtual void Unmap(Uint32 mipIndex) override
             {
-                UnmapImpl(mipIndex);
+                UnmapImpl(mipIndex, true);
+            }
+
+            virtual SPtr<Fence> MapAsync(ResourceMapType type, Uint32 mipmapIndex, void*& pMappedResource) override
+            {
+                return MapImpl(type, mipmapIndex, pMappedResource, false);
+            }
+            virtual SPtr<Fence> UnmapAsync(Uint32 mipmapIndex) override
+            {
+                return UnmapImpl(mipmapIndex, false);
             }
         };
     } // namespace rapi

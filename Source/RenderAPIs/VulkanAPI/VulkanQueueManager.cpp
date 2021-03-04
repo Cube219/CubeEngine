@@ -6,6 +6,8 @@
 #include "VulkanDevice.h"
 #include "VulkanUtility.h"
 
+#include "Interface/FenceVk.h"
+
 namespace cube
 {
     namespace rapi
@@ -32,73 +34,6 @@ namespace cube
 
         void VulkanQueueManager::Shutdown()
         {
-        }
-
-        VkQueue VulkanQueueManager::GetPresentQueue(VkSurfaceKHR surface)
-        {
-            VkResult res;
-
-            VkPhysicalDevice physicalDevice = mDevice.GetGPU();
-
-            // Check compute queue family if it is supported to present
-            VkBool32 isSupported;
-            res = vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, mComputeQueues[0].familyIndex, surface, &isSupported);
-            CHECK_VK(res, "Failed to get if compute queue family supports present.");
-            if(isSupported == VK_TRUE) {
-                return mComputeQueues[0].queue;
-            }
-
-            // Check graphics queue family
-            res = vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, mGraphicsQueue.familyIndex, surface, &isSupported);
-            CHECK_VK(res, "Failed to get if graphics queue family supports present.");
-            if(isSupported == VK_TRUE) {
-                return mGraphicsQueue.queue;
-            }
-
-            ASSERTION_FAILED("There's no queue families that support present.");
-
-            return mGraphicsQueue.queue;
-        }
-
-        void VulkanQueueManager::SubmitCommandBuffer(VulkanCommandBuffer& commandBuffer)
-        {
-            switch(commandBuffer.GetType())
-            {
-                case VulkanCommandBufferType::Graphics:
-                    SubmitGraphicsQueue(commandBuffer, false);
-                    break;
-                case VulkanCommandBufferType::Compute:
-                    SubmitComputeQueue(commandBuffer, false);
-                    break;
-                case VulkanCommandBufferType::Transfer:
-                    SubmitTransferQueue(commandBuffer, false);
-                    break;
-                default:
-                    break;
-            }
-        }
-
-        VulkanFence VulkanQueueManager::SubmitCommandBufferWithFence(VulkanCommandBuffer& commandBuffer)
-        {
-            switch(commandBuffer.GetType())
-            {
-                case VulkanCommandBufferType::Graphics:
-                    return SubmitGraphicsQueue(commandBuffer, true);
-                case VulkanCommandBufferType::Compute:
-                    return SubmitComputeQueue(commandBuffer, true);
-                case VulkanCommandBufferType::Transfer:
-                    return SubmitTransferQueue(commandBuffer, true);
-                default:
-                    return VulkanFence();
-            }
-        }
-
-        void VulkanQueueManager::AddWaitSemaphoreForGraphics(const VulkanSemaphore& semaphore, VkPipelineStageFlags stageFlags)
-        {
-            Lock lock(mGraphicsWaitSemaphoresMutex);
-
-            mGraphicsWaitSemaphores.push_back(semaphore);
-            mGraphicsWaitSemaphoreStages.push_back(stageFlags);
         }
 
         bool VulkanQueueManager::InitGraphicsQueue(VkQueueFamilyProperties* pProps, Uint64 propNum)
@@ -227,11 +162,88 @@ namespace cube
             return Uint32InvalidValue;
         }
 
-        VulkanFence VulkanQueueManager::SubmitGraphicsQueue(VulkanCommandBuffer& commandBuffer, bool getFence)
+        VkQueue VulkanQueueManager::GetPresentQueue(VkSurfaceKHR surface)
         {
             VkResult res;
 
-            VkCommandBuffer cmdBuf = commandBuffer.GetHandle();
+            VkPhysicalDevice physicalDevice = mDevice.GetGPU();
+
+            // Check compute queue family if it is supported to present
+            VkBool32 isSupported;
+            res = vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, mComputeQueues[0].familyIndex, surface, &isSupported);
+            CHECK_VK(res, "Failed to get if compute queue family supports present.");
+            if(isSupported == VK_TRUE) {
+                return mComputeQueues[0].queue;
+            }
+
+            // Check graphics queue family
+            res = vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, mGraphicsQueue.familyIndex, surface, &isSupported);
+            CHECK_VK(res, "Failed to get if graphics queue family supports present.");
+            if(isSupported == VK_TRUE) {
+                return mGraphicsQueue.queue;
+            }
+
+            ASSERTION_FAILED("There's no queue families that support present.");
+
+            return mGraphicsQueue.queue;
+        }
+
+        void VulkanQueueManager::SubmitCommandList(SPtr<CommandListVk>& commandList)
+        {
+            SubmitCommandBuffer(commandList->GetCommandBuffer());
+        }
+
+        SPtr<FenceVk> VulkanQueueManager::SubmitCommandListWithFence(SPtr<CommandListVk>& commandList)
+        {
+            return SubmitCommandBufferWithFence(commandList->GetCommandBuffer());
+        }
+
+        void VulkanQueueManager::SubmitCommandBuffer(VulkanCommandBuffer& commandBuffer)
+        {
+            switch(commandBuffer.type)
+            {
+                case CommandListType::Graphics:
+                    SubmitGraphicsQueue(commandBuffer, false);
+                    break;
+                case CommandListType::Compute:
+                    SubmitComputeQueue(commandBuffer, false);
+                    break;
+                case CommandListType::Transfer:
+                    SubmitTransferQueue(commandBuffer, false);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        SPtr<FenceVk> VulkanQueueManager::SubmitCommandBufferWithFence(VulkanCommandBuffer& commandBuffer)
+        {
+            switch(commandBuffer.type)
+            {
+                case CommandListType::Graphics:
+                    return SubmitGraphicsQueue(commandBuffer, true);
+                case CommandListType::Compute:
+                    return SubmitComputeQueue(commandBuffer, true);
+                case CommandListType::Transfer:
+                    return SubmitTransferQueue(commandBuffer, true);
+                default:
+                    return nullptr;
+            }
+        }
+
+        void VulkanQueueManager::AddWaitSemaphoreForGraphics(const VulkanSemaphore& semaphore, VkPipelineStageFlags stageFlags)
+        {
+            Lock lock(mGraphicsWaitSemaphoresMutex);
+
+            mGraphicsWaitSemaphores.push_back(semaphore);
+            mGraphicsWaitSemaphoreStages.push_back(stageFlags);
+        }
+
+        SPtr<FenceVk> VulkanQueueManager::SubmitGraphicsQueue(VulkanCommandBuffer& commandBuffer, bool getFence)
+        {
+            VkResult res;
+
+            VkCommandBuffer cmdBuf = commandBuffer.handle;
 
             FrameVector<VulkanSemaphore> waitSemaphores(mGraphicsWaitSemaphores.size());
             FrameVector<VkPipelineStageFlags> waitSemaphoreStages(mGraphicsWaitSemaphoreStages.size());
@@ -261,10 +273,13 @@ namespace cube
             submitInfo.signalSemaphoreCount = 0;
             submitInfo.pSignalSemaphores = nullptr;
 
-            VulkanFence fence = mDevice.GetFencePool().AllocateFence("Fence to complete to submit graphics queue");
+            SPtr<FenceVk> fence = nullptr;
+            VkFence vkFence = VK_NULL_HANDLE;
+            if(getFence == true) {
+                fence = mDevice.GetFencePool().AllocateFence("Fence to complete to submit graphics queue");
+            }
 
-            res = vkQueueSubmit(mGraphicsQueue.queue, 1, &submitInfo, fence.GetHandle());
-
+            res = vkQueueSubmit(mGraphicsQueue.queue, 1, &submitInfo, vkFence);
             CHECK_VK(res, "Failed to submit command buffer to the graphics queue.");
 
             for(auto& s : waitSemaphores) {
@@ -274,11 +289,11 @@ namespace cube
             return fence;
         }
 
-        VulkanFence VulkanQueueManager::SubmitComputeQueue(VulkanCommandBuffer& commandBuffer, bool getFence)
+        SPtr<FenceVk> VulkanQueueManager::SubmitComputeQueue(VulkanCommandBuffer& commandBuffer, bool getFence)
         {
             VkResult res;
 
-            VkCommandBuffer cmdBuf = commandBuffer.GetHandle();
+            VkCommandBuffer cmdBuf = commandBuffer.handle;
 
             VkSubmitInfo submitInfo = {};
             submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -299,20 +314,25 @@ namespace cube
                 mComputeQueuesCurrentIndex %= mComputeQueues.size();
             }
 
-            VulkanFence fence = mDevice.GetFencePool().AllocateFence("Fence to complete to submit compute queue");
+            SPtr<FenceVk> fence = nullptr;
+            VkFence vkFence = VK_NULL_HANDLE;
+            if(getFence == true) {
+                fence = mDevice.GetFencePool().AllocateFence("Fence to complete to submit compute queue");
+            }
 
-            res = vkQueueSubmit(queueToSubmit, 1, &submitInfo, fence.GetHandle());
+            res = vkQueueSubmit(queueToSubmit, 1, &submitInfo, vkFence);
             CHECK_VK(res, "Failed to submit command buffer to the compute queue.");
 
             return fence;
         }
 
-        VulkanFence VulkanQueueManager::SubmitTransferQueue(VulkanCommandBuffer& commandBuffer, bool getFence)
+        SPtr<FenceVk> VulkanQueueManager::SubmitTransferQueue(VulkanCommandBuffer& commandBuffer, bool getFence)
         {
             VkResult res;
 
-            VkCommandBuffer cmdBuf = commandBuffer.GetHandle();
+            VkCommandBuffer cmdBuf = commandBuffer.handle;
 
+            /*
             VulkanSemaphore signalSemaphore = mDevice.GetSemaphorePool().AllocateSemaphore("Semaphore to signal that transfer queue submit is completed");
             VkSemaphore signalVkSemaphore = signalSemaphore.GetHandle();
 
@@ -322,6 +342,7 @@ namespace cube
                 mGraphicsWaitSemaphores.push_back(signalSemaphore);
                 mGraphicsWaitSemaphoreStages.push_back(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
             }
+            */
 
             VkSubmitInfo submitInfo = {};
             submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -331,8 +352,10 @@ namespace cube
             submitInfo.pWaitDstStageMask = nullptr;
             submitInfo.commandBufferCount = 1;
             submitInfo.pCommandBuffers = &cmdBuf;
-            submitInfo.signalSemaphoreCount = 1;
-            submitInfo.pSignalSemaphores = &signalVkSemaphore;
+            // submitInfo.signalSemaphoreCount = 1;
+            // submitInfo.pSignalSemaphores = &signalVkSemaphore;
+            submitInfo.signalSemaphoreCount = 0;
+            submitInfo.pSignalSemaphores = nullptr;
 
             VkQueue queueToSubmit;
             {
@@ -342,10 +365,17 @@ namespace cube
                 mTransferQueuesCurrentIndex %= mTransferQueues.size();
             }
 
-            VulkanFence fence = mDevice.GetFencePool().AllocateFence("Fence to complete to submit transfer queue");
+            SPtr<FenceVk> fence = nullptr;
+            VkFence vkFence = VK_NULL_HANDLE;
+            if(getFence == true) {
+                fence = mDevice.GetFencePool().AllocateFence("Fence to complete to submit transfer queue");
+                vkFence = fence->GetHandle();
+            }
 
-            res = vkQueueSubmit(queueToSubmit, 1, &submitInfo, VK_NULL_HANDLE);
+            res = vkQueueSubmit(queueToSubmit, 1, &submitInfo, vkFence);
             CHECK_VK(res, "Failed to submit command buffer to the transfer queue.");
+
+            // commandBuffer.signalSemaphore = signalSemaphore;
 
             return fence;
         }

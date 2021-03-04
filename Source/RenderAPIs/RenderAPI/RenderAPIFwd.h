@@ -19,11 +19,15 @@ namespace cube
         struct StructuredBufferCreateInfo;
         class StructuredBuffer;
 
+        // Interface/CommandList.h
+        struct CommandListAllocateInfo;
+        class CommandList;
+
         // Interface/DepthStencilState.h
         struct DepthStencilState;
 
-        // Interface/DeviceContext.h
-        class DeviceContext;
+        // Interface/Fence.h
+        class Fence;
 
         // Interface/InputLayout.h
         struct InputLayout;
@@ -72,5 +76,9 @@ namespace cube
         class Texture3D;
         struct TextureCubeCreateInfo;
         class TextureCube;
+
+        // RenderAPI.h
+        struct RenderAPICreateInfo;
+        class RenderAPI;
     } // namespace rapi
 } // namespace cube

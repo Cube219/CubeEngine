@@ -4,40 +4,14 @@
 #include "VulkanUtility.h"
 #include "VulkanDebug.h"
 #include "Core/Assertion.h"
+#include "Core/Allocator/FrameAllocator.h"
+
+#include "Interface/FenceVk.h"
 
 namespace cube
 {
     namespace rapi
     {
-        VulkanFence::WaitResult VulkanFence::Wait(double timeInSec)
-        {
-            CHECK(mFence != VK_NULL_HANDLE, "The fence is already released.");
-
-            Uint64 nanoSecond = (Uint64)(timeInSec * 1000.0 * 1000.0 * 1000.0);
-            VkResult res = vkWaitForFences(mDeviceHandle, 1, &mFence, VK_TRUE, nanoSecond);
-
-            switch(res) {
-                case VK_SUCCESS: return WaitResult::Success;
-                case VK_TIMEOUT: return WaitResult::Timeout;
-                default:         return WaitResult::Error;
-            }
-        }
-
-        void VulkanFence::Reset()
-        {
-            CHECK(mFence != VK_NULL_HANDLE, "The fence is already released.");
-
-            VkResult res = vkResetFences(mDeviceHandle, 1, &mFence);
-            CHECK_VK(res, "Failed to reset the fence.");
-        }
-
-        void VulkanFence::Release()
-        {
-            CHECK(mFence != VK_NULL_HANDLE, "The fence is already released.");
-
-            mpFencePool->FreeFence(*this);
-        }
-
         void VulkanFencePool::Initialize()
         {
             VkResult res;
@@ -46,7 +20,6 @@ namespace cube
             // Create 10 fences
             constexpr Uint32 initSize = 10;
             mFreeFences.resize(initSize);
-            mUsedFences.reserve(initSize);
 
             VkFenceCreateInfo info;
             info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
@@ -57,57 +30,63 @@ namespace cube
                 res = vkCreateFence(mDevice.GetHandle(), &info, nullptr, &fence);
                 CHECK_VK(res, "Failed to create VkFence.");
 
-                mFreeFences[i] = VulkanFence(mDevice.GetHandle(), this, fence);
+                mFreeFences[i] = fence;
             }
         }
 
         void VulkanFencePool::Shutdown()
         {
-            CHECK(mUsedFences.size() == 0, "Cannot shduwon VulkanFencePool becausae some used fences existed.");
-
-            for(auto f : mFreeFences) {
-                vkDestroyFence(mDevice.GetHandle(), f.mFence, nullptr);
+            for(auto fence : mFreeFences) {
+                vkDestroyFence(mDevice.GetHandle(), fence, nullptr);
             }
         }
 
-        VulkanFence VulkanFencePool::AllocateFence(const char* debugName)
+        SPtr<FenceVk> VulkanFencePool::AllocateFence(const char* debugName)
         {
-            VulkanFence fence;
+            VkFence fence;
 
-            Lock lock(mFencesMutex);
+            {
+                Lock lock(mFencesMutex);
 
-            if(mFreeFences.size() == 0) {
-                VkResult res;
-                VkFenceCreateInfo info;
-                info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-                info.pNext = nullptr;
-                info.flags = 0;
+                if(mFreeFences.size() == 0) {
+                    VkResult res;
+                    VkFenceCreateInfo info;
+                    info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+                    info.pNext = nullptr;
+                    info.flags = 0;
 
-                VkFence f;
-                res = vkCreateFence(mDevice.GetHandle(), &info, nullptr, &f);
-                CHECK_VK(res, "Failed to create VkFence.");
 
-                fence.mFence = f;
-            } else {
-                fence = mFreeFences.back();
-                mFreeFences.pop_back();
+                    res = vkCreateFence(mDevice.GetHandle(), &info, nullptr, &fence);
+                    CHECK_VK(res, "Failed to create VkFence.");
+                } else {
+                    fence = mFreeFences.back();
+                    mFreeFences.pop_back();
+                }
             }
 
-            VULKAN_SET_OBJ_NAME(mDevice.GetHandle(), fence.mFence, debugName);
-            mUsedFences.push_back(fence);
+            VULKAN_SET_OBJ_NAME(mDevice.GetHandle(), fence, debugName);
 
-            return fence;
+            return std::make_shared<FenceVk>(mDevice, *this, fence);
         }
 
-        void VulkanFencePool::FreeFence(VulkanFence& fence)
+        void VulkanFencePool::FreeFence(FenceVk& fence)
         {
-            CHECK(fence.mFence != VK_NULL_HANDLE, "The fence is already freed.");
+            if(fence.GetHandle() == VK_NULL_HANDLE) {
+                return;
+            }
 
-            Lock lock(mFencesMutex);
+            {
+                Lock lock(mFencesMutex);
 
-            mFreeFences.push_back(fence);
+                mFreeFences.push_back(fence.GetHandle());
+                fence.mFence = VK_NULL_HANDLE;
+            }
+        }
 
-            fence.mFence = VK_NULL_HANDLE;
+        SPtr<FenceVk> VulkanFencePool::CreateNullFence()
+        {
+            VkFence vkFence = VK_NULL_HANDLE;
+            return std::make_shared<FenceVk>(mDevice, *this, vkFence);
         }
     } // namespace rapi
 } // namespace cube

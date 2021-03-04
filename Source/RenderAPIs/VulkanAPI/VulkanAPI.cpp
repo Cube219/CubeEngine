@@ -15,14 +15,14 @@ namespace cube
             return new VulkanAPI();
         }
 
-        void VulkanAPI::Initialize(bool enableDebugLayer)
+        void VulkanAPI::Initialize(const RenderAPICreateInfo& info)
         {
             InitTypeConversion();
-            CreateInstance(enableDebugLayer);
-            if(enableDebugLayer == true) {
+            CreateInstance(info.enableDebugLayer);
+            if(info.enableDebugLayer == true) {
                 VULKAN_DEBUG_INIT(mInstance);
             }
-            GetDevices();
+            GetDevices(info);
         }
 
         void VulkanAPI::Shutdown()
@@ -95,7 +95,7 @@ namespace cube
             CHECK_VK(res, "Failed to create VkInstance.");
         }
 
-        void VulkanAPI::GetDevices()
+        void VulkanAPI::GetDevices(const RenderAPICreateInfo& info)
         {
             VkResult res;
 
@@ -111,7 +111,7 @@ namespace cube
 
             mAllDevices.reserve(deviceCount);
             for(Uint32 i = 0; i < deviceCount; i++) {
-                mAllDevices.push_back(new VulkanDevice(mInstance, physicalDevices[i]));
+                mAllDevices.push_back(new VulkanDevice(info, mInstance, physicalDevices[i]));
             }
 
             mDevice = nullptr;
