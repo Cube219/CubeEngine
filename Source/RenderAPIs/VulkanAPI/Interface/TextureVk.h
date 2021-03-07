@@ -4,6 +4,7 @@
 
 #include "RenderAPIs/RenderAPI/Interface/Texture.h"
 
+#include "TextureViewVk.h"
 #include "../VulkanMemoryAllocator.h"
 #include "../VulkanStagingManager.h"
 
@@ -11,7 +12,7 @@ namespace cube
 {
     namespace rapi
     {
-        class TextureVk : public Texture
+        class TextureVk : public Texture, public std::enable_shared_from_this<TextureVk>
         {
         public:
             static constexpr Uint32 MaxMipLevels = 16;
@@ -26,6 +27,11 @@ namespace cube
             virtual SPtr<Fence> MapAsync(ResourceMapType type, Uint32 mipmapIndex, void*& pMappedResource) override;
             virtual SPtr<Fence> UnmapAsync(Uint32 mipmapIndex) override;
             virtual SPtr<Fence> GenerateMipmapsAsync() override;
+
+            virtual SPtr<TextureView> CreateView(const TextureViewCreateInfo& info) override;
+            virtual SPtr<TextureView> CreateDefaultView() override;
+
+            VkImage GetHandle() const { return mImage; }
 
         private:
             static Uint32 CalculateMipmapLevels(Uint32 width, Uint32 height);
@@ -51,6 +57,8 @@ namespace cube
             VkImageAspectFlags mAspectMask;
 
             Array<VulkanStagingBuffer, MaxMipLevels> mStagingBuffers; // TODO: StagingBuffer들을 가져올 때 해당 리소스 포인터 + 추가 정보를 해싱해서 가져오게 하기
+
+            TextureViewCreateInfo mDefaultViewCreateInfo;
         };
     } // namespace rapi
 } // namespace cube

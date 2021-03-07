@@ -11,10 +11,13 @@ namespace cube
         class TextureViewVk : public TextureView
         {
         public:
-            TextureViewVk(const TextureViewCreateInfo& info);
+            TextureViewVk(VulkanDevice& device, SPtr<TextureVk>& pTexture, const TextureViewCreateInfo& info);
             virtual ~TextureViewVk();
 
         private:
+            VulkanDevice& mDevice;
+            SPtr<TextureVk> mpTexture;
+
             VkImageView mImageView;
         };
     } // namespace rapi

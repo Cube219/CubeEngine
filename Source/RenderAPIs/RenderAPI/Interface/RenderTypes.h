@@ -90,7 +90,7 @@ namespace cube
             ReadWrite
         };
 
-        enum class TextureType
+        enum class TextureDimension
         {
             Texture1D,
             Texture1DArray,
@@ -99,7 +99,25 @@ namespace cube
             Texture3D,
             TextureCube,
             TextureCubeArray
+        };
 
+        enum class TextureViewDimension
+        {
+            TextureView1D,
+            TextureView1DArray,
+            TextureView2D,
+            TextureView2DArray,
+            TextureView3D,
+            TextureViewCube,
+            TextureViewCubeArray
+        };
+
+        enum class TextureViewType
+        {
+            ShaderResourceView,
+            RenderTargetView,
+            DepthStencilView,
+            UnorderedAccessView
         };
 
         // TODO: 형식들 정리(안쓰는 것들 제거...)

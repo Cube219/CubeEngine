@@ -1,13 +1,12 @@
 #include "TextureVk.h"
 
 #include "FenceVk.h"
-
-
-#include "../VulkanDevice.h"
-#include "../VulkanUtility.h"
-#include "Core/Assertion.h"
-#include "../VulkanTypeConversion.h"
 #include "../VulkanDebug.h"
+#include "../VulkanDevice.h"
+#include "../VulkanTypeConversion.h"
+#include "../VulkanUtility.h"
+
+#include "Core/Assertion.h"
 #include "Core/LogWriter.h"
 #include "Utility/Math.h"
 
@@ -34,26 +33,26 @@ namespace cube
             imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
             imageCreateInfo.pNext = nullptr;
             imageCreateInfo.flags = 0;
-            switch(info.type)
+            switch(info.dimension)
             {
-                case TextureType::Texture1D:
-                case TextureType::Texture1DArray:
+                case TextureDimension::Texture1D:
+                case TextureDimension::Texture1DArray:
                     imageCreateInfo.imageType = VK_IMAGE_TYPE_1D;
                     break;
-                case TextureType::TextureCube:
-                case TextureType::TextureCubeArray:
+                case TextureDimension::TextureCube:
+                case TextureDimension::TextureCubeArray:
                     imageCreateInfo.flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
                     // Fallthrough
-                case TextureType::Texture2D:
-                case TextureType::Texture2DArray:
+                case TextureDimension::Texture2D:
+                case TextureDimension::Texture2DArray:
                     imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
                     break;
-                case TextureType::Texture3D:
+                case TextureDimension::Texture3D:
                     imageCreateInfo.imageType = VK_IMAGE_TYPE_3D;
                     break;
 
                 default:
-                    ASSERTION_FAILED("Invalid image type {}.", info.type);
+                    ASSERTION_FAILED("Invalid texture dimension {}.", info.dimension);
                     break;
             }
             imageCreateInfo.format = TextureFormatToVkFormat(mFormat);
@@ -125,6 +124,34 @@ namespace cube
 
                 mUsage = info.usage;
             }
+
+            // Create DefaultViewCreateInfo
+            TextureViewType viewType = TextureViewType::UnorderedAccessView;
+            if(info.bindTypeFlags.IsSet(TextureBindTypeFlag::RenderTarget)) {
+                viewType = TextureViewType::RenderTargetView;
+            } else if(info.bindTypeFlags.IsSet(TextureBindTypeFlag::DepthStencil)) {
+                viewType = TextureViewType::DepthStencilView;
+            } else if(info.bindTypeFlags.IsSet(TextureBindTypeFlag::ShaderResource)) {
+                viewType = TextureViewType::ShaderResourceView;
+            }
+            mDefaultViewCreateInfo.type = viewType;
+            TextureViewDimension viewDimension;
+            switch(info.dimension) {
+                case TextureDimension::Texture1D:        viewDimension = TextureViewDimension::TextureView1D;        break;
+                case TextureDimension::Texture1DArray:   viewDimension = TextureViewDimension::TextureView1DArray;   break;
+                case TextureDimension::Texture2D:        viewDimension = TextureViewDimension::TextureView2D;        break;
+                case TextureDimension::Texture2DArray:   viewDimension = TextureViewDimension::TextureView2DArray;   break;
+                case TextureDimension::Texture3D:        viewDimension = TextureViewDimension::TextureView3D;        break;
+                case TextureDimension::TextureCube:      viewDimension = TextureViewDimension::TextureViewCube;      break;
+                case TextureDimension::TextureCubeArray: viewDimension = TextureViewDimension::TextureViewCubeArray; break;
+            }
+            mDefaultViewCreateInfo.dimension = viewDimension;
+            mDefaultViewCreateInfo.format = info.format;
+            mDefaultViewCreateInfo.mipmapStartIndex = 0;
+            mDefaultViewCreateInfo.numMipmaps = 0;
+            mDefaultViewCreateInfo.arrayStartIndex = 0;
+            mDefaultViewCreateInfo.numArrays = 0;
+            mDefaultViewCreateInfo.debugName = "Default Texture View";
         }
 
         TextureVk::~TextureVk()
@@ -166,6 +193,18 @@ namespace cube
         SPtr<Fence> TextureVk::GenerateMipmapsAsync()
         {
             return GenerateMipmapsImpl(false);
+        }
+
+        SPtr<TextureView> TextureVk::CreateView(const TextureViewCreateInfo& info)
+        {
+            SPtr<TextureVk> mine = shared_from_this();
+            return std::make_shared<TextureViewVk>(mDevice, mine , info);
+        }
+
+        SPtr<TextureView> TextureVk::CreateDefaultView()
+        {
+            SPtr<TextureView> view = CreateView(mDefaultViewCreateInfo);
+            return view;
         }
 
         SPtr<Fence> TextureVk::MapImpl(ResourceMapType type, Uint32 mipIndex, void*& pMappedResource, bool waitUntilFinished)

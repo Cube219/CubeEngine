@@ -17,7 +17,7 @@ namespace cube
 
         struct TextureCreateInfo : public ResourceCreateInfo
         {
-            TextureType type;
+            TextureDimension dimension;
             Uint32 width;
             Uint32 height;
             Uint32 depth;
@@ -29,6 +29,7 @@ namespace cube
             bool generateMipmaps; // If it is true, only the first texture data will be used
             Uint32 samplesNum;
         };
+
         class Texture : public Resource
         {
         public:
@@ -46,6 +47,9 @@ namespace cube
             virtual SPtr<Fence> MapAsync(ResourceMapType type, Uint32 mipmapIndex, void*& pMappedResource) = 0;
             virtual SPtr<Fence> UnmapAsync(Uint32 mipmapIndex) = 0;
             virtual SPtr<Fence> GenerateMipmapsAsync() = 0;
+
+            virtual SPtr<TextureView> CreateView(const TextureViewCreateInfo& info) = 0;
+            virtual SPtr<TextureView> CreateDefaultView() = 0;
 
         protected:
             TextureFormat mFormat;
