@@ -13,7 +13,7 @@ namespace cube
         class CommandListVk : public CommandList
         {
         public:
-            CommandListVk(VulkanDevice& device, VulkanCommandPoolManager& poolManager, VulkanCommandBuffer commandBuffer);
+            CommandListVk(VulkanDevice& device, VulkanCommandPoolManager& poolManager, const CommandListAllocateInfo& info, VulkanCommandBuffer commandBuffer);
             virtual ~CommandListVk();
 
             VulkanCommandBuffer& GetCommandBuffer() { return mCommandBuffer; }
@@ -42,6 +42,8 @@ namespace cube
             virtual void Draw(Uint32 numVertices, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance) override;
             virtual void DrawIndexed(Uint32 numIndices, Uint32 baseIndex, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance) override;
 
+            virtual void ExecuteSubCommands(Uint32 numCommandLists, CommandList** ppCommandLists) override;
+
             virtual void SetPipelineState(ComputePipelineState* pipelineState) override;
             virtual void Dispatch(Uint32 groupX, Uint32 groupY, Uint32 groupZ) override;
 
@@ -52,6 +54,14 @@ namespace cube
             VulkanCommandPoolManager& mPoolManager;
 
             VulkanCommandBuffer mCommandBuffer;
+
+            CommandListType mType;
+            Uint32 mPoolIndex;
+            bool mIsSub;
+
+            GraphicsPipelineStateVk* mpBindedGraphicsPipelineState;
+            ComputePipelineStateVk* mpBindedComputePipelineState;
+            RenderPassVk* mpBindedRenderPass;
         };
     } // namespace cube
 } // namespace rapi

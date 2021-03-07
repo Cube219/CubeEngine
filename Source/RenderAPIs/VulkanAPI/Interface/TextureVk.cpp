@@ -15,123 +15,115 @@ namespace cube
 {
     namespace rapi
     {
-        TextureVk::TextureVk(VulkanDevice& device, ResourceUsage usage, VkImageViewType type, FrameVector<TextureData> data,
-            TextureFormat format, Uint32 width, Uint32 height, Uint32 depth, Uint32 arraySize,
-            TextureBindTypeFlags bindTypeFlags, bool generateMipmaps, Uint32 samplesNum, const char* debugName) :
+        TextureVk::TextureVk(VulkanDevice& device, const TextureCreateInfo& info) :
+            Texture(info.usage, info.debugName),
             mDevice(device),
-            mMipLevelsInVk(1),
-            mWidth(width), mHeight(height), mDepth(depth),
-            mUsage(usage),
-            mAspectMask(0),
-            mDebugName(debugName)
+            mWidth(info.width), mHeight(info.height), mDepth(info.depth),
+            mArraySize(info.arraySize),
+            mAspectMask(0)
         {
-            if(generateMipmaps == true) {
-                mMipLevelsInVk = CalculateMipmapLevels(width, height);
-            } else {
-                mMipLevelsInVk = Math::Min(SCast(Uint32)(data.size()), MaxMipLevels);
+            mMipLevels = CalculateMipmapLevels(info.width, info.height);
+            if(info.generateMipmaps == false) {
+                mMipLevels = Math::Min(mMipLevels, SCast(Uint32)(info.data.size()));
+                mMipLevels = Math::Min(mMipLevels, MaxMipLevels);
             }
 
             VkResult res;
 
-            VkImageCreateInfo info;
-            info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-            info.pNext = nullptr;
-            info.flags = 0;
-            switch(type)
+            VkImageCreateInfo imageCreateInfo;
+            imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+            imageCreateInfo.pNext = nullptr;
+            imageCreateInfo.flags = 0;
+            switch(info.type)
             {
-                case VK_IMAGE_VIEW_TYPE_1D:
-                // case VK_IMAGE_VIEW_TYPE_1D_ARRAY: // Unsupported
-                    info.imageType = VK_IMAGE_TYPE_1D;
+                case TextureType::Texture1D:
+                case TextureType::Texture1DArray:
+                    imageCreateInfo.imageType = VK_IMAGE_TYPE_1D;
                     break;
-                case VK_IMAGE_VIEW_TYPE_CUBE:
-                case VK_IMAGE_VIEW_TYPE_CUBE_ARRAY:
-                    info.flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+                case TextureType::TextureCube:
+                case TextureType::TextureCubeArray:
+                    imageCreateInfo.flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
                     // Fallthrough
-                case VK_IMAGE_VIEW_TYPE_2D:
-                case VK_IMAGE_VIEW_TYPE_2D_ARRAY:
-                    info.imageType = VK_IMAGE_TYPE_2D;
+                case TextureType::Texture2D:
+                case TextureType::Texture2DArray:
+                    imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
                     break;
-                case VK_IMAGE_VIEW_TYPE_3D:
-                    info.imageType = VK_IMAGE_TYPE_3D;
+                case TextureType::Texture3D:
+                    imageCreateInfo.imageType = VK_IMAGE_TYPE_3D;
                     break;
+
                 default:
-                    ASSERTION_FAILED("Invalid image type {}.", type);
+                    ASSERTION_FAILED("Invalid image type {}.", info.type);
                     break;
             }
-            mFormat = TextureFormatToVkFormat(format);
-            info.format = mFormat;
-            CHECK(info.format != VK_FORMAT_UNDEFINED, "Texture format ({}) is not defined.", (int)format);
-            info.extent = { width, height, depth };
-            info.mipLevels = mMipLevelsInVk;
-            info.arrayLayers = arraySize;
-            switch(samplesNum)
+            imageCreateInfo.format = TextureFormatToVkFormat(mFormat);
+            CHECK(imageCreateInfo.format != VK_FORMAT_UNDEFINED, "Texture format ({}) is not defined.", (int)info.format);
+            imageCreateInfo.extent = { info.width, info.height, info.depth };
+            imageCreateInfo.mipLevels = mMipLevels;
+            imageCreateInfo.arrayLayers = info.arraySize;
+            switch(info.samplesNum)
             {
-                case 1:  info.samples = VK_SAMPLE_COUNT_1_BIT;  break;
-                case 2:  info.samples = VK_SAMPLE_COUNT_2_BIT;  break;
-                case 4:  info.samples = VK_SAMPLE_COUNT_4_BIT;  break;
-                case 8:  info.samples = VK_SAMPLE_COUNT_8_BIT;  break;
-                case 16: info.samples = VK_SAMPLE_COUNT_16_BIT; break;
-                case 32: info.samples = VK_SAMPLE_COUNT_32_BIT; break;
-                case 64: info.samples = VK_SAMPLE_COUNT_64_BIT; break;
+                case 1:  imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;  break;
+                case 2:  imageCreateInfo.samples = VK_SAMPLE_COUNT_2_BIT;  break;
+                case 4:  imageCreateInfo.samples = VK_SAMPLE_COUNT_4_BIT;  break;
+                case 8:  imageCreateInfo.samples = VK_SAMPLE_COUNT_8_BIT;  break;
+                case 16: imageCreateInfo.samples = VK_SAMPLE_COUNT_16_BIT; break;
+                case 32: imageCreateInfo.samples = VK_SAMPLE_COUNT_32_BIT; break;
+                case 64: imageCreateInfo.samples = VK_SAMPLE_COUNT_64_BIT; break;
                 default:
-                    CUBE_LOG(LogType::Warning, "Unsupported sampler count ({}). Use sampler count 1 instead.", samplesNum);
-                    info.samples = VK_SAMPLE_COUNT_1_BIT;
+                    CUBE_LOG(LogType::Warning, "Unsupported sampler count ({}). Use sampler count 1 instead.", info.samplesNum);
+                    imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
                     break;
             }
-            info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
             mCurrentLayouts.fill(VK_IMAGE_LAYOUT_UNDEFINED);
-            info.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-            if(bindTypeFlags.IsSet(TextureBindTypeFlag::RenderTarget)) {
-                info.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+            imageCreateInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+            if(info.bindTypeFlags.IsSet(TextureBindTypeFlag::RenderTarget)) {
+                imageCreateInfo.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
                 mAspectMask |= VK_IMAGE_ASPECT_COLOR_BIT;
             }
-            if(bindTypeFlags.IsSet(TextureBindTypeFlag::ShaderResource)) {
-                info.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
+            if(info.bindTypeFlags.IsSet(TextureBindTypeFlag::ShaderResource)) {
+                imageCreateInfo.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
                 mAspectMask |= VK_IMAGE_ASPECT_COLOR_BIT;
             }
-            if(bindTypeFlags.IsSet(TextureBindTypeFlag::DepthStencil)) {
-                info.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+            if(info.bindTypeFlags.IsSet(TextureBindTypeFlag::DepthStencil)) {
+                imageCreateInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
                 mAspectMask |= (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
             }
-            info.queueFamilyIndexCount = 0;
-            info.pQueueFamilyIndices = nullptr;
-            info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-            info.tiling = VK_IMAGE_TILING_OPTIMAL;
+            imageCreateInfo.queueFamilyIndexCount = 0;
+            imageCreateInfo.pQueueFamilyIndices = nullptr;
+            imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+            imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 
-            res = vkCreateImage(device.GetHandle(), &info, nullptr, &mImage);
+            res = vkCreateImage(device.GetHandle(), &imageCreateInfo, nullptr, &mImage);
             CHECK_VK(res, "Failed to craete VkImage.");
-            VULKAN_SET_OBJ_NAME(device.GetHandle(), mImage, debugName);
+            VULKAN_SET_OBJ_NAME(device.GetHandle(), mImage, info.debugName);
 
             // Allocate memory
-            mAllocation = device.GetAllocator().Allocate(usage, info, &mImage);
+            mAllocation = device.GetAllocator().Allocate(info.usage, imageCreateInfo, &mImage);
 
             // Initialize data if it is existed
-            if(data.size() > 0) {
+            if(info.data.size() > 0) {
                 // Change the usage temporarily to enable map
-                if(usage == ResourceUsage::Immutable) mUsage = ResourceUsage::Default;
+                if(info.usage == ResourceUsage::Immutable) mUsage = ResourceUsage::Default;
 
-                Uint32 numToCreate = mMipLevelsInVk;
-                if(generateMipmaps) {
+                Uint32 numToCreate = mMipLevels;
+                if(info.generateMipmaps) {
                     numToCreate = 1;
                 }
 
                 for(Uint32 i = 0; i < numToCreate; i++) {
                     void* p;
                     MapImpl(ResourceMapType::Write, i, p, true);
-                    memcpy(p, data[i].pData, data[i].size);
+                    memcpy(p, info.data[i].pData, info.data[i].size);
                     UnmapImpl(i, true);
                 }
 
-                if(generateMipmaps) {
-                    CommandListAllocateInfo cmdInfo;
-                    cmdInfo.type = CommandListType::Transfer;
-
-                    VulkanCommandBuffer uploadCmdBuf = mDevice.GetCommandPoolManager().AllocateCommandBuffer(cmdInfo);
-                    GenerateMipmaps(uploadCmdBuf);
-                    mDevice.GetQueueManager().SubmitCommandBuffer(uploadCmdBuf);
+                if(info.generateMipmaps) {
+                    GenerateMipmapsImpl(true);
                 }
 
-                mUsage = usage;
+                mUsage = info.usage;
             }
         }
 
@@ -146,6 +138,36 @@ namespace cube
             vkDestroyImage(mDevice.GetHandle(), mImage, nullptr);
         }
 
+        void TextureVk::Map(ResourceMapType type, Uint32 mipmapIndex, void*& pMappedResource)
+        {
+            MapImpl(type, mipmapIndex, pMappedResource, true);
+        }
+
+        void TextureVk::Unmap(Uint32 mipmapIndex)
+        {
+            UnmapImpl(mipmapIndex, true);
+        }
+
+        void TextureVk::GenerateMipmaps()
+        {
+            GenerateMipmapsImpl(true);
+        }
+
+        SPtr<Fence> TextureVk::MapAsync(ResourceMapType type, Uint32 mipmapIndex, void*& pMappedResource)
+        {
+            return MapImpl(type, mipmapIndex, pMappedResource, false);
+        }
+
+        SPtr<Fence> TextureVk::UnmapAsync(Uint32 mipmapIndex)
+        {
+            return UnmapImpl(mipmapIndex, false);
+        }
+
+        SPtr<Fence> TextureVk::GenerateMipmapsAsync()
+        {
+            return GenerateMipmapsImpl(false);
+        }
+
         SPtr<Fence> TextureVk::MapImpl(ResourceMapType type, Uint32 mipIndex, void*& pMappedResource, bool waitUntilFinished)
         {
             CHECK(mUsage != ResourceUsage::Immutable, "Cannot map immutable resource.");
@@ -158,7 +180,11 @@ namespace cube
 
                 // Dynamic resource is always mapped
                 pMappedResource = mAllocation.pMappedPtr;
-                return nullptr;
+                if(waitUntilFinished == true) {
+                    return nullptr;
+                } else {
+                    return mDevice.GetFencePool().CreateNullFence();
+                }
             }
 
             VulkanStagingBuffer::Type stagingBufType;
@@ -174,7 +200,7 @@ namespace cube
             Uint32 mipWidth = Math::Max(mWidth >> mipIndex, 1u);
             Uint32 mipHeight = Math::Max(mHeight >> mipIndex, 1u);
             Uint32 mipDepth = Math::Max(mDepth >> mipIndex, 1u);
-            Uint64 bufSize = mipWidth * mipHeight * mipDepth * 4;
+            Uint64 bufSize = mipWidth * mipHeight * mipDepth * mArraySize * 4;
             mStagingBuffers[mipIndex] = mDevice.GetStagingManager().GetBuffer(bufSize, stagingBufType, mDebugName);
             pMappedResource = mStagingBuffers[mipIndex].GetMappedPtr();
 
@@ -189,8 +215,8 @@ namespace cube
                 region.bufferImageHeight = 0;
                 region.imageSubresource.aspectMask = mAspectMask;
                 region.imageSubresource.mipLevel = mipIndex;
-                region.imageSubresource.baseArrayLayer = 0; // TODO: Array 지원?
-                region.imageSubresource.layerCount = 1;
+                region.imageSubresource.baseArrayLayer = 0;
+                region.imageSubresource.layerCount = VK_REMAINING_ARRAY_LAYERS;
                 region.imageOffset = { 0, 0, 0 };
                 region.imageExtent = { mipWidth, mipHeight, mipDepth };
                 mStagingBuffers[mipIndex].CopyImage(mImage, region);
@@ -219,7 +245,11 @@ namespace cube
 
             if(mUsage == ResourceUsage::Dynamic) {
                 // Dynamic resource is always mapped
-                return nullptr;
+                if(waitUntilFinished == true) {
+                    return nullptr;
+                } else {
+                    return mDevice.GetFencePool().CreateNullFence();
+                }
             }
 
             Uint32 mipWidth = Math::Max(mWidth >> mipIndex, 1u);
@@ -238,7 +268,7 @@ namespace cube
                 region.imageSubresource.aspectMask = mAspectMask;
                 region.imageSubresource.mipLevel = mipIndex;
                 region.imageSubresource.baseArrayLayer = 0;
-                region.imageSubresource.layerCount = 1;
+                region.imageSubresource.layerCount = VK_REMAINING_ARRAY_LAYERS;
                 region.imageOffset = { 0, 0, 0 };
                 region.imageExtent = { mipWidth, mipHeight, mipDepth };
                 mStagingBuffers[mipIndex].FlushImage(mImage, region);
@@ -266,22 +296,21 @@ namespace cube
             }
         }
 
-        Uint32 TextureVk::CalculateMipmapLevels(Uint32 width, Uint32 height)
-        {
-            Uint32 calculatedMipLevels = SCast(Uint32)(Math::Log2(SCast(float)(Math::Max(width, height))));
-
-            return Math::Min(calculatedMipLevels, MaxMipLevels);
-        }
-
-        void TextureVk::GenerateMipmaps(VulkanCommandBuffer& cmdBuf)
+        SPtr<Fence> TextureVk::GenerateMipmapsImpl(bool waitUntilFinished)
         {
             VkPhysicalDevice gpu = mDevice.GetGPU();
             VkFormatProperties formatProps;
-            vkGetPhysicalDeviceFormatProperties(gpu, mFormat, &formatProps);
+            VkFormat vkFormat = TextureFormatToVkFormat(mFormat);
+            vkGetPhysicalDeviceFormatProperties(gpu, vkFormat, &formatProps);
             if((formatProps.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT) == 0) {
-                CUBE_LOG(LogType::Warning, "Cannot generate mipmaps in format({}) in this gpu. Skip it.", (int)mFormat);
-                return;
+                CUBE_LOG(LogType::Warning, "Cannot generate mipmaps in format({}) in this gpu. Skip it.", (int)vkFormat);
+                return mDevice.GetFencePool().CreateNullFence();
             }
+
+            CommandListAllocateInfo cmdInfo;
+            cmdInfo.type = CommandListType::Transfer;
+
+            VulkanCommandBuffer cmdBuf = mDevice.GetCommandPoolManager().AllocateCommandBuffer(cmdInfo);
 
             Int32 mipWidth = mWidth;
             Int32 mipHeight = mHeight;
@@ -292,15 +321,15 @@ namespace cube
             VkImageBlit blit;
             blit.srcSubresource.aspectMask = mAspectMask;
             blit.srcSubresource.baseArrayLayer = 0;
-            blit.srcSubresource.layerCount = 1;
+            blit.srcSubresource.layerCount = VK_REMAINING_ARRAY_LAYERS;
             blit.srcOffsets[0] = { 0, 0, 0 };
 
             blit.dstSubresource.aspectMask = mAspectMask;
             blit.dstSubresource.baseArrayLayer = 0;
-            blit.dstSubresource.layerCount = 1;
+            blit.dstSubresource.layerCount = VK_REMAINING_ARRAY_LAYERS;
             blit.dstOffsets[0] = { 0, 0, 0 };
 
-            for(Uint32 i = 1; i < mMipLevelsInVk; i++) {
+            for(Uint32 i = 1; i < mMipLevels; i++) {
                 TransitionLayout(cmdBuf, i, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
                 blit.srcSubresource.mipLevel = i - 1;
@@ -319,10 +348,26 @@ namespace cube
 
                 mipWidth = newMipWidth;
                 mipHeight = newMipHeight;
-                mipDepth =  newMipDepth;
+                mipDepth = newMipDepth;
             }
 
-            TransitionLayout(cmdBuf, mMipLevelsInVk - 1, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+            TransitionLayout(cmdBuf, mMipLevels - 1, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+            auto fence = mDevice.GetQueueManager().SubmitCommandBufferWithFence(cmdBuf);
+            if(waitUntilFinished == true) {
+                fence->Wait(10.0f);
+                fence->Release();
+                return nullptr;
+            } else {
+                return fence;
+            }
+        }
+
+        Uint32 TextureVk::CalculateMipmapLevels(Uint32 width, Uint32 height)
+        {
+            Uint32 calculatedMipLevels = SCast(Uint32)(Math::Log2(SCast(float)(Math::Max(width, height))));
+
+            return Math::Min(calculatedMipLevels, MaxMipLevels);
         }
 
         void TextureVk::TransitionLayout(VulkanCommandBuffer& cmdBuf, Int32 mipIndex, VkImageLayout newLayout, bool discardData)
@@ -425,40 +470,6 @@ namespace cube
                     ASSERTION_FAILED("Unknown VkImageLayout({0}).", (int)layout);
                     return;
             }
-        }
-
-        Texture2DVk::Texture2DVk(VulkanDevice& device, const Texture2DCreateInfo& info) :
-            Texture2D(info.usage, info.width, info.height, info.format, info.bindTypeFlags, 0/*Updated inside the constructor*/, info.samplesNum, info.debugName),
-            TextureVk(device, info.usage, VK_IMAGE_VIEW_TYPE_2D, info.data,
-                info.format, info.width, info.height, 1, 1,
-                info.bindTypeFlags, info.generateMipmaps, info.samplesNum, info.debugName)
-        {
-            mMipLevels = GetMipLevelsInTextureVk();
-        }
-        Texture2DArrayVk::Texture2DArrayVk(VulkanDevice& device, const Texture2DArrayCreateInfo& info) :
-            Texture2DArray(info.usage, info.arraySize, info.width, info.height, info.format, info.bindTypeFlags, 0/*Updated inside the constructor*/, info.samplesNum, info.debugName),
-            TextureVk(device, info.usage, VK_IMAGE_VIEW_TYPE_2D_ARRAY, info.data,
-                info.format, info.width, info.height, 1, info.arraySize,
-                info.bindTypeFlags, info.generateMipmaps, info.samplesNum, info.debugName)
-        {
-            mMipLevels = GetMipLevelsInTextureVk();
-        }
-        Texture3DVk::Texture3DVk(VulkanDevice& device, const Texture3DCreateInfo& info) :
-            Texture3D(info.usage, info.width, info.height, info.depth, info.format, info.bindTypeFlags, 0/*Updated inside the constructor*/, info.samplesNum, info.debugName),
-            TextureVk(device, info.usage, VK_IMAGE_VIEW_TYPE_3D, info.data,
-                info.format, info.width, info.height, info.depth, 1,
-                info.bindTypeFlags, info.generateMipmaps, info.samplesNum, info.debugName)
-
-        {
-            mMipLevels = GetMipLevelsInTextureVk();
-        }
-        TextureCubeVk::TextureCubeVk(VulkanDevice& device, const TextureCubeCreateInfo& info) :
-            TextureCube(info.usage, info.size, info.format, info.bindTypeFlags, 0/*Updated inside the constructor*/, info.samplesNum, info.debugName),
-            TextureVk(device, info.usage, VK_IMAGE_VIEW_TYPE_CUBE, info.data,
-                info.format, info.size, info.size, 1, 6,
-                info.bindTypeFlags, info.generateMipmaps, info.samplesNum, info.debugName)
-        {
-            mMipLevels = GetMipLevelsInTextureVk();
         }
     } // namespace rapi
 } // namespace cube

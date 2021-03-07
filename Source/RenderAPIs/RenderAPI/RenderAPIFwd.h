@@ -29,6 +29,10 @@ namespace cube
         // Interface/Fence.h
         class Fence;
 
+        // Interface/Framebuffer.h
+        struct FramebufferCreateInfo;
+        class Framebuffer;
+
         // Interface/InputLayout.h
         struct InputLayout;
 
@@ -68,14 +72,10 @@ namespace cube
         // Interface/Texture.h
         struct TextureCreateInfo;
         class Texture;
-        struct Texture2DCreateInfo;
-        class Texture2D;
-        struct Texture2DArrayCreateInfo;
-        class Texture2DArray;
-        struct Texture3DCreateInfo;
-        class Texture3D;
-        struct TextureCubeCreateInfo;
-        class TextureCube;
+
+        // Interface/Texture.h
+        struct TextureViewCreateInfo;
+        class TextureView;
 
         // RenderAPI.h
         struct RenderAPICreateInfo;

@@ -17,6 +17,8 @@ namespace cube
             BufferVk(VulkanDevice& device, ResourceUsage usage, VkBufferUsageFlags bufUsage, Uint64 size, const void* pData, const char* debugName);
             virtual ~BufferVk();
 
+            VkBuffer GetHandle() const { return mBuffer; }
+
             SPtr<Fence> MapImpl(ResourceMapType type, void*& pMappedResource, bool waitUntilFinished);
             SPtr<Fence> UnmapImpl(bool waitUntilFinished);
 

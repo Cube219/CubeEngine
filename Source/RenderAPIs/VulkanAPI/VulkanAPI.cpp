@@ -36,24 +36,9 @@ namespace cube
             VULKAN_DEBUG_SHUTDOWN();
         }
 
-        SPtr<Texture2D> VulkanAPI::CreateTexture2D(const Texture2DCreateInfo& info)
+        SPtr<Texture> VulkanAPI::CreateTexture(const TextureCreateInfo& info)
         {
-            return std::make_shared<Texture2DVk>(*mDevice, info);
-        }
-
-        SPtr<Texture2DArray> VulkanAPI::CreateTexture2DArray(const Texture2DArrayCreateInfo& info)
-        {
-            return std::make_shared<Texture2DArrayVk>(*mDevice, info);
-        }
-
-        SPtr<Texture3D> VulkanAPI::CreateTexture3D(const Texture3DCreateInfo& info)
-        {
-            return std::make_shared<Texture3DVk>(*mDevice, info);
-        }
-
-        SPtr<TextureCube> VulkanAPI::CreateTextureCube(const TextureCubeCreateInfo& info)
-        {
-            return std::make_shared<TextureCubeVk>(*mDevice, info);
+            return std::make_shared<TextureVk>(*mDevice, info);
         }
 
         void VulkanAPI::CreateInstance(bool enableDebugLayer)

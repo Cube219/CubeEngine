@@ -96,11 +96,13 @@
     <ClCompile Include="Interface\BufferVk.cpp" />
     <ClCompile Include="Interface\CommandListVk.cpp" />
     <ClCompile Include="Interface\FenceVk.cpp" />
+    <ClCompile Include="Interface\FramebufferVk.cpp" />
     <ClCompile Include="Interface\PipelineStateVk.cpp" />
     <ClCompile Include="Interface\RenderPassVk.cpp" />
     <ClCompile Include="Interface\ShaderVariablesVk.cpp" />
     <ClCompile Include="Interface\ShaderVk.cpp" />
     <ClCompile Include="Interface\SwapChainVk.cpp" />
+    <ClCompile Include="Interface\TextureViewVk.cpp" />
     <ClCompile Include="Interface\TextureVk.cpp" />
     <ClCompile Include="Tools\GLSLTool.cpp" />
     <ClCompile Include="VulkanAPI.cpp" />
@@ -132,11 +134,13 @@
     <ClInclude Include="Interface\BufferVk.h" />
     <ClInclude Include="Interface\CommandListVk.h" />
     <ClInclude Include="Interface\FenceVk.h" />
+    <ClInclude Include="Interface\FramebufferVk.h" />
     <ClInclude Include="Interface\PipelineStateVk.h" />
     <ClInclude Include="Interface\RenderPassVk.h" />
     <ClInclude Include="Interface\ShaderVariablesVk.h" />
     <ClInclude Include="Interface\ShaderVk.h" />
     <ClInclude Include="Interface\SwapChainVk.h" />
+    <ClInclude Include="Interface\TextureViewVk.h" />
     <ClInclude Include="Interface\TextureVk.h" />
     <ClInclude Include="Tools\GLSLTool.h" />
     <ClInclude Include="VulkanAPI.h" />

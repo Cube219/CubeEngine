@@ -44,6 +44,12 @@
     <ClCompile Include="Interface\FenceVk.cpp">
       <Filter>Interface</Filter>
     </ClCompile>
+    <ClCompile Include="Interface\FramebufferVk.cpp">
+      <Filter>Interface</Filter>
+    </ClCompile>
+    <ClCompile Include="Interface\TextureViewVk.cpp">
+      <Filter>Interface</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="VulkanAPI.h" />
@@ -89,6 +95,12 @@
     </ClInclude>
     <ClInclude Include="VulkanCommandPoolManager.h" />
     <ClInclude Include="Interface\FenceVk.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\FramebufferVk.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\TextureViewVk.h">
       <Filter>Interface</Filter>
     </ClInclude>
   </ItemGroup>

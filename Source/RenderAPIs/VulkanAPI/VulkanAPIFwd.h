@@ -11,11 +11,14 @@ namespace cube
         class ConstantBufferVk;
         class StructuredBufferVk;
 
-        // Interface/CommandList.h
+        // Interface/CommandListVk.h
         class CommandListVk;
 
         // Interface/FenceVk.h
         class FenceVk;
+
+        // Interface/FramebufferVk.h
+        class FramebufferVk;
 
         // Interface/PipelineStateVk.h
         class GraphicsPipelineStateVk;
@@ -34,12 +37,11 @@ namespace cube
         // Interface/SwapChain.h
         class SwapChainVk;
 
+        // Interface/TextureViewVk.h
+        class TextureViewVk;
+
         // Interface/TextureVk.h
         class TextureVk;
-        class Texture2DVk;
-        class Texture2DArrayVk;
-        class Texture3DVk;
-        class TextureCubeVk;
 
         // VulkanAPI.h
         class VulkanAPI;

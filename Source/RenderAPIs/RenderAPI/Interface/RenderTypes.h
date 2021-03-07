@@ -90,6 +90,18 @@ namespace cube
             ReadWrite
         };
 
+        enum class TextureType
+        {
+            Texture1D,
+            Texture1DArray,
+            Texture2D,
+            Texture2DArray,
+            Texture3D,
+            TextureCube,
+            TextureCubeArray
+
+        };
+
         // TODO: 형식들 정리(안쓰는 것들 제거...)
         enum class TextureFormat : Uint32
         {

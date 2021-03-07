@@ -26,6 +26,9 @@ namespace cube
         public:
             GraphicsPipelineStateVk(VulkanDevice& device, const GraphicsPipelineStateCreateInfo& info);
             virtual ~GraphicsPipelineStateVk();
+
+            VkPipeline GetHandle() const { return mPipeline; }
+            VkPipelineLayout GetPipelineLayout() const { return mPipelineLayout; }
             
         private:
             VulkanDevice& mDevice;
@@ -39,6 +42,9 @@ namespace cube
         public:
             ComputePipelineStateVk(VulkanDevice& device, const ComputePipelineStateCreateInfo& info);
             virtual ~ComputePipelineStateVk();
+
+            VkPipeline GetHandle() const { return mPipeline; }
+            VkPipelineLayout GetPipelineLayout() const { return mPipelineLayout; }
 
         private:
             VulkanDevice& mDevice;

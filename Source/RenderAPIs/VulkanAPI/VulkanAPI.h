@@ -20,10 +20,7 @@ namespace cube
             virtual void Initialize(const RenderAPICreateInfo& info) override;
             virtual void Shutdown() override;
 
-            virtual SPtr<Texture2D> CreateTexture2D(const Texture2DCreateInfo& info) override;
-            virtual SPtr<Texture2DArray> CreateTexture2DArray(const Texture2DArrayCreateInfo& info) override;
-            virtual SPtr<Texture3D> CreateTexture3D(const Texture3DCreateInfo& info) override;
-            virtual SPtr<TextureCube> CreateTextureCube(const TextureCubeCreateInfo& info) override;
+            virtual SPtr<Texture> CreateTexture(const TextureCreateInfo& info) override;
 
             VkInstance GetInstance() const { return mInstance; }
             VulkanDevice* GetDevice() { return mDevice; }

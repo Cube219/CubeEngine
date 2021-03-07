@@ -49,6 +49,12 @@
     <ClInclude Include="Interface\Fence.h">
       <Filter>Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\Framebuffer.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\TextureView.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="a.cpp" />

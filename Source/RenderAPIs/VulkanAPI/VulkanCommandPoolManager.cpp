@@ -84,7 +84,7 @@ namespace cube
         {
             VulkanCommandBuffer commandBuffer = AllocateCommandBuffer(allocateInfo);
 
-            return std::make_shared<CommandListVk>(mDevice, *this, commandBuffer);
+            return std::make_shared<CommandListVk>(mDevice, *this, allocateInfo, commandBuffer);
         }
 
         VulkanCommandBuffer VulkanCommandPoolManager::AllocateCommandBuffer(const CommandListAllocateInfo& allocateInfo)

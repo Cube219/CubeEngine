@@ -67,6 +67,8 @@ namespace cube
             virtual void Draw(Uint32 numVertices, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance) = 0;
             virtual void DrawIndexed(Uint32 numIndices, Uint32 baseIndex, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance) = 0;
 
+            virtual void ExecuteSubCommands(Uint32 numCommandLists, CommandList** ppCommandLists) = 0;
+
             virtual void SetPipelineState(ComputePipelineState* pipelineState) = 0;
             virtual void Dispatch(Uint32 groupX, Uint32 groupY, Uint32 groupZ) = 0;
 
