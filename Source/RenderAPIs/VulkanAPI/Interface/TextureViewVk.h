@@ -14,6 +14,8 @@ namespace cube
             TextureViewVk(VulkanDevice& device, SPtr<TextureVk>& pTexture, const TextureViewCreateInfo& info);
             virtual ~TextureViewVk();
 
+            VkImageView GetHandle() const { return mImageView; }
+
         private:
             VulkanDevice& mDevice;
             SPtr<TextureVk> mpTexture;

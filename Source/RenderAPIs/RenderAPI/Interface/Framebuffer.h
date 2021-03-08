@@ -9,6 +9,12 @@ namespace cube
         struct FramebufferCreateInfo
         {
             RenderPass* pRenderPass = nullptr;
+            Uint32 numAttachments;
+            TextureView** ppAttachments;
+
+            Uint32 width;
+            Uint32 height;
+            Uint32 arrayStartIndex;
 
             const char* debugName = "";
         };
