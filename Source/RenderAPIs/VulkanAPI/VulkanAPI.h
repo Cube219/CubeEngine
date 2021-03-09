@@ -20,6 +20,16 @@ namespace cube
             virtual void Initialize(const RenderAPICreateInfo& info) override;
             virtual void Shutdown() override;
 
+            virtual SPtr<VertexBuffer> CreateVertexBuffer(const VertexBufferCreateInfo& info) override;
+            virtual SPtr<IndexBuffer> CreateIndexBuffer(const IndexBufferCreateInfo& info) override;
+            virtual SPtr<CommandList> AllocateCommandList(const CommandListAllocateInfo& info) override;
+            virtual SPtr<Framebuffer> CreateFramebuffer(const FramebufferCreateInfo& info) override;
+            virtual SPtr<GraphicsPipelineState> CreateGraphicsPipelineState(const GraphicsPipelineStateCreateInfo& info) override;
+            virtual SPtr<ComputePipelineState> CreateComputePipelineState(const ComputePipelineStateCreateInfo& info) override;
+            virtual SPtr<RenderPass> CreateRenderPass(const RenderPassCreateInfo& info) override;
+            virtual SPtr<Shader> CreateShader(const ShaderCreateInfo& info) override;
+            virtual SPtr<ShaderVariablesLayout> CreateShaderVariablesLayout(const ShaderVariablesLayoutCreateInfo& info) override;
+            virtual SPtr<SwapChain> CreateSwapChain(const SwapChainCreateInfo& info) override;
             virtual SPtr<Texture> CreateTexture(const TextureCreateInfo& info) override;
 
             VkInstance GetInstance() const { return mInstance; }
@@ -29,6 +39,7 @@ namespace cube
             void CreateInstance(bool enableDebugLayer);
             void GetDevices(const RenderAPICreateInfo& info);
 
+        
             VkInstance mInstance;
             Vector<VulkanDevice*> mAllDevices;
             VulkanDevice* mDevice;

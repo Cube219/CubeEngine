@@ -57,6 +57,7 @@ namespace cube
         class Resource;
 
         // Interface/Shader.h
+        struct ShaderCreateInfo;
         class Shader;
 
         // Interface/ShaderVariables.h

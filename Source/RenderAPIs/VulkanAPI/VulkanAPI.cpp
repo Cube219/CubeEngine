@@ -1,10 +1,18 @@
 #include "VulkanAPI.h"
 
+#include "Interface/BufferVk.h"
+#include "Interface/FramebufferVk.h"
+#include "Interface/PipelineStateVk.h"
+#include "Interface/RenderPassVk.h"
+#include "Interface/ShaderVariablesVk.h"
+#include "Interface/ShaderVk.h"
+#include "Interface/SwapChainVk.h"
+#include "Interface/TextureVk.h"
 #include "VulkanUtility.h"
-#include "Core/Assertion.h"
 #include "VulkanTypeConversion.h"
 #include "VulkanDebug.h"
-#include "Interface/TextureVk.h"
+
+#include "Core/Assertion.h"
 
 namespace cube
 {
@@ -34,6 +42,56 @@ namespace cube
             mAllDevices.clear();
 
             VULKAN_DEBUG_SHUTDOWN();
+        }
+
+        SPtr<VertexBuffer> VulkanAPI::CreateVertexBuffer(const VertexBufferCreateInfo& info)
+        {
+            return std::make_shared<VertexBufferVk>(*mDevice, info);
+        }
+
+        SPtr<IndexBuffer> VulkanAPI::CreateIndexBuffer(const IndexBufferCreateInfo& info)
+        {
+            return std::make_shared<IndexBufferVk>(*mDevice, info);
+        }
+
+        SPtr<CommandList> VulkanAPI::AllocateCommandList(const CommandListAllocateInfo& info)
+        {
+            return mDevice->GetCommandPoolManager().AllocateCommandList(info);
+        }
+
+        SPtr<Framebuffer> VulkanAPI::CreateFramebuffer(const FramebufferCreateInfo& info)
+        {
+            return std::make_shared<FramebufferVk>(*mDevice, info);
+        }
+
+        SPtr<GraphicsPipelineState> VulkanAPI::CreateGraphicsPipelineState(const GraphicsPipelineStateCreateInfo& info)
+        {
+            return std::make_shared<GraphicsPipelineStateVk>(*mDevice, info);
+        }
+
+        SPtr<ComputePipelineState> VulkanAPI::CreateComputePipelineState(const ComputePipelineStateCreateInfo& info)
+        {
+            return std::make_shared<ComputePipelineStateVk>(*mDevice, info);
+        }
+
+        SPtr<RenderPass> VulkanAPI::CreateRenderPass(const RenderPassCreateInfo& info)
+        {
+            return std::make_shared<RenderPassVk>(*mDevice, info);
+        }
+
+        SPtr<Shader> VulkanAPI::CreateShader(const ShaderCreateInfo& info)
+        {
+            return std::make_shared<ShaderVk>(*mDevice, info);
+        }
+
+        SPtr<ShaderVariablesLayout> VulkanAPI::CreateShaderVariablesLayout(const ShaderVariablesLayoutCreateInfo& info)
+        {
+            return std::make_shared<ShaderVariablesLayoutVk>(*mDevice, info);
+        }
+
+        SPtr<SwapChain> VulkanAPI::CreateSwapChain(const SwapChainCreateInfo& info)
+        {
+            return std::make_shared<SwapChainVk>(*mDevice, mInstance, info);
         }
 
         SPtr<Texture> VulkanAPI::CreateTexture(const TextureCreateInfo& info)
