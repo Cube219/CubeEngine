@@ -112,6 +112,18 @@ namespace cube
             memcpy(alloc.pData, pData, size);
         }
 
+        void ShaderVariablesVk::BIndVariables(VkCommandBuffer cmdBuf, VkPipelineBindPoint bindPoint, VkPipelineLayout pipelineLayout, Uint32 layoutIndex)
+        {
+            FrameVector<Uint32> dynamicOffsets;
+
+            for(Uint64 i = 0; i < mVariableAllocations.size(); ++i) {
+                auto& alloc = mVariableAllocations[i];
+                dynamicOffsets.push_back(SCast(Uint32)(alloc.dynamicOffset));
+            }
+
+            vkCmdBindDescriptorSets(cmdBuf, bindPoint, pipelineLayout, layoutIndex, 1, &mDescriptorSet, 1, dynamicOffsets.data());
+        }
+
         ShaderVariablesLayoutVk::ShaderVariablesLayoutVk(VulkanDevice& device, const ShaderVariablesLayoutCreateInfo& info) :
             mDevice(device)
         {

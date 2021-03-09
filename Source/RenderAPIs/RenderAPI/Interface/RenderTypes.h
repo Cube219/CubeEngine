@@ -348,5 +348,26 @@ namespace cube
         };
         using TextureBindTypeFlags = Flags<TextureBindTypeFlag>;
         FLAGS_OPERATOR(TextureBindTypeFlag);
-    } // namesapce rapi
-} // namesapce cube
+
+        // RenderPass
+        struct ColorClearValue
+        {
+            float value[4];
+        };
+        struct DepthStencilValue
+        {
+            float depth;
+            Uint32 stencil;
+        };
+        struct ClearValue
+        {
+            bool useColor = true;
+
+            union
+            {
+                ColorClearValue color;
+                DepthStencilValue depthStencil;
+            };
+        };
+    } // namespace rapi
+} // namespace cube

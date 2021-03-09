@@ -16,10 +16,16 @@ namespace cube
 
             VkFramebuffer GetHandle() const { return mFramebuffer; }
 
+            Uint32 GetWidth() const { return mWidth; }
+            Uint32 GetHeight() const { return mHeight; }
+
         private:
             VulkanDevice& mDevice;
 
             VkFramebuffer mFramebuffer;
+
+            Uint32 mWidth;
+            Uint32 mHeight;
         };
     } // namespace rapi
 } // namespace cube

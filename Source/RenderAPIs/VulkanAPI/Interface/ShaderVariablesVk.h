@@ -17,6 +17,8 @@ namespace cube
 
             virtual void UpdateVariable(Uint32 index, void* pData, Uint32 size) override;
 
+            void BIndVariables(VkCommandBuffer cmdBuf, VkPipelineBindPoint bindPoint, VkPipelineLayout pipelineLayout, Uint32 layoutIndex);
+
         private:
             VulkanDevice& mDevice;
             ShaderVariablesLayoutVk& mLayout;

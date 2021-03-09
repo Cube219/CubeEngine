@@ -22,6 +22,7 @@ namespace cube
             Uint32 GetPoolIndex() const { return mCommandBuffer.poolIndex; }
 
             virtual void Begin() override;
+            virtual void BeginSubWithRenderPass(RenderPass* pRenderPass, Framebuffer* pFramebuffer, Uint32 subpassIndex) override;
             virtual void End() override;
             virtual void Reset() override;
 
@@ -30,8 +31,8 @@ namespace cube
 
             virtual void SetPipelineState(GraphicsPipelineState* pipelineState) override;
 
-            virtual void BeginRenderPass(RenderPass* pRenderPass) override;
-            virtual void NextSubpass() override;
+            virtual void BeginRenderPass(RenderPass* pRenderPass, Framebuffer* pFramebuffer, Uint32 numClearValues, ClearValue* pClearValues, bool useSubCommandList) override;
+            virtual void NextSubpass(bool useSubCommandList) override;
             virtual void EndRenderPass() override;
 
             virtual void BindShaderVariables(Uint32 index, ShaderVariables* pVariables) override;
@@ -59,9 +60,9 @@ namespace cube
             Uint32 mPoolIndex;
             bool mIsSub;
 
-            GraphicsPipelineStateVk* mpBindedGraphicsPipelineState;
-            ComputePipelineStateVk* mpBindedComputePipelineState;
-            RenderPassVk* mpBindedRenderPass;
+            GraphicsPipelineStateVk* mpBoundGraphicsPipelineState;
+            ComputePipelineStateVk* mpBoundComputePipelineState;
+            RenderPassVk* mpBoundRenderPass;
         };
     } // namespace cube
 } // namespace rapi

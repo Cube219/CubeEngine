@@ -47,6 +47,7 @@ namespace cube
             virtual ~CommandList() = default;
 
             virtual void Begin() = 0;
+            virtual void BeginSubWithRenderPass(RenderPass* pRenderPass, Framebuffer* pFramebuffer, Uint32 subpassIndex = 0) = 0;
             virtual void End() = 0;
             virtual void Reset() = 0;
 
@@ -55,8 +56,8 @@ namespace cube
 
             virtual void SetPipelineState(GraphicsPipelineState* pipelineState) = 0;
 
-            virtual void BeginRenderPass(RenderPass* pRenderPass /*, pFrameBuffer*/) = 0;
-            virtual void NextSubpass() = 0;
+            virtual void BeginRenderPass(RenderPass* pRenderPass, Framebuffer* pFramebuffer, Uint32 numClearValues, ClearValue* pClearValues, bool useSubCommandList) = 0;
+            virtual void NextSubpass(bool useSubCommandList) = 0;
             virtual void EndRenderPass() = 0;
 
             virtual void BindShaderVariables(Uint32 index, ShaderVariables* pVariables) = 0;

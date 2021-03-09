@@ -66,7 +66,7 @@ namespace cube
             void Initialize();
             void Shutdown();
 
-            VulkanShaderVariableAllocation Allocate(ShaderVariableType type, Uint64 size);
+            VulkanShaderVariableAllocation Allocate(ShaderVariableType type, Uint64 size); // TODO: 공간 없을 때 Heap 새로 생성해서 반환하는 기능 추가
             void Free(VulkanShaderVariableAllocation& allocation);
 
             VkDescriptorSet AllocateDescriptorSet(VkDescriptorSetLayout layout, const char* layoutDebugName);
