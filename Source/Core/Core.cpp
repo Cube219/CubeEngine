@@ -27,7 +27,7 @@ namespace cube
         ResourceManager::Initialize();
 
         ModuleManager::Initialize();
-        ModuleManager::LoadModule(CUBE_T("InputModule"));
+        ModuleManager::LoadModule(CUBE_T("CE-InputModule"));
         ModuleManager::InitModules();
 
         mWorld.Initialize();

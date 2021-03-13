@@ -335,11 +335,16 @@ __pycache__/
 
 ### Solution Setting ###
 
-#Except Dependencies folder
+# Except Dependencies folder
 !Dependencies/**
 
-#Ignore temporary folder
+# Ignore temporary folder
 [Tt]emp
 
-#Except SampleResources folder
+# Except SampleResources folder
 !SampleResources/**
+
+# CMake folder
+Build/
+Build2/
+CMakeSettings.json

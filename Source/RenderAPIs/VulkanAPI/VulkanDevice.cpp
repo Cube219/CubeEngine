@@ -49,24 +49,24 @@ namespace cube
 
             CreateDevice();
 
+            mQueueManager.Initialize(mGPU);
             mCommandPoolManager.Initialize(apiInfo.numGraphicsCommandPools, apiInfo.numTransferCommandPools, apiInfo.numComputeCommandPools);
             mAllocator.Initialize(instance, mGPU, mDevice);
             mStagingManager.Initialize();
             mFencePool.Initialize();
             mSemaphorePool.Initialize();
             mShaderVariableManager.Initialize();
-            mQueueManager.Initialize(mGPU);
         }
 
         VulkanDevice::~VulkanDevice()
         {
-            mQueueManager.Shutdown();
             mShaderVariableManager.Shutdown();
             mSemaphorePool.Shutdown();
             mFencePool.Shutdown();
             mStagingManager.Shutdown();
             mAllocator.Shutdown();
             mCommandPoolManager.Shutdown();
+            mQueueManager.Shutdown();
 
             if(mDevice != nullptr) {
                 vkDestroyDevice(mDevice, nullptr);

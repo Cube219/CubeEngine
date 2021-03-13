@@ -13,7 +13,7 @@ namespace cube
         switch(apiType)
         {
             case RenderAPIType::Vulkan:
-                mRenderAPIDLib = platform::Platform::LoadDLib(CUBE_T("VulkanAPI"));
+                mRenderAPIDLib = platform::Platform::LoadDLib(CUBE_T("CE-VulkanAPI"));
                 break;
 
             default:
