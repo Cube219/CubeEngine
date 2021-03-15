@@ -5,6 +5,7 @@ set(INCLUDE
     Allocator/FrameAllocator.h
     Module/Module.h
     Module/ModuleManager.h
+    Renderer/BaseMeshGenerator.h
     Renderer/Mesh.h
     Renderer/RenderableComponent.h
     Renderer/RendererManager.h
@@ -33,6 +34,7 @@ set(SOURCE
     Allocator/FrameAllocator.cpp
     Module/Module.cpp
     Module/ModuleManager.cpp
+    Renderer/BaseMeshGenerator.cpp
     Renderer/Mesh.cpp
     Renderer/RenderableComponent.cpp
     Renderer/RendererManager.cpp

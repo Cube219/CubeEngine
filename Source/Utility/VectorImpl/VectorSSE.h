@@ -306,12 +306,6 @@ namespace cube
         return res;
     }
 
-    inline VectorBase Vector2::Cross(const Vector2& rhs) const
-    {}
-
-    inline VectorBase Vector2::Cross(const Vector2& lhs, const Vector2& rhs)
-    {}
-
     inline Vector2::Vector2(VectorData vData)
     {
         mData = vData;
@@ -628,12 +622,6 @@ namespace cube
 
         return res;
     }
-
-    inline VectorBase Vector4::Cross(const Vector4& rhs) const
-    {}
-
-    inline VectorBase Vector4::Cross(const Vector4& lhs, const Vector4& rhs)
-    {}
 
     inline Vector4::Vector4(const VectorData vData)
     {

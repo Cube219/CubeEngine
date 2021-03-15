@@ -31,6 +31,8 @@ namespace cube
     // Resource/ResourceManager.h
     class ResourceManager;
 
+    // Renderer/BaseMeshGenerator.h
+    class BaseMeshGenerator;
     // Renderer/Material.h
     class Material;
     // Renderer/Mesh.h

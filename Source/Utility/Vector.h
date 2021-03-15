@@ -2,7 +2,7 @@
 
 #include "fmt/format.h"
 
-#define VECTOR_SIMD_NONE
+#define VECTOR_SIMD_SSE
 
 
 #if defined(VECTOR_SIMD_SSE) // SSE

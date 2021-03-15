@@ -61,6 +61,8 @@ namespace cube
         virtual SPtr<rt::RenderObject> CreateRTObject() override;
 
     private:
+        friend class BaseMeshGenerator;
+
         SPtr<MeshData> mMeshData;
     };
 
