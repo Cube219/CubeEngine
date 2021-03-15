@@ -100,6 +100,7 @@ namespace cube
         {}
         virtual ~Handlable() {}
 
+        // TODO: 구조 좀 더 효율적으로 수정(매크로 써서 무조건 구현해야 할 것 추가하거나, 없애거나)
         Handler<Handlable> GetHandler() const
         {
             ASSERTION_FAILED("You must overload GetHandler function in a child class.");

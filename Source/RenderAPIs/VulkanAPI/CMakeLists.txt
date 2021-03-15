@@ -1,7 +1,5 @@
 cmake_minimum_required (VERSION 3.6)
 
-project(CubeEngine_VulkanAPI)
-
 set(INCLUDE
     Interface/BufferVk.h
     Interface/CommandListVk.h

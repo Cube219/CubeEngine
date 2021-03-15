@@ -28,6 +28,8 @@ namespace cube
 
         static void Resize(Uint32 width, Uint32 height);
 
+        static rapi::RenderAPI& GetRenderAPI() { return *mRenderAPI; }
+
     private:
         static SPtr<platform::DLib> mRenderAPIDLib;
         static SPtr<rapi::RenderAPI> mRenderAPI;

@@ -31,10 +31,23 @@ namespace cube
     // Resource/ResourceManager.h
     class ResourceManager;
 
+    // Renderer/RenderableComponent.h
+    struct RenderableComponent;
     // Renderer/RendererManager.h
     class RendererManager;
     // Renderer/RenderingThread.h
     class RenderingThread;
+    // Renderer/RenderObject.h
+    class RenderObject;
+    // Renderer/Texture.h
+    class TextureData;
+    class Texture;
+
+    namespace rt
+    {
+        class RenderObject;
+        class Texture;
+    } // namespace rt
 
     // Thread/Async.h
     class AsyncSignal;

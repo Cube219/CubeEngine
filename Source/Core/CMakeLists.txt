@@ -5,8 +5,11 @@ set(INCLUDE
     Allocator/FrameAllocator.h
     Module/Module.h
     Module/ModuleManager.h
+    Renderer/RenderableComponent.h
     Renderer/RendererManager.h
     Renderer/RenderingThread.h
+    Renderer/RenderObject.h
+    Renderer/Texture.h
     Resource/Resource.h
     Resource/ResourceImporter.h
     Resource/ResourceManager.h
@@ -29,8 +32,11 @@ set(SOURCE
     Allocator/FrameAllocator.cpp
     Module/Module.cpp
     Module/ModuleManager.cpp
+    Renderer/RenderableComponent.cpp
     Renderer/RendererManager.cpp
     Renderer/RenderingThread.cpp
+    Renderer/RenderObject.cpp
+    Renderer/Texture.cpp
     Resource/Resource.cpp
     Resource/ResourceManager.cpp
     Time/GameTime.cpp
