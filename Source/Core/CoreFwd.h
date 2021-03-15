@@ -31,6 +31,13 @@ namespace cube
     // Resource/ResourceManager.h
     class ResourceManager;
 
+    // Renderer/Material.h
+    class Material;
+    // Renderer/Mesh.h
+    struct Vertex;
+    struct SubMesh; 
+    class MeshData;
+    class Mesh;
     // Renderer/RenderableComponent.h
     struct RenderableComponent;
     // Renderer/RendererManager.h

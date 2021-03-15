@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include "../CoreHeader.h"
 
 #include "RenderObject.h"
