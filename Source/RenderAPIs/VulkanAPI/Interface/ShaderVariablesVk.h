@@ -16,6 +16,9 @@ namespace cube
             virtual ~ShaderVariablesVk();
 
             virtual void UpdateVariable(Uint32 index, void* pData, Uint32 size) override;
+            virtual void UpdateVariable(Uint32 index, SPtr<TextureView>& textureView) override;
+            virtual void UpdateVariable(Uint32 index, SPtr<Sampler>& sampler) override;
+            virtual void UpdateVariable(Uint32 index, SPtr<TextureView>& textureView, SPtr<Sampler>& sampler) override;
 
             void BIndVariables(VkCommandBuffer cmdBuf, VkPipelineBindPoint bindPoint, VkPipelineLayout pipelineLayout, Uint32 layoutIndex);
 
@@ -24,6 +27,7 @@ namespace cube
             ShaderVariablesLayoutVk& mLayout;
 
             VkDescriptorSet mDescriptorSet;
+            Vector<ShaderVariableType> mVariableTypes;
             Vector<VulkanShaderVariableAllocation> mVariableAllocations;
         };
 

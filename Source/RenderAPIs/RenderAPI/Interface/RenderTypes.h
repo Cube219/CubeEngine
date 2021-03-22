@@ -29,7 +29,11 @@ namespace cube
         enum class ShaderVariableType
         {
             Constant,
-            Storage
+            Storage,
+            ConstantTexture,
+            StorageTexture,
+            Sampler,
+            SamplerTexture
         };
 
         // Pipeline

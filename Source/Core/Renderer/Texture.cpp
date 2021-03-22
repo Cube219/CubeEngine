@@ -59,7 +59,9 @@ namespace cube
     {
         Texture::Texture(const SPtr<TextureData>& textureData) :
             mTextureData(textureData)
-        {}
+        {
+            mSampler = RendererManager::GetDefaultSampler();
+        }
 
         Texture::~Texture()
         {}

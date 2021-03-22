@@ -12,12 +12,9 @@ namespace cube
     public:
         virtual ~RenderObject() = default;
 
-        Handler<RenderObject> GetHandler() const { return mMyHandler; }
-
         virtual void OnCreate();
         virtual void OnDestroy();
 
-        // TODO: 구조 좀 더 효율적으로 수정(매크로 써서 무조건 구현해야 할 것 추가하거나, 없애거나)
         virtual SPtr<rt::RenderObject> CreateRTObject() = 0;
         SPtr<rt::RenderObject> GetRTObject() const { return mRTObject; }
 
@@ -51,7 +48,7 @@ namespace cube
             virtual void OnDestroy() {}
 
         protected:
-            friend class cube::RenderObject;
+            // friend class cube::RenderObject;
 
             RenderObject() = default; // Only RenderObject can create
         };

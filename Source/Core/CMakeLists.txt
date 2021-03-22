@@ -6,11 +6,13 @@ set(INCLUDE
     Module/Module.h
     Module/ModuleManager.h
     Renderer/BaseMeshGenerator.h
+    Renderer/Material.h
     Renderer/Mesh.h
     Renderer/RenderableComponent.h
     Renderer/RendererManager.h
     Renderer/RenderingThread.h
     Renderer/RenderObject.h
+    Renderer/Shader.h
     Renderer/Texture.h
     Resource/Resource.h
     Resource/ResourceImporter.h
@@ -35,11 +37,13 @@ set(SOURCE
     Module/Module.cpp
     Module/ModuleManager.cpp
     Renderer/BaseMeshGenerator.cpp
+    Renderer/Material.cpp
     Renderer/Mesh.cpp
     Renderer/RenderableComponent.cpp
     Renderer/RendererManager.cpp
     Renderer/RenderingThread.cpp
     Renderer/RenderObject.cpp
+    Renderer/Shader.h
     Renderer/Texture.cpp
     Resource/Resource.cpp
     Resource/ResourceManager.cpp

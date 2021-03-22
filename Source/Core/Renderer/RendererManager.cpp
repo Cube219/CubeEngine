@@ -1,12 +1,19 @@
 #include "RendererManager.h"
 
 #include "../Assertion.h"
+
 #include "Platform/Platform.h"
+#include "RenderAPIs/RenderAPI/Interface/Sampler.h"
 
 namespace cube
 {
     SPtr<platform::DLib> RendererManager::mRenderAPIDLib;
     SPtr<rapi::RenderAPI> RendererManager::mRenderAPI;
+
+    HandlerTable RendererManager::mRenderObjectTable(50);
+    Vector<UPtr<RenderObject>> RendererManager::mRenderObjects;
+
+    SPtr<rapi::Sampler> RendererManager::mDefaultSampler;
 
     void RendererManager::Initialize(RenderAPIType apiType)
     {
@@ -27,12 +34,30 @@ namespace cube
 
         rapi::RenderAPICreateInfo apiCreateInfo; // TODO: Multi-thread 구현시 CommandPool 개수 넣기
         mRenderAPI->Initialize(apiCreateInfo);
+
+        // Create default sampler
+        rapi::SamplerCreateInfo samplerCreateInfo; // TODO: default sampler 설정 넣기
+        mDefaultSampler = mRenderAPI->CreateSampler(samplerCreateInfo);
     }
 
     void RendererManager::Shutdown()
     {
+        mDefaultSampler = nullptr;
+
         mRenderAPI = nullptr;
         mRenderAPIDLib = nullptr;
+    }
+
+    HMaterial RendererManager::RegisterMaterial(UPtr<Material>&& material)
+    {
+        HMaterial mat = RegisterRenderObject(std::move(material));
+
+        return mat;
+    }
+
+    UPtr<Material> RendererManager::UnregisterMaterial(HMaterial& material)
+    {
+        return UnregisterRenderObject(material);
     }
 
     void RendererManager::Render()

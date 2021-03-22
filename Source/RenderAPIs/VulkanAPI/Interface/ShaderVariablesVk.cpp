@@ -1,6 +1,8 @@
 #include "ShaderVariablesVk.h"
 
 #include "../VulkanDevice.h"
+#include "SamplerVk.h"
+#include "TextureViewVk.h"
 
 #include "RenderAPIs/VulkanAPI/VulkanDebug.h"
 
@@ -63,6 +65,12 @@ namespace cube
                         break;
                     }
 
+                    case ShaderVariableType::ConstantTexture:
+                    case ShaderVariableType::StorageTexture:
+                    case ShaderVariableType::Sampler:
+                    case ShaderVariableType::SamplerTexture:
+                        break; // These types will be updated in ShaderVariablesVk::UpdateVariable
+
                     default:
                         ASSERTION_FAILED("Unsupported shader variable type in Vulkan ({})", (Uint32)vInfo.type);
                         continue;
@@ -88,6 +96,11 @@ namespace cube
                         continue;
                 }
             }
+
+            mVariableTypes.resize(variableInfos.size());
+            for(Uint32 i = 0; i < SCast(Uint32)(variableInfos.size()); ++i) {
+                mVariableTypes[i] = variableInfos[i].type;
+            }
         }
 
         ShaderVariablesVk::~ShaderVariablesVk()
@@ -102,7 +115,9 @@ namespace cube
 
         void ShaderVariablesVk::UpdateVariable(Uint32 index, void* pData, Uint32 size)
         {
-            // TODO: variable type check in debug mode
+            ShaderVariableType vType = mVariableTypes[index];
+            CHECK(vType == ShaderVariableType::Constant || vType == ShaderVariableType::Storage,
+                "Only Constant/Storage type can be updated to byte data.");
 
             VulkanShaderVariableAllocation& alloc = mVariableAllocations[index];
 
@@ -110,6 +125,89 @@ namespace cube
                 "Data size doesn't match between allocated size({0}) and update size({1}).", alloc.size, size);
 
             memcpy(alloc.pData, pData, size);
+        }
+
+        void ShaderVariablesVk::UpdateVariable(Uint32 index, SPtr<TextureView>& textureView)
+        {
+            ShaderVariableType vType = mVariableTypes[index];
+            CHECK(vType == ShaderVariableType::ConstantTexture || vType == ShaderVariableType::StorageTexture,
+                "Only Constant/StorageTexture type can be updated to texture view.");
+
+            VkWriteDescriptorSet write;
+            write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            write.pNext = nullptr;
+            write.dstSet = mDescriptorSet;
+            write.dstBinding = index;
+            write.dstArrayElement = 0;
+            write.descriptorCount = 1;
+
+            VkDescriptorImageInfo imgInfo;
+            imgInfo.sampler = VK_NULL_HANDLE;
+            imgInfo.imageView = DPCast(TextureViewVk)(textureView)->GetHandle();
+            if(mVariableTypes[index] == ShaderVariableType::ConstantTexture) {
+                imgInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+            } else if(mVariableTypes[index] == ShaderVariableType::StorageTexture) {
+                imgInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+                write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+            }
+            write.pImageInfo = &imgInfo;
+            write.pBufferInfo = nullptr;
+            write.pTexelBufferView = nullptr;
+
+            vkUpdateDescriptorSets(mDevice.GetHandle(), 1, &write, 0, nullptr);
+        }
+
+        void ShaderVariablesVk::UpdateVariable(Uint32 index, SPtr<Sampler>& sampler)
+        {
+            ShaderVariableType vType = mVariableTypes[index];
+            CHECK(vType == ShaderVariableType::Sampler,
+                "Only Sampler type can be updated to sampler.");
+
+            VkDescriptorImageInfo imgInfo;
+            imgInfo.sampler = DPCast(SamplerVk)(sampler)->GetHandle();
+            imgInfo.imageView = VK_NULL_HANDLE;
+            imgInfo.imageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+            VkWriteDescriptorSet write;
+            write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            write.pNext = nullptr;
+            write.dstSet = mDescriptorSet;
+            write.dstBinding = index;
+            write.dstArrayElement = 0;
+            write.descriptorCount = 1;
+            write.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+            write.pImageInfo = &imgInfo;
+            write.pBufferInfo = nullptr;
+            write.pTexelBufferView = nullptr;
+
+            vkUpdateDescriptorSets(mDevice.GetHandle(), 1, &write, 0, nullptr);
+        }
+
+        void ShaderVariablesVk::UpdateVariable(Uint32 index, SPtr<TextureView>& textureView, SPtr<Sampler>& sampler)
+        {
+            ShaderVariableType vType = mVariableTypes[index];
+            CHECK(vType == ShaderVariableType::SamplerTexture,
+                "Only SamplerTexture type can be updated to texture view + sampler.");
+
+            VkDescriptorImageInfo imgInfo;
+            imgInfo.sampler = DPCast(SamplerVk)(sampler)->GetHandle();
+            imgInfo.imageView = DPCast(TextureViewVk)(textureView)->GetHandle();
+            imgInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+            VkWriteDescriptorSet write;
+            write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            write.pNext = nullptr;
+            write.dstSet = mDescriptorSet;
+            write.dstBinding = index;
+            write.dstArrayElement = 0;
+            write.descriptorCount = 1;
+            write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            write.pImageInfo = &imgInfo;
+            write.pBufferInfo = nullptr;
+            write.pTexelBufferView = nullptr;
+
+            vkUpdateDescriptorSets(mDevice.GetHandle(), 1, &write, 0, nullptr);
         }
 
         void ShaderVariablesVk::BIndVariables(VkCommandBuffer cmdBuf, VkPipelineBindPoint bindPoint, VkPipelineLayout pipelineLayout, Uint32 layoutIndex)
@@ -147,6 +245,20 @@ namespace cube
                     case ShaderVariableType::Storage:
                         binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
                         break;
+                    case ShaderVariableType::ConstantTexture:
+                        binding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+                        break;
+                    case ShaderVariableType::StorageTexture: 
+                        binding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+                        break;
+                    case ShaderVariableType::Sampler: 
+                        binding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+                        break;
+                    case ShaderVariableType::SamplerTexture:
+                        binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                        break;
+                    default:
+                        ASSERTION_FAILED("Unknown ShaderVariableType ()", vInfo.type);
                 }
 
                 binding.binding = SCast(Uint32)(i);

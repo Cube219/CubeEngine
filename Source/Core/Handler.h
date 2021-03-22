@@ -74,6 +74,7 @@ namespace cube
         friend class Handler;
         friend class HandlerTable;
 
+        // TODO: type check?
         T* GetData() const
         {
             CHECK(!IsNull(), "Cannot access the data from null handler.");

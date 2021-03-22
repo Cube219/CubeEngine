@@ -34,12 +34,18 @@ namespace cube
     // Renderer/BaseMeshGenerator.h
     class BaseMeshGenerator;
     // Renderer/Material.h
+    class MaterialInstance;
+    using HMaterialInstance = Handler<MaterialInstance>;
+    struct MaterialVariableInfo;
+    struct MaterialCreateInfo;
     class Material;
+    using HMaterial = Handler<Material>;
     // Renderer/Mesh.h
     struct Vertex;
     struct SubMesh; 
     class MeshData;
     class Mesh;
+    using HMesh = Handler<Mesh>;
     // Renderer/RenderableComponent.h
     struct RenderableComponent;
     // Renderer/RendererManager.h
@@ -51,11 +57,13 @@ namespace cube
     // Renderer/Texture.h
     class TextureData;
     class Texture;
+    using HTexture = Handler<Texture>;
 
     namespace rt
     {
         class RenderObject;
         class Texture;
+        class Material;
     } // namespace rt
 
     // Thread/Async.h

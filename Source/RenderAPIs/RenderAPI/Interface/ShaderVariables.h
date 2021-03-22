@@ -24,7 +24,10 @@ namespace cube
             virtual ~ShaderVariables() = default;
 
             virtual void UpdateVariable(Uint32 index, void* pData, Uint32 size) = 0;
-            // virtual void UpdateVariable(StringView name, void* pData, Uint32 size) = 0; // TODO: 차후 구현
+            virtual void UpdateVariable(Uint32 index, SPtr<TextureView>& textureView) = 0;
+            virtual void UpdateVariable(Uint32 index, SPtr<Sampler>& sampler) = 0;
+            virtual void UpdateVariable(Uint32 index, SPtr<TextureView>& textureView, SPtr<Sampler>& sampler) = 0;
+            // virtual void UpdateVariable(StringView name, void* pData, Uint32 size) = 0; // TODO: 이름 기반으로 찾는 것 차후 구현
         };
 
         struct ShaderVariablesLayoutCreateInfo

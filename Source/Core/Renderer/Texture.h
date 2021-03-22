@@ -65,6 +65,8 @@ namespace cube
 
             SPtr<rapi::Texture> GetGPUTexture() const { return mGPUTexture; }
             SPtr<rapi::TextureView> GetGPUTextureView() const { return mGPUTextureView; }
+            SPtr<rapi::Sampler> GetSampler() const { return mSampler; }
+
         private:
             void FlushToGPU();
 
@@ -72,6 +74,7 @@ namespace cube
 
             SPtr<rapi::Texture> mGPUTexture;
             SPtr<rapi::TextureView> mGPUTextureView;
+            SPtr<rapi::Sampler> mSampler; // TODO: custom sampler 기능 추가
         };
     } // namespace rt
 } // namespace cube
