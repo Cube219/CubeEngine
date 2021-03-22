@@ -13,6 +13,7 @@ set(INCLUDE
     Interface/RenderPass.h
     Interface/RenderTypes.h
     Interface/Resource.h
+    Interface/Sampler.h
     Interface/Shader.h
     Interface/ShaderVariables.h
     Interface/SwapChain.h

@@ -4,6 +4,7 @@
 #include "Interface/FramebufferVk.h"
 #include "Interface/PipelineStateVk.h"
 #include "Interface/RenderPassVk.h"
+#include "Interface/SamplerVk.h"
 #include "Interface/ShaderVariablesVk.h"
 #include "Interface/ShaderVk.h"
 #include "Interface/SwapChainVk.h"
@@ -77,6 +78,11 @@ namespace cube
         SPtr<RenderPass> VulkanAPI::CreateRenderPass(const RenderPassCreateInfo& info)
         {
             return std::make_shared<RenderPassVk>(*mDevice, info);
+        }
+
+        SPtr<Sampler> VulkanAPI::CreateSampler(const SamplerCreateInfo& info)
+        {
+            return std::make_shared<SamplerVk>(*mDevice, info);
         }
 
         SPtr<Shader> VulkanAPI::CreateShader(const ShaderCreateInfo& info)

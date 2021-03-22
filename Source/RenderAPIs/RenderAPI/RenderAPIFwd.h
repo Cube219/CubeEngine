@@ -56,6 +56,10 @@ namespace cube
         struct ResourceCreateInfo;
         class Resource;
 
+        // Interface/Sampler.h
+        struct SamplerCreateInfo;
+        class Sampler;
+
         // Interface/Shader.h
         struct ShaderCreateInfo;
         class Shader;

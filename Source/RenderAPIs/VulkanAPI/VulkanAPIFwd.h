@@ -27,6 +27,9 @@ namespace cube
         // Interface/RenderPassVk.h
         class RenderPassVk;
 
+        // Interface/SamplerVk.h
+        class SamplerVk;
+
         // Interface/ShaderVk.h
         class ShaderVk;
 

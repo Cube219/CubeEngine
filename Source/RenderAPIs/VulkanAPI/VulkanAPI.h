@@ -27,6 +27,7 @@ namespace cube
             virtual SPtr<GraphicsPipelineState> CreateGraphicsPipelineState(const GraphicsPipelineStateCreateInfo& info) override;
             virtual SPtr<ComputePipelineState> CreateComputePipelineState(const ComputePipelineStateCreateInfo& info) override;
             virtual SPtr<RenderPass> CreateRenderPass(const RenderPassCreateInfo& info) override;
+            virtual SPtr<Sampler> CreateSampler(const SamplerCreateInfo& info) override;
             virtual SPtr<Shader> CreateShader(const ShaderCreateInfo& info) override;
             virtual SPtr<ShaderVariablesLayout> CreateShaderVariablesLayout(const ShaderVariablesLayoutCreateInfo& info) override;
             virtual SPtr<SwapChain> CreateSwapChain(const SwapChainCreateInfo& info) override;

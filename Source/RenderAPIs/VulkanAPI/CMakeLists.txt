@@ -7,6 +7,7 @@ set(INCLUDE
     Interface/FramebufferVk.h
     Interface/PipelineStateVk.h
     Interface/RenderPassVk.h
+    Interface/SamplerVk.h
     Interface/ShaderVk.h
     Interface/ShaderVariablesVk.h
     Interface/SwapChainVk.h
@@ -36,6 +37,7 @@ set(SOURCE
     Interface/FramebufferVk.cpp
     Interface/PipelineStateVk.cpp
     Interface/RenderPassVk.cpp
+    Interface/SamplerVk.cpp
     Interface/ShaderVk.cpp
     Interface/ShaderVariablesVk.cpp
     Interface/SwapChainVk.cpp
