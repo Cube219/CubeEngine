@@ -348,3 +348,6 @@ __pycache__/
 Build/
 Build2/
 CMakeSettings.json
+
+# ReSharper files
+*.DotSettings
