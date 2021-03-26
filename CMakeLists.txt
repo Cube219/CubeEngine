@@ -16,7 +16,13 @@ endif()
 
 # Set global project settings
 set (CMAKE_CXX_STANDARD 17)
-add_definitions(-D_UNICODE -DUNICODE -DNOMINMAX)
+
+# Set platform-specific settings
+if(PLATFORM_WIN32)
+    add_definitions(-D_UNICODE -DUNICODE -DNOMINMAX)
+    # Set utf-8 option
+    add_compile_options(/utf-8)
+endif()
 
 # Set output directory
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Bin/${CMAKE_BUILD_TYPE})
