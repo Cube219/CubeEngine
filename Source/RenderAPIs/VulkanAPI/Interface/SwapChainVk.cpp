@@ -58,6 +58,9 @@ namespace cube
             FindPresentMode(physicalDevice);
 
             mPresentQueue = mDevice.GetQueueManager().GetPresentQueue(mSurface);
+
+            CreateSwapChain();
+            GetSwapChainImages();
         }
 
         SwapChainVk::~SwapChainVk()
@@ -113,6 +116,13 @@ namespace cube
                 vkDestroyImageView(mDevice.GetHandle(), imageView, nullptr);
             }
             mBackBufferImageViews.clear();
+
+            mWidth = width;
+            mHeight = height;
+            mVsync = vsync;
+
+            CreateSwapChain();
+            GetSwapChainImages();
         }
 
         void SwapChainVk::CreateSwapChain()

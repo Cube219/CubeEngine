@@ -119,10 +119,15 @@ namespace cube
             void SyncMaterial(Vector<RPtr<Shader>>& shaders, Vector<MaterialVariableInfo>& variableInfos);
 
         private:
+            friend class RendererManager;
+            friend class RendererManagerRT;
+
             Vector<RPtr<Shader>> mShaders;
             Vector<MaterialVariableInfo> mVariableInfos;
 
             SPtr<rapi::ShaderVariablesLayout> mShaderVariablesLayout;
+
+            Int32 mMaterialIndex = -1; // Assigned by RendererManagerRT
         };
     } // namespace rt
 } // namespace cube

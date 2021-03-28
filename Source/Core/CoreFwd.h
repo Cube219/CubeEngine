@@ -49,7 +49,9 @@ namespace cube
     // Renderer/RenderableComponent.h
     struct RenderableComponent;
     // Renderer/RendererManager.h
+    struct RendererManagerInitInfo;
     class RendererManager;
+    class RendererManagerRT;
     // Renderer/RenderingThread.h
     class RenderingThread;
     // Renderer/RenderObject.h

@@ -9,6 +9,7 @@ namespace cube
         struct ResourceCreateInfo
         {
             ResourceUsage usage;
+            // bool isDedicated; // TODO
             const char* debugName;
         };
 

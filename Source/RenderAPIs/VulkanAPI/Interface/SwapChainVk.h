@@ -52,5 +52,5 @@ namespace cube
 
             VkQueue mPresentQueue;
         };
-    }
-}
+    } // namespace rapi
+} // namespace cube
