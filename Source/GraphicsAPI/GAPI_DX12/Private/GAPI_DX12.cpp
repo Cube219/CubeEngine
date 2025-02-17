@@ -1,0 +1,297 @@
+#include "GAPI_DX12.h"
+
+#include "imgui_impl_dx12.h"
+#include "imgui_impl_win32.h"
+
+#include "Logger.h"
+#include "Windows/WindowsPlatform.h"
+
+#include "DX12Debug.h"
+#include "DX12Utility.h"
+#include "GAPI_DX12CommandList.h"
+#include "GAPI_DX12Fence.h"
+#include "GAPI_DX12Viewport.h"
+
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+namespace cube
+{
+    struct ImGUISRVDescHeap
+    {
+        void Initialize(ID3D12Device* device)
+        {
+            D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
+            srvHeapDesc.NumDescriptors = 4;
+            srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+            srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+            CHECK_HR(device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&mHeap)));
+
+            mBeginCPU = mHeap->GetCPUDescriptorHandleForHeapStart();
+            mBeginGPU = mHeap->GetGPUDescriptorHandleForHeapStart();
+            mNumDescriptors = srvHeapDesc.NumDescriptors;
+            mDescriptorSize = device->GetDescriptorHandleIncrementSize(srvHeapDesc.Type);
+
+            mFreeIndices.resize(mNumDescriptors);
+            for (int i = 0; i < mNumDescriptors; ++i)
+            {
+                mFreeIndices[i] = mNumDescriptors - i - 1;
+            }
+        }
+
+        void Shutdown()
+        {
+            CHECK_FORMAT(mFreeIndices.size() == mNumDescriptors, "Not all descriptors free while shutdown.");
+
+            mFreeIndices.clear();
+            mHeap = nullptr;
+        }
+
+        void Allocate(D3D12_CPU_DESCRIPTOR_HANDLE* outCPUDescriptor, D3D12_GPU_DESCRIPTOR_HANDLE* outGPUDescriptor)
+        {
+            CHECK(mFreeIndices.size() > 0);
+
+            int index = mFreeIndices.back();
+            mFreeIndices.pop_back();
+
+            outCPUDescriptor->ptr = mBeginCPU.ptr + mDescriptorSize * index;
+            outGPUDescriptor->ptr = mBeginGPU.ptr + mDescriptorSize * index;
+        }
+
+        void Free(D3D12_CPU_DESCRIPTOR_HANDLE CPUDescriptor, D3D12_GPU_DESCRIPTOR_HANDLE GPUDescriptor)
+        {
+            int CPUIndex = static_cast<int>(CPUDescriptor.ptr - mBeginCPU.ptr) / mDescriptorSize;
+            int GPUIndex = static_cast<int>(GPUDescriptor.ptr - mBeginGPU.ptr) / mDescriptorSize;
+            CHECK(CPUIndex == GPUIndex);
+            CHECK_FORMAT(std::ranges::find(mFreeIndices, CPUIndex) == mFreeIndices.end(), "Try to free the descriptor that already freed.");
+
+            mFreeIndices.push_back(CPUIndex);
+        }
+
+        ComPtr<ID3D12DescriptorHeap> mHeap;
+        D3D12_CPU_DESCRIPTOR_HANDLE mBeginCPU;
+        D3D12_GPU_DESCRIPTOR_HANDLE mBeginGPU;
+        Uint32 mNumDescriptors;
+        Uint64 mDescriptorSize;
+        Vector<int> mFreeIndices;
+    };
+    ImGUISRVDescHeap gImGUISRVHeap;
+
+    GAPI* CreateGAPI()
+    {
+        return new GAPI_DX12();
+    }
+
+    void GAPI_DX12::Initialize(const GAPIInitInfo& initInfo)
+    {
+        CUBE_LOG(LogType::Info, DX12, "Initialize GAPI_DX12.");
+
+        mAPIName = GAPIName::DX12;
+
+        Uint32 dxgiFactoryFlags = 0;
+        if (initInfo.enableDebugLayer)
+        {
+            DX12Debug::Initialize(dxgiFactoryFlags);
+        }
+
+        CHECK_HR(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&mFactory)));
+        mFactory->QueryInterface(IID_PPV_ARGS(&mFactory6));
+
+        ComPtr<IDXGIAdapter1> adapter;
+        auto CheckAndCreateDevice = [this](IDXGIAdapter1* adapter)
+        {
+            DXGI_ADAPTER_DESC1 desc;
+            adapter->GetDesc1(&desc);
+
+            // Check if the adapter support DX12
+            if (SUCCEEDED(D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr)))
+            {
+                DX12Device* device = new DX12Device();
+                device->Initialize(adapter);
+                mDevices.push_back(device);
+            }
+        };
+        if (mFactory6)
+        {
+            for (Uint32 index = 0; DXGI_ERROR_NOT_FOUND != mFactory6->EnumAdapterByGpuPreference(index, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&adapter)); ++index)
+            {
+                CheckAndCreateDevice(adapter.Get());
+            }
+        }
+        else
+        {
+            for (Uint32 index = 0; DXGI_ERROR_NOT_FOUND != mFactory->EnumAdapters1(index, &adapter); ++index)
+            {
+                CheckAndCreateDevice(adapter.Get());
+            }
+        }
+        CHECK(mDevices.size() > 0);
+        mMainDevice = mDevices[0];
+
+        CUBE_LOG(LogType::Info, DX12, "Found {0} devices.", mDevices.size());
+        String tempStr;
+        String_ConvertAndAppend(tempStr, WindowsStringView(mMainDevice->GetAdapterDesc().Description));
+        CUBE_LOG(LogType::Info, DX12, "Use the first device: {0}", tempStr);
+
+        InitializeImGUI(initInfo.imGUI);
+
+        mCurrentRenderFrame = 0;
+    }
+
+    void GAPI_DX12::Shutdown(const ImGUIContext& imGUIInfo)
+    {
+        CUBE_LOG(LogType::Info, DX12, "Shutdown GAPI_DX12.");
+
+        ShutdownImGUI(imGUIInfo);
+
+        for (DX12Device* device : mDevices)
+        {
+            device->Shutdown();
+            delete device;
+        }
+        mDevices.clear();
+
+        mFactory6 = nullptr;
+        mFactory = nullptr;
+
+        DX12Debug::Shutdown();
+    }
+
+    void GAPI_DX12::OnBeforeRender()
+    {
+        mCurrentRenderFrame++;
+        mMainDevice->GetCommandListManager().WaitCurrentAllocatorIsReady();
+        mMainDevice->GetCommandListManager().Reset();
+    }
+
+    void GAPI_DX12::OnAfterRender()
+    {
+    }
+
+    void GAPI_DX12::OnBeforePresent(gapi::Viewport* viewport)
+    {
+        if (mImGUIContext.context)
+        {
+            mImGUIRenderCommandList->Reset(mMainDevice->GetCommandListManager().GetAllocator(), nullptr);
+
+            gapi::DX12Viewport* dx12Viewport = dynamic_cast<gapi::DX12Viewport*>(viewport);
+            ID3D12Resource* currentBackbuffer = dx12Viewport->GetCurrentBackbuffer();
+            D3D12_CPU_DESCRIPTOR_HANDLE currentRTVDescriptor = dx12Viewport->GetCurrentRTVDescriptor();
+            
+            D3D12_RESOURCE_BARRIER barrier = {};
+            barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+            barrier.Flags                  = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+            barrier.Transition.pResource   = currentBackbuffer;
+            barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+            barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+            barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_RENDER_TARGET;
+            mImGUIRenderCommandList->ResourceBarrier(1, &barrier);
+            
+            // Render Dear ImGui graphics
+            const float clear_color_with_alpha[4] = { 0.2f, 0.2f, 0.2f, 1.0f };
+            mImGUIRenderCommandList->ClearRenderTargetView(currentRTVDescriptor, clear_color_with_alpha, 0, nullptr);
+            mImGUIRenderCommandList->OMSetRenderTargets(1, &currentRTVDescriptor, FALSE, nullptr);
+            ID3D12DescriptorHeap* heap = gImGUISRVHeap.mHeap.Get();
+            mImGUIRenderCommandList->SetDescriptorHeaps(1, &heap);
+            ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), mImGUIRenderCommandList);
+            barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+            barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_PRESENT;
+            mImGUIRenderCommandList->ResourceBarrier(1, &barrier);
+            mImGUIRenderCommandList->Close();
+
+            ID3D12CommandList* ppCommandLists[] = { mImGUIRenderCommandList };
+            mMainDevice->GetQueueManager().GetMainQueue()->ExecuteCommandLists(1, ppCommandLists);
+        }
+    }
+
+    void GAPI_DX12::OnAfterPresent()
+    {
+        mMainDevice->GetCommandListManager().MoveToNextAllocator();
+
+        if (mImGUIContext.context)
+        {
+            ImGui_ImplDX12_NewFrame();
+            ImGui_ImplWin32_NewFrame();
+        }
+
+        DX12Debug::CheckDebugMessages(*mMainDevice);
+    }
+
+    SharedPtr<gapi::CommandList> GAPI_DX12::CreateCommandList(const gapi::CommandListCreateInfo& info)
+    {
+        return std::make_shared<gapi::DX12CommandList>(info);
+    }
+
+    SharedPtr<gapi::Fence> GAPI_DX12::CreateFence(const gapi::FenceCreateInfo& info)
+    {
+        return std::make_shared<gapi::DX12Fence>(info);
+    }
+
+    SharedPtr<gapi::Viewport> GAPI_DX12::CreateViewport(const gapi::ViewportCreateInfo& info)
+    {
+        return std::make_shared<gapi::DX12Viewport>(mFactory.Get(), *mMainDevice, info);
+    }
+
+    void GAPI_DX12::InitializeImGUI(const ImGUIContext& imGUIInfo)
+    {
+        if (imGUIInfo.context == nullptr)
+        {
+            return;
+        }
+
+        CUBE_LOG(LogType::Info, DX12, "ImGUI context is set in the initialize info. Initialize ImGUI.");
+
+        mImGUIContext = imGUIInfo;
+
+        gImGUISRVHeap.Initialize(mMainDevice->GetDevice());
+        CHECK_HR(mMainDevice->GetDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, mMainDevice->GetCommandListManager().GetAllocator(), nullptr, IID_PPV_ARGS(&mImGUIRenderCommandList)));
+        mImGUIRenderCommandList->Close();
+
+        ImGui::SetCurrentContext((ImGuiContext*)(imGUIInfo.context));
+        ImGui::SetAllocatorFunctions(
+            (ImGuiMemAllocFunc)(imGUIInfo.allocFunc),
+            (ImGuiMemFreeFunc)(imGUIInfo.freeFunc),
+            (void*)(imGUIInfo.userData)
+        );
+
+        ImGui_ImplWin32_Init(platform::WindowsPlatform::GetWindow());
+        platform::WindowsPlatform::SetImGUIWndProcFunction(ImGui_ImplWin32_WndProcHandler);
+
+        ImGui_ImplDX12_InitInfo initInfo = {};
+        initInfo.Device = mMainDevice->GetDevice();
+        initInfo.CommandQueue = mMainDevice->GetQueueManager().GetMainQueue();
+        initInfo.NumFramesInFlight = 2;
+        initInfo.RTVFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+        initInfo.DSVFormat = DXGI_FORMAT_UNKNOWN;
+        initInfo.SrvDescriptorHeap = gImGUISRVHeap.mHeap.Get();
+        initInfo.SrvDescriptorAllocFn = [](ImGui_ImplDX12_InitInfo*, D3D12_CPU_DESCRIPTOR_HANDLE* outCPUDescriptor, D3D12_GPU_DESCRIPTOR_HANDLE* outGPUDescriptor)
+        {
+            gImGUISRVHeap.Allocate(outCPUDescriptor, outGPUDescriptor);
+        };
+        initInfo.SrvDescriptorFreeFn = [](ImGui_ImplDX12_InitInfo*, D3D12_CPU_DESCRIPTOR_HANDLE CPUDescriptor, D3D12_GPU_DESCRIPTOR_HANDLE GPUDescriptor)
+        {
+            gImGUISRVHeap.Free(CPUDescriptor, GPUDescriptor);
+        };
+        ImGui_ImplDX12_Init(&initInfo);
+
+        // Start new frame before starting ImGUI loop in Engine class
+        ImGui_ImplDX12_NewFrame();
+        ImGui_ImplWin32_NewFrame();
+    }
+
+    void GAPI_DX12::ShutdownImGUI(const ImGUIContext& imGUIInfo)
+    {
+        if (mImGUIContext.context == nullptr)
+        {
+            return;
+        }
+        CUBE_LOG(LogType::Info, DX12, "Shtudown ImGUI.");
+
+        ImGui_ImplDX12_Shutdown();
+        ImGui_ImplWin32_Shutdown();
+        platform::WindowsPlatform::SetImGUIWndProcFunction(nullptr);
+
+        mImGUIRenderCommandList->Release();
+        mImGUIRenderCommandList = nullptr;
+        gImGUISRVHeap.Shutdown();
+    }
+} // namespace cube
