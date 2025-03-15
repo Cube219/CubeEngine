@@ -12,4 +12,10 @@ namespace cube
     { \
         cube::Checker::ProcessFailedCheckFormatting(__FILE__, __LINE__, CUBE_T(#HR)" == S_OK", CUBE_T("Failed to check HRESULT! (HRESULT: 0x{:0X})"), (unsigned long)(HR)); \
     }
+
+#define SET_DEBUG_NAME(object, pName) \
+    { \
+        int len = strlen(pName); \
+        object->SetPrivateData(WKPDID_D3DDebugObjectName, len, pName); \
+    }
 } // namespace cube

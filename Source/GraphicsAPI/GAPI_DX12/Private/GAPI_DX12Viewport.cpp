@@ -45,6 +45,7 @@ namespace cube
                 nullptr,
                 &mSwapChain
                 ));
+            SET_DEBUG_NAME(mSwapChain, createInfo.debugName);
             if (HRESULT res = mSwapChain.As(&mSwapChain3); res != S_OK)
             {
                 CUBE_LOG(LogType::Warning, DX12, "Cannot cast IDXGISwapChain3. Frame buffering cannot be used. (HR: {0})", res);

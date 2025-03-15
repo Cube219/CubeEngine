@@ -6,7 +6,7 @@ namespace cube
 {
     namespace gapi
     {
-        struct FenceCreateInfo
+        struct FenceCreateInfo : CreateInfo
         {
         };
 

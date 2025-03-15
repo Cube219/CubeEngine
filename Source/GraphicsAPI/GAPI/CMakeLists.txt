@@ -6,6 +6,7 @@ set(PUBLIC_FILES
     Public/GAPI_Viewport.h
     Public/GAPI.h
     Public/GAPIHeader.h
+    Public/GAPITypes.h
 )
 set(PRIVATE_FILES
     dummy.cpp

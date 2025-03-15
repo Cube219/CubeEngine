@@ -9,11 +9,11 @@ namespace cube
     namespace gapi
     {
         class CommandList;
-        class CommandListCreateInfo;
+        struct CommandListCreateInfo;
         class Fence;
-        class FenceCreateInfo;
+        struct FenceCreateInfo;
         class Viewport;
-        class ViewportCreateInfo;
+        struct ViewportCreateInfo;
     }
 
     enum class GAPIName

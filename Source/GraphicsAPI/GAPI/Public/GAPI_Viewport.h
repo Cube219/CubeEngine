@@ -6,7 +6,7 @@ namespace cube
 {
     namespace gapi
     {
-        struct ViewportCreateInfo
+        struct ViewportCreateInfo : CreateInfo
         {
             Uint32 width;
             Uint32 height;
