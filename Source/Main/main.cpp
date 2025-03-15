@@ -8,7 +8,7 @@ namespace cube
 
         Engine::Shutdown();
     }
-}
+} // namespace cube
 
 #ifdef CUBE_PLATFORM_WINDOWS
 

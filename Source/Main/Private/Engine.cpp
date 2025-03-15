@@ -133,6 +133,8 @@ namespace cube
 
     void Engine::OnLoop()
     {
+        GetMyThreadFrameAllocator().DiscardAllocations();
+
         LoopImGUI();
 
         mRenderer->Render();

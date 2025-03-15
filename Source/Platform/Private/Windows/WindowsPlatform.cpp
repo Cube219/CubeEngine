@@ -2,9 +2,9 @@
 
 #include "Windows/WindowsPlatform.h"
 
-#include <iostream>
-#include <io.h>
 #include <fcntl.h>
+#include <io.h>
+#include <iostream>
 
 #include "Checker.h"
 #include "Windows/WindowsDLib.h"

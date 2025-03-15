@@ -4,6 +4,7 @@
 
 #include "DX12CommandListManager.h"
 #include "DX12DescriptorManager.h"
+#include "DX12MemoryAllocator.h"
 #include "DX12QueueManager.h"
 
 namespace cube
@@ -24,6 +25,7 @@ namespace cube
         const DXGI_ADAPTER_DESC& GetAdapterDesc() const { return mAdapterDesc; }
         ID3D12Device* GetDevice() const { return mDevice.Get(); }
 
+        DX12MemoryAllocator& GetMemoryAllocator() { return mMemoryAllocator; }
         DX12QueueManager& GetQueueManager() { return mQueueManager; }
         DX12DescriptorManager& GetDescriptorManager() { return mDescriptorManager; }
         DX12CommandListManager& GetCommandListManager() { return mCommandListManager; }
@@ -33,6 +35,7 @@ namespace cube
         DXGI_ADAPTER_DESC mAdapterDesc;
         ComPtr<ID3D12Device> mDevice;
 
+        DX12MemoryAllocator mMemoryAllocator;
         DX12QueueManager mQueueManager;
         DX12DescriptorManager mDescriptorManager;
         DX12CommandListManager mCommandListManager;

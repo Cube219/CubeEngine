@@ -4,7 +4,7 @@
 
 #include "DX12Fence.h"
 
-#define MAX_ALLOCATOR_SIZE 1
+#define MAX_ALLOCATOR_SIZE 5
 
 namespace cube
 {

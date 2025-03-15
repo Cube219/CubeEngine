@@ -3,13 +3,14 @@
 
 #include "Windows/WindowsDebug.h"
 
-#include <iostream>
-#include <csignal>
 #include <Windows.h>
-#include <DbgHelp.h>
+#include <csignal>
+#include <iostream>
 
-#include "Format.h"
+#include <DbgHelp.h> // Must be included after Windows.h
+
 #include "FileSystem.h"
+#include "Format.h"
 #include "Logger.h"
 #include "Windows/WindowsString.h"
 
@@ -70,12 +71,12 @@ namespace cube
             symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
             symbol->MaxNameLen = MAX_NAME_LENGTH;
 
-            IMAGEHLP_LINE64	lineInfo = {};
-	        lineInfo.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
+            IMAGEHLP_LINE64 lineInfo = {};
+            lineInfo.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
             DWORD displacement;
 
             IMAGEHLP_MODULE64 moduleInfo = {};
-	        moduleInfo.SizeOfStruct = sizeof(IMAGEHLP_MODULE64);
+            moduleInfo.SizeOfStruct = sizeof(IMAGEHLP_MODULE64);
 
             AnsiString str;
             for (WORD i = 0; i < NumFrames; ++i)

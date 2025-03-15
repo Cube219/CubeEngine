@@ -32,6 +32,9 @@ set (CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Binaries/${CMAKE_BUILD
 
 add_subdirectory("ThirdParty/fmt")
 add_subdirectory("ThirdParty/imgui")
+if(PLATFORM_WINDOWS)
+    add_subdirectory("ThirdParty/D3D12MemoryAllocator")
+endif()
 
 add_subdirectory("Source/Base")
 add_subdirectory("Source/Logger")

@@ -7,7 +7,7 @@ namespace cube
     namespace string_internal
     {
         // ===== Ansi =====
-        template<>
+        template <>
         Uint32 DecodeCharacterAndMove(const AnsiCharacter*& pStr)
         {
             Uint32 ch = *pStr;
@@ -25,7 +25,7 @@ namespace cube
         }
 
         // ===== UTF8 =====
-        template<>
+        template <>
         Uint32 DecodeCharacterAndMove(const U8Character*& pStr)
         {
             Uint32 res = 0;
@@ -147,7 +147,7 @@ namespace cube
         }
 
         // ===== UTF16 =====
-        template<>
+        template <>
         Uint32 DecodeCharacterAndMove(const U16Character*& pStr)
         {
             Uint32 res = 0;
@@ -201,7 +201,7 @@ namespace cube
         }
 
         // ===== UTF32 =====
-        template<>
+        template <>
         Uint32 DecodeCharacterAndMove(const U32Character*& pStr)
         {
             Uint32 code = *pStr;

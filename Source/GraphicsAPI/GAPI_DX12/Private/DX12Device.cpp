@@ -5,6 +5,7 @@
 namespace cube
 {
     DX12Device::DX12Device() :
+        mMemoryAllocator(*this),
         mQueueManager(*this),
         mDescriptorManager(*this),
         mCommandListManager(*this)
@@ -24,6 +25,7 @@ namespace cube
         HRESULT res = D3D12CreateDevice(mAdapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&mDevice));
         CHECK_HR(res);
 
+        mMemoryAllocator.Initialize();
         mQueueManager.Initialize();
         mDescriptorManager.Initialize();
         mCommandListManager.Initialize();
@@ -34,6 +36,7 @@ namespace cube
         mCommandListManager.Shutdown();
         mDescriptorManager.Shutdown();
         mQueueManager.Shutdown();
+        mMemoryAllocator.Shutdown();
 
         mDevice = nullptr;
         mAdapter = nullptr;

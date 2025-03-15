@@ -8,8 +8,6 @@
 
 namespace cube
 {
-    // TODO: PString 전용 Memory pool allocator 구현?
-
 #define WINDOWS_T(text) L ## text
     using WindowsCharacter = wchar_t;
     using WindowsString = std::basic_string<WindowsCharacter>;

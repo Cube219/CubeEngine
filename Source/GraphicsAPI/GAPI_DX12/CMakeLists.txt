@@ -18,6 +18,8 @@ set(PRIVATE_FILES
     Private/DX12Device.h
     Private/DX12Fence.cpp
     Private/DX12Fence.h
+    Private/DX12MemoryAllocator.cpp
+    Private/DX12MemoryAllocator.h
     Private/DX12QueueManager.cpp
     Private/DX12QueueManager.h
     Private/GAPI_DX12.cpp
@@ -45,6 +47,7 @@ target_link_libraries(CE-GAPI_DX12
         dxgi.lib
         dxguid.lib
         imgui
+        D3D12MemoryAllocator
         CE-Base
         CE-Logger
         CE-Platform
