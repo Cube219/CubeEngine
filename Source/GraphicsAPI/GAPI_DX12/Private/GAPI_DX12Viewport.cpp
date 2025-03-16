@@ -118,6 +118,18 @@ namespace cube
             mVsync = vsync;
         }
 
+        D3D12_VIEWPORT DX12Viewport::GetD3D12Viewport() const
+        {
+            return {
+                .TopLeftX = 0,
+                .TopLeftY = 0,
+                .Width = static_cast<FLOAT>(mWidth),
+                .Height = static_cast<FLOAT>(mHeight),
+                .MinDepth = D3D12_MIN_DEPTH,
+                .MaxDepth = D3D12_MAX_DEPTH
+            };
+        }
+
         void DX12Viewport::GetBackbuffers()
         {
             D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = mRTVDescriptorHeap.Get()->GetCPUDescriptorHandleForHeapStart();

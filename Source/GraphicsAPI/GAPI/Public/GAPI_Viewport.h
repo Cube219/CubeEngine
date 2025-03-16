@@ -6,13 +6,15 @@ namespace cube
 {
     namespace gapi
     {
-        struct ViewportCreateInfo : CreateInfo
+        struct ViewportCreateInfo
         {
             Uint32 width;
             Uint32 height;
             bool vsync;
 
             Uint32 backbufferCount;
+
+            const char* debugName = "Unknown";
         };
 
         class Viewport

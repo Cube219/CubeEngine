@@ -63,11 +63,13 @@ namespace cube
     ImGUIContext Engine::mImGUIContext;
     bool Engine::mImGUIShowDemoWindow = true;
 
+    String Engine::mRootDirectoryPath = CUBE_T("../..");
+
     void Engine::Initialize()
     {
         platform::Platform::Init();
 
-        GetMyThreadFrameAllocator().Initialize("Mane thread frame allocator", 10 * 1024 * 1024); // 10 MiB
+        GetMyThreadFrameAllocator().Initialize("Main thread frame allocator", 10 * 1024 * 1024); // 10 MiB
 
         Logger::Init(&tempAllocator);
         Logger::SetFilePathSeparator(platform::FileSystem::GetSeparator());

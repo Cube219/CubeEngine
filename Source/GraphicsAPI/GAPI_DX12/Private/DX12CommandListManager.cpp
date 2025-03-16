@@ -44,7 +44,7 @@ namespace cube
         CHECK_HR(mAllocators[mCurrentIndex % MAX_ALLOCATOR_SIZE]->Reset());
     }
 
-    ID3D12CommandAllocator* DX12CommandListManager::GetAllocator()
+    ID3D12CommandAllocator* DX12CommandListManager::GetCurrentAllocator()
     {
         return mAllocators[mCurrentIndex % MAX_ALLOCATOR_SIZE].Get();
     }

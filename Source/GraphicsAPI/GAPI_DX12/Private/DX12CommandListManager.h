@@ -24,7 +24,7 @@ namespace cube
         void WaitCurrentAllocatorIsReady();
 
         void Reset();
-        ID3D12CommandAllocator* GetAllocator();
+        ID3D12CommandAllocator* GetCurrentAllocator();
 
         void MoveToNextAllocator();
 

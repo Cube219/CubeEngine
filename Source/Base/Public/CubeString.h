@@ -5,7 +5,7 @@
 
 #include "Types.h"
 
-#define DEFAULT_STRING_UTF16
+#define CUBE_DEFAULT_STRING_UTF16
 
 namespace cube
 {
@@ -59,26 +59,26 @@ namespace cube
         }
     }
 
-#if defined (DEFAULT_STRING_UTF8)
+#if defined(CUBE_DEFAULT_STRING_UTF8)
 
     using Character = U8Character;
     using String = U8String;
     using StringView = U8StringView;
-#define CUBE_T(text) u8 ## text
+#define CUBE_T(text) u8##text
 
-#elif defined (DEFAULT_STRING_UTF16)
+#elif defined(CUBE_DEFAULT_STRING_UTF16)
 
     using Character = U16Character;
     using String = U16String;
     using StringView = U16StringView;
-#define CUBE_T(text) u ## text
+#define CUBE_T(text) u##text
 
-#elif defined (DEFAULT_STRING_UTF32)
+#elif defined(CUBE_DEFAULT_STRING_UTF32)
 
     using Character = U32Character;
     using String = U32String;
     using StringView = U32StringView;
-#define CUBE_T(text) U ## text
+#define CUBE_T(text) U##text
 
 #else
 

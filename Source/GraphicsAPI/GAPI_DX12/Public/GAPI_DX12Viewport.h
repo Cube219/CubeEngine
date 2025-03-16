@@ -29,6 +29,8 @@ namespace cube
 			ID3D12Resource* GetCurrentBackbuffer() const { return mBackbuffers[mCurrentIndex].Get(); }
 			D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentRTVDescriptor() const { return mRTVDescriptors[mCurrentIndex]; }
 
+			D3D12_VIEWPORT GetD3D12Viewport() const;
+
 	    private:
             void GetBackbuffers();
             void ClearBackbuffers();

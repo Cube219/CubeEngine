@@ -7,9 +7,14 @@
 #include "Windows/WindowsPlatform.h"
 
 #include "DX12Debug.h"
+#include "DX12Types.h"
 #include "DX12Utility.h"
+#include "GAPI_DX12Buffer.h"
 #include "GAPI_DX12CommandList.h"
 #include "GAPI_DX12Fence.h"
+#include "GAPI_DX12Pipeline.h"
+#include "GAPI_DX12Shader.h"
+#include "GAPI_DX12ShaderVariable.h"
 #include "GAPI_DX12Viewport.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -86,6 +91,8 @@ namespace cube
         CUBE_LOG(LogType::Info, DX12, "Initialize GAPI_DX12.");
 
         mAPIName = GAPIName::DX12;
+
+        InitializeTypes();
 
         Uint32 dxgiFactoryFlags = 0;
         if (initInfo.enableDebugLayer)
@@ -171,7 +178,7 @@ namespace cube
     {
         if (mImGUIContext.context)
         {
-            mImGUIRenderCommandList->Reset(mMainDevice->GetCommandListManager().GetAllocator(), nullptr);
+            mImGUIRenderCommandList->Reset(mMainDevice->GetCommandListManager().GetCurrentAllocator(), nullptr);
 
             gapi::DX12Viewport* dx12Viewport = dynamic_cast<gapi::DX12Viewport*>(viewport);
             ID3D12Resource* currentBackbuffer = dx12Viewport->GetCurrentBackbuffer();
@@ -187,18 +194,18 @@ namespace cube
             mImGUIRenderCommandList->ResourceBarrier(1, &barrier);
             
             // Render Dear ImGui graphics
-            const float clear_color_with_alpha[4] = { 0.2f, 0.2f, 0.2f, 1.0f };
-            mImGUIRenderCommandList->ClearRenderTargetView(currentRTVDescriptor, clear_color_with_alpha, 0, nullptr);
+            // const float clear_color_with_alpha[4] = { 0.2f, 0.2f, 0.2f, 1.0f };
+            // mImGUIRenderCommandList->ClearRenderTargetView(currentRTVDescriptor, clear_color_with_alpha, 0, nullptr);
             mImGUIRenderCommandList->OMSetRenderTargets(1, &currentRTVDescriptor, FALSE, nullptr);
             ID3D12DescriptorHeap* heap = gImGUISRVHeap.mHeap.Get();
             mImGUIRenderCommandList->SetDescriptorHeaps(1, &heap);
-            ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), mImGUIRenderCommandList);
+            ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), mImGUIRenderCommandList.Get());
             barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
             barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_PRESENT;
             mImGUIRenderCommandList->ResourceBarrier(1, &barrier);
             mImGUIRenderCommandList->Close();
 
-            ID3D12CommandList* ppCommandLists[] = { mImGUIRenderCommandList };
+            ID3D12CommandList* ppCommandLists[] = { mImGUIRenderCommandList.Get() };
             mMainDevice->GetQueueManager().GetMainQueue()->ExecuteCommandLists(1, ppCommandLists);
         }
     }
@@ -216,14 +223,41 @@ namespace cube
         DX12Debug::CheckDebugMessages(*mMainDevice);
     }
 
+    SharedPtr<gapi::Buffer> GAPI_DX12::CreateBuffer(const gapi::BufferCreateInfo& info)
+    {
+        return std::make_shared<gapi::DX12Buffer>(info, *mMainDevice);
+    }
+
     SharedPtr<gapi::CommandList> GAPI_DX12::CreateCommandList(const gapi::CommandListCreateInfo& info)
     {
-        return std::make_shared<gapi::DX12CommandList>(info);
+        return std::make_shared<gapi::DX12CommandList>(*mMainDevice, info);
     }
 
     SharedPtr<gapi::Fence> GAPI_DX12::CreateFence(const gapi::FenceCreateInfo& info)
     {
         return std::make_shared<gapi::DX12Fence>(info);
+    }
+
+    SharedPtr<gapi::Pipeline> GAPI_DX12::CreateGraphicsPipeline(const gapi::GraphicsPipelineCreateInfo& info)
+    {
+        return std::make_shared<gapi::DX12Pipeline>(*mMainDevice, info);
+    }
+
+    SharedPtr<gapi::Pipeline> GAPI_DX12::CreateComputePipeline(const gapi::ComputePipelineCreateInfo& info)
+    {
+        NOT_IMPLEMENTED();
+        return nullptr;
+        // return std::make_shared<gapi::DX12Pipeline>(*mMainDevice, info);
+    }
+
+    SharedPtr<gapi::Shader> GAPI_DX12::CreateShader(const gapi::ShaderCreateInfo& info)
+    {
+        return std::make_shared<gapi::DX12Shader>(info);
+    }
+
+    SharedPtr<gapi::ShaderVariablesLayout> GAPI_DX12::CreateShaderVariablesLayout(const gapi::ShaderVariablesLayoutCreateInfo& info)
+    {
+        return std::make_shared<gapi::DX12ShaderVariablesLayout>(*mMainDevice, info);
     }
 
     SharedPtr<gapi::Viewport> GAPI_DX12::CreateViewport(const gapi::ViewportCreateInfo& info)
@@ -243,7 +277,7 @@ namespace cube
         mImGUIContext = imGUIInfo;
 
         gImGUISRVHeap.Initialize(mMainDevice->GetDevice());
-        CHECK_HR(mMainDevice->GetDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, mMainDevice->GetCommandListManager().GetAllocator(), nullptr, IID_PPV_ARGS(&mImGUIRenderCommandList)));
+        CHECK_HR(mMainDevice->GetDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, mMainDevice->GetCommandListManager().GetCurrentAllocator(), nullptr, IID_PPV_ARGS(&mImGUIRenderCommandList)));
         mImGUIRenderCommandList->Close();
 
         ImGui::SetCurrentContext((ImGuiContext*)(imGUIInfo.context));
@@ -290,7 +324,6 @@ namespace cube
         ImGui_ImplWin32_Shutdown();
         platform::WindowsPlatform::SetImGUIWndProcFunction(nullptr);
 
-        mImGUIRenderCommandList->Release();
         mImGUIRenderCommandList = nullptr;
         gImGUISRVHeap.Shutdown();
     }

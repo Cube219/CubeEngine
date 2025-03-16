@@ -8,8 +8,14 @@ set(PUBLIC_FILES
 set(PRIVATE_FILES
     Private/Allocator/AllocatorUtility.h
     Private/Allocator/FrameAllocator.cpp
+    Private/Renderer/BaseMeshGenerator.cpp
+    Private/Renderer/BaseMeshGenerator.h
+    Private/Renderer/Mesh.cpp
+    Private/Renderer/Mesh.h
     Private/Renderer/Renderer.cpp
     Private/Renderer/Renderer.h
+    Private/Renderer/Shader.cpp
+    Private/Renderer/Shader.h
     Private/Engine.cpp
 )
 

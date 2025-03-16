@@ -6,8 +6,9 @@ namespace cube
 {
     namespace gapi
     {
-        struct FenceCreateInfo : CreateInfo
+        struct FenceCreateInfo
         {
+            const char* debugName = "Unknown";
         };
 
         class Fence

@@ -1,14 +1,24 @@
 cmake_minimum_required(VERSION 3.19)
 
 set(PUBLIC_FILES
+    Public/MatrixImpl/MatrixArray.inl
+    Public/MatrixImpl/MatrixSSE.inl
+    Public/MatrixImpl/MatrixUtilityArray.inl
+    Public/MatrixImpl/MatrixUtilitySSE.inl
+    Public/VectorImpl/VectorArray.inl
+    Public/VectorImpl/VectorSSE.inl
     Public/Allocator.h
+    Public/CubeMath.h
     Public/CubeString.h
     Public/Event.h
     Public/Flags.h
     Public/Format.h
     Public/KeyCode.h
+    Public/Matrix.h
+    Public/MatrixUtility.h
     Public/Mouse.h
     Public/Types.h
+    Public/Vector.h
 )
 
 set(PRIVATE_FILES

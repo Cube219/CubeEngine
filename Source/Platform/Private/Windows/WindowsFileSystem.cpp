@@ -40,9 +40,9 @@ namespace cube
 
         Uint64 WindowsFile::ReadImpl(void* pReadBuffer, Uint64 bufferSizeToRead)
         {
-            Uint64 readBufferSize;
+            DWORD readBufferSize;
 
-            BOOL res = ReadFile(mFileHandle, pReadBuffer, (DWORD)bufferSizeToRead, (LPDWORD)&readBufferSize, NULL);
+            BOOL res = ReadFile(mFileHandle, pReadBuffer, (DWORD)bufferSizeToRead, &readBufferSize, NULL);
             CHECK_FORMAT(res, "Failed to read the file. (ErrorCode: {0})", GetLastError());
 
             return readBufferSize;
@@ -88,7 +88,7 @@ namespace cube
                 err = GetLastError();
             }
 
-            CHECK_FORMAT(false, "Failed to open a file. ({0}) (ErrorCode: {1})", path, err);
+            CUBE_LOG(LogType::Warning, WindowsFileSystem, "Failed to open a file. ({0}) (ErrorCode: {1})", path, err);
             return nullptr;
         }
 

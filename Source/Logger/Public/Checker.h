@@ -61,10 +61,22 @@ namespace cube
 		cube::Checker::ProcessFailedCheckFormatting(__FILE__, __LINE__, CUBE_T(#expr), CUBE_T(format), ##__VA_ARGS__); \
 	}
 
+#define NOT_IMPLEMENTED() \
+    { \
+        cube::Checker::ProcessFailedCheck(__FILE__, __LINE__, CUBE_T("Not implemented")); \
+    }
+
+#define NO_ENTRY() \
+    { \
+        cube::Checker::ProcessFailedCheck(__FILE__, __LINE__, CUBE_T("No entry")); \
+    }
+
 #else // CUBE_USE_CHECK
 
 #define CHECK(expr)
 #define CHECK_FORMAT(expr, format, ...)
+#define NOT_IMPLEMENTED()
+#define NO_ENTRY()
 
 #endif // CUBE_USE_CHECK
 } // namespace cube

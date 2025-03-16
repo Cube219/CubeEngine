@@ -6,6 +6,12 @@
 
 namespace cube
 {
+    namespace gapi {
+        class Pipeline;
+        class Shader;
+    } // namespace gapi
+
+    class Mesh;
 
     namespace platform
     {
@@ -22,10 +28,27 @@ namespace cube
 
         void OnResize(Uint32 width, Uint32 height);
 
+        GAPI& GetGAPI() const { return *mGAPI; }
+
     private:
+        void RenderImpl();
+
+        void LoadResources();
+        void ClearResources();
+
         SharedPtr<platform::DLib> mGAPI_DLib;
         SharedPtr<GAPI> mGAPI;
 
+        SharedPtr<gapi::CommandList> mCommandList;
+
+        Uint32 mViewportWidth;
+        Uint32 mViewportHeight;
         SharedPtr<gapi::Viewport> mViewport;
+
+        SharedPtr<gapi::Buffer> mTriangleVertexBuffer;
+        SharedPtr<gapi::Shader> mVertexShader;
+        SharedPtr<gapi::Shader> mPixelShader;
+        SharedPtr<gapi::ShaderVariablesLayout> mEmptyShaderVariablesLayout;
+        SharedPtr<gapi::Pipeline> mHelloWorldPipeline;
     };
 } // namespace cube

@@ -8,9 +8,9 @@ namespace cube
 {
     class FrameAllocator;
 
-    FrameAllocator& GetMyThreadFrameAllocator();
+    CUBE_CORE_EXPORT FrameAllocator& GetMyThreadFrameAllocator();
 
-    class FrameAllocator
+    class CUBE_CORE_EXPORT FrameAllocator
     {
     private:
         class MemoryBlock
@@ -157,11 +157,11 @@ namespace cube
 
     using FrameU32String = std::basic_string<U32Character, std::char_traits<U32Character>, FrameAllocator::StdAllocator<U32Character>>;
 
-#if defined(DEFAULT_STRING_UTF8)
+#if defined(CUBE_DEFAULT_STRING_UTF8)
     using FrameString = FrameU8String;
-#elif defined(DEFAULT_STRING_UTF16)
+#elif defined(CUBE_DEFAULT_STRING_UTF16)
     using FrameString = FrameU16String;
-#elif defined(DEFAULT_STRING_UTF32)
+#elif defined(CUBE_DEFAULT_STRING_UTF32)
     using FrameString = FrameU32String;
 #endif
 

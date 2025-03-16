@@ -24,4 +24,29 @@ namespace cube
     {
         mAllocator = nullptr;
     }
+
+    DX12Allocation DX12MemoryAllocator::Allocate(D3D12_HEAP_TYPE heapType, const D3D12_RESOURCE_DESC& desc)
+    {
+        DX12Allocation allocation;
+
+        D3D12MA::ALLOCATION_DESC allocationDesc = {};
+        allocationDesc.HeapType = heapType;
+
+        D3D12_RESOURCE_STATES states = D3D12_RESOURCE_STATE_COMMON;
+        if (heapType == D3D12_HEAP_TYPE_UPLOAD)
+        {
+            states = D3D12_RESOURCE_STATE_GENERIC_READ;
+        }
+        CHECK_HR(mAllocator->CreateResource(&allocationDesc, &desc, states, nullptr, &allocation.allocation, IID_NULL, nullptr));
+
+        return allocation;
+    }
+
+    void DX12MemoryAllocator::Free(DX12Allocation& allocation)
+    {
+        allocation.Unmap();
+
+        allocation.allocation->Release();
+        allocation.allocation = nullptr;
+    }
 } // namespace cube

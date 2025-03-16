@@ -8,13 +8,22 @@ namespace cube
 {
     namespace gapi
     {
+        class ShaderVariablesLayout;
+        struct ShaderVariablesLayoutCreateInfo;
+        class Pipeline;
+        struct GraphicsPipelineCreateInfo;
+        struct ComputePipelineCreateInfo;
+        class Shader;
+        struct ShaderCreateInfo;
+        class Buffer;
+        struct BufferCreateInfo;
         class CommandList;
         struct CommandListCreateInfo;
         class Fence;
         struct FenceCreateInfo;
         class Viewport;
         struct ViewportCreateInfo;
-    }
+    } // namespace gapi
 
     enum class GAPIName
     {
@@ -63,8 +72,13 @@ namespace cube
 
         GAPIName GetAPIName() const { return mAPIName; }
 
+        virtual SharedPtr<gapi::Buffer> CreateBuffer(const gapi::BufferCreateInfo& info) = 0;
         virtual SharedPtr<gapi::CommandList> CreateCommandList(const gapi::CommandListCreateInfo& info) = 0;
         virtual SharedPtr<gapi::Fence> CreateFence(const gapi::FenceCreateInfo& info) = 0;
+        virtual SharedPtr<gapi::Pipeline> CreateGraphicsPipeline(const gapi::GraphicsPipelineCreateInfo& info) = 0;
+        virtual SharedPtr<gapi::Pipeline> CreateComputePipeline(const gapi::ComputePipelineCreateInfo& info) = 0;
+        virtual SharedPtr<gapi::Shader> CreateShader(const gapi::ShaderCreateInfo& info) = 0;
+        virtual SharedPtr<gapi::ShaderVariablesLayout> CreateShaderVariablesLayout(const gapi::ShaderVariablesLayoutCreateInfo& info) = 0;
         virtual SharedPtr<gapi::Viewport> CreateViewport(const gapi::ViewportCreateInfo& info) = 0;
 
     protected:

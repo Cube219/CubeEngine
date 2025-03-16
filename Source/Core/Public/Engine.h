@@ -18,6 +18,10 @@ namespace cube
         CUBE_CORE_EXPORT static void Initialize();
         CUBE_CORE_EXPORT static void Shutdown();
 
+        static Renderer* GetRenderer() { return mRenderer.get(); }
+
+        static const String& GetRootDirectoryPath() { return mRootDirectoryPath; }
+
     private:
         static void OnLoop();
         static void OnClosing();
@@ -33,5 +37,7 @@ namespace cube
 
         static ImGUIContext mImGUIContext;
         static bool mImGUIShowDemoWindow;
+
+        static String mRootDirectoryPath;
     };
 } // namespace cube
