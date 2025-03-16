@@ -1,6 +1,6 @@
 #pragma once
 
-#include "MainHeader.h"
+#include "CoreHeader.h"
 
 #include "Event.h"
 #include "GAPI.h"
@@ -15,8 +15,8 @@ namespace cube
         Engine() = delete;
         ~Engine() = delete;
 
-        static void Initialize();
-        static void Shutdown();
+        CUBE_CORE_EXPORT static void Initialize();
+        CUBE_CORE_EXPORT static void Shutdown();
 
     private:
         static void OnLoop();
