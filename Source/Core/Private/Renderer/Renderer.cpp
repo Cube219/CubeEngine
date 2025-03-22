@@ -68,6 +68,8 @@ namespace cube
     {
         CUBE_LOG(LogType::Info, Renderer, "Shutdown renderer.");
 
+        mGAPI->WaitForGPU();
+
         ClearResources();
 
         mViewport = nullptr;
@@ -98,6 +100,8 @@ namespace cube
     {
         if (mViewport)
         {
+            mGAPI->WaitForGPU();
+
             mViewport->Resize(width, height);
         }
     }

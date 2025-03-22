@@ -29,6 +29,8 @@ namespace cube
         virtual void OnBeforePresent(gapi::Viewport* viewport) override;
         virtual void OnAfterPresent() override;
 
+        virtual void WaitForGPU() override;
+
         virtual SharedPtr<gapi::Buffer> CreateBuffer(const gapi::BufferCreateInfo& info) override;
         virtual SharedPtr<gapi::CommandList> CreateCommandList(const gapi::CommandListCreateInfo& info) override;
         virtual SharedPtr<gapi::Fence> CreateFence(const gapi::FenceCreateInfo& info) override;

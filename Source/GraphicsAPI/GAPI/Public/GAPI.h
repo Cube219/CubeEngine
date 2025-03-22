@@ -70,6 +70,8 @@ namespace cube
         virtual void OnBeforePresent(gapi::Viewport* viewport) = 0;
         virtual void OnAfterPresent() = 0;
 
+        virtual void WaitForGPU() = 0;
+
         GAPIName GetAPIName() const { return mAPIName; }
 
         virtual SharedPtr<gapi::Buffer> CreateBuffer(const gapi::BufferCreateInfo& info) = 0;

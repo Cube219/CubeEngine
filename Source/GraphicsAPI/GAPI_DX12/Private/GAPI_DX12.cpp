@@ -223,6 +223,17 @@ namespace cube
         DX12Debug::CheckDebugMessages(*mMainDevice);
     }
 
+    void GAPI_DX12::WaitForGPU()
+    {
+        DX12Fence waitFence(*mMainDevice);
+        waitFence.Initialize();
+
+        waitFence.Signal(mMainDevice->GetQueueManager().GetMainQueue(), 1);
+        waitFence.Wait(1);
+
+        waitFence.Shutdown();
+    }
+
     SharedPtr<gapi::Buffer> GAPI_DX12::CreateBuffer(const gapi::BufferCreateInfo& info)
     {
         return std::make_shared<gapi::DX12Buffer>(info, *mMainDevice);
