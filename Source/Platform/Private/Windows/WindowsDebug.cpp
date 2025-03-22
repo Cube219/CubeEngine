@@ -79,7 +79,10 @@ namespace cube
             moduleInfo.SizeOfStruct = sizeof(IMAGEHLP_MODULE64);
 
             AnsiString str;
-            for (WORD i = 0; i < NumFrames; ++i)
+            // Skip two stack frame
+            //     - WindowsDebug::DumpStackTraceImpl()
+            //     - PlatformDebug::DumpStackTrace()
+            for (WORD i = 2; i < NumFrames; ++i)
             {
                 UINT64 pc = (UINT64)backTrace[i];
 

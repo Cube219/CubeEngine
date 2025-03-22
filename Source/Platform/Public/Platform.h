@@ -19,7 +19,8 @@ namespace cube
         class CUBE_PLATFORM_EXPORT Platform
         {
         public:
-            static void Init();
+            static void Initialize();
+            static void Shutdown();
 
             static void InitWindow(StringView title, Uint32 width, Uint32 height, Uint32 posX, Uint32 posY);
             static void ShowWindow();
@@ -75,7 +76,8 @@ namespace cube
         };
 
 #define PLATFORM_CLASS_DEFINITIONS(ChildClass) \
-        inline void Platform::Init() { ChildClass::InitImpl(); } \
+        inline void Platform::Initialize() { ChildClass::InitializeImpl(); } \
+        inline void Platform::Shutdown() { ChildClass::ShutdownImpl(); } \
         \
         inline void Platform::InitWindow(StringView title, Uint32 width, Uint32 height, Uint32 posX, Uint32 posY) { \
             ChildClass::InitWindowImpl(title, width, height, posX, posY); \

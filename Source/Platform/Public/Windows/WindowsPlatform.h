@@ -16,7 +16,8 @@ namespace cube
         class WindowsPlatform : public Platform
         {
         public:
-            static void InitImpl();
+            static void InitializeImpl();
+            static void ShutdownImpl();
 
             static void InitWindowImpl(StringView title, Uint32 width, Uint32 height, Uint32 posX, Uint32 posY);
             static void ShowWindowImpl();

@@ -67,7 +67,7 @@ namespace cube
 
     void Engine::Initialize()
     {
-        platform::Platform::Init();
+        platform::Platform::Initialize();
 
         GetMyThreadFrameAllocator().Initialize("Main thread frame allocator", 10 * 1024 * 1024); // 10 MiB
 
@@ -131,6 +131,8 @@ namespace cube
         platform::Platform::GetLoopEvent().RemoveListener(mOnLoopEventFunc);
 
         GetMyThreadFrameAllocator().Shutdown();
+
+        platform::Platform::Shutdown();
     }
 
     void Engine::OnLoop()

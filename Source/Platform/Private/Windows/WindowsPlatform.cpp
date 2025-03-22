@@ -40,11 +40,7 @@ namespace cube
 
         std::function<LRESULT(HWND, UINT, WPARAM, LPARAM)> gImGUIWndProcFunction;
 
-        void WindowsPlatform::InitImpl()
-        {
-        }
-
-        void WindowsPlatform::InitWindowImpl(StringView title, Uint32 width, Uint32 height, Uint32 posX, Uint32 posY)
+        void WindowsPlatform::InitializeImpl()
         {
             // Show console window in debug mode
 #ifdef _DEBUG
@@ -64,7 +60,19 @@ namespace cube
                 freopen_s(&acStreamErr, "CONOUT$", "wb", stderr);
             }
 #endif // _DEBUG
+        }
 
+        void WindowsPlatform::ShutdownImpl()
+        {
+#ifdef _DEBUG
+            // Wait console input not to close console immediately
+            std::wcout << L"Press any key to close the window..." << std::endl;
+            std::wcin.get();
+#endif
+        }
+
+        void WindowsPlatform::InitWindowImpl(StringView title, Uint32 width, Uint32 height, Uint32 posX, Uint32 posY)
+        {
             String_ConvertAndAppend(mWindowTitle, title);
             mWindowWidth = width;
             mWindowHeight = height;
