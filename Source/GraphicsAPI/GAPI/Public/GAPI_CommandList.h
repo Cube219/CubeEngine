@@ -56,6 +56,8 @@ namespace cube
             virtual void SetGraphicsPipeline(SharedPtr<Pipeline> graphicsPipeline) = 0;
             virtual void SetRenderTarget(SharedPtr<Viewport> viewport) = 0;
             virtual void ClearRenderTargetView(SharedPtr<Viewport> viewport, Float4 color) = 0;
+            virtual void ClearDepthStencilView(SharedPtr<Viewport> viewport, float depth) = 0;
+            virtual void SetShaderVariableConstantBuffer(Uint32 index, SharedPtr<Buffer> constantBuffer) = 0;
 
             virtual void ResourceTransition(SharedPtr<Buffer> buffer, ResourceStateFlags srcState, ResourceStateFlags dstState) = 0;
             virtual void ResourceTransition(SharedPtr<Viewport> viewport, ResourceStateFlags srcState, ResourceStateFlags dstState) = 0;

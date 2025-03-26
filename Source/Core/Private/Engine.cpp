@@ -1,5 +1,6 @@
 #include "Engine.h"
 
+#include "Camera.h"
 #include "imgui.h"
 
 #include "Checker.h"
@@ -85,6 +86,7 @@ namespace cube
         mOnResizeEventFunc = platform::Platform::GetResizeEvent().AddListener(OnResize);
 
         CUBE_LOG(LogType::Info, Engine, "Initialize CubeEngine.");
+
         {
             // ImGUI init
             IMGUI_CHECKVERSION();
@@ -107,6 +109,8 @@ namespace cube
         mRenderer = std::make_unique<Renderer>();
         mRenderer->Initialize(GAPIName::DX12, mImGUIContext);
 
+        CameraSystem::Initialize();
+
         CUBE_LOG(LogType::Info, Engine, "Start CubeEngine.");
         platform::Platform::StartLoop();
     }
@@ -114,6 +118,8 @@ namespace cube
     void Engine::Shutdown()
     {
         CUBE_LOG(LogType::Info, Engine, "Shutdown CubeEngine.");
+
+        CameraSystem::Shutdown();
 
         mRenderer->Shutdown(mImGUIContext);
         mRenderer = nullptr;
@@ -139,6 +145,8 @@ namespace cube
     {
         GetMyThreadFrameAllocator().DiscardAllocations();
 
+        CameraSystem::OnLoop();
+
         LoopImGUI();
 
         mRenderer->Render();
@@ -152,6 +160,7 @@ namespace cube
     void Engine::OnResize(Uint32 width, Uint32 height)
     {
         mRenderer->OnResize(width, height);
+        CameraSystem::OnResize(width, height);
     }
 
     void Engine::LoopImGUI()
@@ -161,5 +170,7 @@ namespace cube
         // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
         if (mImGUIShowDemoWindow)
             ImGui::ShowDemoWindow(&mImGUIShowDemoWindow);
+
+        CameraSystem::OnLoopImGUI();
     }
 } // namespace cube

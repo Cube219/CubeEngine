@@ -2,6 +2,7 @@
 
 #include "DX12Header.h"
 
+#include "Allocator/FrameAllocator.h"
 #include "Checker.h"
 #include "Logger.h"
 
@@ -15,7 +16,13 @@ namespace cube
 
 #define SET_DEBUG_NAME(object, pName) \
     { \
-        int len = strlen(pName); \
-        object->SetPrivateData(WKPDID_D3DDebugObjectName, len, pName); \
+        AnsiStringView str(pName); \
+        object->SetPrivateData(WKPDID_D3DDebugObjectName, str.size(), str.data()); \
+    }
+
+#define SET_DEBUG_NAME_FORMAT(object, format, ...) \
+    { \
+        FrameAnsiString str = Format<FrameAnsiString>(format, ##__VA_ARGS__); \
+        object->SetPrivateData(WKPDID_D3DDebugObjectName, str.size(), str.c_str()); \
     }
 } // namespace cube

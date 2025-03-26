@@ -14,8 +14,12 @@ set(PRIVATE_FILES
     Private/Renderer/Mesh.h
     Private/Renderer/Renderer.cpp
     Private/Renderer/Renderer.h
+    Private/Renderer/RenderObject.cpp
+    Private/Renderer/RenderObject.h
     Private/Renderer/Shader.cpp
     Private/Renderer/Shader.h
+    Private/Camera.cpp
+    Private/Camera.h
     Private/Engine.cpp
 )
 

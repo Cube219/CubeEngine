@@ -90,7 +90,10 @@ namespace cube
     {
         CUBE_LOG(LogType::Info, DX12, "Initialize GAPI_DX12.");
 
-        mAPIName = GAPIName::DX12;
+        mInfo = {
+            .apiName = GAPIName::DX12,
+            .useLeftHanded = true
+        };
 
         InitializeTypes();
 
@@ -246,7 +249,9 @@ namespace cube
 
     SharedPtr<gapi::Fence> GAPI_DX12::CreateFence(const gapi::FenceCreateInfo& info)
     {
-        return std::make_shared<gapi::DX12Fence>(info);
+        NOT_IMPLEMENTED();
+        return nullptr;
+        // return std::make_shared<gapi::DX12Fence_old>(info);
     }
 
     SharedPtr<gapi::Pipeline> GAPI_DX12::CreateGraphicsPipeline(const gapi::GraphicsPipelineCreateInfo& info)

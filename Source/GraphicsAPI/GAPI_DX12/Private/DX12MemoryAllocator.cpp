@@ -25,7 +25,7 @@ namespace cube
         mAllocator = nullptr;
     }
 
-    DX12Allocation DX12MemoryAllocator::Allocate(D3D12_HEAP_TYPE heapType, const D3D12_RESOURCE_DESC& desc)
+    DX12Allocation DX12MemoryAllocator::Allocate(D3D12_HEAP_TYPE heapType, const D3D12_RESOURCE_DESC& desc, const D3D12_CLEAR_VALUE* pOptimizedClearValue)
     {
         DX12Allocation allocation;
 
@@ -37,7 +37,7 @@ namespace cube
         {
             states = D3D12_RESOURCE_STATE_GENERIC_READ;
         }
-        CHECK_HR(mAllocator->CreateResource(&allocationDesc, &desc, states, nullptr, &allocation.allocation, IID_NULL, nullptr));
+        CHECK_HR(mAllocator->CreateResource(&allocationDesc, &desc, states, pOptimizedClearValue, &allocation.allocation, IID_NULL, nullptr));
 
         return allocation;
     }

@@ -6,7 +6,11 @@ FetchContent_Declare(
     imgui
     GIT_REPOSITORY https://github.com/ocornut/imgui
     GIT_TAG        v1.91.8)
-FetchContent_MakeAvailable(imgui)
+FetchContent_Declare(
+    imguizmoquat
+    GIT_REPOSITORY https://github.com/BrutPitt/imGuIZMO.quat
+    GIT_TAG        v4.0)
+FetchContent_MakeAvailable(imgui imguizmoquat)
 
 set(INCLUDE
     ${imgui_SOURCE_DIR}/imconfig.h
@@ -15,6 +19,7 @@ set(INCLUDE
     ${imgui_SOURCE_DIR}/imstb_rectpack.h
     ${imgui_SOURCE_DIR}/imstb_textedit.h
     ${imgui_SOURCE_DIR}/imstb_truetype.h
+    ${imguizmoquat_SOURCE_DIR}/imguizmo_quat/imGuIZMOquat.h
 )
 set(SOURCE
     ${imgui_SOURCE_DIR}/imgui.cpp
@@ -22,6 +27,7 @@ set(SOURCE
     ${imgui_SOURCE_DIR}/imgui_draw.cpp
     ${imgui_SOURCE_DIR}/imgui_tables.cpp
     ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+    ${imguizmoquat_SOURCE_DIR}/imguizmo_quat/imGuIZMOquat.cpp
 )
 
 if(PLATFORM_WINDOWS)
@@ -44,4 +50,9 @@ target_include_directories(imgui
     PUBLIC
         ${imgui_SOURCE_DIR}
         ${imgui_SOURCE_DIR}/backends
+        ${imguizmoquat_SOURCE_DIR}
+)
+target_compile_definitions(imgui
+    PUBLIC
+        IMGUIZMO_IMGUI_FOLDER= # Empty
 )

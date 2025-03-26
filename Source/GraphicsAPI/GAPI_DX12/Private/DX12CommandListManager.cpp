@@ -15,9 +15,12 @@ namespace cube
 
     void DX12CommandListManager::Initialize()
     {
+        int index = 0;
         for (ComPtr<ID3D12CommandAllocator>& allocator : mAllocators)
         {
             CHECK_HR(mDevice.GetDevice()->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&allocator)));
+            SET_DEBUG_NAME_FORMAT(allocator, "CommandList allocator {}", index);
+            index++;
         }
 
         mFence.Initialize();

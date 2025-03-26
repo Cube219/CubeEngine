@@ -13,7 +13,9 @@
 
 #include "BaseMeshGenerator.h"
 #include "Checker.h"
+#include "CubeMath.h"
 #include "Engine.h"
+#include "MatrixUtility.h"
 
 namespace cube
 {
@@ -47,6 +49,26 @@ namespace cube
             .imGUI = imGUIContext
         });
 
+        mIsViewPerspectiveMatrixDirty = true;
+        mGlobalConstantBuffer = mGAPI->CreateBuffer({
+            .type = gapi::BufferType::Constant,
+            .usage = gapi::ResourceUsage::CPUtoGPU,
+            .size = sizeof(GlobalConstantBufferData),
+            .debugName = "GlobalConstantBuffer"
+        });
+        mGlobalConstantBufferDataPointer = static_cast<Uint8*>(mGlobalConstantBuffer->Map());
+
+        mObjectBufferData.model = Matrix::Identity();
+        mObjectBufferData.color = Vector4::Zero();
+        mObjectBuffer = mGAPI->CreateBuffer({
+            .type = gapi::BufferType::Constant,
+            .usage = gapi::ResourceUsage::CPUtoGPU,
+            .size = sizeof(ObjectBufferData),
+            .debugName = "ObjectBuffer"
+        });
+        mObjectBufferDataPointer = static_cast<Uint8*>(mObjectBuffer->Map());
+        memcpy(mObjectBufferDataPointer, &mObjectBufferData, sizeof(ObjectBufferData));
+
         mCommandList = mGAPI->CreateCommandList({
             .debugName = "MainCommandList"
         });
@@ -76,6 +98,9 @@ namespace cube
 
         mCommandList = nullptr;
 
+        mObjectBuffer = nullptr;
+        mGlobalConstantBuffer = nullptr;
+
         mGAPI->Shutdown(imGUIContext);
         mGAPI = nullptr;
         mGAPI_DLib = nullptr;
@@ -83,6 +108,8 @@ namespace cube
 
     void Renderer::Render()
     {
+        SetGlobalConstantBuffers();
+
         mViewport->AcquireNextImage();
 
         mGAPI->OnBeforeRender();
@@ -106,6 +133,42 @@ namespace cube
         }
     }
 
+    void Renderer::SetViewMatrix(const Vector3& eye, const Vector3& target, const Vector3& upDir)
+    {
+        if (mGAPI->GetInfo().useLeftHanded)
+        {
+            // Flip z axis
+            mViewMatrix = MatrixUtility::GetLookAt(target, eye, upDir);
+        }
+        else
+        {
+            mViewMatrix = MatrixUtility::GetLookAt(eye, target, upDir);
+        }
+        mIsViewPerspectiveMatrixDirty = true;
+    }
+
+    void Renderer::SetPerspectiveMatrix(float fovAngleY, float aspectRatio, float nearZ, float farZ)
+    {
+        mPerspectiveMatrix = MatrixUtility::GetPerspectiveFov(fovAngleY, aspectRatio, nearZ, farZ);
+        if (mGAPI->GetInfo().useLeftHanded) {
+            // Flip z axis
+            Vector4 zRow = mPerspectiveMatrix.GetRow(2);
+            mPerspectiveMatrix.SetRow(2, -zRow);
+        }
+        mIsViewPerspectiveMatrixDirty = true;
+    }
+
+    void Renderer::SetGlobalConstantBuffers()
+    {
+        if (mIsViewPerspectiveMatrixDirty)
+        {
+            mGlobalConstantBufferData.viewProjection = mViewMatrix * mPerspectiveMatrix;
+            mIsViewPerspectiveMatrixDirty = false;
+
+            memcpy(mGlobalConstantBufferDataPointer, &mGlobalConstantBufferData, sizeof(GlobalConstantBufferData));
+        }
+    }
+
     void Renderer::RenderImpl()
     {
         mCommandList->Reset();
@@ -124,14 +187,41 @@ namespace cube
 
             mCommandList->ResourceTransition(mViewport, gapi::ResourceStateFlag::Present, gapi::ResourceStateFlag::RenderTarget);
 
-            mCommandList->SetShaderVariablesLayout(mEmptyShaderVariablesLayout);
+            mCommandList->SetShaderVariablesLayout(mShaderVariablesLayout);
             mCommandList->SetRenderTarget(mViewport);
             mCommandList->ClearRenderTargetView(mViewport, { 0.2f, 0.2f, 0.2f, 1.0f });
+            mCommandList->ClearDepthStencilView(mViewport, 0);
             mCommandList->SetGraphicsPipeline(mHelloWorldPipeline);
+            mCommandList->SetShaderVariableConstantBuffer(0, mGlobalConstantBuffer);
+            mCommandList->SetShaderVariableConstantBuffer(1, mObjectBuffer);
 
             Uint32 vertexBufferOffset = 0;
-            mCommandList->BindVertexBuffers(0, 1, &mTriangleVertexBuffer, &vertexBufferOffset);
-            mCommandList->Draw(3, 0);
+            SharedPtr<gapi::Buffer> vertexBuffer = mBoxMesh->GetVertexBuffer();
+            mCommandList->BindVertexBuffers(0, 1, &vertexBuffer, &vertexBufferOffset);
+            mCommandList->BindIndexBuffer(mBoxMesh->GetIndexBuffer(), 0);
+            const Vector<SubMesh>& subMeshes = mBoxMesh->GetSubMeshes();
+            for(const SubMesh& subMesh : subMeshes)
+            {
+                mCommandList->DrawIndexed(subMesh.numIndices, subMesh.indexOffset, subMesh.vertexOffset);
+            }
+
+            {
+                mCommandList->SetShaderVariableConstantBuffer(1, mObjectBuffer_X);
+                for (const SubMesh& subMesh : subMeshes)
+                {
+                    mCommandList->DrawIndexed(subMesh.numIndices, subMesh.indexOffset, subMesh.vertexOffset);
+                }
+                mCommandList->SetShaderVariableConstantBuffer(1, mObjectBuffer_Y);
+                for (const SubMesh& subMesh : subMeshes)
+                {
+                    mCommandList->DrawIndexed(subMesh.numIndices, subMesh.indexOffset, subMesh.vertexOffset);
+                }
+                mCommandList->SetShaderVariableConstantBuffer(1, mObjectBuffer_Z);
+                for (const SubMesh& subMesh : subMeshes)
+                {
+                    mCommandList->DrawIndexed(subMesh.numIndices, subMesh.indexOffset, subMesh.vertexOffset);
+                }
+            }
 
             mCommandList->ResourceTransition(mViewport, gapi::ResourceStateFlag::RenderTarget, gapi::ResourceStateFlag::Present);
 
@@ -142,20 +232,7 @@ namespace cube
 
     void Renderer::LoadResources()
     {
-        Vertex triangleVertices[] =
-        {
-            { { 0.0f, 0.25f, 0.0f, 1.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }, { 0, 0, 0, 0 }, { 0, 0 } },
-            { { 0.25f, -0.25f, 0.0f, 1.0f }, { 0.0f, 1.0f, 0.0f, 1.0f }, { 0, 0, 0, 0 }, { 0, 0 } },
-            { { -0.25f, -0.25f, 0.0f, 1.0f }, { 0.0f, 0.0f, 1.0f, 1.0f }, { 0, 0, 0, 0 }, { 0, 0 } }
-        };
-        mTriangleVertexBuffer = mGAPI->CreateBuffer({
-            .usage = gapi::ResourceUsage::CPUtoGPU,
-            .size = sizeof(triangleVertices),
-            .debugName = "TriangleVertexBuffer"
-        });
-        void* pVertexBufferData = mTriangleVertexBuffer->Map();
-        memcpy(pVertexBufferData, triangleVertices, sizeof(triangleVertices));
-        mTriangleVertexBuffer->Unmap();
+        mBoxMesh = std::make_shared<Mesh>(BaseMeshGenerator::GetBoxMeshData());
 
         FrameAnsiString shaderCode;
         {
@@ -195,8 +272,10 @@ namespace cube
             });
         }
         {
-            mEmptyShaderVariablesLayout = mGAPI->CreateShaderVariablesLayout({
-                .debugName = "EmptyShaderVariablesLayout"
+            mShaderVariablesLayout = mGAPI->CreateShaderVariablesLayout({
+                .numShaderVariablesConstantBuffer = 2,
+                .shaderVariablesConstantBuffer = nullptr,
+                .debugName = "ShaderVariablesLayout"
             });
         }
         {
@@ -218,20 +297,62 @@ namespace cube
                 .pixelShader = mPixelShader,
                 .inputLayout = inputLayout,
                 .numInputLayoutElements = _countof(inputLayout),
+                .depthStencilState = {
+                    .enableDepth = true,
+                    .depthFunction = gapi::CompareFunction::Greater
+                },
                 .numRenderTargets = 1,
                 .renderTargetFormats = { gapi::ElementFormat::RGBA8_UNorm },
-                .shaderVariablesLayout = mEmptyShaderVariablesLayout,
+                .shaderVariablesLayout = mShaderVariablesLayout,
                 .debugName = "HelloWorldPipeline"
             });
+        }
+        {
+            mObjectBufferData_X.model = MatrixUtility::GetScale(4.0f, 0.2f, 0.2f) + MatrixUtility::GetTranslation(2, 0, 0);
+            mObjectBufferData_X.color = Vector4(1, 0, 0, 1);
+            mObjectBuffer_X = mGAPI->CreateBuffer({
+                .type = gapi::BufferType::Constant,
+                .usage = gapi::ResourceUsage::CPUtoGPU,
+                .size = sizeof(ObjectBufferData),
+                .debugName = "ObjectBuffer_X"
+            });
+            mObjectBufferDataPointer_X = static_cast<Uint8*>(mObjectBuffer_X->Map());
+            memcpy(mObjectBufferDataPointer_X, &mObjectBufferData_X, sizeof(ObjectBufferData));
+
+            mObjectBufferData_Y.model = MatrixUtility::GetScale(0.2f, 4.0f, 0.2f) + MatrixUtility::GetTranslation(0, 2, 0);
+            mObjectBufferData_Y.color = Vector4(0, 1, 0, 1);
+            mObjectBuffer_Y = mGAPI->CreateBuffer({
+                .type = gapi::BufferType::Constant,
+                .usage = gapi::ResourceUsage::CPUtoGPU,
+                .size = sizeof(ObjectBufferData),
+                .debugName = "ObjectBuffer_Y"
+            });
+            mObjectBufferDataPointer_Y = static_cast<Uint8*>(mObjectBuffer_Y->Map());
+            memcpy(mObjectBufferDataPointer_Y, &mObjectBufferData_Y, sizeof(ObjectBufferData));
+
+            mObjectBufferData_Z.model = MatrixUtility::GetScale(0.2f, 0.2f, 4.0f) + MatrixUtility::GetTranslation(0, 0, 2);
+            mObjectBufferData_Z.color = Vector4(0, 0, 1, 1);
+            mObjectBuffer_Z = mGAPI->CreateBuffer({
+                .type = gapi::BufferType::Constant,
+                .usage = gapi::ResourceUsage::CPUtoGPU,
+                .size = sizeof(ObjectBufferData),
+                .debugName = "ObjectBuffer_Z"
+            });
+            mObjectBufferDataPointer_Z = static_cast<Uint8*>(mObjectBuffer_Z->Map());
+            memcpy(mObjectBufferDataPointer_Z, &mObjectBufferData_Z, sizeof(ObjectBufferData));
         }
     }
 
     void Renderer::ClearResources()
     {
+        mObjectBuffer_Z = nullptr;
+        mObjectBuffer_Y = nullptr;
+        mObjectBuffer_X = nullptr;
+
         mHelloWorldPipeline = nullptr;
-        mEmptyShaderVariablesLayout = nullptr;
+        mShaderVariablesLayout = nullptr;
         mPixelShader = nullptr;
         mVertexShader = nullptr;
-        mTriangleVertexBuffer = nullptr;
+        mBoxMesh = nullptr;
     }
 } // namespace cube

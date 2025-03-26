@@ -42,7 +42,7 @@ namespace cube
                 Clockwise,
                 CounterClockwise
             };
-            FrontFace frontFace = FrontFace::Clockwise;
+            FrontFace frontFace = FrontFace::CounterClockwise;
         };
 
         enum class BlendFactor

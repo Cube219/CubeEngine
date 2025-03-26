@@ -22,14 +22,14 @@ namespace cube
             virtual void Unmap() override;
 
             ID3D12Resource* GetResource() const { return mAllocation.allocation->GetResource(); }
-            Uint64 GetSize() const { return mSize; }
+            D3D12_CPU_DESCRIPTOR_HANDLE GetCBVDescriptor() const { return mCBVDescriptor; }
 
         private:
             DX12Device& mDevice;
 
-            ResourceUsage mUsage;
             DX12Allocation mAllocation;
-            Uint64 mSize;
+
+            D3D12_CPU_DESCRIPTOR_HANDLE mCBVDescriptor;
         };
     } // namespace gapi
 } // namespace cube

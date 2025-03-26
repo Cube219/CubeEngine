@@ -5,6 +5,7 @@
 #include "GAPI_Viewport.h"
 
 #include "DX12Fence.h"
+#include "DX12MemoryAllocator.h"
 
 #define MAX_BACKBUFFER_SIZE 5
 
@@ -12,50 +13,56 @@ namespace cube
 {
     class DX12Device;
 
-	namespace gapi
-	{
+    namespace gapi
+    {
         class CUBE_DX12_EXPORT DX12Viewport : public Viewport
-	    {
-	    public:
+        {
+        public:
             DX12Viewport(IDXGIFactory2* factory, DX12Device& device, const ViewportCreateInfo& createInfo);
-			virtual ~DX12Viewport();
+            virtual ~DX12Viewport();
 
-			virtual void AcquireNextImage() override;
-			virtual void Present() override;
+            DX12Viewport(const DX12Viewport& other) = delete;
+            DX12Viewport& operator=(const DX12Viewport& rhs) = delete;
 
-			virtual void Resize(Uint32 width, Uint32 height) override;
-			virtual void SetVsync(bool vsync) override;
+            virtual void AcquireNextImage() override;
+            virtual void Present() override;
 
-			ID3D12Resource* GetCurrentBackbuffer() const { return mBackbuffers[mCurrentIndex].Get(); }
-			D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentRTVDescriptor() const { return mRTVDescriptors[mCurrentIndex]; }
+            virtual void Resize(Uint32 width, Uint32 height) override;
+            virtual void SetVsync(bool vsync) override;
 
-			D3D12_VIEWPORT GetD3D12Viewport() const;
+            ID3D12Resource* GetCurrentBackbuffer() const { return mBackbuffers[mCurrentIndex].Get(); }
+            D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentRTVDescriptor() const { return mRTVDescriptors[mCurrentIndex]; }
+            D3D12_CPU_DESCRIPTOR_HANDLE GetDSVDescriptor() const { return mDSVDescriptor; }
 
-	    private:
+            D3D12_VIEWPORT GetD3D12Viewport() const;
+
+        private:
             void GetBackbuffers();
             void ClearBackbuffers();
 
             DX12Device& mDevice;
 
-			ComPtr<IDXGISwapChain1> mSwapChain;
+            ComPtr<IDXGISwapChain1> mSwapChain;
             ComPtr<IDXGISwapChain3> mSwapChain3;
             DXGI_FORMAT mSwapChainFormat;
-			Array<ComPtr<ID3D12Resource>, MAX_BACKBUFFER_SIZE> mBackbuffers;
-			ComPtr<ID3D12DescriptorHeap> mRTVDescriptorHeap;
-			Uint32 mRTVDescriptorSize;
-			Array<D3D12_CPU_DESCRIPTOR_HANDLE, MAX_BACKBUFFER_SIZE> mRTVDescriptors;
+            Array<ComPtr<ID3D12Resource>, MAX_BACKBUFFER_SIZE> mBackbuffers;
+            ComPtr<ID3D12DescriptorHeap> mRTVDescriptorHeap;
+            Uint32 mRTVDescriptorSize;
+            Array<D3D12_CPU_DESCRIPTOR_HANDLE, MAX_BACKBUFFER_SIZE> mRTVDescriptors;
 
-			Uint32 mWidth;
-			Uint32 mHeight;
-			Uint32 mBackbufferCount;
-			bool mVsyncSupported;
-			bool mVsync;
+            Uint32 mWidth;
+            Uint32 mHeight;
+            Uint32 mBackbufferCount;
+            bool mVsyncSupported;
+            bool mVsync;
 
-			Uint32 mCurrentIndex;
+            Uint32 mCurrentIndex;
             Array<Uint64, MAX_BACKBUFFER_SIZE> mFenceValues;
             DX12Fence mFence;
 
-			char mPadding[24]; // VS bug? (Try to use ASAN)
+            // TODO: Separate depth texture while implementing GAPI texture
+            DX12Allocation mDepthBufferAllocation;
+            D3D12_CPU_DESCRIPTOR_HANDLE mDSVDescriptor;
         };
-	} // namespace rapi
+    } // namespace rapi
 } // namespace cube

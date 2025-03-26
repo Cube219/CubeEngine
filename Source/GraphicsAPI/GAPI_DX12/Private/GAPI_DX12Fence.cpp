@@ -6,11 +6,11 @@ namespace cube
 {
     namespace gapi
     {
-        DX12Fence::DX12Fence(const FenceCreateInfo& info)
+        DX12Fence_old::DX12Fence_old(const FenceCreateInfo& info)
         {
         }
 
-        DX12Fence::~DX12Fence()
+        DX12Fence_old::~DX12Fence_old()
         {
         }
     } // namespace gapi

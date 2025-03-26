@@ -10,11 +10,11 @@ namespace cube
 
     namespace gapi
     {
-        class DX12Fence : public Fence
+        class DX12Fence_old : public Fence
         {
         public:
-            DX12Fence(const FenceCreateInfo& info);
-            virtual ~DX12Fence();
+            DX12Fence_old(const FenceCreateInfo& info);
+            virtual ~DX12Fence_old();
         };
     } // namespace gapi
 } // namespace cube

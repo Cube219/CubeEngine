@@ -54,7 +54,7 @@ namespace cube
         void Initialize();
         void Shutdown();
 
-        DX12Allocation Allocate(D3D12_HEAP_TYPE heapType, const D3D12_RESOURCE_DESC& desc);
+        DX12Allocation Allocate(D3D12_HEAP_TYPE heapType, const D3D12_RESOURCE_DESC& desc, const D3D12_CLEAR_VALUE* pOptimizedClearValue = nullptr);
         void Free(DX12Allocation& allocation);
 
     private:

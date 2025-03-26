@@ -2,6 +2,7 @@
 
 #include "DX12Device.h"
 #include "DX12Utility.h"
+#include "Allocator/FrameAllocator.h"
 
 namespace cube
 {
@@ -9,10 +10,27 @@ namespace cube
     {
         DX12ShaderVariablesLayout::DX12ShaderVariablesLayout(DX12Device& device, const ShaderVariablesLayoutCreateInfo& info)
         {
-            // Currently create null root signature
-            D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc = {
-                .NumParameters = 0,
-                .pParameters = nullptr,
+            // TODO: Use version 1.1?
+            FrameVector<D3D12_ROOT_PARAMETER> parameters;
+            parameters.reserve(info.numShaderVariablesConstantBuffer);
+
+            for (Uint32 i = 0; i < info.numShaderVariablesConstantBuffer; ++i)
+            {
+                // const ShaderVariableConstantBuffer& cb = info.shaderVariablesConstantBuffer[i];
+
+                parameters.push_back({
+                    .ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV,
+                    .Descriptor = {
+                        .ShaderRegister = i,
+                        .RegisterSpace = 0
+                    },
+                    .ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL // TODO
+                });
+            }
+
+            const D3D12_ROOT_SIGNATURE_DESC rootSignatureDesc = {
+                .NumParameters = static_cast<Uint32>(parameters.size()),
+                .pParameters = parameters.data(),
                 .NumStaticSamplers = 0,
                 .pStaticSamplers = nullptr,
                 .Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT

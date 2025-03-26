@@ -34,6 +34,8 @@ namespace cube
             void SetGraphicsPipeline(SharedPtr<Pipeline> graphicsPipeline) override;
             void SetRenderTarget(SharedPtr<Viewport> viewport) override;
             void ClearRenderTargetView(SharedPtr<Viewport> viewport, Float4 color) override;
+            void ClearDepthStencilView(SharedPtr<Viewport> viewport, float depth) override;
+            void SetShaderVariableConstantBuffer(Uint32 index, SharedPtr<Buffer> constantBuffer) override;
 
             void ResourceTransition(SharedPtr<Buffer> buffer, ResourceStateFlags srcState, ResourceStateFlags dstState) override;
             void ResourceTransition(SharedPtr<Viewport> viewport, ResourceStateFlags srcState, ResourceStateFlags dstState) override;

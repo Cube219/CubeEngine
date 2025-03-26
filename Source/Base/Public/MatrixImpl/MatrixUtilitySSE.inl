@@ -4,7 +4,7 @@
 
 #include <stdint.h>
 
-#include "../Math.h"
+#include "../CubeMath.h"
 
 namespace cube
 {

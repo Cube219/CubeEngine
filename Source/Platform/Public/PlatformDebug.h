@@ -17,7 +17,7 @@ namespace cube
 
             static void ProcessFailedCheck(const char* fileName, int lineNum, StringView formattedMsg);
 
-            static String DumpStackTrace();
+            static String DumpStackTrace(bool removeBeforeProjectFolderPath = true);
 
             static bool IsDebuggerAttached();
             static void BreakDebug();
@@ -37,9 +37,9 @@ namespace cube
         { \
             ChildClass::ProcessFailedCheckImpl(fileName, lineNum, formattedMsg); \
         } \
-        inline String PlatformDebug::DumpStackTrace() \
+        inline String PlatformDebug::DumpStackTrace(bool removeBeforeProjectFolderPath) \
         { \
-            return ChildClass::DumpStackTraceImpl(); \
+            return ChildClass::DumpStackTraceImpl(removeBeforeProjectFolderPath); \
         } \
         inline bool PlatformDebug::IsDebuggerAttached() \
         { \

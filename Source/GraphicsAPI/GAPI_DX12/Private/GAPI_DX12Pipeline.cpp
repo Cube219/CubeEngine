@@ -292,9 +292,10 @@ namespace cube
             {
                 graphicsPSODesc.RTVFormats[i] = GetDX12ElementFormatInfo(info.renderTargetFormats[i]).format;
             }
+            graphicsPSODesc.DSVFormat = GetDX12ElementFormatInfo(info.depthStencilFormat).format;
             graphicsPSODesc.SampleDesc.Count = 1;
             
-            device.GetDevice()->CreateGraphicsPipelineState(&graphicsPSODesc, IID_PPV_ARGS(&mPipelineState));
+            CHECK_HR(device.GetDevice()->CreateGraphicsPipelineState(&graphicsPSODesc, IID_PPV_ARGS(&mPipelineState)));
             SET_DEBUG_NAME(mPipelineState, info.debugName);
         }
 

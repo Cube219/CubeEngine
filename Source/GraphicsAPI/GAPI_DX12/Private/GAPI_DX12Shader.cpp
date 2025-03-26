@@ -54,9 +54,15 @@ namespace cube
             }
 
             int codeLen = strlen(info.code);
-            int compilerFlags = 0;
+            int compilerFlags = D3DCOMPILE_DEBUG;
 
-            CHECK_HR(D3DCompile(info.code, codeLen, NULL, NULL, NULL, info.entryPoint, target, compilerFlags, 0, &mShader, NULL));
+            ComPtr<ID3DBlob> errorMessageBlob;
+            HRESULT res = D3DCompile(info.code, codeLen, NULL, NULL, NULL, info.entryPoint, target, compilerFlags, 0, &mShader, &errorMessageBlob);
+            if (res != S_OK)
+            {
+                const char* errorMessage = (const char*)errorMessageBlob->GetBufferPointer();
+                CHECK_FORMAT(false, "Failed shader compilation!\n\n{}", errorMessage);
+            }
         }
 
         void DX12Shader::LoadFromDXIL(const ShaderCreateInfo& info)

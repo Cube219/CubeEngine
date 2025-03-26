@@ -50,7 +50,7 @@ namespace cube
         constexpr int MAX_NUM_FRAMES = 128;
         constexpr int MAX_NAME_LENGTH = 1024;
 
-        String WindowsDebug::DumpStackTraceImpl()
+        String WindowsDebug::DumpStackTraceImpl(bool removeBeforeProjectFolderPath)
         {
             HANDLE process = GetCurrentProcess();
 
@@ -100,7 +100,33 @@ namespace cube
                 Uint32 lineNum = 0;
                 if (SymGetLineFromAddr64(process, pc, &displacement, &lineInfo))
                 {
-                    fileName = lineInfo.FileName;
+                    AnsiStringView fileNameCStr(lineInfo.FileName);
+                    if (removeBeforeProjectFolderPath)
+                    {
+                        const AnsiCharacter* projectFolderName = "\\CubeEngine\\";
+                        const int projectFolderNameSize = strlen(projectFolderName);
+                        // File name index
+                        for (Int32 fIndex = static_cast<Int32>(fileNameCStr.size() - projectFolderNameSize); fIndex >= 0; --fIndex)
+                        {
+                            bool isMatch = true;
+                            // Project folder name index
+                            for (int pIndex = 0; pIndex < projectFolderNameSize; ++pIndex)
+                            {
+                                if (projectFolderName[pIndex] != fileNameCStr[fIndex + pIndex])
+                                {
+                                    isMatch = false;
+                                    break;
+                                }
+                            }
+
+                            if (isMatch)
+                            {
+                                fileNameCStr.remove_prefix(fIndex + 1);
+                                break;
+                            }
+                        }
+                    }
+                    fileName = fileNameCStr;
                     lineNum = lineInfo.LineNumber;
                 }
                 else

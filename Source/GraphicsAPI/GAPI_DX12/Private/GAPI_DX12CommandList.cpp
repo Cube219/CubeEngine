@@ -134,8 +134,10 @@ namespace cube
         {
             CHECK(mState == State::Writing);
 
-            D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = dynamic_cast<DX12Viewport*>(viewport.get())->GetCurrentRTVDescriptor();
-            mCommandList->OMSetRenderTargets(1, &rtvHandle, false, nullptr);
+            DX12Viewport* dx12Viewport = dynamic_cast<DX12Viewport*>(viewport.get());
+            D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = dx12Viewport->GetCurrentRTVDescriptor();
+            D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = dx12Viewport->GetDSVDescriptor();
+            mCommandList->OMSetRenderTargets(1, &rtvHandle, false, &dsvHandle);
         }
 
         void DX12CommandList::ClearRenderTargetView(SharedPtr<Viewport> viewport, Float4 color)
@@ -143,8 +145,28 @@ namespace cube
             CHECK(mState == State::Writing);
 
             float fColor[4] = { color.x, color.y, color.z, color.w };
-            D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = dynamic_cast<DX12Viewport*>(viewport.get())->GetCurrentRTVDescriptor();
+            DX12Viewport* dx12Viewport = dynamic_cast<DX12Viewport*>(viewport.get());
+            D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = dx12Viewport->GetCurrentRTVDescriptor();
             mCommandList->ClearRenderTargetView(rtvHandle, fColor, 0, nullptr);
+        }
+
+        void DX12CommandList::ClearDepthStencilView(SharedPtr<Viewport> viewport, float depth)
+        {
+            CHECK(mState == State::Writing);
+
+            DX12Viewport* dx12Viewport = dynamic_cast<DX12Viewport*>(viewport.get());
+            D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = dx12Viewport->GetDSVDescriptor();
+            mCommandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, depth, 0, 0, nullptr);
+        }
+
+        void DX12CommandList::SetShaderVariableConstantBuffer(Uint32 index, SharedPtr<Buffer> constantBuffer)
+        {
+            CHECK(mState == State::Writing);
+            CHECK(constantBuffer->GetType() == BufferType::Constant);
+
+            const DX12Buffer* dx12Buffer = dynamic_cast<DX12Buffer*>(constantBuffer.get());
+
+            mCommandList->SetGraphicsRootConstantBufferView(index, dx12Buffer->GetResource()->GetGPUVirtualAddress());
         }
 
         void DX12CommandList::ResourceTransition(SharedPtr<Buffer> buffer, ResourceStateFlags srcState, ResourceStateFlags dstState)
@@ -191,6 +213,8 @@ namespace cube
             FrameVector<D3D12_VERTEX_BUFFER_VIEW> d3d12VertexBufferViews(numBuffers);
             for (Uint32 i = 0; i < numBuffers; ++i)
             {
+                CHECK(pBuffers[i]->GetType() == BufferType::Vertex);
+
                 const DX12Buffer* dx12Buffer = dynamic_cast<DX12Buffer*>(pBuffers[i].get());
                 D3D12_VERTEX_BUFFER_VIEW& vertexBufferView = d3d12VertexBufferViews[i];
 
@@ -207,6 +231,7 @@ namespace cube
         void DX12CommandList::BindIndexBuffer(SharedPtr<Buffer> buffer, Uint32 offset)
         {
             CHECK(mState == State::Writing);
+            CHECK(buffer->GetType() == BufferType::Index);
 
             const DX12Buffer* dx12Buffer = dynamic_cast<DX12Buffer*>(buffer.get());
 

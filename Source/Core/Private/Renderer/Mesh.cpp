@@ -41,12 +41,14 @@ namespace cube
         {
             using namespace gapi;
             BufferCreateInfo vertexBufferCreateInfo = {
+                .type = BufferType::Vertex,
                 .usage = ResourceUsage::CPUtoGPU,
                 .size = sizeof(Vertex) * meshData->GetNumVertices()
             };
             mVertexBuffer = gAPI.CreateBuffer(vertexBufferCreateInfo);
 
             BufferCreateInfo indexBufferCreateInfo = {
+                .type = BufferType::Index,
                 .usage = ResourceUsage::CPUtoGPU,
                 .size = sizeof(Index) * meshData->GetNumIndices()
             };

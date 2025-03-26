@@ -8,20 +8,24 @@ namespace cube
 {
     namespace gapi
     {
+        class Buffer;
+
         struct ShaderVariableInfo
         {
             const char* debugName = "Unknown";
         };
 
-        class ShaderVariables
+        struct ShaderVariableConstantBuffer
         {
-        public:
-            ShaderVariables() = default;
-            virtual ~ShaderVariables() = default;
+            Uint32 index;
+            SharedPtr<Buffer> buffer;
         };
 
         struct ShaderVariablesLayoutCreateInfo
         {
+            Uint32 numShaderVariablesConstantBuffer;
+            const ShaderVariableConstantBuffer* shaderVariablesConstantBuffer;
+
             const char* debugName = "Unknown";
         };
 

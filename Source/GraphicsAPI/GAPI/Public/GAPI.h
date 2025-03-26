@@ -59,6 +59,12 @@ namespace cube
     class GAPI
     {
     public:
+        struct Info
+        {
+            GAPIName apiName = GAPIName::Unknown;
+            bool useLeftHanded = false;
+        };
+    public:
         GAPI() = default;
         virtual ~GAPI() = default;
 
@@ -72,7 +78,7 @@ namespace cube
 
         virtual void WaitForGPU() = 0;
 
-        GAPIName GetAPIName() const { return mAPIName; }
+        const Info& GetInfo() const { return mInfo; }
 
         virtual SharedPtr<gapi::Buffer> CreateBuffer(const gapi::BufferCreateInfo& info) = 0;
         virtual SharedPtr<gapi::CommandList> CreateCommandList(const gapi::CommandListCreateInfo& info) = 0;
@@ -84,6 +90,6 @@ namespace cube
         virtual SharedPtr<gapi::Viewport> CreateViewport(const gapi::ViewportCreateInfo& info) = 0;
 
     protected:
-        GAPIName mAPIName = GAPIName::Unknown;
+        Info mInfo;
     };
 } // namespace cube

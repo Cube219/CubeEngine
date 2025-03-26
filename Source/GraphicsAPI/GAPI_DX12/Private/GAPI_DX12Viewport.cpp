@@ -104,12 +104,12 @@ namespace cube
         void DX12Viewport::Resize(Uint32 width, Uint32 height)
         {
             ClearBackbuffers();
-            
+
             mWidth = width;
             mHeight = height;
-            
+
             CHECK_HR(mSwapChain->ResizeBuffers(mBackbufferCount, mWidth, mHeight, mSwapChainFormat, 0));
-            
+
             GetBackbuffers();
         }
 
@@ -140,6 +140,53 @@ namespace cube
                 mRTVDescriptors[i] = rtvHandle;
                 rtvHandle.ptr += mRTVDescriptorSize;
             }
+
+            D3D12_RESOURCE_DESC desc = {
+                .Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+                .Alignment = 0,
+                .Width = mWidth,
+                .Height = mHeight,
+                .DepthOrArraySize = 1,
+                .MipLevels = 1,
+                .Format = DXGI_FORMAT_D32_FLOAT,
+                .SampleDesc = {
+                    .Count = 1,
+                    .Quality = 0 },
+                .Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN,
+                .Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
+            };
+            D3D12_CLEAR_VALUE clearValue = {
+                .Format = DXGI_FORMAT_D32_FLOAT,
+                .DepthStencil = {
+                    .Depth = 0.0f,
+                    .Stencil = 0
+                }
+            };
+            mDepthBufferAllocation = mDevice.GetMemoryAllocator().Allocate(D3D12_HEAP_TYPE_DEFAULT, desc, &clearValue);
+            D3D12_DEPTH_STENCIL_VIEW_DESC viewDesc = {};
+            viewDesc.Format = DXGI_FORMAT_D32_FLOAT;
+            viewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+            viewDesc.Flags = D3D12_DSV_FLAG_NONE;
+            mDSVDescriptor = mDevice.GetDescriptorManager().GetDSVHeap().AllocateCPU();
+            mDevice.GetDevice()->CreateDepthStencilView(mDepthBufferAllocation.allocation->GetResource(), &viewDesc, mDSVDescriptor);
+
+            ComPtr<ID3D12GraphicsCommandList> cmdList;
+            mDevice.GetDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, mDevice.GetCommandListManager().GetCurrentAllocator(), nullptr, IID_PPV_ARGS(&cmdList));
+            D3D12_RESOURCE_BARRIER barrier = {
+                .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
+                .Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
+                .Transition = {
+                    .pResource = mDepthBufferAllocation.allocation->GetResource(),
+                    .Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+                    .StateBefore = D3D12_RESOURCE_STATE_COMMON,
+                    .StateAfter = D3D12_RESOURCE_STATE_DEPTH_WRITE }
+            };
+            cmdList->ResourceBarrier(1, &barrier);
+
+            cmdList->Close();
+            ID3D12CommandList* cmdLists[] = { cmdList.Get() };
+            mDevice.GetQueueManager().GetMainQueue()->ExecuteCommandLists(1, cmdLists);
+            mDevice.GetCommandListManager().MoveToNextAllocator(); // NOTE: temporal code. Use more good way? (Use separate command list pool for stage/upload?)
         }
 
         void DX12Viewport::ClearBackbuffers()
@@ -149,6 +196,9 @@ namespace cube
                 mBackbuffers[i] = nullptr;
                 mRTVDescriptors[i].ptr = 0;
             }
+
+            mDevice.GetDescriptorManager().GetDSVHeap().FreeCPU(mDSVDescriptor);
+            mDevice.GetMemoryAllocator().Free(mDepthBufferAllocation);
         }
     } // namespace gapi
 } // namespace cube

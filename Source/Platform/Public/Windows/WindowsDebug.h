@@ -20,7 +20,7 @@ namespace cube
 
             static void ProcessFailedCheckImpl(const char* fileName, int lineNum, StringView formattedMsg);
 
-            static String DumpStackTraceImpl();
+            static String DumpStackTraceImpl(bool removeBeforeProjectFolderPath);
 
             static bool IsDebuggerAttachedImpl();
             static void BreakDebugImpl();
