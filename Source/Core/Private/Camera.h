@@ -24,7 +24,7 @@ namespace cube
         static void Initialize();
         static void Shutdown();
 
-        static void OnLoop();
+        static void OnLoop(double deltaTime);
         static void OnLoopImGUI();
         static void OnResize(Uint32 width, Uint32 height);
 
@@ -36,11 +36,13 @@ namespace cube
     private:
         static void UpdateViewMatrix();
         static void UpdatePerspectiveMatrix();
-
-        static void UpdateKeyState(KeyCode keyCode, bool isPressed);
+        static void UpdateDirection();
+        static void Reset();
 
         static float mFOV;
         static Vector3 mPosition;
+        static float mAxisXAngle;
+        static float mAxisYAngle;
         static Vector3 mDirection;
         static float mAspectRatio;
 
@@ -56,10 +58,15 @@ namespace cube
         static bool mIsRightKeyPressed;
         static bool mIsUpKeyPressed;
         static bool mIsDownKeyPressed;
+        static float mMovementSpeed;
 
         static bool mIsLeftMousePressed;
         static bool mIsRightMousePressed;
+        static bool mIsMouseMoved;
         static Uint32 mLastMouseX;
         static Uint32 mLastMouseY;
+        static Uint32 mCurrentMouseX;
+        static Uint32 mCurrentMouseY;
+        static float mMouseSpeed;
     };
 } // namespace cube

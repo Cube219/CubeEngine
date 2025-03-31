@@ -1,16 +1,16 @@
 #include "Engine.h"
 
-#include "Camera.h"
+#include <chrono>
 #include "imgui.h"
 
 #include "Checker.h"
 #include "FileSystem.h"
-#include "GAPI_Viewport.h"
 #include "Logger.h"
 #include "Platform.h"
 #include "PlatformDebug.h"
 
 #include "Allocator/FrameAllocator.h"
+#include "Camera.h"
 #include "Renderer/Renderer.h"
 
 namespace cube
@@ -66,6 +66,10 @@ namespace cube
 
     String Engine::mRootDirectoryPath = CUBE_T("../..");
 
+    Uint64 Engine::mStartTime;
+    Uint64 Engine::mLastTime;
+    Uint64 Engine::mCurrentTime;
+
     void Engine::Initialize()
     {
         platform::Platform::Initialize();
@@ -111,6 +115,9 @@ namespace cube
 
         CameraSystem::Initialize();
 
+        mStartTime = GetNowFrameTime();
+        mCurrentTime = mStartTime;
+
         CUBE_LOG(LogType::Info, Engine, "Start CubeEngine.");
         platform::Platform::StartLoop();
     }
@@ -145,7 +152,12 @@ namespace cube
     {
         GetMyThreadFrameAllocator().DiscardAllocations();
 
-        CameraSystem::OnLoop();
+        mLastTime = mCurrentTime;
+        mCurrentTime = GetNowFrameTime();
+
+        const double deltaTimeSec = static_cast<double>(mCurrentTime - mLastTime) / std::nano::den;
+
+        CameraSystem::OnLoop(deltaTimeSec);
 
         LoopImGUI();
 
@@ -172,5 +184,10 @@ namespace cube
             ImGui::ShowDemoWindow(&mImGUIShowDemoWindow);
 
         CameraSystem::OnLoopImGUI();
+    }
+
+    Uint64 Engine::GetNowFrameTime()
+    {
+        return std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count();
     }
 } // namespace cube

@@ -29,6 +29,8 @@ namespace cube
 
         static void LoopImGUI();
 
+        static Uint64 GetNowFrameTime();
+
         static EventFunction<void()> mOnLoopEventFunc;
         static EventFunction<void()> mOnClosingEventFunc;
         static EventFunction<void(Uint32, Uint32)> mOnResizeEventFunc;
@@ -39,5 +41,9 @@ namespace cube
         static bool mImGUIShowDemoWindow;
 
         static String mRootDirectoryPath;
+
+        static Uint64 mStartTime;
+        static Uint64 mLastTime;
+        static Uint64 mCurrentTime;
     };
 } // namespace cube
