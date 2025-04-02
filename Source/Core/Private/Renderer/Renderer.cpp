@@ -125,6 +125,9 @@ namespace cube
 
     void Renderer::OnResize(Uint32 width, Uint32 height)
     {
+        mViewportWidth = width;
+        mViewportHeight = height;
+
         if (mViewport)
         {
             mGAPI->WaitForGPU();

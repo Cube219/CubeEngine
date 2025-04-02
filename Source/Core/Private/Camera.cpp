@@ -17,13 +17,15 @@ namespace cube
     float CameraSystem::mAxisXAngle;
     float CameraSystem::mAxisYAngle;
     Vector3 CameraSystem::mDirection;
+    Matrix CameraSystem::mRotation;
     float CameraSystem::mAspectRatio;
 
     EventFunction<void(KeyCode)> CameraSystem::mKeyDownEventFunc;
     EventFunction<void(KeyCode)> CameraSystem::mKeyUpEventFunc;
     EventFunction<void(MouseButton)> CameraSystem::mMouseDownEventFunc;
     EventFunction<void(MouseButton)> CameraSystem::mMouseUpEventFunc;
-    EventFunction<void(Uint32, Uint32)> CameraSystem::mMousePositionFunc;
+    EventFunction<void(Int32, Int32)> CameraSystem::mMousePositionEventFunc;
+    EventFunction<void(platform::WindowActivatedState)> CameraSystem::mWindowActivateEventFunc;
 
     bool CameraSystem::mIsForwardKeyPressed = false;
     bool CameraSystem::mIsBackwardKeyPressed = false;
@@ -36,10 +38,10 @@ namespace cube
     bool CameraSystem::mIsLeftMousePressed;
     bool CameraSystem::mIsRightMousePressed;
     bool CameraSystem::mIsMouseMoved;
-    Uint32 CameraSystem::mLastMouseX;
-    Uint32 CameraSystem::mLastMouseY;
-    Uint32 CameraSystem::mCurrentMouseX;
-    Uint32 CameraSystem::mCurrentMouseY;
+    Int32 CameraSystem::mLastMouseX;
+    Int32 CameraSystem::mLastMouseY;
+    Int32 CameraSystem::mCurrentMouseX;
+    Int32 CameraSystem::mCurrentMouseY;
     float CameraSystem::mMouseSpeed = 3.0f;
 
     void CameraSystem::Initialize()
@@ -124,7 +126,7 @@ namespace cube
                 break;
             }
         });
-        mMousePositionFunc = platform::Platform::GetMousePositionEvent().AddListener([](Uint32 x, Uint32 y)
+        mMousePositionEventFunc = platform::Platform::GetMousePositionEvent().AddListener([](Int32 x, Int32 y)
         {
             mIsMouseMoved = true;
 
@@ -132,6 +134,20 @@ namespace cube
             mLastMouseY = mCurrentMouseY;
             mCurrentMouseX = x;
             mCurrentMouseY = y;
+        });
+        mWindowActivateEventFunc = platform::Platform::GetActivatedEvent().AddListener([](platform::WindowActivatedState state)
+        {
+            if (state == platform::WindowActivatedState::Inactive)
+            {
+                mIsForwardKeyPressed = false;
+                mIsBackwardKeyPressed = false;
+                mIsLeftKeyPressed = false;
+                mIsRightKeyPressed = false;
+                mIsUpKeyPressed = false;
+                mIsDownKeyPressed = false;
+                mIsLeftMousePressed = false;
+                mIsRightMousePressed = false;
+            }
         });
 
         mFOV = 45.0f;
@@ -145,7 +161,8 @@ namespace cube
 
     void CameraSystem::Shutdown()
     {
-        platform::Platform::GetMousePositionEvent().RemoveListener(mMousePositionFunc);
+        platform::Platform::GetActivatedEvent().RemoveListener(mWindowActivateEventFunc);
+        platform::Platform::GetMousePositionEvent().RemoveListener(mMousePositionEventFunc);
         platform::Platform::GetMouseUpEvent().RemoveListener(mMouseUpEventFunc);
         platform::Platform::GetMouseDownEvent().RemoveListener(mMouseDownEventFunc);
         platform::Platform::GetKeyUpEvent().RemoveListener(mKeyUpEventFunc);
@@ -175,8 +192,8 @@ namespace cube
         { // Mouse
             if (mIsRightMousePressed && mIsMouseMoved)
             {
-                Int32 deltaX = static_cast<Int32>(mCurrentMouseX) - static_cast<Int32>(mLastMouseX);
-                Int32 deltaY = static_cast<Int32>(mCurrentMouseY) - static_cast<Int32>(mLastMouseY);
+                Int32 deltaX = mCurrentMouseX - mLastMouseX;
+                Int32 deltaY = mCurrentMouseY - mLastMouseY;
 
                 float scaledMouseSpeed = mMouseSpeed * 0.02f;
                 mAxisXAngle = Math::Max(-89.9f, Math::Min(89.9f, mAxisXAngle - static_cast<float>(deltaY) * scaledMouseSpeed));
@@ -193,30 +210,52 @@ namespace cube
     {
         ImGui::Begin("Camera");
 
+        // Position
         float position[3] = { mPosition.GetFloat3().x, mPosition.GetFloat3().y, mPosition.GetFloat3().z };
-        ImGui::DragFloat3("Position", position, 0.2f);
+
+        ImGui::DragFloat3("Position", position, 0.1f);
+
         mPosition = { position[0], position[1], position[2] };
 
-        vec3 dir = { mDirection.GetFloat3().x, mDirection.GetFloat3().y, mDirection.GetFloat3().z };
-        ImGui::gizmo3D("##Dir1", dir, 100, imguiGizmo::mode3Axes|imguiGizmo::cubeAtOrigin);
-        // mDirection = { dir.x, dir.y, dir.z };
-
+        // Rotation
         float direction[3] = { mDirection.GetFloat3().x, mDirection.GetFloat3().y, mDirection.GetFloat3().z };
+        ImGui::PushItemFlag(ImGuiItemFlags_ReadOnly, true);
+
+        vec3 directionVec3 = { -direction[0], -direction[1], -direction[2] };
+        imguiGizmo::resizeAxesOf({ 0.7f, 0.8f, 0.8f });
+        imguiGizmo::setDirectionColor(ImVec4(0.0f,1.0f,1.0f,1.0f));
+        ImGui::gizmo3D("##Direction Vector", directionVec3);
+        imguiGizmo::restoreAxesSize();
+        imguiGizmo::restoreDirectionColor();
+
+        Matrix rotationMatrixT = mRotation.Transposed();
+        Float3 row0 = Vector3(rotationMatrixT.GetRow(0)).GetFloat3();
+        Float3 row1 = Vector3(rotationMatrixT.GetRow(1)).GetFloat3();
+        Float3 row2 = Vector3(rotationMatrixT.GetRow(2)).GetFloat3();
+        quat qRotation = quat(mat3(
+            row0.x, row0.y, row0.z,
+            row1.x, row1.y, row1.z,
+            row2.x, row2.y, row2.z
+        ));
+        imguiGizmo::resizeAxesOf({ 1.0f, 1.8f, 1.5f });
+        imguiGizmo::resizeSolidOf(1.5f);
+        ImGui::SameLine();
+        ImGui::gizmo3D("##gizmo1", qRotation);
+        imguiGizmo::restoreAxesSize();
+        imguiGizmo::restoreSolidSize();
+
         ImGui::DragFloat3("Direction", direction, 0.1f);
+
+        ImGui::PopItemFlag();
 
         UpdateViewMatrix();
 
-        vec3 forward = { 0, 0, -1 };
-        vec3 axis = normalize(cross(forward, dir));
-        float angle = acos(dot(forward, dir));
-
-        quat qRot = angleAxis(angle, axis);
-        static vec3 PanDolly(0.f);
-        ImGui::gizmo3D("##gizmo1", PanDolly, qRot /*, size,  mode */);
-
+        // Speed and reset
+        ImGui::NewLine();
         ImGui::SliderFloat("Speed", &mMovementSpeed, 0.5f, 30.0f);
         ImGui::SliderFloat("Mouse Speed", &mMouseSpeed, 0.5f, 10.0f);
 
+        ImGui::NewLine();
         if (ImGui::Button("Reset"))
         {
             Reset();
@@ -244,7 +283,8 @@ namespace cube
 
     void CameraSystem::UpdateDirection()
     {
-        mDirection = Vector3(0.0f, 0.0f, -1.0f) * MatrixUtility::GetRotationX(Math::Deg2Rad(mAxisXAngle)) * MatrixUtility::GetRotationY(Math::Deg2Rad(mAxisYAngle));
+        mRotation = MatrixUtility::GetRotationX(Math::Deg2Rad(mAxisXAngle)) * MatrixUtility::GetRotationY(Math::Deg2Rad(mAxisYAngle));
+        mDirection = Vector3(0.0f, 0.0f, -1.0f) * mRotation;
     }
 
     void CameraSystem::Reset()

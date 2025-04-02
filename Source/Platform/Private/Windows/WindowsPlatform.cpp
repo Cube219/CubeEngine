@@ -18,7 +18,7 @@ namespace cube
         Event<void(MouseButton)> Platform::mMouseDownEvent;
         Event<void(MouseButton)> Platform::mMouseUpEvent;
         Event<void(int)> Platform::mMouseWheelEvent;
-        Event<void(Uint32, Uint32)> Platform::mMousePositionEvent;
+        Event<void(Int32, Int32)> Platform::mMousePositionEvent;
 
         Event<void()> Platform::mLoopEvent;
         Event<void(Uint32, Uint32)> Platform::mResizeEvent;
@@ -342,10 +342,11 @@ namespace cube
 
             case WM_MOUSEMOVE:
             {
-                int posX = LOWORD(lParam);
-                int posY = HIWORD(lParam);
+                POINT p;
+                ::GetCursorPos(&p);
+                ScreenToClient(hWnd, &p);
 
-                Platform::GetMousePositionEvent().Dispatch(posX, posY);
+                Platform::GetMousePositionEvent().Dispatch(p.x, p.y);
                 break;
             }
             }

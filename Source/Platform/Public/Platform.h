@@ -51,7 +51,7 @@ namespace cube
             static Event<void(MouseButton)>& GetMouseDownEvent() { return mMouseDownEvent; }
             static Event<void(MouseButton)>& GetMouseUpEvent() { return mMouseUpEvent; }
             static Event<void(int)>& GetMouseWheelEvent() { return mMouseWheelEvent; }
-            static Event<void(Uint32, Uint32)>& GetMousePositionEvent() { return mMousePositionEvent; }
+            static Event<void(Int32, Int32)>& GetMousePositionEvent() { return mMousePositionEvent; }
             static Event<void()>& GetLoopEvent() { return mLoopEvent; }
             static Event<void(Uint32, Uint32)>& GetResizeEvent() { return mResizeEvent; }
             static Event<void(WindowActivatedState)>& GetActivatedEvent() { return mActivatedEvent; }
@@ -63,7 +63,7 @@ namespace cube
             static Event<void(MouseButton)> mMouseDownEvent;
             static Event<void(MouseButton)> mMouseUpEvent;
             static Event<void(int)> mMouseWheelEvent;
-            static Event<void(Uint32, Uint32)> mMousePositionEvent;
+            static Event<void(Int32, Int32)> mMousePositionEvent;
 
             static Event<void()> mLoopEvent;
             static Event<void(Uint32, Uint32)> mResizeEvent;

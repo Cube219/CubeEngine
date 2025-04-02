@@ -3,6 +3,7 @@
 #include "CoreHeader.h"
 
 #include "Event.h"
+#include "Platform.h"
 #include "Vector.h"
 
 namespace cube
@@ -44,13 +45,15 @@ namespace cube
         static float mAxisXAngle;
         static float mAxisYAngle;
         static Vector3 mDirection;
+        static Matrix mRotation;
         static float mAspectRatio;
 
         static EventFunction<void(KeyCode)> mKeyDownEventFunc;
         static EventFunction<void(KeyCode)> mKeyUpEventFunc;
         static EventFunction<void(MouseButton)> mMouseDownEventFunc;
         static EventFunction<void(MouseButton)> mMouseUpEventFunc;
-        static EventFunction<void(Uint32, Uint32)> mMousePositionFunc;
+        static EventFunction<void(Int32, Int32)> mMousePositionEventFunc;
+        static EventFunction<void(platform::WindowActivatedState)> mWindowActivateEventFunc;
 
         static bool mIsForwardKeyPressed;
         static bool mIsBackwardKeyPressed;
@@ -63,10 +66,10 @@ namespace cube
         static bool mIsLeftMousePressed;
         static bool mIsRightMousePressed;
         static bool mIsMouseMoved;
-        static Uint32 mLastMouseX;
-        static Uint32 mLastMouseY;
-        static Uint32 mCurrentMouseX;
-        static Uint32 mCurrentMouseY;
+        static Int32 mLastMouseX;
+        static Int32 mLastMouseY;
+        static Int32 mCurrentMouseX;
+        static Int32 mCurrentMouseY;
         static float mMouseSpeed;
     };
 } // namespace cube
