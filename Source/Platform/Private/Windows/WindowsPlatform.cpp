@@ -112,6 +112,17 @@ namespace cube
             CHECK_FORMAT(mWindow, "Failed to create a window. (ErrorCode: {0})", GetLastError());
         }
 
+        void WindowsPlatform::ChangeWindowTitleImpl(StringView title)
+        {
+            mWindowTitle.clear();
+            String_ConvertAndAppend(mWindowTitle, title);
+
+            if (SetWindowText(mWindow, mWindowTitle.c_str()) == 0)
+            {
+                CUBE_LOG(LogType::Warning, WindowsPlatform, "Failed to change the window title '{}'. (ErrorCode: {})", title, GetLastError());
+            }
+        }
+
         void* WindowsPlatform::AllocateImpl(Uint64 size)
         {
             return malloc(size);
