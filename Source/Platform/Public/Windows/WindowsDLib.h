@@ -24,7 +24,6 @@ namespace cube
         private:
             HMODULE mDLib;
         };
-        DLIB_CLASS_DEFINITIONS(WindowsDLib)
     } // namespace platform
 } // namespace cube
 

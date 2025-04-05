@@ -13,8 +13,8 @@ namespace cube
     {
         namespace internal
         {
-            void* Allocate(size_t n);
-            void* Allocate(size_t n, size_t alignment);
+            void* Allocate(Uint64 n);
+            void* Allocate(Uint64 n, Uint64 alignment);
 
             void DiscardAllocations();
         } // namespace internal

@@ -1,21 +1,19 @@
 #pragma once
 
-#ifdef CUBE_PLATFORM_WINDOWS
+#ifdef CUBE_PLATFORM_MACOS
 
 #include "PlatformHeader.h"
 #include "FileSystem.h"
-
-#include <Windows.h>
 
 namespace cube
 {
     namespace platform
     {
-        class WindowsFile : public File
+        class MacOSFile : public File
         {
         public:
-            WindowsFile(HANDLE fileHandle);
-            ~WindowsFile();
+            MacOSFile();
+            ~MacOSFile();
 
             Uint64 GetFileSizeImpl() const;
 
@@ -26,23 +24,21 @@ namespace cube
             void WriteImpl(void* pWriteBuffer, Uint64 bufferSize);
 
         private:
-            HANDLE mFileHandle;
         };
 
-        class WindowsFileSystem : public FileSystem
+        class MacOSFileSystem : public FileSystem
         {
         public:
-            WindowsFileSystem() = delete;
-            ~WindowsFileSystem() = delete;
+            MacOSFileSystem() = delete;
+            ~MacOSFileSystem() = delete;
 
             static SharedPtr<File> OpenFileImpl(StringView path, FileAccessModeFlags accessModeFlags, bool createIfNotExist = false);
             static char GetSeparatorImpl();
             static const char* SplitFileNameFromFullPathImpl(const char* fullPath);
 
         private:
-            static DWORD GetDwDesiredAccess(FileAccessModeFlags accessModeFlags);
         };
     }
 }
 
-#endif // CUBE_PLATFORM_WINDOWS
+#endif // CUBE_PLATFORM_MACOS

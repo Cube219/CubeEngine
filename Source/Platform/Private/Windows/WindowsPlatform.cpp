@@ -25,6 +25,8 @@ namespace cube
         Event<void(WindowActivatedState)> Platform::mActivatedEvent;
         Event<void()> Platform::mClosingEvent;
 
+        PLATFORM_CLASS_DEFINITIONS(WindowsPlatform)
+
         bool WindowsPlatform::mIsFinished = false;
 
         HINSTANCE WindowsPlatform::mInstance;
@@ -43,7 +45,7 @@ namespace cube
         void WindowsPlatform::InitializeImpl()
         {
             // Show console window in debug mode
-#ifdef _DEBUG
+#ifdef CUBE_DEBUG
             if (AllocConsole())
             {
                 std::wcout.imbue(std::locale(""));
@@ -59,16 +61,16 @@ namespace cube
                 freopen_s(&acStreamOut, "CONOUT$", "wb", stdout);
                 freopen_s(&acStreamErr, "CONOUT$", "wb", stderr);
             }
-#endif // _DEBUG
+#endif // CUBE_DEBUG
         }
 
         void WindowsPlatform::ShutdownImpl()
         {
-#ifdef _DEBUG
+#ifdef CUBE_DEBUG
             // Wait console input not to close console immediately
             std::wcout << L"Press any key to close the window..." << std::endl;
             std::wcin.get();
-#endif
+#endif // CUBE_DEBUG
         }
 
         void WindowsPlatform::InitWindowImpl(StringView title, Uint32 width, Uint32 height, Uint32 posX, Uint32 posY)

@@ -83,10 +83,10 @@ namespace cube
 
         Vector<MemoryBlock> mAdditionalMemBlocks;
 
-#ifdef _DEBUG
+#ifdef CUBE_DEBUG
         Uint64 mAllocatedSize = 0;
         const char* mDebugName;
-#endif // _DEBUG
+#endif // CUBE_DEBUG
 
         // Class for Std
     public:

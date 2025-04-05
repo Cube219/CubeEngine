@@ -30,7 +30,7 @@ namespace cube
                 return (offset + (alignment - 1)) & ~(alignment - 1);
             }
 
-            void* Allocate(size_t n)
+            void* Allocate(Uint64 n)
             {
                 Uint64 allocatedSize = (Uint64)thlFormatMemoryBlock.currentPtr - (Uint64)thlFormatMemoryBlock.startPtr;
                 if (allocatedSize + n > blockSize)
@@ -45,7 +45,7 @@ namespace cube
                 return ptr;
             }
 
-            void* Allocate(size_t n, size_t alignment)
+            void* Allocate(Uint64 n, Uint64 alignment)
             {
                 Uint64 currentOffset = (Uint64)thlFormatMemoryBlock.currentPtr;
 

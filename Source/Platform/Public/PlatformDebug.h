@@ -24,28 +24,28 @@ namespace cube
         };
 
 #define PLATFORM_DEBUG_CLASS_DEFINITIONS(ChildClass) \
-        inline void PlatformDebug::PrintToDebugConsole(StringView str) \
+        void PlatformDebug::PrintToDebugConsole(StringView str) \
         { \
             ChildClass::PrintToDebugConsoleImpl(str); \
         } \
         \
-        inline void PlatformDebug::ProcessFatalError(StringView msg) \
+        void PlatformDebug::ProcessFatalError(StringView msg) \
         { \
             ChildClass::ProcessFatalErrorImpl(msg); \
         } \
-        inline void PlatformDebug::ProcessFailedCheck(const char* fileName, int lineNum, StringView formattedMsg) \
+        void PlatformDebug::ProcessFailedCheck(const char* fileName, int lineNum, StringView formattedMsg) \
         { \
             ChildClass::ProcessFailedCheckImpl(fileName, lineNum, formattedMsg); \
         } \
-        inline String PlatformDebug::DumpStackTrace(bool removeBeforeProjectFolderPath) \
+        String PlatformDebug::DumpStackTrace(bool removeBeforeProjectFolderPath) \
         { \
             return ChildClass::DumpStackTraceImpl(removeBeforeProjectFolderPath); \
         } \
-        inline bool PlatformDebug::IsDebuggerAttached() \
+        bool PlatformDebug::IsDebuggerAttached() \
         { \
             return ChildClass::IsDebuggerAttachedImpl(); \
         } \
-        inline void PlatformDebug::BreakDebug() \
+        void PlatformDebug::BreakDebug() \
         { \
             ChildClass::BreakDebugImpl(); \
         }

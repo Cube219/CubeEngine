@@ -9,9 +9,15 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif()
 
 set(PLATFORM_WINDOWS FALSE)
+set(PLATFORM_MACOS FALSE)
 if(WIN32)
     set(PLATFORM_WINDOWS TRUE)
     message("Target platform: Windows")
+elseif(APPLE)
+    set(PLATFORM_MACOS TRUE)
+    message("Target platform: MacOS")
+else()
+
 endif()
 
 # Global project settings
@@ -23,6 +29,8 @@ if(PLATFORM_WINDOWS)
 
     add_definitions(-D_UNICODE -DUNICODE -DNOMINMAX)
     add_compile_options(/utf-8)
+elseif(PLATFORM_MACOS)
+    add_definitions(-DCUBE_PLATFORM_MACOS)
 endif()
 
 # Output directory

@@ -21,4 +21,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
     return 0;
 }
 
-#endif // CUBE_PLATFORM_WINDOWS
+#elif CUBE_PLATFORM_MACOS
+
+int main(int argc, const char * argv[])
+{
+    cube::MainImpl();
+
+    return 0;
+}
+
+#endif

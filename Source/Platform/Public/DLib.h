@@ -18,6 +18,6 @@ namespace cube
         };
 
 #define DLIB_CLASS_DEFINITIONS(ChildClass) \
-        inline void* DLib::GetFunction(StringView name) { return reinterpret_cast<ChildClass*>(this)->GetFunctionImpl(name); }
+        void* DLib::GetFunction(StringView name) { return reinterpret_cast<ChildClass*>(this)->GetFunctionImpl(name); }
     } // namespace platform
 } // namespace cube

@@ -299,7 +299,7 @@ namespace cube
                 .vertexShader = mVertexShader,
                 .pixelShader = mPixelShader,
                 .inputLayout = inputLayout,
-                .numInputLayoutElements = _countof(inputLayout),
+                .numInputLayoutElements = std::size(inputLayout),
                 .depthStencilState = {
                     .enableDepth = true,
                     .depthFunction = gapi::CompareFunction::Greater

@@ -1,17 +1,17 @@
 #pragma once
-#ifdef CUBE_PLATFORM_WINDOWS
+
+#ifdef CUBE_PLATFORM_MACOS
 
 #include "PlatformHeader.h"
-
 #include "PlatformDebug.h"
 
-#include "WindowsString.h"
+#include "MacOSString.h"
 
 namespace cube
 {
     namespace platform
     {
-        class WindowsDebug : public PlatformDebug
+        class MacOSDebug : public PlatformDebug
         {
         public:
             static void PrintToDebugConsoleImpl(StringView str);
@@ -24,11 +24,8 @@ namespace cube
 
             static bool IsDebuggerAttachedImpl();
             static void BreakDebugImpl();
-
-        private:
-            static void ShowDebugMessageBox(const WindowsString& title, const WindowsString& msg);
         };
     } // namespace platform
 } // namespace cube
 
-#endif // CUBE_PLATFORM_WINDOWS
+#endif // CUBE_PLATFORM_MACOS

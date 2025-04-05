@@ -39,10 +39,10 @@ namespace cube
 
     void* FrameAllocator::MemoryBlock::Allocate(Uint64 size)
     {
-#ifdef _DEBUG
+#ifdef CUBE_DEBUG
         // Uint64: allocated size
         size += sizeof(Uint64);
-#endif // _DEBUG
+#endif // CUBE_DEBUG
 
         Uint64 allocatedSize = (Uint64)mCurrentPtr - (Uint64)mStartPtr;
         if (allocatedSize + size > mSize)
@@ -51,26 +51,26 @@ namespace cube
         void* ptr = mCurrentPtr;
         mCurrentPtr = (Uint8*)mCurrentPtr + size;
 
-#ifdef _DEBUG
+#ifdef CUBE_DEBUG
         Uint64* storedSize = (Uint64*)ptr;
         *storedSize = size;
 
         return (Uint8*)ptr + sizeof(Uint64);
 #else
         return ptr;
-#endif // _DEBUG
+#endif // CUBE_DEBUG
     }
 
     void* FrameAllocator::MemoryBlock::AllocateAligned(Uint64 size, Uint64 alignment)
     {
         // It doesn't store alignGap because the allocation isn't freed individually.
-#ifdef _DEBUG
+#ifdef CUBE_DEBUG
         // Uint64: allocated size
         size += sizeof(Uint64);
-#endif // _DEBUG
+#endif // CUBE_DEBUG
 
         Uint64 currentOffset = (Uint64)mCurrentPtr;
-#ifdef _DEBUG
+#ifdef CUBE_DEBUG
         //       |            |<------------------size------------------>|
         //       |<-alignGap->|<-sizeof(Uint64)->|                       |
         //       |            |                  |                       |
@@ -83,7 +83,7 @@ namespace cube
 #else
         Uint64 alignedOffset = Align(currentOffset, alignment);
         Uint8 alignGap = (Uint8)(alignedOffset - currentOffset);
-#endif // _DEBUG
+#endif // CUBE_DEBUG
 
         Uint64 allocatedSize = currentOffset - (Uint64)mStartPtr;
         if (allocatedSize + alignGap + size > mSize)
@@ -92,10 +92,10 @@ namespace cube
         void* ptr = (void*)alignedOffset;
         mCurrentPtr = (Uint8*)mCurrentPtr + alignGap + size;
 
-#ifdef _DEBUG
+#ifdef CUBE_DEBUG
         Uint64* storedSize = (Uint64*)((Uint8*)ptr - sizeof(Uint64));
         *storedSize = alignGap + size;
-#endif // _DEBUG
+#endif // CUBE_DEBUG
 
         return ptr;
     }
@@ -116,7 +116,7 @@ namespace cube
 
     void FrameAllocator::Initialize(const char* debugName, Uint64 blockSize)
     {
-#ifdef _DEBUG
+#ifdef CUBE_DEBUG
         if (mInitialized)
         {
             CUBE_LOG(LogType::Warning, Allocator, "The frame allocator is already initialized. (name: {} / blockSize: {}) Skip the initialization.", debugName, blockSize);
@@ -124,7 +124,7 @@ namespace cube
             return;
         }
         mDebugName = debugName;
-#endif // _DEBUG
+#endif // CUBE_DEBUG
         mBlockSize = blockSize;
         mMemoryBlock = MemoryBlock(blockSize);
 
@@ -133,14 +133,14 @@ namespace cube
 
     void FrameAllocator::Shutdown()
     {
-#ifdef _DEBUG
+#ifdef CUBE_DEBUG
         if (!mInitialized)
         {
             CUBE_LOG(LogType::Warning, Allocator, "The frame allocator is not initialized but try to shudown it.");
 
             return;
         }
-#endif // _DEBUG
+#endif // CUBE_DEBUG
 
         mAdditionalMemBlocks.clear();
         mMemoryBlock = MemoryBlock(0);
@@ -154,9 +154,9 @@ namespace cube
 
         if (ptr != nullptr)
         {
-#ifdef _DEBUG
+#ifdef CUBE_DEBUG
             mAllocatedSize += *(Uint64*)((Uint8*)ptr - sizeof(Uint64));
-#endif // _DEBUG
+#endif // CUBE_DEBUG
             return ptr;
         }
 
@@ -167,9 +167,9 @@ namespace cube
 
             if (ptr != nullptr)
             {
-#ifdef _DEBUG
+#ifdef CUBE_DEBUG
                 mAllocatedSize += *(Uint64*)((Uint8*)ptr - sizeof(Uint64));
-#endif // _DEBUG
+#endif // CUBE_DEBUG
                 return ptr;
             }
         }
@@ -178,18 +178,18 @@ namespace cube
         AllocateAdditionalBlock(size);
         ptr = mAdditionalMemBlocks.back().Allocate(size);
 
-#ifdef _DEBUG
+#ifdef CUBE_DEBUG
         mAllocatedSize += *(Uint64*)((Uint8*)ptr - sizeof(Uint64));
-#endif // _DEBUG
+#endif // CUBE_DEBUG
         return ptr;
     }
 
     void FrameAllocator::Free(void* ptr)
     {
         // Do nothing except for debugging
-#ifdef _DEBUG
+#ifdef CUBE_DEBUG
         mAllocatedSize -= *(Uint64*)((Uint8*)ptr - sizeof(Uint64));
-#endif // _DEBUG
+#endif // CUBE_DEBUG
     }
 
     void* FrameAllocator::AllocateAligned(Uint64 size, Uint64 alignment)
@@ -198,9 +198,9 @@ namespace cube
 
         if (ptr != nullptr)
         {
-#ifdef _DEBUG
+#ifdef CUBE_DEBUG
             mAllocatedSize += *(Uint64*)((Uint8*)ptr - sizeof(Uint64));
-#endif // _DEBUG
+#endif // CUBE_DEBUG
             return ptr;
         }
 
@@ -211,9 +211,9 @@ namespace cube
 
             if (ptr != nullptr)
             {
-#ifdef _DEBUG
+#ifdef CUBE_DEBUG
                 mAllocatedSize += *(Uint64*)((Uint8*)ptr - sizeof(Uint64));
-#endif // _DEBUG
+#endif // CUBE_DEBUG
                 return ptr;
             }
         }
@@ -222,25 +222,25 @@ namespace cube
         AllocateAdditionalBlock(size + alignment);
         ptr = mAdditionalMemBlocks.back().AllocateAligned(size, alignment);
 
-#ifdef _DEBUG
+#ifdef CUBE_DEBUG
         mAllocatedSize += *(Uint64*)((Uint8*)ptr - sizeof(Uint64));
-#endif // _DEBUG
+#endif // CUBE_DEBUG
         return ptr;
     }
 
     void FrameAllocator::FreeAligned(void* ptr)
     {
         // Do nothing except for debugging
-#ifdef _DEBUG
+#ifdef CUBE_DEBUG
         mAllocatedSize -= *(Uint64*)((Uint8*)ptr - sizeof(Uint64));
-#endif // _DEBUG
+#endif // CUBE_DEBUG
     }
 
     void FrameAllocator::DiscardAllocations()
     {
-#ifdef _DEBUG
+#ifdef CUBE_DEBUG
         CHECK_FORMAT(mAllocatedSize == 0, "Not all allocations were freed in the frame allocator.");
-#endif // _DEBUG
+#endif // CUBE_DEBUG
 
         mMemoryBlock.DiscardAllocations();
 

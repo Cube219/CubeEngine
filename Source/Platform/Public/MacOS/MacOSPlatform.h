@@ -1,19 +1,17 @@
 #pragma once
 
-#ifdef CUBE_PLATFORM_WINDOWS
+#ifdef CUBE_PLATFORM_MACOS
 
 #include "PlatformHeader.h"
 #include "Platform.h"
 
-#include <Windows.h>
-
-#include "WindowsString.h"
+#include "MacOSString.h"
 
 namespace cube
 {
     namespace platform
     {
-        class WindowsPlatform : public Platform
+        class MacOSPlatform : public Platform
         {
         public:
             static void InitializeImpl();
@@ -43,33 +41,11 @@ namespace cube
 
             static SharedPtr<DLib> LoadDLibImpl(StringView path);
 
-        public:
-            static CUBE_PLATFORM_EXPORT HINSTANCE GetInstance();
-            static CUBE_PLATFORM_EXPORT HWND GetWindow();
-            static CUBE_PLATFORM_EXPORT void SetImGUIWndProcFunction(const std::function<LRESULT(HWND, UINT, WPARAM, LPARAM)>& function);
-
         private:
-            friend LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-
-            static bool mIsFinished;
-
-            static HINSTANCE mInstance;
-
-            static HWND mWindow;
-            static WindowsString mWindowTitle;
-            static Uint32 mWindowWidth;
-            static Uint32 mWindowHeight;
-            static Uint32 mWindowPosX;
-            static Uint32 mWindowPosY;
-
-            static bool mIsCursorShown;
-
-            WindowsPlatform() = delete;
-            ~WindowsPlatform() = delete;
+            MacOSPlatform() = delete;
+            ~MacOSPlatform() = delete;
         };
-
-        LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
     } // namespace platform
 } // namespace cube
 
-#endif // CUBE_PLATFORM_WINDOWS
+#endif // CUBE_PLATFORM_MACOS

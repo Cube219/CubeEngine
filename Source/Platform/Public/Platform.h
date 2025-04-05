@@ -76,33 +76,33 @@ namespace cube
         };
 
 #define PLATFORM_CLASS_DEFINITIONS(ChildClass) \
-        inline void Platform::Initialize() { ChildClass::InitializeImpl(); } \
-        inline void Platform::Shutdown() { ChildClass::ShutdownImpl(); } \
+        void Platform::Initialize() { ChildClass::InitializeImpl(); } \
+        void Platform::Shutdown() { ChildClass::ShutdownImpl(); } \
         \
-        inline void Platform::InitWindow(StringView title, Uint32 width, Uint32 height, Uint32 posX, Uint32 posY) { \
+        void Platform::InitWindow(StringView title, Uint32 width, Uint32 height, Uint32 posX, Uint32 posY) { \
             ChildClass::InitWindowImpl(title, width, height, posX, posY); \
         } \
-        inline void Platform::ShowWindow() { ChildClass::ShowWindowImpl(); } \
+        void Platform::ShowWindow() { ChildClass::ShowWindowImpl(); } \
         \
-        inline void* Platform::Allocate(Uint64 size) { return ChildClass::AllocateImpl(size); } \
-        inline void Platform::Free(void* ptr) { ChildClass::FreeImpl(ptr); } \
-        inline void* Platform::AllocateAligned(Uint64 size, Uint64 alignment) { return ChildClass::AllocateAlignedImpl(size, alignment); } \
-        inline void Platform::FreeAligned(void* ptr) { ChildClass::FreeAlignedImpl(ptr); } \
+        void* Platform::Allocate(Uint64 size) { return ChildClass::AllocateImpl(size); } \
+        void Platform::Free(void* ptr) { ChildClass::FreeImpl(ptr); } \
+        void* Platform::AllocateAligned(Uint64 size, Uint64 alignment) { return ChildClass::AllocateAlignedImpl(size, alignment); } \
+        void Platform::FreeAligned(void* ptr) { ChildClass::FreeAlignedImpl(ptr); } \
         \
-        inline void Platform::StartLoop() { ChildClass::StartLoopImpl(); } \
-        inline void Platform::FinishLoop() { ChildClass::FinishLoopImpl(); } \
-        inline void Platform::Sleep(Uint32 time) { ChildClass::SleepImpl(time); } \
+        void Platform::StartLoop() { ChildClass::StartLoopImpl(); } \
+        void Platform::FinishLoop() { ChildClass::FinishLoopImpl(); } \
+        void Platform::Sleep(Uint32 time) { ChildClass::SleepImpl(time); } \
         \
-        inline void Platform::ShowCursor() { ChildClass::ShowCursorImpl(); } \
-        inline void Platform::HideCursor() { ChildClass::HideCursorImpl(); } \
-        inline void Platform::MoveCursor(int x, int y) { ChildClass::MoveCursorImpl(x, y); } \
-        inline void Platform::GetCursorPos(int& x, int& y) { ChildClass::GetCursorPosImpl(x, y); } \
+        void Platform::ShowCursor() { ChildClass::ShowCursorImpl(); } \
+        void Platform::HideCursor() { ChildClass::HideCursorImpl(); } \
+        void Platform::MoveCursor(int x, int y) { ChildClass::MoveCursorImpl(x, y); } \
+        void Platform::GetCursorPos(int& x, int& y) { ChildClass::GetCursorPosImpl(x, y); } \
         \
-        inline Uint32 Platform::GetWindowWidth() { return ChildClass::GetWindowWidthImpl(); } \
-        inline Uint32 Platform::GetWindowHeight() { return ChildClass::GetWindowHeightImpl(); } \
-        inline Uint32 Platform::GetWindowPositionX() { return ChildClass::GetWindowPositionXImpl(); } \
-        inline Uint32 Platform::GetWindowPositionY() { return ChildClass::GetWindowPositionYImpl(); } \
+        Uint32 Platform::GetWindowWidth() { return ChildClass::GetWindowWidthImpl(); } \
+        Uint32 Platform::GetWindowHeight() { return ChildClass::GetWindowHeightImpl(); } \
+        Uint32 Platform::GetWindowPositionX() { return ChildClass::GetWindowPositionXImpl(); } \
+        Uint32 Platform::GetWindowPositionY() { return ChildClass::GetWindowPositionYImpl(); } \
         \
-        inline SharedPtr<DLib> Platform::LoadDLib(StringView path) { return ChildClass::LoadDLibImpl(path); }
+        SharedPtr<DLib> Platform::LoadDLib(StringView path) { return ChildClass::LoadDLibImpl(path); }
     } // namespace platform
 } // namespace cube

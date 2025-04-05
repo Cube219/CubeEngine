@@ -10,6 +10,7 @@ set(PUBLIC_FILES
     Public/Allocator.h
     Public/CubeMath.h
     Public/CubeString.h
+    Public/Defines.h
     Public/Event.h
     Public/Flags.h
     Public/Format.h
@@ -26,7 +27,21 @@ set(PRIVATE_FILES
     Private/CubeFormat.cpp
 )
 
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${PUBLIC_FILES} ${PRIVATE_FILES})
+if(PLATFORM_WINDOWS)
+    set(PLATFORM_PUBLIC_FILES
+        Public/Windows/WindowsDefines.h
+    )
+    set(PLATFORM_PRIVATE_FILES
+    )
+elseif(PLATFORM_MACOS)
+    set(PLATFORM_PUBLIC_FILES
+        Public/MacOS/MacOSDefines.h
+    )
+    set(PLATFORM_PRIVATE_FILES
+    )
+endif()
+
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${PUBLIC_FILES} ${PRIVATE_FILES} ${PLATFORM_PUBLIC_FILES} ${PLATFORM_PRIVATE_FILES})
 
 # Target settings
 add_library(CE-Base STATIC
