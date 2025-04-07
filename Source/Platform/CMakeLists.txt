@@ -25,7 +25,8 @@ if(PLATFORM_WINDOWS)
         Private/Windows/WindowsPlatform.cpp
         Private/Windows/WindowsString.cpp
     )
-elseif(PLATFORM_MACOS)
+endif()
+if(PLATFORM_MACOS)
     set(PLATFORM_PUBLIC_FILES
         Public/MacOS/MacOSDebug.h
         Public/MacOS/MacOSDLib.h
@@ -34,11 +35,11 @@ elseif(PLATFORM_MACOS)
         Public/MacOS/MacOSString.h
     )
     set(PLATFORM_PRIVATE_FILES
-        Private/MacOS/MacOSDebug.cpp
-        Private/MacOS/MacOSDLib.cpp
-        Private/MacOS/MacOSFileSystem.cpp
-        Private/MacOS/MacOSPlatform.cpp
-        Private/MacOS/MacOSString.cpp
+        Private/MacOS/MacOSDebug.mm
+        Private/MacOS/MacOSDLib.mm
+        Private/MacOS/MacOSFileSystem.mm
+        Private/MacOS/MacOSPlatform.mm
+        Private/MacOS/MacOSString.mm
     )
 endif()
 
@@ -64,6 +65,12 @@ if(PLATFORM_WINDOWS)
     target_link_libraries(CE-Platform
         PRIVATE
             Dbghelp.lib
+    )
+endif()
+if(PLATFORM_MACOS)
+    target_link_libraries(CE-Platform
+        PRIVATE
+            "-framework AppKit"
     )
 endif()
 target_compile_definitions(CE-Platform

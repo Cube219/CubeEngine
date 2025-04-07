@@ -4,6 +4,7 @@ project(CubeEngine)
 
 # Sets
 set (DEPENDENCIES_DIR ${PROJECT_SOURCE_DIR}/Dependencies)
+set (RESOURCES_DIR ${PROJECT_SOURCE_DIR}/Resources)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set (DEBUG_MODE TRUE)
 endif()
@@ -29,7 +30,8 @@ if(PLATFORM_WINDOWS)
 
     add_definitions(-D_UNICODE -DUNICODE -DNOMINMAX)
     add_compile_options(/utf-8)
-elseif(PLATFORM_MACOS)
+endif()
+if(PLATFORM_MACOS)
     add_definitions(-DCUBE_PLATFORM_MACOS)
 endif()
 

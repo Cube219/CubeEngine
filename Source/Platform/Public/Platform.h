@@ -32,7 +32,7 @@ namespace cube
 
             static void StartLoop();
             static void FinishLoop();
-            static void Sleep(Uint32 time);
+            static void Sleep(float timeSec);
 
             static void ShowCursor();
             static void HideCursor();
@@ -91,7 +91,7 @@ namespace cube
         \
         void Platform::StartLoop() { ChildClass::StartLoopImpl(); } \
         void Platform::FinishLoop() { ChildClass::FinishLoopImpl(); } \
-        void Platform::Sleep(Uint32 time) { ChildClass::SleepImpl(time); } \
+        void Platform::Sleep(float timeSec) { ChildClass::SleepImpl(timeSec); } \
         \
         void Platform::ShowCursor() { ChildClass::ShowCursorImpl(); } \
         void Platform::HideCursor() { ChildClass::HideCursorImpl(); } \

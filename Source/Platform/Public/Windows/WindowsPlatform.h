@@ -29,7 +29,7 @@ namespace cube
 
             static void StartLoopImpl();
             static void FinishLoopImpl();
-            static void SleepImpl(Uint32 time);
+            static void SleepImpl(float timeSec);
 
             static void ShowCursorImpl();
             static void HideCursorImpl();

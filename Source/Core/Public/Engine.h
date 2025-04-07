@@ -15,7 +15,7 @@ namespace cube
         Engine() = delete;
         ~Engine() = delete;
 
-        CUBE_CORE_EXPORT static void Initialize();
+        CUBE_CORE_EXPORT static void Initialize(int argc, const char* argv[], bool runShutdownInClosingFunc = false);
         CUBE_CORE_EXPORT static void Shutdown();
 
         static Renderer* GetRenderer() { return mRenderer.get(); }
@@ -34,6 +34,7 @@ namespace cube
         static EventFunction<void()> mOnLoopEventFunc;
         static EventFunction<void()> mOnClosingEventFunc;
         static EventFunction<void(Uint32, Uint32)> mOnResizeEventFunc;
+        static bool mRunShutdownInClosingFunc;
 
         static UniquePtr<Renderer> mRenderer;
 

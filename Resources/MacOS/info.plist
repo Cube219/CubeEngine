@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>CubeEngine</string>
+    <key>CFBundleIdentifier</key>
+    <string>me.cube219.cubeengine</string>
+    <key>CFBundleVersion</key>
+    <string>0.1</string>
+    <key>CFBundleExecutable</key>
+    <string>CE-Main</string>
+</dict>
+</plist>

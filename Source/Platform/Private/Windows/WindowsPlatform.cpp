@@ -159,9 +159,9 @@ namespace cube
             mIsFinished = true;
         }
 
-        void WindowsPlatform::SleepImpl(Uint32 time)
+        void WindowsPlatform::SleepImpl(float timeSec)
         {
-            ::Sleep(time);
+            ::Sleep(timeSec * 1000.0f);
         }
 
         void WindowsPlatform::ShowCursorImpl()

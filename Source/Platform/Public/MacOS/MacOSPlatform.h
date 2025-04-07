@@ -5,7 +5,14 @@
 #include "PlatformHeader.h"
 #include "Platform.h"
 
+#import <Cocoa/Cocoa.h>
+#include <thread>
+
 #include "MacOSString.h"
+
+@interface CubeAppDelegate : NSObject <NSApplicationDelegate>
+
+@end
 
 namespace cube
 {
@@ -27,7 +34,7 @@ namespace cube
 
             static void StartLoopImpl();
             static void FinishLoopImpl();
-            static void SleepImpl(Uint32 time);
+            static void SleepImpl(float timeSec);
 
             static void ShowCursorImpl();
             static void HideCursorImpl();
@@ -42,6 +49,18 @@ namespace cube
             static SharedPtr<DLib> LoadDLibImpl(StringView path);
 
         private:
+            static void CreateMainMenu();
+            static void MainLoop();
+
+            static NSWindow* mWindow;
+            static CubeAppDelegate* mDelegate;
+#if CUBE_DEBUG
+            static NSTask* mDebugConsoleTerminalTask;
+#endif
+
+            static std::thread mMainLoopThread;
+            static bool mIsFinished;
+
             MacOSPlatform() = delete;
             ~MacOSPlatform() = delete;
         };

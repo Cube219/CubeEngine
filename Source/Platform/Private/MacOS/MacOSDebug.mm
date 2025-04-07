@@ -2,7 +2,11 @@
 
 #include "MacOS/MacOSDebug.h"
 
+#include <iostream> // cout
+#include <signal.h> // raise
+
 #include "Checker.h"
+#include "MacOS/MacOSString.h"
 
 namespace cube
 {
@@ -12,17 +16,23 @@ namespace cube
 
         void MacOSDebug::PrintToDebugConsoleImpl(StringView str)
         {
-            NOT_IMPLEMENTED();
+            MacOSString osStr;
+            String_ConvertAndAppend(osStr, str);
+
+            std::cout << osStr << std::endl;
         }
 
         void MacOSDebug::ProcessFatalErrorImpl(StringView msg)
         {
-            NOT_IMPLEMENTED();
+            // TODO
+            raise(SIGTRAP);
         }
 
         void MacOSDebug::ProcessFailedCheckImpl(const char* fileName, int lineNum, StringView formattedMsg)
         {
-            NOT_IMPLEMENTED();
+            // TODO: Fixed infinite loop
+            // NOT_IMPLEMENTED();
+            raise(SIGTRAP);
         }
 
         constexpr int MAX_NUM_FRAMES = 128;
@@ -30,7 +40,7 @@ namespace cube
 
         String MacOSDebug::DumpStackTraceImpl(bool removeBeforeProjectFolderPath)
         {
-            NOT_IMPLEMENTED();
+            // NOT_IMPLEMENTED();
             return {};
         }
 
@@ -42,7 +52,7 @@ namespace cube
 
         void MacOSDebug::BreakDebugImpl()
         {
-            NOT_IMPLEMENTED();
+            raise(SIGTRAP);
         }
     } // namespace platform
 } // namespace cube

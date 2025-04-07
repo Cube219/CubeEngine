@@ -58,6 +58,7 @@ namespace cube
     EventFunction<void()> Engine::mOnClosingEventFunc;
     EventFunction<void()> Engine::mOnLoopEventFunc;
     EventFunction<void(Uint32, Uint32)> Engine::mOnResizeEventFunc;
+    bool Engine::mRunShutdownInClosingFunc;
 
     UniquePtr<Renderer> Engine::mRenderer;
 
@@ -70,8 +71,10 @@ namespace cube
     Uint64 Engine::mLastTime;
     Uint64 Engine::mCurrentTime;
 
-    void Engine::Initialize()
+    void Engine::Initialize(int argc, const char* argv[], bool runShutdownInOnClosingFunc)
     {
+        mRunShutdownInClosingFunc = runShutdownInOnClosingFunc;
+
         platform::Platform::Initialize();
 
         GetMyThreadFrameAllocator().Initialize("Main thread frame allocator", 10 * 1024 * 1024); // 10 MiB
@@ -110,10 +113,10 @@ namespace cube
             );
         }
 
-        mRenderer = std::make_unique<Renderer>();
-        mRenderer->Initialize(GAPIName::DX12, mImGUIContext);
+        // mRenderer = std::make_unique<Renderer>();
+        // mRenderer->Initialize(GAPIName::DX12, mImGUIContext);
 
-        CameraSystem::Initialize();
+        // CameraSystem::Initialize();
 
         mStartTime = GetNowFrameTime();
         mCurrentTime = mStartTime;
@@ -126,10 +129,10 @@ namespace cube
     {
         CUBE_LOG(LogType::Info, Engine, "Shutdown CubeEngine.");
 
-        CameraSystem::Shutdown();
+        // CameraSystem::Shutdown();
 
-        mRenderer->Shutdown(mImGUIContext);
-        mRenderer = nullptr;
+        // mRenderer->Shutdown(mImGUIContext);
+        // mRenderer = nullptr;
 
         ImGui::SetCurrentContext((ImGuiContext*)(mImGUIContext.context));
         ImGui::SetAllocatorFunctions(
@@ -157,33 +160,40 @@ namespace cube
 
         const double deltaTimeSec = static_cast<double>(mCurrentTime - mLastTime) / std::nano::den;
 
-        CameraSystem::OnLoop(deltaTimeSec);
+        // CameraSystem::OnLoop(deltaTimeSec);
 
         LoopImGUI();
 
-        mRenderer->Render();
+        // mRenderer->Render();
     }
 
     void Engine::OnClosing()
     {
         platform::Platform::FinishLoop();
+
+        // Also execute Engine::Shutdown function. Some platform cannot execute remain logic after Engine::Initialize().
+        //   Ex) MacOS
+        if (mRunShutdownInClosingFunc)
+        {
+            Shutdown();
+        }
     }
 
     void Engine::OnResize(Uint32 width, Uint32 height)
     {
-        mRenderer->OnResize(width, height);
-        CameraSystem::OnResize(width, height);
+        // mRenderer->OnResize(width, height);
+        // CameraSystem::OnResize(width, height);
     }
 
     void Engine::LoopImGUI()
     {
-        ImGui::NewFrame();
+        // ImGui::NewFrame();
 
-        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-        if (mImGUIShowDemoWindow)
-            ImGui::ShowDemoWindow(&mImGUIShowDemoWindow);
+        // // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
+        // if (mImGUIShowDemoWindow)
+        //     ImGui::ShowDemoWindow(&mImGUIShowDemoWindow);
 
-        CameraSystem::OnLoopImGUI();
+        // CameraSystem::OnLoopImGUI();
     }
 
     Uint64 Engine::GetNowFrameTime()

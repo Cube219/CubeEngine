@@ -1,32 +1,23 @@
 #include "Engine.h"
 
-namespace cube
-{
-    void MainImpl()
-    {
-        Engine::Initialize();
-
-        Engine::Shutdown();
-    }
-} // namespace cube
-
 #ifdef CUBE_PLATFORM_WINDOWS
 
 #include <Windows.h>
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
 {
-    cube::MainImpl();
+    Engine::Initialize(argc, argv);
+    Engine::Shutdown();
 
     return 0;
 }
 
 #elif CUBE_PLATFORM_MACOS
 
-int main(int argc, const char * argv[])
+int main(int argc, const char* argv[])
 {
-    cube::MainImpl();
-
+    cube::Engine::Initialize(argc, argv, true);
+    // Remain logic will not be executed. So Engine::Shutdown() will be executed in Engine::OnClosing().
     return 0;
 }
 
