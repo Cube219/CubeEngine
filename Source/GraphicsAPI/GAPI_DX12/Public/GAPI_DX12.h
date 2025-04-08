@@ -40,6 +40,8 @@ namespace cube
         virtual SharedPtr<gapi::ShaderVariablesLayout> CreateShaderVariablesLayout(const gapi::ShaderVariablesLayoutCreateInfo& info) override;
         virtual SharedPtr<gapi::Viewport> CreateViewport(const gapi::ViewportCreateInfo& info) override;
 
+        virtual gapi::TimestampList GetLastTimestampList() override;
+
     private:
         void InitializeImGUI(const ImGUIContext& imGUIInfo);
         void ShutdownImGUI(const ImGUIContext& imGUIInfo);

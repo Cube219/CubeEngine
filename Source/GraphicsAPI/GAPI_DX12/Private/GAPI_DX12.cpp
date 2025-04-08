@@ -171,6 +171,10 @@ namespace cube
         mCurrentRenderFrame++;
         mMainDevice->GetCommandListManager().WaitCurrentAllocatorIsReady();
         mMainDevice->GetCommandListManager().Reset();
+
+        mMainDevice->GetQueryManager().WaitCurrentHeapIsReady();
+        mMainDevice->GetQueryManager().UpdateLastTimestamp();
+        mMainDevice->GetQueryManager().ClearCurrentTimestampNames();
     }
 
     void GAPI_DX12::OnAfterRender()
@@ -216,6 +220,7 @@ namespace cube
     void GAPI_DX12::OnAfterPresent()
     {
         mMainDevice->GetCommandListManager().MoveToNextAllocator();
+        mMainDevice->GetQueryManager().MoveToNextHeap();
 
         if (mImGUIContext.context)
         {
@@ -279,6 +284,11 @@ namespace cube
     SharedPtr<gapi::Viewport> GAPI_DX12::CreateViewport(const gapi::ViewportCreateInfo& info)
     {
         return std::make_shared<gapi::DX12Viewport>(mFactory.Get(), *mMainDevice, info);
+    }
+
+    gapi::TimestampList GAPI_DX12::GetLastTimestampList()
+    {
+        return mMainDevice->GetQueryManager().GetLastTimestampList();
     }
 
     void GAPI_DX12::InitializeImGUI(const ImGUIContext& imGUIInfo)

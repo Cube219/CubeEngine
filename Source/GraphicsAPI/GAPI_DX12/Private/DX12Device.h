@@ -5,6 +5,7 @@
 #include "DX12CommandListManager.h"
 #include "DX12DescriptorManager.h"
 #include "DX12MemoryAllocator.h"
+#include "DX12QueryManager.h"
 #include "DX12QueueManager.h"
 
 namespace cube
@@ -29,6 +30,7 @@ namespace cube
         DX12QueueManager& GetQueueManager() { return mQueueManager; }
         DX12DescriptorManager& GetDescriptorManager() { return mDescriptorManager; }
         DX12CommandListManager& GetCommandListManager() { return mCommandListManager; }
+        DX12QueryManager& GetQueryManager() { return mQueryManager; }
 
     private:
         ComPtr<IDXGIAdapter1> mAdapter;
@@ -39,6 +41,7 @@ namespace cube
         DX12QueueManager mQueueManager;
         DX12DescriptorManager mDescriptorManager;
         DX12CommandListManager mCommandListManager;
+        DX12QueryManager mQueryManager;
 
     };
 } // namespace cube

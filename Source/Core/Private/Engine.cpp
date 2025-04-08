@@ -71,6 +71,7 @@ namespace cube
     Uint64 Engine::mCurrentTime;
     float Engine::mCurrentFrameTimeMS;
     float Engine::mCurrentFPS;
+    float Engine::mCurrentGPUTimeMS;
 
     void Engine::Initialize()
     {
@@ -197,11 +198,12 @@ namespace cube
             ImVec2 work_size = viewport->WorkSize;
             ImGui::SetNextWindowPos({ work_pos.x + work_size.x - PAD, work_pos.x + PAD }, ImGuiCond_Always, { 1.0f, 0.0f });
             ImGui::SetNextWindowBgAlpha(0.35f);
-            ImGui::SetNextWindowSize({ 180.0f, 50.0f });
+            ImGui::SetNextWindowSize({ 180.0f, 70.0f });
             if (ImGui::Begin("Basic Stats", &showBasicStats, flags))
             {
                 ImGui::Text("FrameTime: %.3f ms", mCurrentFrameTimeMS);
                 ImGui::Text("FPS: %.2f ms", mCurrentFPS);
+                ImGui::Text("GPU: %.2f ms", mCurrentGPUTimeMS);
             }
             ImGui::End();
         }
@@ -219,5 +221,6 @@ namespace cube
         // TODO: Smooth way?
         mCurrentFrameTimeMS = static_cast<float>(deltaTimeSec * 1000.0f);
         mCurrentFPS = static_cast<float>(1.0 / deltaTimeSec);
+        mCurrentGPUTimeMS = mRenderer->GetGPUTimeMS();
     }
 } // namespace cube

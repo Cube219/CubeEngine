@@ -4,14 +4,15 @@
 
 #include "DX12Fence.h"
 
-#define MAX_ALLOCATOR_SIZE 5
-
 namespace cube
 {
     class DX12Device;
 
     class DX12CommandListManager
     {
+    public:
+        static constexpr int MAX_ALLOCATOR_SIZE = 5;
+
     public:
         DX12CommandListManager(DX12Device& device);
 

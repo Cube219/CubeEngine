@@ -48,5 +48,6 @@ namespace cube
         static Uint64 mCurrentTime;
         static float mCurrentFrameTimeMS;
         static float mCurrentFPS;
+        static float mCurrentGPUTimeMS;
     };
 } // namespace cube

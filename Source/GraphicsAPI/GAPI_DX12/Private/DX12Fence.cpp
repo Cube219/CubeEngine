@@ -26,9 +26,12 @@ namespace cube
         mLastSignalFenceValue = 0;
     }
 
-    void DX12Fence::Shutdown()
+    void DX12Fence::Shutdown(bool skipPendingSignal)
     {
-        Wait(mLastSignalFenceValue);
+        if (!skipPendingSignal)
+        {
+            Wait(mLastSignalFenceValue);
+        }
 
         CloseHandle(mFenceEvent);
         mFence = nullptr;
@@ -42,11 +45,16 @@ namespace cube
 
     void DX12Fence::Wait(Uint64 fenceValue)
     {
-        int comp = mFence->GetCompletedValue();
+        Uint64 comp = mFence->GetCompletedValue();
         if (comp < fenceValue)
         {
             CHECK_HR(mFence->SetEventOnCompletion(fenceValue, mFenceEvent));
             WaitForSingleObjectEx(mFenceEvent, INFINITE, FALSE);
         }
+    }
+
+    Uint64 DX12Fence::GetCompletedValue()
+    {
+        return mFence->GetCompletedValue();
     }
 } // namespace cube

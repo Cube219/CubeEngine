@@ -13,10 +13,11 @@ namespace cube
         ~DX12Fence();
 
         void Initialize();
-        void Shutdown();
+        void Shutdown(bool skipPendingSignal = false);
 
         void Signal(ID3D12CommandQueue* queue, Uint64 fenceValue);
         void Wait(Uint64 fenceValue);
+        Uint64 GetCompletedValue();
 
     private:
         DX12Device& mDevice;

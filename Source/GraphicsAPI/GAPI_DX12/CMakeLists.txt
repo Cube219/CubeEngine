@@ -25,6 +25,8 @@ set(PRIVATE_FILES
     Private/DX12Fence.h
     Private/DX12MemoryAllocator.cpp
     Private/DX12MemoryAllocator.h
+    Private/DX12QueryManager.cpp
+    Private/DX12QueryManager.h
     Private/DX12QueueManager.cpp
     Private/DX12QueueManager.h
     Private/DX12Types.cpp

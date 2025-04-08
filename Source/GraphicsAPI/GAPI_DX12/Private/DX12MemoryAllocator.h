@@ -5,6 +5,7 @@
 #include "D3D12MemAlloc.h"
 
 #include "DX12Utility.h"
+#include "GAPI_Resource.h"
 
 namespace cube
 {
@@ -17,29 +18,47 @@ namespace cube
             Buffer, Texture
         };
         ResourceType type;
+        gapi::ResourceUsage usage;
         void *pMapPtr = nullptr;
 
         D3D12MA::Allocation* allocation;
 
-        void Map()
+        // (readBegin > readEnd) -> read all range
+        void Map(Uint64 readBegin = 1, Uint64 readEnd = 0)
         {
+            CHECK_FORMAT(usage != gapi::ResourceUsage::GPUOnly, "Cannot map the resouce used GPU only.");
+
             if (pMapPtr != nullptr)
             {
                 return;
             }
 
-            D3D12_RANGE range = { 0, 0 };
-            CHECK_HR(allocation->GetResource()->Map(0, &range, &pMapPtr));
+            if (usage == gapi::ResourceUsage::CPUtoGPU)
+            {
+                readBegin = readEnd = 0; // Range [0, 0] -> cannot read, only write available
+            }
+
+            const D3D12_RANGE readRange = { readBegin, readEnd };
+            CHECK_HR(allocation->GetResource()->Map(0, (readBegin > readEnd) ? nullptr : &readRange, &pMapPtr));
         }
 
-        void Unmap()
+        // (writeBegin > writeEnd) -> write all range
+        void Unmap(Uint64 writeBegin = 1, Uint64 writeEnd = 0)
         {
             if (pMapPtr == nullptr)
             {
                 return;
             }
 
-            allocation->GetResource()->Unmap(0, NULL);
+            if (usage == gapi::ResourceUsage::GPUtoCPU)
+            {
+                writeBegin = writeEnd = 0; // Range [0, 0] -> Not be written
+            }
+
+            const D3D12_RANGE writtenRange = { writeBegin, writeEnd };
+            allocation->GetResource()->Unmap(0, (writeBegin > writeEnd) ? nullptr : &writtenRange);
+
+            pMapPtr = nullptr;
         }
     };
 
