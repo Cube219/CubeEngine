@@ -4,555 +4,579 @@
 
 namespace cube
 {
-    inline VectorBase VectorBase::Zero()
+    template <int N>
+    inline VectorBase<N> VectorBase<N>::Zero()
     {
-        VectorBase res;
-        res.mData[0] = 0.0f;
-        res.mData[1] = 0.0f;
-        res.mData[2] = 0.0f;
-        res.mData[3] = 0.0f;
-
-        return res;
+        return VectorBase(0.0f);
     }
 
-    inline VectorBase::VectorBase()
-    {}
+    template <int N>
+    inline VectorBase<N>::VectorBase(float v)
+    {
+        mData[0] = v;
+        mData[1] = v;
+        if constexpr (N >= 3)
+        {
+            mData[2] = v;
+        }
+        if constexpr (N >= 4)
+        {
+            mData[3] = v;
+        }
+    }
 
-    inline VectorBase::VectorBase(float x, float y, float z, float w)
+    template <int N>
+    inline VectorBase<N>::VectorBase(float x, float y)
     {
         mData[0] = x;
         mData[1] = y;
-        mData[2] = z;
-        mData[3] = w;
+        if constexpr (N >= 3)
+        {
+            mData[2] = 0.0f;
+        }
+        if constexpr (N >= 4)
+        {
+            mData[3] = 0.0f;
+        }
     }
 
-    inline VectorBase::~VectorBase()
-    {}
+    template <int N>
+    inline VectorBase<N>::VectorBase(float x, float y, float z)
+    {
+        mData[0] = x;
+        mData[1] = y;
+        if constexpr (N >= 3)
+        {
+            mData[2] = z;
+        }
+        if constexpr (N >= 4)
+        {
+            mData[3] = 0.0f;
+        }
+    }
 
-    inline VectorBase& VectorBase::operator=(const VectorBase& rhs)
+    template <int N>
+    inline VectorBase<N>::VectorBase(float x, float y, float z, float w)
+    {
+        mData[0] = x;
+        mData[1] = y;
+        if constexpr (N >= 3)
+        {
+            mData[2] = z;
+        }
+        if constexpr (N >= 4)
+        {
+            mData[3] = w;
+        }
+    }
+
+    template <int N>
+    inline VectorBase<N>::VectorBase(const VectorBase& other)
+    {
+        mData[0] = other.mData[0];
+        mData[1] = other.mData[1];
+        if constexpr (N >= 3)
+        {
+            mData[2] = other.mData[2];
+        }
+        if constexpr (N >= 4)
+        {
+            mData[3] = other.mData[3];
+        }
+    }
+
+    template <int N>
+    template <int M>
+    inline VectorBase<N>::VectorBase(const VectorBase<M>& other)
+    {
+        mData[0] = other.mData[0];
+        mData[1] = other.mData[1];
+        if constexpr (N >= 3)
+        {
+            if constexpr (M >= 3)
+            {
+                mData[2] = other.mData[2];
+            }
+            else
+            {
+                mData[2] = 0.0f;
+            }
+        }
+        if constexpr (N >= 4)
+        {
+            if constexpr (M >= 4)
+            {
+                mData[3] = other.mData[3];
+            }
+            else
+            {
+                mData[3] = 0.0f;
+            }
+        }
+    }
+
+    template <int N>
+    inline VectorBase<N>& VectorBase<N>::operator=(const VectorBase& rhs)
     {
         mData[0] = rhs.mData[0];
         mData[1] = rhs.mData[1];
-        mData[2] = rhs.mData[2];
-        mData[3] = rhs.mData[3];
+        if constexpr (N >= 3)
+        {
+            mData[2] = rhs.mData[2];
+        }
+        if constexpr (N >= 4)
+        {
+            mData[3] = rhs.mData[3];
+        }
 
         return *this;
     }
 
-    inline VectorBase& VectorBase::operator=(float rhs)
+    template <int N>
+    template <int M>
+    inline VectorBase<N>& VectorBase<N>::operator=(const VectorBase<M>& rhs)
     {
-        mData[0] = mData[1] = mData[2] = mData[3] = rhs;
+        mData[0] = rhs.mData[0];
+        mData[1] = rhs.mData[1];
+        if constexpr (N >= 3)
+        {
+            if constexpr (M >= 3)
+            {
+                mData[2] = rhs.mData[2];
+            }
+            else
+            {
+                mData[2] = 0.0f;
+            }
+        }
+        if constexpr (N >= 4)
+        {
+            if constexpr (M >= 4)
+            {
+                mData[3] = rhs.mData[3];
+            }
+            else
+            {
+                mData[3] = 0.0f;
+            }
+        }
 
         return *this;
     }
 
-    inline VectorBase VectorBase::operator+(const VectorBase& rhs) const
+    template <int N>
+    inline VectorBase<N>& VectorBase<N>::operator=(float rhs)
     {
-        VectorBase res;
-        res.mData[0] = mData[0] + rhs.mData[0];
-        res.mData[1] = mData[1] + rhs.mData[1];
-        res.mData[2] = mData[2] + rhs.mData[2];
-        res.mData[3] = mData[3] + rhs.mData[3];
+        mData[0] = rhs;
+        mData[1] = rhs;
+        if constexpr (N >= 3)
+        {
+            mData[2] = rhs;
+        }
+        if constexpr (N >= 4)
+        {
+            mData[3] = rhs;
+        }
+
+        return *this;
+    }
+
+    template <int N>
+    inline bool VectorBase<N>::operator==(const VectorBase& rhs) const
+    {
+        bool res = true;
+        res &= (abs(mData[0] - rhs.mData[0]) < FLOAT_EPS);
+        res &= (abs(mData[1] - rhs.mData[1]) < FLOAT_EPS);
+        if constexpr (N >= 3)
+        {
+            res &= (abs(mData[2] - rhs.mData[2]) < FLOAT_EPS);
+        }
+        if constexpr (N >= 4)
+        {
+            res &= (abs(mData[3] - rhs.mData[3]) < FLOAT_EPS);
+        }
 
         return res;
     }
 
-    inline VectorBase VectorBase::operator-(const VectorBase& rhs) const
+    template <int N>
+    inline bool VectorBase<N>::operator!=(const VectorBase& rhs) const
     {
-        VectorBase res;
-        res.mData[0] = mData[0] - rhs.mData[0];
-        res.mData[1] = mData[1] - rhs.mData[1];
-        res.mData[2] = mData[2] - rhs.mData[2];
-        res.mData[3] = mData[3] - rhs.mData[3];
+        return !(*this == rhs);
+    }
+
+    template <int N>
+    template <int M>
+    inline VectorBase<std::max(N, M)> VectorBase<N>::operator+(const VectorBase<M>& rhs) const
+    {
+        VectorBase<std::max(N, M)> res(*this);
+        res += rhs;
 
         return res;
     }
 
-    inline VectorBase VectorBase::operator*(float rhs) const
+    template <int N>
+    template <int M>
+    inline VectorBase<std::max(N, M)> VectorBase<N>::operator-(const VectorBase<M>& rhs) const
     {
-        VectorBase res;
-        res.mData[0] = mData[0] * rhs;
-        res.mData[1] = mData[1] * rhs;
-        res.mData[2] = mData[2] * rhs;
-        res.mData[3] = mData[3] * rhs;
+        VectorBase<std::max(N, M)> res(*this);
+        res -= rhs;
 
         return res;
     }
 
-    inline VectorBase VectorBase::operator*(const VectorBase& rhs) const
+    template <int N>
+    inline VectorBase<N> VectorBase<N>::operator*(float rhs) const
     {
-        VectorBase res;
-        res.mData[0] = mData[0] * rhs.mData[0];
-        res.mData[1] = mData[1] * rhs.mData[1];
-        res.mData[2] = mData[2] * rhs.mData[2];
-        res.mData[3] = mData[3] * rhs.mData[3];
+        VectorBase res(*this);
+        res *= rhs;
 
         return res;
     }
 
-    inline VectorBase VectorBase::operator/(float rhs) const
+    template <int N>
+    template <int M>
+    inline VectorBase<std::max(N, M)> VectorBase<N>::operator*(const VectorBase<M>& rhs) const
     {
-        VectorBase res;
-        res.mData[0] = mData[0] / rhs;
-        res.mData[1] = mData[1] / rhs;
-        res.mData[2] = mData[2] / rhs;
-        res.mData[3] = mData[3] / rhs;
+        VectorBase<std::max(N, M)> res(*this);
+        res *= rhs;
 
         return res;
     }
 
-    inline VectorBase VectorBase::operator/(const VectorBase& rhs) const
+    template <int N>
+    inline VectorBase<N> VectorBase<N>::operator/(float rhs) const
     {
-        VectorBase res;
-        res.mData[0] = mData[0] / rhs.mData[0];
-        res.mData[1] = mData[1] / rhs.mData[1];
-        res.mData[2] = mData[2] / rhs.mData[2];
-        res.mData[3] = mData[3] / rhs.mData[3];
+        VectorBase res(*this);
+        res *= rhs;
 
         return res;
     }
 
-    inline const VectorBase& VectorBase::operator+() const
+    template <int N>
+    template <int M>
+    inline VectorBase<std::max(N, M)> VectorBase<N>::operator/(const VectorBase<M>& rhs) const
     {
-        return *this;
-    }
-
-    inline VectorBase VectorBase::operator-() const
-    {
-        VectorBase res;
-        res = *this * -1.0f;
-
-        return res;
-    }
-
-    inline VectorBase& VectorBase::operator+=(const VectorBase& rhs)
-    {
-        mData[0] = mData[0] + rhs.mData[0];
-        mData[1] = mData[1] + rhs.mData[1];
-        mData[2] = mData[2] + rhs.mData[2];
-        mData[3] = mData[3] + rhs.mData[3];
-
-        return *this;
-    }
-
-    inline VectorBase& VectorBase::operator-=(const VectorBase& rhs)
-    {
-        mData[0] = mData[0] - rhs.mData[0];
-        mData[1] = mData[1] - rhs.mData[1];
-        mData[2] = mData[2] - rhs.mData[2];
-        mData[3] = mData[3] - rhs.mData[3];
-
-        return *this;
-    }
-
-    inline VectorBase& VectorBase::operator*=(float rhs)
-    {
-        mData[0] = mData[0] * rhs;
-        mData[1] = mData[1] * rhs;
-        mData[2] = mData[2] * rhs;
-        mData[3] = mData[3] * rhs;
-
-        return *this;
-    }
-
-    inline VectorBase& VectorBase::operator*=(const VectorBase& rhs)
-    {
-        mData[0] = mData[0] * rhs.mData[0];
-        mData[1] = mData[1] * rhs.mData[1];
-        mData[2] = mData[2] * rhs.mData[2];
-        mData[3] = mData[3] * rhs.mData[3];
-
-        return *this;
-    }
-
-    inline VectorBase& VectorBase::operator/=(float rhs)
-    {
-        mData[0] = mData[0] / rhs;
-        mData[1] = mData[1] / rhs;
-        mData[2] = mData[2] / rhs;
-        mData[3] = mData[3] / rhs;
-
-        return *this;
-    }
-
-    inline VectorBase& VectorBase::operator/=(const VectorBase& rhs)
-    {
-        mData[0] = mData[0] / rhs.mData[0];
-        mData[1] = mData[1] / rhs.mData[1];
-        mData[2] = mData[2] / rhs.mData[2];
-        mData[3] = mData[3] / rhs.mData[3];
-
-        return *this;
-    }
-
-    inline VectorBase operator*(float lhs, const VectorBase& rhs)
-    {
-        return rhs * lhs;
-    }
-
-    inline VectorBase operator/(float lhs, const VectorBase& rhs)
-    {
-        VectorBase res(lhs, lhs, lhs, lhs);
+        VectorBase<std::max(N, M)> res(*this);
         res /= rhs;
 
         return res;
     }
 
-    // -------------------------------------------
-    //                  Vector2
-    // -------------------------------------------
-
-    inline Vector2::Vector2() :
-        VectorBase()
-    {}
-
-    inline Vector2::Vector2(float x, float y) :
-        VectorBase(x, y, 0.0f, 0.0f)
-    {}
-
-    inline Vector2::Vector2(const VectorBase& vec)
+    template <int N>
+    inline const VectorBase<N>& VectorBase<N>::operator+() const
     {
-        mData[0] = vec.mData[0];
-        mData[1] = vec.mData[1];
-        mData[2] = vec.mData[2];
-        mData[3] = vec.mData[3];
+        return *this;
     }
 
-    inline Vector2& Vector2::operator=(const VectorBase& vec)
+    template <int N>
+    inline VectorBase<N> VectorBase<N>::operator-() const
     {
-        mData[0] = vec.mData[0];
-        mData[1] = vec.mData[1];
-        mData[2] = vec.mData[2];
-        mData[3] = vec.mData[3];
+        VectorBase res(*this);
+        res *= -1.0f;
+
+        return res;
+    }
+
+    template <int N>
+    template <int M>
+    inline VectorBase<N>& VectorBase<N>::operator+=(const VectorBase<M>& rhs)
+    {
+        mData[0] += rhs.mData[0];
+        mData[1] += rhs.mData[1];
+        if constexpr (N >= 3 && M >= 3)
+        {
+            mData[2] += rhs.mData[2];
+        }
+        if constexpr (N >= 4 && M >= 4)
+        {
+            mData[3] += rhs.mData[3];
+        }
 
         return *this;
     }
 
-    inline Vector2::operator Vector3() const
+    template <int N>
+    template <int M>
+    inline VectorBase<N>& VectorBase<N>::operator-=(const VectorBase<M>& rhs)
     {
-        Vector3 v3(mData);
-        v3.mData[2] = 0.0f;
-        v3.mData[3] = 0.0f;
-
-        return v3;
-    }
-
-    inline Vector2::operator Vector4() const
-    {
-        Vector4 v4(mData);
-        v4.mData[2] = 0.0f;
-        v4.mData[3] = 0.0f;
-
-        return v4;
-    }
-
-    inline Float2 Vector2::GetFloat2() const
-    {
-        Float2 f2;
-
-        f2.x = mData[0];
-        f2.y = mData[1];
-
-        return f2;
-    }
-
-    inline VectorBase Vector2::Length() const
-    {
-        float l = mData[0] * mData[0];
-        l += mData[1] * mData[1];
-
-        l = (float)sqrt(l);
-
-        return VectorBase(l, l, l, l);
-    }
-
-    inline VectorBase Vector2::SquareLength() const
-    {
-        float l = mData[0] * mData[0];
-        l += mData[1] * mData[1];
-
-        return VectorBase(l, l, l, l);
-    }
-
-    inline VectorBase Vector2::Dot(const Vector2& rhs) const
-    {
-        float res = mData[0] * rhs.mData[0];
-        res += mData[1] * rhs.mData[1];
-
-        return VectorBase(res, res, res, res);
-    }
-
-    inline VectorBase Vector2::Dot(const Vector2& lhs, const Vector2& rhs)
-    {
-        float res = lhs.mData[0] * rhs.mData[0];
-        res += lhs.mData[1] * rhs.mData[1];
-
-        return VectorBase(res, res, res, res);
-    }
-
-    inline void Vector2::Normalize()
-    {
-        *this /= Length();
-    }
-
-    inline VectorBase Vector2::Normalized() const
-    {
-        return *this / Length();
-    }
-
-    inline Vector2::Vector2(const VectorData vData)
-    {
-        mData[0] = vData[0];
-        mData[1] = vData[1];
-        mData[2] = vData[2];
-        mData[3] = vData[3];
-    }
-
-    // -------------------------------------------
-    //                  Vector3
-    // -------------------------------------------
-
-    inline Vector3::Vector3()
-    {}
-
-    inline Vector3::Vector3(float x, float y, float z) :
-        VectorBase(x, y, z, 0.0f)
-    {}
-
-    inline Vector3::Vector3(const VectorBase& vec)
-    {
-        mData[0] = vec.mData[0];
-        mData[1] = vec.mData[1];
-        mData[2] = vec.mData[2];
-        mData[3] = vec.mData[3];
-    }
-
-    inline Vector3& Vector3::operator=(const VectorBase& vec)
-    {
-        mData[0] = vec.mData[0];
-        mData[1] = vec.mData[1];
-        mData[2] = vec.mData[2];
-        mData[3] = vec.mData[3];
+        mData[0] -= rhs.mData[0];
+        mData[1] -= rhs.mData[1];
+        if constexpr (N >= 3 && M >= 3)
+        {
+            mData[2] -= rhs.mData[2];
+        }
+        if constexpr (N >= 4 && M >= 4)
+        {
+            mData[3] -= rhs.mData[3];
+        }
 
         return *this;
     }
 
-    inline Vector3::operator Vector2() const
+    template <int N>
+    inline VectorBase<N>& VectorBase<N>::operator*=(float rhs)
     {
-        Vector2 v2(mData);
-
-        return v2;
-    }
-
-    inline Vector3::operator Vector4() const
-    {
-        Vector4 v4(mData);
-        v4.mData[3] = 0.0f;
-
-        return v4;
-    }
-
-    inline Float3 Vector3::GetFloat3() const
-    {
-        Float3 f3;
-
-        f3.x = mData[0];
-        f3.y = mData[1];
-        f3.z = mData[2];
-
-        return f3;
-    }
-
-    inline VectorBase Vector3::Length() const
-    {
-        float l = mData[0] * mData[0];
-        l += mData[1] * mData[1];
-        l += mData[2] * mData[2];
-
-        l = (float)sqrt(l);
-
-        return VectorBase(l, l, l, l);
-    }
-
-    inline VectorBase Vector3::SquareLength() const
-    {
-        float l = mData[0] * mData[0];
-        l += mData[1] * mData[1];
-        l += mData[2] * mData[2];
-
-        return VectorBase(l, l, l, l);
-    }
-
-    inline VectorBase Vector3::Dot(const Vector3& rhs) const
-    {
-        float res = mData[0] * rhs.mData[0];
-        res += mData[1] * rhs.mData[1];
-        res += mData[2] * rhs.mData[2];
-
-        return VectorBase(res, res, res, res);
-    }
-
-    inline VectorBase Vector3::Dot(const Vector3& lhs, const Vector3& rhs)
-    {
-        float res = lhs.mData[0] * rhs.mData[0];
-        res += lhs.mData[1] * rhs.mData[1];
-        res += lhs.mData[2] * rhs.mData[2];
-
-        return VectorBase(res, res, res, res);
-    }
-
-    inline void Vector3::Normalize()
-    {
-        *this /= Length();
-    }
-
-    inline VectorBase Vector3::Normalized() const
-    {
-        return *this / Length();
-    }
-
-    inline VectorBase Vector3::Cross(const Vector3& rhs) const
-    {
-        VectorBase v;
-        v.mData[0] = mData[1] * rhs.mData[2] - mData[2] * rhs.mData[1];
-        v.mData[1] = mData[2] * rhs.mData[0] - mData[0] * rhs.mData[2];
-        v.mData[2] = mData[0] * rhs.mData[1] - mData[1] * rhs.mData[0];
-        v.mData[3] = 0.0f;
-
-        return v;
-    }
-
-    inline VectorBase Vector3::Cross(const Vector3& lhs, const Vector3& rhs)
-    {
-        VectorBase v;
-        v.mData[0] = lhs.mData[1] * rhs.mData[2] - lhs.mData[2] * rhs.mData[1];
-        v.mData[1] = lhs.mData[2] * rhs.mData[0] - lhs.mData[0] * rhs.mData[2];
-        v.mData[2] = lhs.mData[0] * rhs.mData[1] - lhs.mData[1] * rhs.mData[0];
-        v.mData[3] = 0.0f;
-
-        return v;
-    }
-
-    inline Vector3::Vector3(const VectorData vData)
-    {
-        mData[0] = vData[0];
-        mData[1] = vData[1];
-        mData[2] = vData[2];
-        mData[3] = vData[3];
-    }
-
-    // -------------------------------------------
-    //                  Vector4
-    // -------------------------------------------
-
-    inline Vector4::Vector4()
-    {}
-
-    inline Vector4::Vector4(float x, float y, float z, float w) :
-        VectorBase(x, y, z, w)
-    {}
-
-    inline Vector4::Vector4(const VectorBase& vec)
-    {
-        mData[0] = vec.mData[0];
-        mData[1] = vec.mData[1];
-        mData[2] = vec.mData[2];
-        mData[3] = vec.mData[3];
-    }
-
-    inline Vector4& Vector4::operator=(const VectorBase& vec)
-    {
-        mData[0] = vec.mData[0];
-        mData[1] = vec.mData[1];
-        mData[2] = vec.mData[2];
-        mData[3] = vec.mData[3];
+        mData[0] *= rhs;
+        mData[1] *= rhs;
+        if constexpr (N >= 3)
+        {
+            mData[2] *= rhs;
+        }
+        if constexpr (N >= 4)
+        {
+            mData[3] *= rhs;
+        }
 
         return *this;
     }
 
-    inline Vector4::operator Vector2() const
+    template <int N>
+    template <int M>
+    inline VectorBase<N>& VectorBase<N>::operator*=(const VectorBase<M>& rhs)
     {
-        Vector2 v2(mData);
+        mData[0] *= rhs.mData[0];
+        mData[1] *= rhs.mData[1];
+        if constexpr (N >= 3 && M >= 3)
+        {
+            mData[2] *= rhs.mData[2];
+        }
+        if constexpr (N >= 4 && M >= 4)
+        {
+            mData[3] *= rhs.mData[3];
+        }
 
-        return v2;
+        return *this;
     }
 
-    inline Vector4::operator Vector3() const
+    template <int N>
+    inline VectorBase<N>& VectorBase<N>::operator/=(float rhs)
     {
-        Vector3 v3(mData);
+        mData[0] /= rhs;
+        mData[1] /= rhs;
+        if constexpr (N >= 3)
+        {
+            mData[2] /= rhs;
+        }
+        if constexpr (N >= 4)
+        {
+            mData[3] /= rhs;
+        }
 
-        return v3;
+        return *this;
     }
 
-    inline Float4 Vector4::GetFloat4() const
+    template <int N>
+    template <int M>
+    inline VectorBase<N>& VectorBase<N>::operator/=(const VectorBase<M>& rhs)
     {
-        Float4 f4;
+        mData[0] /= rhs.mData[0];
+        mData[1] /= rhs.mData[1];
+        if constexpr (N >= 3 && M >= 3)
+        {
+            mData[2] /= rhs.mData[2];
+        }
+        if constexpr (N >= 4 && M >= 4)
+        {
+            mData[3] /= rhs.mData[3];
+        }
 
-        f4.x = mData[0];
-        f4.y = mData[1];
-        f4.z = mData[2];
-        f4.w = mData[3];
-
-        return f4;
+        return *this;
     }
 
-    inline VectorBase Vector4::Length() const
+    template <int N>
+    inline void VectorBase<N>::Swap(VectorBase& other)
     {
-        float l = mData[0] * mData[0];
-        l += mData[1] * mData[1];
-        l += mData[2] * mData[2];
-        l += mData[3] * mData[3];
-
-        l = (float)sqrt(l);
-
-        return VectorBase(l, l, l, l);
+        std::swap(mData[0], other.mData[0]);
+        std::swap(mData[1], other.mData[1]);
+        if constexpr (N >= 3)
+        {
+            std::swap(mData[2], other.mData[2]);
+        }
+        if constexpr (N >= 4)
+        {
+            std::swap(mData[3], other.mData[3]);
+        }
     }
 
-    inline VectorBase Vector4::SquareLength() const
+    template <int N>
+    inline void VectorBase<N>::Swap(VectorBase& lhs, VectorBase& rhs)
     {
-        float l = mData[0] * mData[0];
-        l += mData[1] * mData[1];
-        l += mData[2] * mData[2];
-        l += mData[3] * mData[3];
-
-        return VectorBase(l, l, l, l);
+        lhs.Swap(rhs);
     }
 
-    inline VectorBase Vector4::Dot(const Vector4& rhs) const
+    template <int N>
+    inline Float2 VectorBase<N>::GetFloat2() const
     {
-        float res = mData[0] * rhs.mData[0];
-        res += mData[1] * rhs.mData[1];
-        res += mData[2] * rhs.mData[2];
-        res += mData[3] * rhs.mData[3];
+        Float2 res;
+        res.x = mData[0];
+        res.y = mData[1];
 
-        return VectorBase(res, res, res, res);
+        return res;
     }
 
-    inline VectorBase Vector4::Dot(const Vector4& lhs, const Vector4& rhs)
+    template <int N>
+    inline Float3 VectorBase<N>::GetFloat3() const
     {
-        float res = lhs.mData[0] * rhs.mData[0];
-        res += lhs.mData[1] * rhs.mData[1];
-        res += lhs.mData[2] * rhs.mData[2];
-        res += lhs.mData[3] * rhs.mData[3];
+        Float3 res;
+        res.x = mData[0];
+        res.y = mData[1];
+        if constexpr (N >= 3)
+        {
+            res.z = mData[2];
+        }
+        else
+        {
+            res.z = 0.0f;
+        }
 
-        return VectorBase(res, res, res, res);
+        return res;
     }
 
-    inline void Vector4::Normalize()
+    template <int N>
+    inline Float4 VectorBase<N>::GetFloat4() const
+    {
+        Float4 res;
+        res.x = mData[0];
+        res.y = mData[1];
+        if constexpr (N >= 3)
+        {
+            res.z = mData[2];
+        }
+        else
+        {
+            res.z = 0.0f;
+        }
+        if constexpr (N >= 4)
+        {
+            res.w = mData[3];
+        }
+        else
+        {
+            res.w = 0.0f;
+        }
+
+        return res;
+    }
+
+    template <int N>
+    inline float VectorBase<N>::Length() const
+    {
+        return sqrt(SquareLength());
+    }
+
+    template <int N>
+    inline float VectorBase<N>::SquareLength() const
+    {
+        float res = 0.0f;
+        res += mData[0] * mData[0];
+        res += mData[1] * mData[1];
+        if constexpr (N >= 3)
+        {
+            res += mData[2] * mData[2];
+        }
+        if constexpr (N >= 4)
+        {
+            res += mData[3] * mData[3];
+        }
+
+        return res;
+    }
+
+    template <int N>
+    inline VectorBase<N> VectorBase<N>::LengthV() const
+    {
+        return VectorBase(Length());
+    }
+
+    template <int N>
+    inline VectorBase<N> VectorBase<N>::SquareLengthV() const
+    {
+        return VectorBase(SquareLength());
+    }
+
+    template <int N>
+    inline void VectorBase<N>::Normalize()
     {
         *this /= Length();
     }
 
-    inline VectorBase Vector4::Normalized() const
+    template <int N>
+    inline VectorBase<N> VectorBase<N>::Normalized()
     {
         return *this / Length();
     }
 
-    inline Vector4::Vector4(const VectorData vData)
+    template <int N>
+    inline float VectorBase<N>::Dot(const VectorBase& rhs) const
     {
-        mData[0] = vData[0];
-        mData[1] = vData[1];
-        mData[2] = vData[2];
-        mData[3] = vData[3];
+        float res = 0.0f;
+        res += mData[0] * rhs.mData[0];
+        res += mData[1] * rhs.mData[1];
+        if constexpr (N >= 3)
+        {
+            res += mData[2] * rhs.mData[2];
+        }
+        if constexpr (N >= 4)
+        {
+            res += mData[3] * rhs.mData[3];
+        }
+
+        return res;
+    }
+
+    template <int N>
+    inline float VectorBase<N>::Dot(const VectorBase& lhs, const VectorBase& rhs)
+    {
+        return lhs.Dot(rhs);
+    }
+
+    template <int N>
+    inline VectorBase<N> VectorBase<N>::DotV(const VectorBase& rhs) const
+    {
+        return VectorBase(Dot(rhs));
+    }
+
+    template <int N>
+    inline VectorBase<N> VectorBase<N>::DotV(const VectorBase& lhs, const VectorBase& rhs)
+    {
+        return lhs.DotV(rhs);
+    }
+
+    template <int N>
+    inline VectorBase<N> VectorBase<N>::Cross(const VectorBase& rhs) const
+    {
+        static_assert(N == 3, "Cross product can be used in Vector3 only.");
+
+        VectorBase<3> res;
+        res.mData[0] = mData[1] * rhs.mData[2] - mData[2] * rhs.mData[1];
+        res.mData[1] = mData[2] * rhs.mData[0] - mData[0] * rhs.mData[2];
+        res.mData[2] = mData[0] * rhs.mData[1] - mData[1] * rhs.mData[0];
+
+        return res;
+    }
+
+    template <int N>
+    inline VectorBase<N> VectorBase<N>::Cross(const VectorBase& lhs, const VectorBase& rhs)
+    {
+        return lhs.Cross(rhs);
+    }
+
+    template <int N>
+    inline VectorBase<N> operator*(float lhs, const VectorBase<N>& rhs)
+    {
+        VectorBase res(rhs);
+        res *= lhs;
+
+        return res;
+    }
+
+    template <int N>
+    inline VectorBase<N> operator/(float lhs, const VectorBase<N>& rhs)
+    {
+        VectorBase<N> res(lhs);
+        res /= rhs;
+
+        return res;
     }
 } // namespace cube

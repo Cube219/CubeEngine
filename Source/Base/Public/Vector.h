@@ -2,24 +2,24 @@
 
 #include "fmt/format.h"
 
-#include "CubeString.h"
 #include "Format.h"
 
 #ifndef CUBE_VECTOR_USE_SSE
 #define CUBE_VECTOR_USE_SSE 1
 #endif
 
-
 #if CUBE_VECTOR_USE_SSE
 #include <xmmintrin.h>
 namespace cube
 {
+    template <int N>
     using VectorData = __m128;
 } // namespace cube
 #else
 namespace cube
 {
-    using VectorData = float[4];
+    template <int N>
+    using VectorData = float[N];
 } // namespace cube
 #endif
 
@@ -46,157 +46,103 @@ namespace cube
         float w;
     };
 
-    class VectorBase;
-    class Vector2;
-    class Vector3;
-    class Vector4;
-    class Matrix;
-    class MatrixUtility;
-    VectorBase operator*(const Vector4& lhs, const Matrix& rhs);
-
+    template <int N>
     class VectorBase
     {
+        static_assert(2 <= N && N <= 4, "Only 2, 3 and 4 dimension can be used.");
+
     public:
         static VectorBase Zero();
+    
+        VectorBase() = default;
+        ~VectorBase() = default;
 
-        VectorBase();
-        ~VectorBase();
+        explicit VectorBase(float v);
+        VectorBase(float x, float y);
+        VectorBase(float x, float y, float z);
+        VectorBase(float x, float y, float z, float w);
 
-        // void Swap(VectorBase& other); // TODO
+        VectorBase(const VectorBase& other);
+        template <int M>
+        explicit VectorBase(const VectorBase<M>& other);
 
-        VectorBase& operator= (const VectorBase& rhs);
-
+        VectorBase& operator=(const VectorBase& rhs);
+        template <int M>
+        VectorBase& operator= (const VectorBase<M>& rhs);
         VectorBase& operator= (float rhs);
-
-        bool operator== (const VectorBase& rhs) const; // TODO: 개별 Vector구현으로
-
-        bool operator!= (const VectorBase& rhs) const; // TODO: 개별 Vector구현으로
-
-        VectorBase operator+ (const VectorBase& rhs) const;
-        VectorBase operator- (const VectorBase& rhs) const;
+    
+        bool operator== (const VectorBase& rhs) const;
+        bool operator!= (const VectorBase& rhs) const;
+    
+        template <int M>
+        VectorBase<std::max(N, M)> operator+(const VectorBase<M>& rhs) const;
+        template <int M>
+        VectorBase<std::max(N, M)> operator-(const VectorBase<M>& rhs) const;
         VectorBase operator* (float rhs) const;
-        VectorBase operator* (const VectorBase& rhs) const;
+        template <int M>
+        VectorBase<std::max(N, M)> operator*(const VectorBase<M>& rhs) const;
         VectorBase operator/ (float rhs) const;
-        VectorBase operator/ (const VectorBase& rhs) const;
-
+        template <int M>
+        VectorBase<std::max(N, M)> operator/(const VectorBase<M>& rhs) const;
+    
         const VectorBase& operator+() const;
         VectorBase operator-() const;
-
-        VectorBase& operator+= (const VectorBase& rhs);
-        VectorBase& operator-= (const VectorBase& rhs);
+    
+        template <int M>
+        VectorBase& operator+=(const VectorBase<M>& rhs);
+        template <int M>
+        VectorBase& operator-=(const VectorBase<M>& rhs);
         VectorBase& operator*= (float rhs);
-        VectorBase& operator*= (const VectorBase& rhs);
+        template <int M>
+        VectorBase& operator*=(const VectorBase<M>& rhs);
         VectorBase& operator/= (float rhs);
-        VectorBase& operator/= (const VectorBase& rhs);
+        template <int M>
+        VectorBase& operator/=(const VectorBase<M>& rhs);
 
-    protected:
-        friend class Vector2;
-        friend class Vector3;
-        friend class Vector4;
-        friend class Matrix;
-        friend class MatrixUtility;
-
-        explicit VectorBase(float x, float y, float z, float w);
-
-        VectorData mData;
-
-        friend VectorBase operator* (float lhs, const VectorBase& rhs);
-        friend VectorBase operator/ (float lhs, const VectorBase& rhs);
-        friend VectorBase operator* (const Vector4& lhs, const Matrix& rhs);
-    };
-
-    VectorBase operator* (float lhs, const VectorBase& rhs);
-    VectorBase operator/ (float lhs, const VectorBase& rhs);
-
-    class Vector2 : public VectorBase
-    {
-    public:
-        Vector2();
-        Vector2(float x, float y);
-
-        Vector2(const VectorBase& vec);
-        Vector2& operator=(const VectorBase& vec);
-
-        operator Vector3() const;
-        operator Vector4() const;
+        void Swap(VectorBase& other);
+        static void Swap(VectorBase& lhs, VectorBase& rhs);
 
         Float2 GetFloat2() const;
-
-        VectorBase Length() const;
-        VectorBase SquareLength() const;
-
-        VectorBase Dot(const Vector2& rhs) const;
-        static VectorBase Dot(const Vector2& lhs, const Vector2& rhs);
-
-        void Normalize();
-        VectorBase Normalized() const;
-
-    private:
-        friend class Vector3;
-        friend class Vector4;
-        Vector2(const VectorData vData);
-    };
-
-    class Vector3 : public VectorBase
-    {
-    public:
-        Vector3();
-        Vector3(float x, float y, float z);
-
-        Vector3(const VectorBase& vec);
-        Vector3& operator=(const VectorBase& vec);
-
-        operator Vector2() const;
-        operator Vector4() const;
-
         Float3 GetFloat3() const;
-
-        VectorBase Length() const;
-        VectorBase SquareLength() const;
-
-        VectorBase Dot(const Vector3& rhs) const;
-        static VectorBase Dot(const Vector3& lhs, const Vector3& rhs);
-
-        void Normalize();
-        VectorBase Normalized() const;
-
-        VectorBase Cross(const Vector3& rhs) const;
-        static VectorBase Cross(const Vector3& lhs, const Vector3& rhs);
-
-    private:
-        friend class Vector2;
-        friend class Vector4;
-        Vector3(const VectorData vData);
-    };
-
-    class Vector4 : public VectorBase
-    {
-    public:
-        Vector4();
-        Vector4(float x, float y, float z, float w);
-
-        Vector4(const VectorBase& vec);
-        Vector4& operator=(const VectorBase& vec);
-
-        operator Vector2() const;
-        operator Vector3() const;
-
         Float4 GetFloat4() const;
 
-        VectorBase Length() const;
-        VectorBase SquareLength() const;
-
-        VectorBase Dot(const Vector4& rhs) const;
-        static VectorBase Dot(const Vector4& lhs, const Vector4& rhs);
+        float Length() const;
+        float SquareLength() const;
+        VectorBase LengthV() const;
+        VectorBase SquareLengthV() const;
 
         void Normalize();
-        VectorBase Normalized() const;
+        VectorBase Normalized();
 
+        float Dot(const VectorBase& rhs) const;
+        static float Dot(const VectorBase& lhs, const VectorBase& rhs);
+        VectorBase DotV(const VectorBase& rhs) const;
+        static VectorBase DotV(const VectorBase& lhs, const VectorBase& rhs);
+
+        VectorBase Cross(const VectorBase& rhs) const;
+        static VectorBase Cross(const VectorBase& lhs, const VectorBase& rhs);
+    
     private:
-        friend class Vector2;
-        friend class Vector3;
-        Vector4(const VectorData vData);
+        template <int M>
+        friend class VectorBase;
+        friend class Matrix;
+        friend class MatrixUtility;
+    
+        VectorData<N> mData;
+    
+        friend VectorBase operator* (float lhs, const VectorBase& rhs);
+        friend VectorBase operator/ (float lhs, const VectorBase& rhs);
+        friend VectorBase<4> operator* (const VectorBase<4>& lhs, const Matrix& rhs);
     };
+
+    template <int N>
+    VectorBase<N> operator* (float lhs, const VectorBase<N>& rhs);
+    template <int N>
+    VectorBase<N> operator/ (float lhs, const VectorBase<N>& rhs);
+
+    using Vector2 = VectorBase<2>;
+    using Vector3 = VectorBase<3>;
+    using Vector4 = VectorBase<4>;
 } // namespace cube
 
 namespace fmt

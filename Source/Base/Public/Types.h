@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <limits>
 
 using Int8 = int8_t;
 using Int16 = int16_t;
@@ -17,6 +18,9 @@ using Uint64 = uint64_t;
 static constexpr Uint64 Uint64InvalidValue = (Uint64)(-1);
 
 using SizeType = size_t;
+
+constexpr float FLOAT_EPS = std::numeric_limits<float>::epsilon();
+constexpr double DOUBLE_EPS = std::numeric_limits<double>::epsilon();
 
 // After Visual Studio 15.8, to use extended alignment, you should define it.
 // This will occur when you make shared_ptr with the type of alignment over alignof(max_align_t) using std::make_shared
