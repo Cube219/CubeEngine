@@ -46,7 +46,6 @@ namespace cube
 
         DX12CommandList::~DX12CommandList()
         {
-            // TODO: Check state?
             mCommandList = nullptr;
         }
 

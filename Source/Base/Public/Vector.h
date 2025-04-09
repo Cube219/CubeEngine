@@ -2,8 +2,11 @@
 
 #include "fmt/format.h"
 
+#include "CubeString.h"
+#include "Format.h"
+
 #ifndef CUBE_VECTOR_USE_SSE
-#define CUBE_VECTOR_USE_SSE 0 // TODO
+#define CUBE_VECTOR_USE_SSE 1
 #endif
 
 
@@ -43,8 +46,9 @@ namespace cube
         float w;
     };
 
-    // Forward declarations
     class VectorBase;
+    class Vector2;
+    class Vector3;
     class Vector4;
     class Matrix;
     class MatrixUtility;
@@ -58,7 +62,7 @@ namespace cube
         VectorBase();
         ~VectorBase();
 
-        //void Swap(Vector& other); // TODO: 구현하기
+        // void Swap(VectorBase& other); // TODO
 
         VectorBase& operator= (const VectorBase& rhs);
 
@@ -197,86 +201,70 @@ namespace cube
 
 namespace fmt
 {
+    using namespace cube;
+
     // Float formatting
-    template <>
-    struct formatter<cube::Float2>
+    template <typename Char>
+    struct formatter<Float2, Char> : cube_formatter<Char>
     {
-        template <typename ParseContext>
-        constexpr auto parse(ParseContext& ctx) { return ctx.begin(); }
-
         template <typename FormatContext>
-        auto format(const cube::Float2& f2, FormatContext& ctx)
+        auto format(const Float2& f2, FormatContext& ctx) const
         {
-            return format_to(ctx.begin(), "({:.3f}, {:.3f})", f2.x, f2.y);
+            return cube_formatter<Char>::cube_format(ctx, CUBE_T("({:.3f}, {:.3f})"), f2.x, f2.y);
         }
     };
 
-    template <>
-    struct formatter<cube::Float3>
+    template <typename Char>
+    struct formatter<Float3, Char> : cube_formatter<Char>
     {
-        template <typename ParseContext>
-        constexpr auto parse(ParseContext& ctx) { return ctx.begin(); }
-
         template <typename FormatContext>
-        auto format(const cube::Float3& f3, FormatContext& ctx)
+        auto format(const Float3& f3, FormatContext& ctx) const
         {
-            return format_to(ctx.begin(), "({:.3f}, {:.3f}, {:3.f})", f3.x, f3.y, f3.z);
+            return cube_formatter<Char>::cube_format(ctx, CUBE_T("({:.3f}, {:.3f}, {:.3f})"), f3.x, f3.y, f3.z);
         }
     };
 
-    template <>
-    struct formatter<cube::Float4>
+    template <typename Char>
+    struct formatter<Float4, Char> : cube_formatter<Char>
     {
-        template <typename ParseContext>
-        constexpr auto parse(ParseContext& ctx) { return ctx.begin(); }
-
         template <typename FormatContext>
-        auto format(const cube::Float4& f4, FormatContext& ctx)
+        auto format(const Float4& f4, FormatContext& ctx) const
         {
-            return format_to(ctx.begin(), "({:.3f}, {:.3f}, {:.3f}, {:.3f})", f4.x, f4.y, f4.z, f4.w);
+            return cube_formatter<Char>::cube_format(ctx, CUBE_T("({:.3f}, {:.3f}, {:.3f}, {:.3f})"), f4.x, f4.y, f4.z, f4.w);
         }
     };
 
     // Vector formatting
-    template <>
-    struct formatter<cube::Vector2>
+    template <typename Char>
+    struct formatter<Vector2, Char> : cube_formatter<Char>
     {
-        template <typename ParseContext>
-        constexpr auto parse(ParseContext& ctx) { return ctx.begin(); }
-
         template <typename FormatContext>
-        auto format(const cube::Vector2& v2, FormatContext& ctx)
+        auto format(const Vector2& v2, FormatContext& ctx) const
         {
-            cube::Float2 f2 = v2.GetFloat2();
-            return format_to(ctx.begin(), "({:.3f}, {:.3f})", f2.x, f2.y);
+            Float2 f2 = v2.GetFloat2();
+            return cube_formatter<Char>::cube_format(ctx, CUBE_T("({:.3f}, {:.3f})"), f2.x, f2.y);
         }
     };
 
-    template <>
-    struct formatter<cube::Vector3>
+    template <typename Char>
+    struct formatter<Vector3, Char> : cube_formatter<Char>
     {
-        template <typename ParseContext>
-        constexpr auto parse(ParseContext& ctx) { return ctx.begin(); }
-
         template <typename FormatContext>
-        auto format(const cube::Vector3& v3, FormatContext& ctx)
+        auto format(const Vector3& v3, FormatContext& ctx) const
         {
-            cube::Float3 f3 = v3.GetFloat3();
-            return format_to(ctx.begin(), "({:.3f}, {:.3f}, {:3.f})", f3.x, f3.y, f3.z);
+            Float3 f3 = v3.GetFloat3();
+            return cube_formatter<Char>::cube_format(ctx, CUBE_T("({:.3f}, {:.3f}, {:.3f})"), f3.x, f3.y, f3.z);
         }
     };
 
-    template <>
-    struct formatter<cube::Vector4>
+    template <typename Char>
+    struct formatter<Vector4, Char> : cube_formatter<Char>
     {
-        template <typename ParseContext>
-        constexpr auto parse(ParseContext& ctx) { return ctx.begin(); }
-
         template <typename FormatContext>
-        auto format(const cube::Vector4& v4, FormatContext& ctx)
+        auto format(const Vector4& v4, FormatContext& ctx) const
         {
-            cube::Float4 f4 = v4.GetFloat4();
-            return format_to(ctx.begin(), "({:.3f}, {:.3f}, {:.3f}, {:.3f})", f4.x, f4.y, f4.z, f4.w);
+            Float4 f4 = v4.GetFloat4();
+            return cube_formatter<Char>::cube_format(ctx, CUBE_T("({:.3f}, {:.3f}, {:.3f}, {:.3f})"), f4.x, f4.y, f4.z, f4.w);
         }
     };
 } // namespace fmt

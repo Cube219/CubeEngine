@@ -363,7 +363,7 @@ namespace cube
 
         VectorData temp;
         // temp = z / z / 0 / 0
-        temp = _mm_shuffle_ps(zero, mData, _MM_SHUFFLE(0, 0, 2, 2));
+        temp = _mm_shuffle_ps(mData, zero, _MM_SHUFFLE(0, 0, 2, 2));
         // v4.mData = x / y / z / 0
         v4.mData = _mm_shuffle_ps(mData, temp, _MM_SHUFFLE(2, 0, 1, 0));
 

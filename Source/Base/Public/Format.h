@@ -13,10 +13,10 @@ namespace cube
     {
         namespace internal
         {
-            void* Allocate(size_t n);
-            void* Allocate(size_t n, size_t alignment);
+            void* AllocateFormat(size_t n);
+            void* AllocateFormat(size_t n, size_t alignment);
 
-            void DiscardAllocations();
+            void DiscardFormatAllocations();
         } // namespace internal
     } // namespace format
 
@@ -32,7 +32,7 @@ namespace cube
 
         T* allocate(size_t n)
         {
-            return (T*)format::internal::Allocate(sizeof(T) * n, alignof(T));
+            return (T*)format::internal::AllocateFormat(sizeof(T) * n, alignof(T));
         }
 
         void deallocate(T* p, size_t n)
@@ -40,71 +40,77 @@ namespace cube
             // Do nothing
         }
     };
-
     template <typename Char>
     using FormatString = std::basic_string<Char, std::char_traits<Char>, FormatAllocator<Char>>;
 
-    // ----- Convert different string types -----
-#define IS_SAME_STR_TYPE(DstChar, SrcType) (std::is_same<DstChar, typename decltype(fmt::detail::to_string_view(std::declval<SrcType>()))::value_type>::value)
-    // Not a string
-    template <typename DstChar, typename SrcType>
-    inline typename std::enable_if<
-        !fmt::detail::has_to_string_view<SrcType>::value, const SrcType&>::type
-    convert_to_string(const SrcType& value)
+    namespace format
     {
-        return value;
-    }
+        namespace internal
+        {
+            // ----- Convert different string types -----
+#define CUBE_IS_SAME_STR_TYPE(DstChar, SrcType) (std::is_same<DstChar, typename decltype(fmt::detail::to_string_view(std::declval<SrcType>()))::value_type>::value)
+            // Not string type
+            template <typename DstChar, typename SrcType>
+            inline typename std::enable_if<
+                !fmt::detail::has_to_string_view<SrcType>::value, const SrcType&>::type
+            ConvertIfStringTypeIsDifferent(const SrcType& value)
+            {
+                return value;
+            }
 
-    // Same string type
-    template <typename DstChar, typename SrcType>
-    inline typename std::enable_if<
-        fmt::detail::has_to_string_view<SrcType>::value &&
-        IS_SAME_STR_TYPE(DstChar, SrcType), const SrcType&>::type
-    convert_to_string(const SrcType& value)
-    {
-        return value;
-    }
+            // Same string type
+            template <typename DstChar, typename SrcType>
+            inline typename std::enable_if<
+                fmt::detail::has_to_string_view<SrcType>::value &&
+                CUBE_IS_SAME_STR_TYPE(DstChar, SrcType), const SrcType&>::type
+            ConvertIfStringTypeIsDifferent(const SrcType& value)
+            {
+                return value;
+            }
 
-    // Different string type
-    template <typename DstChar, typename SrcType>
-    inline typename std::enable_if<
-        fmt::detail::has_to_string_view<SrcType>::value &&
-        !IS_SAME_STR_TYPE(DstChar, SrcType), fmt::basic_string_view<DstChar>>::type
-    convert_to_string(const SrcType& value)
-    {
-        // temp string will be deallocated when format::internal::DiscardAllocations() is called.
-        // (At the end of formatting)
-        void* tempMem = format::internal::Allocate(sizeof(FormatString<DstChar>));
-        FormatString<DstChar>* temp = new(tempMem) FormatString<DstChar>;
+            // Different string type
+            template <typename DstChar, typename SrcType>
+            inline typename std::enable_if<
+                fmt::detail::has_to_string_view<SrcType>::value &&
+                !CUBE_IS_SAME_STR_TYPE(DstChar, SrcType), fmt::basic_string_view<DstChar>>::type
+            ConvertIfStringTypeIsDifferent(const SrcType& value)
+            {
+                // temp string will be deallocated when DiscardFormatAllocations() is called.
+                // (At the end of formatting)
+                void* tempMem = AllocateFormat(sizeof(FormatString<DstChar>));
+                FormatString<DstChar>* temp = new(tempMem) FormatString<DstChar>;
 
-        String_ConvertAndAppend(*temp, fmt::detail::to_string_view(value));
+                String_ConvertAndAppend(*temp, fmt::detail::to_string_view(value));
 
-        fmt::basic_string_view<DstChar> view(temp->data(), temp->size());
-        return view;
-    }
-#undef IS_SAME_STR_TYPE
+                fmt::basic_string_view<DstChar> view(temp->data(), temp->size());
+                return view;
+            }
+#undef CUBE_IS_SAME_STR_TYPE
 
-    // ----- Custom format functions -----
-    template <typename Char>
-    using custom_memory_buffer = fmt::basic_memory_buffer<Char, fmt::inline_buffer_size, FormatAllocator<Char>>;
+            // ----- Custom format functions -----
+            template <typename Char>
+            using custom_memory_buffer = fmt::basic_memory_buffer<Char, fmt::inline_buffer_size, FormatAllocator<Char>>;
 
-    // fmt::vformat that support custom character and allocator
-    template <typename Char, typename StringAllocator, typename... Args>
-    inline std::basic_string<Char, std::char_traits<Char>, StringAllocator> cube_vformat(
-        fmt::basic_string_view<Char> format_str,
-        const Args&... args)
-    {
-        auto buffer = custom_memory_buffer<Char>();
-        fmt::detail::vformat_to(buffer, format_str, fmt::make_format_args<fmt::buffered_context<Char>>(args...));
+            // fmt::vformat that support custom character and allocator
+            template <typename Char, typename StringAllocator, typename... Args>
+            inline std::basic_string<Char, std::char_traits<Char>, StringAllocator> cube_vformat(
+                fmt::basic_string_view<Char> format_str,
+                const Args&... args)
+            {
+                auto buffer = custom_memory_buffer<Char>();
+                fmt::detail::vformat_to(buffer, format_str, fmt::make_format_args<fmt::buffered_context<Char>>(args...));
 
-        std::basic_string<Char, std::char_traits<Char>, StringAllocator> res(buffer.data(), buffer.size());
+                std::basic_string<Char, std::char_traits<Char>, StringAllocator> res(buffer.data(), buffer.size());
 
-        format::internal::DiscardAllocations();
+                DiscardFormatAllocations();
 
-        return res;
-    }
+                return res;
+            }
+        } // namespace internal
+    } // namespace format
 
-    template <typename OutputString = cube::String, typename... Args>
+    // ----- Format that can use in various characters -----
+    template <typename OutputString = String, typename... Args>
     inline OutputString Format(
         std::basic_string_view<typename OutputString::value_type> formatStr,
         const Args&... args)
@@ -112,6 +118,24 @@ namespace cube
         using Char = typename OutputString::value_type;
         using Allocator = typename OutputString::allocator_type;
 
-        return cube_vformat<Char, Allocator>(fmt::basic_string_view(formatStr.data(), formatStr.size()), convert_to_string<Char>(args)...);
+        return format::internal::cube_vformat<Char, Allocator>(fmt::basic_string_view(formatStr.data(), formatStr.size()), format::internal::ConvertIfStringTypeIsDifferent<Char>(args)...);
     }
+
+    // ----- Custom formatter that can use in various characters -----
+    template <typename Char>
+    struct cube_formatter
+    {
+        template <typename ParseContext>
+        constexpr auto parse(ParseContext& ctx) { return ctx.begin(); }
+
+        template <typename FormatContext, typename... Args>
+        auto cube_format(FormatContext& ctx, StringView fmt, const Args&... args) const
+        {
+            auto&& buf = fmt::detail::get_buffer<Char>(ctx.out());
+            auto fmtStr = format::internal::ConvertIfStringTypeIsDifferent<Char>(fmt);
+            fmt::detail::vformat_to<Char>(buf, fmtStr, fmt::make_format_args<FormatContext>(format::internal::ConvertIfStringTypeIsDifferent<Char>(args)...), {});
+
+            return fmt::detail::get_iterator(buf, ctx.out());
+        }
+    };
 } // namespace cube

@@ -4,6 +4,10 @@
 
 #include "CubeString.h"
 
+#ifndef CUBE_FRAME_ALLOCATOR_TRACK_ALLOCATION
+#define CUBE_FRAME_ALLOCATOR_TRACK_ALLOCATION _DEBUG
+#endif
+
 namespace cube
 {
     class FrameAllocator;
@@ -83,7 +87,7 @@ namespace cube
 
         Vector<MemoryBlock> mAdditionalMemBlocks;
 
-#ifdef _DEBUG
+#ifdef CUBE_FRAME_ALLOCATOR_TRACK_ALLOCATION
         Uint64 mAllocatedSize = 0;
         const char* mDebugName;
 #endif // _DEBUG
@@ -109,12 +113,7 @@ namespace cube
 
             T* allocate(size_t n, int flags = 0)
             {
-                return (T*)mpAllocator->Allocate(sizeof(T) * n);
-            }
-
-            T* allocate(size_t n, size_t alignment, size_t offset, int flags = 0)
-            {
-                return (T*)mpAllocator->AllocateAligned(sizeof(T) * n, alignment);
+                return (T*)mpAllocator->AllocateAligned(sizeof(T) * n, alignof(T));
             }
 
             void deallocate(void* p, size_t n)
