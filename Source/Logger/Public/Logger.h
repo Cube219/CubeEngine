@@ -19,7 +19,7 @@ namespace cube
     public:
         virtual ~ILoggerExtension() = default;
 
-        virtual void WriteFormattedLog(StringView formattedLog) = 0;
+        virtual void WriteFormattedLog(LogType type, StringView formattedLog) = 0;
     };
 
     // TODO: Thread-safe logging/allocation system (Using queue?)

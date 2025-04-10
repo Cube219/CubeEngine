@@ -34,9 +34,23 @@ namespace cube
     class EngineLoggerExtension : public ILoggerExtension
     {
     public:
-        void WriteFormattedLog(StringView formattedLog) override
+        void WriteFormattedLog(LogType logType, StringView formattedLog) override
         {
-            platform::PlatformDebug::PrintToDebugConsole(formattedLog);
+            platform::PrintColorCategory colorCategory;
+            switch (logType)
+            {
+            case LogType::Warning:
+                colorCategory = platform::PrintColorCategory::Warning;
+                break;
+            case LogType::Error:
+                colorCategory = platform::PrintColorCategory::Error;
+                break;
+            case LogType::Info:
+            default:
+                colorCategory = platform::PrintColorCategory::Default;
+                break;
+            }
+            platform::PlatformDebug::PrintToDebugConsole(formattedLog, colorCategory);
         }
     };
 

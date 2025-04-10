@@ -56,7 +56,7 @@ namespace cube
 
         for (auto& extension : mExtensions)
         {
-            extension->WriteFormattedLog(res);
+            extension->WriteFormattedLog(type, res);
         }
     }
 } // namespace cube

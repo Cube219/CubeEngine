@@ -5,7 +5,21 @@
 #include "PlatformHeader.h"
 #include "PlatformDebug.h"
 
+#include <AppKit/AppKit.h>
+
 #include "MacOSString.h"
+
+@interface CubeLoggerWindow : NSWindow
+
+@end
+
+@interface CubeLoggerTextView : NSTextView
+
+@end
+
+@interface CubeLoggerWindowDelegate : NSObject <NSWindowDelegate>
+
+@end
 
 namespace cube
 {
@@ -14,7 +28,7 @@ namespace cube
         class MacOSDebug : public PlatformDebug
         {
         public:
-            static void PrintToDebugConsoleImpl(StringView str);
+            static void PrintToDebugConsoleImpl(StringView str, PrintColorCategory colorCategory);
 
             static void ProcessFatalErrorImpl(StringView msg);
 
@@ -24,6 +38,18 @@ namespace cube
 
             static bool IsDebuggerAttachedImpl();
             static void BreakDebugImpl();
+
+            static bool IsLoggerWindowCreated() { return mIsLoggerWindowCreated; }
+            static void CreateAndShowLoggerWindow();
+            static void AppendLogText(NSString* text, PrintColorCategory colorCategory);
+            static void CloseAndDestroyLoggerWindow();
+
+        private:
+            static CubeLoggerWindow* mLoggerWindow;
+            static CubeLoggerWindowDelegate* mLoggerWindowDelegaate;
+            static CubeLoggerTextView* mLoggerTextView;
+
+            static bool mIsLoggerWindowCreated;
         };
     } // namespace platform
 } // namespace cube

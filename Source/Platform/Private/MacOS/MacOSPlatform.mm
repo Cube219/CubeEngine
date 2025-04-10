@@ -5,7 +5,9 @@
 #include <unistd.h>
 
 #include "Checker.h"
+#include "MacOS/MacOSDebug.h"
 #include "MacOS/MacOSString.h"
+#include "MacOS/MacOSUtility.h"
 
 @implementation CubeAppDelegate
 
@@ -16,10 +18,23 @@
 - (void) applicationWillTerminate:(NSNotification* ) notification
 {
     cube::platform::Platform::GetClosingEvent().Dispatch();
+    cube::platform::MacOSDebug::CloseAndDestroyLoggerWindow();
+    cube::platform::MacOSPlatform::Cleanup();
 }
 
 - (BOOL) applicationShouldTerminateAfterLastWindowClosed:(NSApplication* ) sender
 {
+    return YES;
+}
+
+@end
+
+@implementation CubeWindowDelegate
+
+- (BOOL)windowShouldClose:(NSWindow* ) sender
+{
+    cube::platform::Platform::GetClosingEvent().Dispatch();
+    
     return YES;
 }
 
@@ -43,9 +58,10 @@ namespace cube
         
         PLATFORM_CLASS_DEFINITIONS(MacOSPlatform)
 
+        bool MacOSPlatform::mIsApplicationClosed = false;
         NSWindow* MacOSPlatform::mWindow;
-        CubeAppDelegate* MacOSPlatform::mDelegate;
-        NSTask* MacOSPlatform::mDebugConsoleTerminalTask;
+        CubeAppDelegate* MacOSPlatform::mAppDelegate;
+        CubeWindowDelegate* MacOSPlatform::mWindowDelegate;
 
         std::thread MacOSPlatform::mMainLoopThread;
         bool MacOSPlatform::mIsFinished = false;
@@ -54,33 +70,43 @@ namespace cube
         {
             [NSApplication sharedApplication];
 
-            mDelegate = [[CubeAppDelegate alloc] init];
-            [NSApp setDelegate:mDelegate];
+            mAppDelegate = [[CubeAppDelegate alloc] init];
+            [NSApp setDelegate:mAppDelegate];
 
             [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
 
-#if CUBE_DEBUG
-            mDebugConsoleTerminalTask = [[NSTask alloc] init];
-            mDebugConsoleTerminalTask.launchPath = @"/bin/sh";
-            mDebugConsoleTerminalTask.arguments = @[@"-c"];
-            [mDebugConsoleTerminalTask launch];
-#endif
-
             CreateMainMenu();
+            
+#if CUBE_DEBUG
+            MacOSDebug::CreateAndShowLoggerWindow();
+#endif
         }
 
         void MacOSPlatform::ShutdownImpl()
         {
-            [mDebugConsoleTerminalTask release];
-            [mDelegate release];
+            mIsApplicationClosed = true;
+            if (MacOSDebug::IsLoggerWindowCreated())
+            {
+                MacOSUtility::DispatchToMainThread([] {
+                    MacOSDebug::AppendLogText(@"Press any key to close the application...", PrintColorCategory::Default);
+                });
+            }
+            // Not run clean up logic at this. It runs in termination and termination will be executed when all window are closed.
         }
 
         void MacOSPlatform::InitWindowImpl(StringView title, Uint32 width, Uint32 height, Uint32 posX, Uint32 posY)
         {
+            CHECK_MAIN_THREAD()
+            
             NSUInteger style = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable;
 
+            // Unlike Windows, y position starts at the bottom of screen.
+            // So, flip it for consistency.
+            NSRect screenFrame = [[NSScreen mainScreen] frame];
+            posY = NSMaxY(screenFrame) - height - posY;
+            
             mWindow = [[NSWindow alloc]
-                initWithContentRect:NSMakeRect(width, height, width, height)
+                initWithContentRect:NSMakeRect(posX, posY, width, height)
                 styleMask:style
                 backing:NSBackingStoreBuffered
                 defer:NO
@@ -89,10 +115,15 @@ namespace cube
             U8String u8Title;
             String_ConvertAndAppend(u8Title, title);
             [mWindow setTitle:[NSString stringWithUTF8String:u8Title.c_str()]];
+
+            mWindowDelegate = [[CubeWindowDelegate alloc] init];
+            [mWindow setDelegate:mWindowDelegate];
         }
 
         void MacOSPlatform::ShowWindowImpl()
         {
+            CHECK_MAIN_THREAD()
+
             [mWindow makeKeyAndOrderFront:nil];
         }
 
@@ -190,16 +221,38 @@ namespace cube
             return nullptr;
         }
 
+        bool MacOSPlatform::IsMainWindowCreated()
+        {
+            return mWindow != nullptr;
+        }
+        
+        void MacOSPlatform::CloseMainWindow()
+        {
+            [mWindow close];
+        }
+
+        void MacOSPlatform::Cleanup()
+        {
+            [mWindowDelegate release];
+            [mWindow release];
+
+            [mAppDelegate release];
+        }
+
         void MacOSPlatform::CreateMainMenu()
-        { @autoreleasepool {
-            NSMenu* mainMenu = [[NSMenu alloc] init];
-            [NSApp setMainMenu:mainMenu];
+        {
+            CHECK_MAIN_THREAD()
 
-            NSMenuItem* menuItem = [[NSMenuItem alloc] initWithTitle:@"" action:nil keyEquivalent:@""];
-            [[NSApp mainMenu] addItem:menuItem];
+            @autoreleasepool {
+                NSMenu* mainMenu = [[NSMenu alloc] init];
+                [NSApp setMainMenu:mainMenu];
 
-            // TODO
-        }}
+                NSMenuItem* menuItem = [[NSMenuItem alloc] initWithTitle:@"" action:nil keyEquivalent:@""];
+                [[NSApp mainMenu] addItem:menuItem];
+
+                // TODO
+            }
+        }
 
         void MacOSPlatform::MainLoop()
         {

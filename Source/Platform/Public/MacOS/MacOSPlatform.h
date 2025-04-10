@@ -5,12 +5,16 @@
 #include "PlatformHeader.h"
 #include "Platform.h"
 
-#import <Cocoa/Cocoa.h>
+#include <Cocoa/Cocoa.h>
 #include <thread>
 
 #include "MacOSString.h"
 
 @interface CubeAppDelegate : NSObject <NSApplicationDelegate>
+
+@end
+
+@interface CubeWindowDelegate : NSObject <NSWindowDelegate>
 
 @end
 
@@ -48,15 +52,20 @@ namespace cube
 
             static SharedPtr<DLib> LoadDLibImpl(StringView path);
 
+            static bool IsMainWindowCreated();
+            static void CloseMainWindow();
+
+            static bool IsApplicationClosed() { return mIsApplicationClosed; }
+
+            static void Cleanup();
         private:
             static void CreateMainMenu();
             static void MainLoop();
 
+            static bool mIsApplicationClosed;
             static NSWindow* mWindow;
-            static CubeAppDelegate* mDelegate;
-#if CUBE_DEBUG
-            static NSTask* mDebugConsoleTerminalTask;
-#endif
+            static CubeAppDelegate* mAppDelegate;
+            static CubeWindowDelegate* mWindowDelegate;
 
             static std::thread mMainLoopThread;
             static bool mIsFinished;

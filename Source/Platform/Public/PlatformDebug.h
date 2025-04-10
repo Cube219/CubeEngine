@@ -8,10 +8,17 @@ namespace cube
 {
     namespace platform
     {
+        enum class PrintColorCategory
+        {
+            Default,
+            Warning,
+            Error
+        };
+
         class CUBE_PLATFORM_EXPORT PlatformDebug
         {
         public:
-            static void PrintToDebugConsole(StringView str);
+            static void PrintToDebugConsole(StringView str, PrintColorCategory colorCategory = PrintColorCategory::Default);
 
             static void ProcessFatalError(StringView msg);
 
@@ -24,9 +31,9 @@ namespace cube
         };
 
 #define PLATFORM_DEBUG_CLASS_DEFINITIONS(ChildClass) \
-        void PlatformDebug::PrintToDebugConsole(StringView str) \
+        void PlatformDebug::PrintToDebugConsole(StringView str, PrintColorCategory colorCategory) \
         { \
-            ChildClass::PrintToDebugConsoleImpl(str); \
+            ChildClass::PrintToDebugConsoleImpl(str, colorCategory); \
         } \
         \
         void PlatformDebug::ProcessFatalError(StringView msg) \
