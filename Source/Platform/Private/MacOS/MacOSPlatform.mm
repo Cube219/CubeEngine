@@ -2,6 +2,7 @@
 
 #include "MacOS/MacOSPlatform.h"
 
+#include <MacTypes.h>
 #include <unistd.h>
 
 #include "Checker.h"
@@ -11,8 +12,20 @@
 
 @implementation CubeAppDelegate
 
-- (void) applicationDidFinishLaunching:(NSNotification*) notification
+- (void) applicationDidFinishLaunching:(NSNotification* ) notification
 {
+}
+
+- (NSApplicationTerminateReply) applicationShouldTerminate:(NSApplication* ) sender
+{
+    if (cube::platform::MacOSDebug::IsLoggerWindowCreated()
+        && !cube::platform::MacOSPlatform::IsApplicationClosed())
+    {
+        // Prevent termination if the logger window is created to see the logs
+        cube::platform::MacOSPlatform::CloseMainWindow();
+        return NSApplicationTerminateReply::NSTerminateCancel;
+    }
+    return NSApplicationTerminateReply::NSTerminateNow;
 }
 
 - (void) applicationWillTerminate:(NSNotification* ) notification
@@ -31,11 +44,9 @@
 
 @implementation CubeWindowDelegate
 
-- (BOOL)windowShouldClose:(NSWindow* ) sender
+- (void) windowWillClose:(NSNotification* ) notification;
 {
     cube::platform::Platform::GetClosingEvent().Dispatch();
-    
-    return YES;
 }
 
 @end
@@ -244,13 +255,38 @@ namespace cube
             CHECK_MAIN_THREAD()
 
             @autoreleasepool {
+                NSString* title = @"CubeEngine";
+
                 NSMenu* mainMenu = [[NSMenu alloc] init];
                 [NSApp setMainMenu:mainMenu];
 
-                NSMenuItem* menuItem = [[NSMenuItem alloc] initWithTitle:@"" action:nil keyEquivalent:@""];
-                [[NSApp mainMenu] addItem:menuItem];
+                NSMenu *mainSubMenu = [[NSMenu alloc] initWithTitle:@""];
 
-                // TODO
+                [mainSubMenu
+                    addItemWithTitle:[@"Hide " stringByAppendingString:title]
+                    action:@selector(hide:)
+                    keyEquivalent:@"h"
+                ];
+                [[mainSubMenu
+                    addItemWithTitle:@"Hide Others"
+                    action:@selector(hideOtherApplications:)
+                    keyEquivalent:@"h"
+                ] setKeyEquivalentModifierMask:NSEventModifierFlagOption|NSEventModifierFlagCommand];
+                [mainSubMenu
+                    addItemWithTitle:@"Show All"
+                    action:@selector(unhideAllApplications:)
+                    keyEquivalent:@""
+                ];
+                [mainSubMenu addItem:[NSMenuItem separatorItem]];
+                [mainSubMenu
+                    addItemWithTitle:[@"Quit " stringByAppendingString:title]
+                    action:@selector(terminate:)
+                    keyEquivalent:@"q"
+                ];
+
+                NSMenuItem* mainMenuItem = [[NSMenuItem alloc] initWithTitle:@"" action:nil keyEquivalent:@""];
+                [mainMenuItem setSubmenu:mainSubMenu];
+                [[NSApp mainMenu] addItem:mainMenuItem];
             }
         }
 

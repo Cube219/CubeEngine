@@ -5,7 +5,7 @@
 #include "PlatformHeader.h"
 #include "Platform.h"
 
-#include <Cocoa/Cocoa.h>
+#include <AppKit/AppKit.h>
 #include <thread>
 
 #include "MacOSString.h"
