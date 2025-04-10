@@ -7,6 +7,7 @@
 
 #include "Checker.h"
 #include "MacOS/MacOSDebug.h"
+#include "MacOS/MacOSDLib.h"
 #include "MacOS/MacOSString.h"
 #include "MacOS/MacOSUtility.h"
 
@@ -228,8 +229,13 @@ namespace cube
 
         SharedPtr<DLib> MacOSPlatform::LoadDLibImpl(StringView path)
         {
-            NOT_IMPLEMENTED();
-            return nullptr;
+            auto res = std::make_shared<MacOSDLib>(path);
+            if (res->GetHandle() == nullptr)
+            {
+                return nullptr;
+            }
+
+            return res;
         }
 
         bool MacOSPlatform::IsMainWindowCreated()

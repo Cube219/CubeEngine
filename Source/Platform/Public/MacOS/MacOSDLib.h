@@ -16,6 +16,11 @@ namespace cube
             ~MacOSDLib();
 
             void* GetFunctionImpl(StringView name);
+
+            void* GetHandle() const { return mHandle; }
+
+        private:
+            void* mHandle;
         };
     } // namespace platform
 } // namespace cube

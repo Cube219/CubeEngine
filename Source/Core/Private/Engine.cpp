@@ -85,9 +85,9 @@ namespace cube
     Uint64 Engine::mLastTime;
     Uint64 Engine::mCurrentTime;
 
-    void Engine::Initialize(int argc, const char* argv[], bool runShutdownInOnClosingFunc)
+    void Engine::Initialize(const EngineInitializeInfo& initInfo)
     {
-        mRunShutdownInClosingFunc = runShutdownInOnClosingFunc;
+        mRunShutdownInClosingFunc = initInfo.runShutdownInOnClosingFunc;
 
         platform::Platform::Initialize();
 
@@ -128,7 +128,8 @@ namespace cube
         }
 
         // mRenderer = std::make_unique<Renderer>();
-        // mRenderer->Initialize(GAPIName::DX12, mImGUIContext);
+        // CUBE_LOG(LogType::Info, Engine, "Using GAPI {}.", GAPINameToString(initInfo.gapi));
+        // mRenderer->Initialize(initInfo.gapi, mImGUIContext);
 
         // CameraSystem::Initialize();
 

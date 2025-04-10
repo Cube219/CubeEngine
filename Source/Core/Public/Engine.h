@@ -15,7 +15,14 @@ namespace cube
         Engine() = delete;
         ~Engine() = delete;
 
-        CUBE_CORE_EXPORT static void Initialize(int argc, const char* argv[], bool runShutdownInClosingFunc = false);
+        struct EngineInitializeInfo
+        {
+            int argc;
+            const char** argv;
+            GAPIName gapi;
+            bool runShutdownInOnClosingFunc = false;
+        };
+        CUBE_CORE_EXPORT static void Initialize(const EngineInitializeInfo& initInfo);
         CUBE_CORE_EXPORT static void Shutdown();
 
         static Renderer* GetRenderer() { return mRenderer.get(); }

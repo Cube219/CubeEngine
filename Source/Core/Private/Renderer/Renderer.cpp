@@ -30,6 +30,9 @@ namespace cube
         case GAPIName::DX12:
             dLibName = CUBE_T("CE-GAPI_DX12");
             break;
+        case GAPIName::Metal:
+            dLibName = CUBE_T("CE-GAPI_Metal");
+            break;
 
         case GAPIName::Unknown:
         default:
