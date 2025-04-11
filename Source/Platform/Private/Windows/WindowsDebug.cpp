@@ -4,7 +4,9 @@
 #include "Windows/WindowsDebug.h"
 
 #include <Windows.h>
+#include <corecrt_io.h>
 #include <csignal>
+#include <fcntl.h>
 #include <iostream>
 
 #include <DbgHelp.h> // Must be included after Windows.h
@@ -160,6 +162,25 @@ namespace cube
         void WindowsDebug::BreakDebugImpl()
         {
             DebugBreak();
+        }
+
+        void WindowsDebug::CreateAndShowLoggerWindow()
+        {
+            if (AllocConsole())
+            {
+                std::wcout.imbue(std::locale(""));
+
+                SetConsoleOutputCP(CP_WINUNICODE);
+                _setmode(_fileno(stdout), _O_WTEXT);
+
+                FILE* acStreamIn;
+                FILE* acStreamOut;
+                FILE* acStreamErr;
+
+                freopen_s(&acStreamIn, "CONIN$", "rb", stdin);
+                freopen_s(&acStreamOut, "CONOUT$", "wb", stdout);
+                freopen_s(&acStreamErr, "CONOUT$", "wb", stderr);
+            }
         }
 
         void WindowsDebug::ShowDebugMessageBox(const WindowsString& title, const WindowsString& msg)

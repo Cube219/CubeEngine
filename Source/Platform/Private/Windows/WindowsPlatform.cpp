@@ -2,11 +2,11 @@
 
 #include "Windows/WindowsPlatform.h"
 
-#include <fcntl.h>
-#include <io.h>
+#include <conio.h>
 #include <iostream>
 
 #include "Checker.h"
+#include "Windows/WindowsDebug.h"
 #include "Windows/WindowsDLib.h"
 
 namespace cube
@@ -42,23 +42,9 @@ namespace cube
 
         void WindowsPlatform::InitializeImpl()
         {
-            // Show console window in debug mode
+            // Show logger window in debug mode
 #ifdef _DEBUG
-            if (AllocConsole())
-            {
-                std::wcout.imbue(std::locale(""));
-
-                SetConsoleOutputCP(CP_WINUNICODE);
-                _setmode(_fileno(stdout), _O_WTEXT);
-
-                FILE* acStreamIn;
-                FILE* acStreamOut;
-                FILE* acStreamErr;
-
-                freopen_s(&acStreamIn, "CONIN$", "rb", stdin);
-                freopen_s(&acStreamOut, "CONOUT$", "wb", stdout);
-                freopen_s(&acStreamErr, "CONOUT$", "wb", stderr);
-            }
+            WindowsDebug::CreateAndShowLoggerWindow();
 #endif // _DEBUG
         }
 
@@ -67,7 +53,9 @@ namespace cube
 #ifdef _DEBUG
             // Wait console input not to close console immediately
             std::wcout << L"Press any key to close the window..." << std::endl;
-            std::wcin.get();
+
+            FlushConsoleInputBuffer(GetStdHandle(STD_INPUT_HANDLE));
+            _getch();
 #endif
         }
 

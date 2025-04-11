@@ -25,6 +25,8 @@ namespace cube
             static bool IsDebuggerAttachedImpl();
             static void BreakDebugImpl();
 
+            static void CreateAndShowLoggerWindow();
+
         private:
             static void ShowDebugMessageBox(const WindowsString& title, const WindowsString& msg);
         };
