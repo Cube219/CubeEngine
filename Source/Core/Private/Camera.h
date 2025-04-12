@@ -3,6 +3,7 @@
 #include "CoreHeader.h"
 
 #include "Event.h"
+#include "Matrix.h"
 #include "Platform.h"
 #include "Vector.h"
 

@@ -11,7 +11,7 @@ namespace cube
         static Matrix Identity();
 
         Matrix();
-        Matrix(const VectorBase& row1, const VectorBase& row2, const VectorBase& row3, const VectorBase& row4);
+        Matrix(const Vector4& row1, const Vector4& row2, const Vector4& row3, const Vector4& row4);
         Matrix(float v[16]);
         Matrix(float v11, float v12, float v13, float v14,
             float v21, float v22, float v23, float v24,
@@ -22,7 +22,7 @@ namespace cube
 
         Matrix(const Matrix& other);
         Matrix& operator=(const Matrix& rhs);
-        VectorBase& operator[](int i);
+        Vector4& operator[](int i);
 
         Matrix operator+ (const Matrix& rhs) const;
         Matrix operator- (const Matrix& rhs) const;
@@ -36,11 +36,11 @@ namespace cube
         Matrix& operator*= (const Matrix& rhs);
         Matrix& operator/= (float rhs);
 
-        VectorBase GetCol(int index) const;
-        VectorBase GetRow(int index) const;
+        Vector4 GetCol(int index) const;
+        Vector4 GetRow(int index) const;
 
-        void SetCol(int index, const VectorBase& col);
-        void SetRow(int index, const VectorBase& row);
+        void SetCol(int index, const Vector4& col);
+        void SetRow(int index, const Vector4& row);
 
         void Transpose();
         Matrix Transposed() const;
@@ -49,10 +49,10 @@ namespace cube
         Matrix Inversed() const; // TODO: Implement
 
     private:
-        VectorBase mRows[4];
+        Vector4 mRows[4];
 
         friend Matrix operator* (float lhs, const Matrix& rhs);
-        friend VectorBase operator* (const Vector4& lhs, const Matrix& rhs);
+        friend Vector4 operator* (const Vector4& lhs, const Matrix& rhs);
     };
 } // namespace cube
 
@@ -64,4 +64,4 @@ namespace cube
 #include "MatrixImpl/MatrixArray.inl"
 #endif
 
-#endif // !MATRIX_IMPLEMENTATION
+#endif // !CUBE_MATRIX_IMPLEMENTATION

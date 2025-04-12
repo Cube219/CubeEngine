@@ -84,6 +84,9 @@ namespace cube
     Uint64 Engine::mStartTime;
     Uint64 Engine::mLastTime;
     Uint64 Engine::mCurrentTime;
+    float Engine::mCurrentFrameTimeMS;
+    float Engine::mCurrentFPS;
+    float Engine::mCurrentGPUTimeMS;
 
     void Engine::Initialize(const EngineInitializeInfo& initInfo)
     {
@@ -133,7 +136,7 @@ namespace cube
 
         // CameraSystem::Initialize();
 
-        mStartTime = GetNowFrameTime();
+        mStartTime = GetNow();
         mCurrentTime = mStartTime;
 
         CUBE_LOG(LogType::Info, Engine, "Start CubeEngine.");
@@ -171,9 +174,10 @@ namespace cube
         GetMyThreadFrameAllocator().DiscardAllocations();
 
         mLastTime = mCurrentTime;
-        mCurrentTime = GetNowFrameTime();
+        mCurrentTime = GetNow();
 
         const double deltaTimeSec = static_cast<double>(mCurrentTime - mLastTime) / std::nano::den;
+        CalculateFrameTimeAndFPS(deltaTimeSec);
 
         // CameraSystem::OnLoop(deltaTimeSec);
 
@@ -208,11 +212,40 @@ namespace cube
         // if (mImGUIShowDemoWindow)
         //     ImGui::ShowDemoWindow(&mImGUIShowDemoWindow);
 
+        { // Basic stats
+            // static bool showBasicStats = true;
+
+            // ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove;
+
+            // const float PAD = 10.0f;
+            // const ImGuiViewport* viewport = ImGui::GetMainViewport();
+            // ImVec2 work_pos = viewport->WorkPos; // Use work area to avoid menu-bar/task-bar, if any!
+            // ImVec2 work_size = viewport->WorkSize;
+            // ImGui::SetNextWindowPos({ work_pos.x + work_size.x - PAD, work_pos.x + PAD }, ImGuiCond_Always, { 1.0f, 0.0f });
+            // ImGui::SetNextWindowBgAlpha(0.35f);
+            // ImGui::SetNextWindowSize({ 180.0f, 70.0f });
+            // if (ImGui::Begin("Basic Stats", &showBasicStats, flags))
+            // {
+            //     ImGui::Text("FrameTime: %.3f ms", mCurrentFrameTimeMS);
+            //     ImGui::Text("FPS: %.2f ms", mCurrentFPS);
+            //     ImGui::Text("GPU: %.2f ms", mCurrentGPUTimeMS);
+            // }
+            // ImGui::End();
+        }
+
         // CameraSystem::OnLoopImGUI();
     }
 
-    Uint64 Engine::GetNowFrameTime()
+    Uint64 Engine::GetNow()
     {
         return std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count();
+    }
+
+    void Engine::CalculateFrameTimeAndFPS(double deltaTimeSec)
+    {
+        // TODO: Smooth way?
+        mCurrentFrameTimeMS = static_cast<float>(deltaTimeSec * 1000.0f);
+        mCurrentFPS = static_cast<float>(1.0 / deltaTimeSec);
+        // mCurrentGPUTimeMS = mRenderer->GetGPUTimeMS();
     }
 } // namespace cube

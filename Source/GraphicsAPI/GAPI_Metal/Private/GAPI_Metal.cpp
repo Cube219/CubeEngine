@@ -88,4 +88,10 @@ namespace cube
         NOT_IMPLEMENTED();
         return nullptr;
     }
+
+    gapi::TimestampList GAPI_Metal::GetLastTimestampList()
+    {
+        NOT_IMPLEMENTED();
+        return {};
+    }
 } // namespace cube

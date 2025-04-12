@@ -24,6 +24,7 @@ namespace cube
 
             static void InitWindow(StringView title, Uint32 width, Uint32 height, Uint32 posX, Uint32 posY);
             static void ShowWindow();
+            static void ChangeWindowTitle(StringView title);
 
             static void* Allocate(Uint64 size);
             static void Free(void* ptr);
@@ -83,6 +84,7 @@ namespace cube
             ChildClass::InitWindowImpl(title, width, height, posX, posY); \
         } \
         void Platform::ShowWindow() { ChildClass::ShowWindowImpl(); } \
+        void Platform::ChangeWindowTitle(StringView title) { ChildClass::ChangeWindowTitleImpl(title); } \
         \
         void* Platform::Allocate(Uint64 size) { return ChildClass::AllocateImpl(size); } \
         void Platform::Free(void* ptr) { ChildClass::FreeImpl(ptr); } \

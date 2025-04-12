@@ -12,6 +12,7 @@ namespace cube
         Uint32 DecodeCharacterAndMove(const WindowsCharacter*& pStr)
         {
             // Same as UTF16 in CubeString.h
+            return DecodeCharacterAndMove((const U16Character*&)pStr);
             Uint32 res = 0;
 
             WindowsCharacter ch = *pStr;

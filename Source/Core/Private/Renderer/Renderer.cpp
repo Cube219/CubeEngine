@@ -164,6 +164,22 @@ namespace cube
         mIsViewPerspectiveMatrixDirty = true;
     }
 
+    float Renderer::GetGPUTimeMS() const
+    {
+        gapi::TimestampList timestampList = mGAPI->GetLastTimestampList();
+
+        const Vector<gapi::Timestamp>& timestamps = timestampList.timestamps;
+        if (timestamps.size() >= 2)
+        {
+            const Uint64 gpuTime = (timestamps.back().time - timestamps[0].time);
+            return static_cast<float>(static_cast<double>(gpuTime) / static_cast<double>(timestampList.frequency) * 1000.0);
+        }
+        else
+        {
+            return 0.0f;
+        }
+    }
+
     void Renderer::SetGlobalConstantBuffers()
     {
         if (mIsViewPerspectiveMatrixDirty)
@@ -180,6 +196,8 @@ namespace cube
         mCommandList->Reset();
         {
             mCommandList->Begin();
+
+            mCommandList->InsertTimestamp(CUBE_T("Begin"));
 
             mCommandList->SetViewports(1, &mViewport);
             gapi::ScissorRect scissor = {
@@ -230,6 +248,8 @@ namespace cube
             }
 
             mCommandList->ResourceTransition(mViewport, gapi::ResourceStateFlag::RenderTarget, gapi::ResourceStateFlag::Present);
+
+            mCommandList->InsertTimestamp(CUBE_T("End"));
 
             mCommandList->End();
         }

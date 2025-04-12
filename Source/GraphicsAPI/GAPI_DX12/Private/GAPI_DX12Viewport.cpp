@@ -66,11 +66,6 @@ namespace cube
 
         DX12Viewport::~DX12Viewport()
         {
-            // TODO: Implement WaitCPU in QueueManager
-            // mDevice.GetQueueManager().GetMainQueue()->Signal(mFence.Get(), mFenceValues[mCurrentIndex] + 5);
-            // CHECK_HR(mFence->SetEventOnCompletion(mFenceValues[mCurrentIndex] + 5, mFenceEvent));
-            // WaitForSingleObjectEx(mFenceEvent, INFINITE, FALSE);
-
             mFence.Shutdown();
 
             ClearBackbuffers();

@@ -1,8 +1,9 @@
 #pragma once
 
-#include "CubeString.h"
-
 #include "GAPIHeader.h"
+
+#include "CubeString.h"
+#include "GAPI_Timestamp.h"
 
 namespace cube
 {
@@ -91,6 +92,8 @@ namespace cube
         virtual SharedPtr<gapi::Shader> CreateShader(const gapi::ShaderCreateInfo& info) = 0;
         virtual SharedPtr<gapi::ShaderVariablesLayout> CreateShaderVariablesLayout(const gapi::ShaderVariablesLayoutCreateInfo& info) = 0;
         virtual SharedPtr<gapi::Viewport> CreateViewport(const gapi::ViewportCreateInfo& info) = 0;
+
+        virtual gapi::TimestampList GetLastTimestampList() = 0;
 
     protected:
         Info mInfo;

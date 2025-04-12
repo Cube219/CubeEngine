@@ -33,16 +33,15 @@ namespace cube
           0  0  z  0
           0  0  0  1
         */
-        Matrix m;
-        m[0] = Vector4(scaleX, 0.0f, 0.0f, 0.0f);
-        m[1] = Vector4(0.0f, scaleY, 0.0f, 0.0f);
-        m[2] = Vector4(0.0f, 0.0f, scaleZ, 0.0f);
-        m[3] = Vector4(0.0f, 0.0f, 0.0f, 1.0f);
-
-        return m;
+        return Matrix{
+            scaleX, 0.0f, 0.0f, 0.0f,
+            0.0f, scaleY, 0.0f, 0.0f,
+            0.0f, 0.0f, scaleZ, 0.0f,
+            0.0f, 0.0f, 0.0f, 1.0f
+        };
     }
 
-    inline Matrix MatrixUtility::GetScale(Vector3 vec)
+    inline Matrix MatrixUtility::GetScale(const Vector3& vec)
     {
         Matrix m;
 
@@ -62,15 +61,15 @@ namespace cube
              0 -sinA  cosA     0
              0     0     0     1
         */
-        Matrix m = Matrix::Identity();
-
         float sinA = Math::Sin(angle);
         float cosA = Math::Cos(angle);
 
-        m[1] = Vector4(0.0f, cosA, sinA, 0);
-        m[2] = Vector4(0.0f, -sinA, cosA, 0);
-
-        return m;
+        return Matrix{
+            1.0f, 0.0f, 0.0f, 0.0f,
+            0.0f, cosA, sinA, 0.0f,
+            0.0f, -sinA, cosA, 0.0f,
+            0.0f, 0.0f, 0.0f, 1.0f
+        };
     }
 
     inline Matrix MatrixUtility::GetRotationY(float angle)
@@ -81,15 +80,15 @@ namespace cube
           sinA     0  cosA     0
              0     0     0     1
         */
-        Matrix m = Matrix::Identity();
-
         float sinA = Math::Sin(angle);
         float cosA = Math::Cos(angle);
 
-        m[0] = Vector4(cosA, 0, -sinA, 0);
-        m[2] = Vector4(sinA, 0, cosA, 0);
-
-        return m;
+        return Matrix{
+            cosA, 0.0f, -sinA, 0.0f,
+            0.0f, 1.0f, 0.0f, 0.0f,
+            sinA, 0.0f, cosA, 0.0f,
+            0.0f, 0.0f, 0.0f, 1.0f
+        };
     }
 
     inline Matrix MatrixUtility::GetRotationZ(float angle)
@@ -100,15 +99,15 @@ namespace cube
              0     0     1     0
              0     0     0     1
         */
-        Matrix m = Matrix::Identity();
-
         float sinA = Math::Sin(angle);
         float cosA = Math::Cos(angle);
 
-        m[0] = Vector4(cosA, sinA, 0, 0);
-        m[1] = Vector4(-sinA, cosA, 0, 0);
-
-        return m;
+        return Matrix{
+            cosA, sinA, 0.0f, 0.0f,
+            -sinA, cosA, 0.0f, 0.0f,
+            0.0f, 0.0f, 1.0f, 0.0f,
+            0.0f, 0.0f, 0.0f, 1.0f
+        };
     }
 
     inline Matrix MatrixUtility::GetRotationXYZ(float xAngle, float yAngle, float zAngle)
@@ -119,25 +118,28 @@ namespace cube
           -cosXsinYcosZ+sinXsinZ    cosXsinYsinZ+sinXcosZ    cosXcosY      0
                                0                        0           0      1
         */
-        Matrix x = GetRotationX(xAngle);
-        Matrix y = GetRotationY(yAngle);
-        Matrix z = GetRotationZ(zAngle);
+        float sinX = Math::Sin(xAngle);
+        float cosX = Math::Cos(xAngle);
+        float sinY = Math::Sin(yAngle);
+        float cosY = Math::Cos(yAngle);
+        float sinZ = Math::Sin(zAngle);
+        float cosZ = Math::Cos(zAngle);
 
-        return x * y * z;
+        return Matrix{
+            cosY * cosZ, -cosY * sinZ, sinY, 0.0f,
+            sinX * sinY * cosZ + cosX * sinZ, -sinX * sinY * sinZ + cosX * cosZ, -sinX * cosY, 0.0f,
+            -cosX * sinY * cosZ + sinX * sinZ, cosX * sinY * sinZ + sinX * cosZ, cosX * cosY, 0.0f,
+            0.0f, 0.0f, 0.0f, 1.0f
+        };
     }
 
-    inline Matrix MatrixUtility::GetRotationXYZ(Vector3 vec)
+    inline Matrix MatrixUtility::GetRotationXYZ(const Vector3& vec)
     {
         Float3 vecF3 = vec.GetFloat3();
-
-        Matrix x = GetRotationX(vecF3.x);
-        Matrix y = GetRotationY(vecF3.y);
-        Matrix z = GetRotationZ(vecF3.z);
-
-        return x * y * z;
+        return GetRotationXYZ(vecF3.x, vecF3.y, vecF3.z);
     }
 
-    inline Matrix MatrixUtility::GetRotationAxis(Vector3 axis, float angle)
+    inline Matrix MatrixUtility::GetRotationAxis(const Vector3& axis, float angle)
     {
         /*
            cosA+(1-cosA)x^2  (1-cosA)xy+z*sinA  (1-cosA)xz-y*sinA     0
@@ -151,12 +153,12 @@ namespace cube
         float cA = Math::Cos(angle);
         Vector4 revCosA(1 - cA, 1 - cA, 1 - cA, 0.0f);
 
-        VectorData r0 = _mm_mul_ps(axis.mData, revCosA.mData);
-        VectorData r1 = r0;
-        VectorData r2 = r0;
+        VectorData<4> r0 = _mm_mul_ps(axis.mData, revCosA.mData);
+        VectorData<4> r1 = r0;
+        VectorData<4> r2 = r0;
 
         // x / x / x / x
-        VectorData t = _mm_shuffle_ps(axis.mData, axis.mData, _MM_SHUFFLE(0, 0, 0, 0));
+        VectorData<4> t = _mm_shuffle_ps(axis.mData, axis.mData, _MM_SHUFFLE(0, 0, 0, 0));
         r0 = _mm_mul_ps(r0, t);
 
         // y / y / y / y
@@ -191,27 +193,28 @@ namespace cube
           0  0  0  0
           x  y  z  1
         */
-        Matrix m = Matrix::Zero();
-
-        m[3] = Vector4(x, y, z, 1.0f);
-
-        return m;
+        return Matrix{
+            0.0f, 0.0f, 0.0f, 0.0f,
+            0.0f, 0.0f, 0.0f, 0.0f,
+            0.0f, 0.0f, 0.0f, 0.0f,
+            x, y, z, 1.0f
+        };
     }
 
-    inline Matrix MatrixUtility::GetTranslation(Vector3 vec)
+    inline Matrix MatrixUtility::GetTranslation(const Vector3& vec)
     {
-        Matrix m = Matrix::Identity();
+        Matrix m = Matrix::Zero();
 
         Vector4 one = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
         // z / z / 1 / 1
-        VectorData temp = _mm_shuffle_ps(vec.mData, one.mData, _MM_SHUFFLE(0, 0, 2, 2));
+        VectorData<4> temp = _mm_shuffle_ps(vec.mData, one.mData, _MM_SHUFFLE(0, 0, 2, 2));
         // x / y / z / 1
         m[3].mData = _mm_shuffle_ps(vec.mData, temp, _MM_SHUFFLE(2, 0, 1, 0));
 
         return m;
     }
 
-    inline Matrix MatrixUtility::GetLookAt(Vector3 eyePos, Vector3 targetPos, Vector3 upDir)
+    inline Matrix MatrixUtility::GetLookAt(const Vector3& eyePos, const Vector3& targetPos, const Vector3& upDir)
     {
         /*
                Ux       Vx       Wx        0
@@ -235,12 +238,12 @@ namespace cube
         m[3] = Vector4(0, 0, 0, 1);
         m.Transpose();
 
-        VectorData d0 = (-Vector3::Dot(eyePos, u)).mData;
-        VectorData d1 = (-Vector3::Dot(eyePos, v)).mData;
-        VectorData d2 = (-Vector3::Dot(eyePos, w)).mData;
+        VectorData<4> d0 = Vector3::DotV(eyePos, u).mData;
+        VectorData<4> d1 = Vector3::DotV(eyePos, v).mData;
+        VectorData<4> d2 = Vector3::DotV(eyePos, w).mData;
 
         // d1 / d1 / d2 / d2
-        VectorData t = _mm_shuffle_ps(d1, d2, _MM_SHUFFLE(0, 0, 0, 0));
+        VectorData<4> t = _mm_shuffle_ps(d1, d2, _MM_SHUFFLE(0, 0, 0, 0));
         // 0 / d1 / d2 / 0
         t = _mm_and_ps(t, vectorMaskYZ);
 
@@ -249,8 +252,8 @@ namespace cube
         // d0 / d1 / d2 / 0
         t = _mm_add_ps(t, d0);
 
-        m[3] = Vector4(0, 0, 0, 1);
-        m[3].mData = _mm_add_ps(m[3].mData, t);
+        m[3] = Vector4(0.0f, 0.0f, 0.0f, 1.0f);
+        m[3].mData = _mm_sub_ps(m[3].mData, t);
 
         return m;
     }
@@ -267,14 +270,12 @@ namespace cube
         float tanA = Math::Tan(fovAngleY / 2.0f);
         float t = farZ / (farZ - nearZ);
 
-        Matrix m;
-
-        m[0] = Vector4(1 / (aspectRatio * tanA), 0, 0, 0);
-        m[1] = Vector4(0, 1 / tanA, 0, 0);
-        m[2] = Vector4(0, 0, t, 1);
-        m[3] = Vector4(0, 0, -nearZ * t, 0);
-
-        return m;
+        return Matrix{
+            Vector4(1.0f / (aspectRatio * tanA), 0.0f, 0.0f, 0.0f),
+            Vector4(0.0f, 1.0f / tanA, 0.0f, 0.0f),
+            Vector4(0.0f, 0.0f, t, 1.0f),
+            Vector4(0.0f, 0.0f, -nearZ * t, 0.0f)
+        };
     }
 
     inline Matrix MatrixUtility::GetPerspectiveFovWithReverseY(float fovAngleY, float aspectRatio, float nearZ, float farZ)
@@ -282,13 +283,11 @@ namespace cube
         float tanA = Math::Tan(fovAngleY / 2.0f);
         float t = farZ / (farZ - nearZ);
 
-        Matrix m;
-
-        m[0] = Vector4(1 / (aspectRatio * tanA), 0, 0, 0);
-        m[1] = Vector4(0, -1 / tanA, 0, 0);
-        m[2] = Vector4(0, 0, t, 1);
-        m[3] = Vector4(0, 0, -nearZ * t, 0);
-
-        return m;
+        return Matrix{
+            Vector4(1.0f / (aspectRatio * tanA), 0.0f, 0.0f, 0.0f),
+            Vector4(0.0f, -1.0f / tanA, 0.0f, 0.0f),
+            Vector4(0.0f, 0.0f, t, 1.0f),
+            Vector4(0.0f, 0.0f, -nearZ * t, 0.0f)
+        };
     }
 } // namespace cube

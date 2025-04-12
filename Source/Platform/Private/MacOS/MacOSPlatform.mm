@@ -140,6 +140,11 @@ namespace cube
             [mWindow makeKeyAndOrderFront:nil];
         }
 
+        void MacOSPlatform::ChangeWindowTitleImpl(StringView title)
+        {
+            NOT_IMPLEMENTED();
+        }
+
         void* MacOSPlatform::AllocateImpl(Uint64 size)
         {
             NOT_IMPLEMENTED();

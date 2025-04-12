@@ -8,7 +8,8 @@ namespace cube
         mMemoryAllocator(*this),
         mQueueManager(*this),
         mDescriptorManager(*this),
-        mCommandListManager(*this)
+        mCommandListManager(*this),
+        mQueryManager(*this)
     {
     }
 
@@ -29,10 +30,12 @@ namespace cube
         mQueueManager.Initialize();
         mDescriptorManager.Initialize();
         mCommandListManager.Initialize();
+        mQueryManager.Initialize();
     }
 
     void DX12Device::Shutdown()
     {
+        mQueryManager.Shutdown();
         mCommandListManager.Shutdown();
         mDescriptorManager.Shutdown();
         mQueueManager.Shutdown();

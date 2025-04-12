@@ -37,6 +37,7 @@ namespace cube
         DX12CommandList::DX12CommandList(DX12Device& device, const CommandListCreateInfo& info) :
             mCommandListManager(device.GetCommandListManager()),
             mQueueManager(device.GetQueueManager()),
+            mQueryManager(device.GetQueryManager()),
             mState(State::Closed)
         {
             device.GetDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, mCommandListManager.GetCurrentAllocator(), nullptr, IID_PPV_ARGS(&mCommandList));
@@ -45,7 +46,6 @@ namespace cube
 
         DX12CommandList::~DX12CommandList()
         {
-            // TODO: Check state?
             mCommandList = nullptr;
         }
 
@@ -59,6 +59,11 @@ namespace cube
         void DX12CommandList::End()
         {
             CHECK(mState == State::Writing);
+
+            if (hasTimestampQuery)
+            {
+                mQueryManager.ResolveTimestampQueryData(mCommandList.Get());
+            }
 
             CHECK_HR(mCommandList->Close());
             mState = State::Closed;
@@ -74,6 +79,7 @@ namespace cube
             CHECK(mState == State::Closed);
 
             CHECK_HR(mCommandList->Reset(mCommandListManager.GetCurrentAllocator(), nullptr));
+            hasTimestampQuery = false;
             mState = State::Initial;
         }
 
@@ -256,6 +262,16 @@ namespace cube
             CHECK(mState == State::Writing);
 
             mCommandList->DrawIndexedInstanced(numIndices, numInstances, baseIndex, baseVertex, baseInstance);
+        }
+
+        void DX12CommandList::InsertTimestamp(const String& name)
+        {
+            CHECK(mState == State::Writing);
+
+            int index = mQueryManager.AddTimestamp(name);
+            mCommandList->EndQuery(mQueryManager.GetCurrentTimestampHeap(), D3D12_QUERY_TYPE_TIMESTAMP, index);
+
+            hasTimestampQuery = true;
         }
 
         void DX12CommandList::Submit()

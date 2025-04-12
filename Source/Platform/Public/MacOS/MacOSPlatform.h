@@ -30,6 +30,7 @@ namespace cube
 
             static void InitWindowImpl(StringView title, Uint32 width, Uint32 height, Uint32 posX, Uint32 posY);
             static void ShowWindowImpl();
+            static void ChangeWindowTitleImpl(StringView title);
 
             static void* AllocateImpl(Uint64 size);
             static void FreeImpl(void* ptr);

@@ -53,6 +53,8 @@ namespace cube
         void SetViewMatrix(const Vector3& eye, const Vector3& target, const Vector3& upDir);
         void SetPerspectiveMatrix(float fovAngleY, float aspectRatio, float nearZ, float farZ);
 
+        float GetGPUTimeMS() const;
+
     private:
         void SetGlobalConstantBuffers();
         void RenderImpl();
