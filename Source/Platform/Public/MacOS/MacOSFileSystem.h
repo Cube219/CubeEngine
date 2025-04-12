@@ -5,6 +5,8 @@
 #include "PlatformHeader.h"
 #include "FileSystem.h"
 
+#include <Foundation/Foundation.h>
+
 namespace cube
 {
     namespace platform
@@ -12,7 +14,7 @@ namespace cube
         class MacOSFile : public File
         {
         public:
-            MacOSFile();
+            MacOSFile(NSFileHandle* fileHandle);
             ~MacOSFile();
 
             Uint64 GetFileSizeImpl() const;
@@ -24,6 +26,9 @@ namespace cube
             void WriteImpl(void* pWriteBuffer, Uint64 bufferSize);
 
         private:
+            NSFileHandle* mFileHandle;
+            Uint64 mCurrentOffset;
+            Uint64 mSize;
         };
 
         class MacOSFileSystem : public FileSystem
