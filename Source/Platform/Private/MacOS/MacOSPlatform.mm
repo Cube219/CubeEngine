@@ -7,6 +7,7 @@
 #include <unistd.h>
 
 #include "Checker.h"
+#include "CubeString.h"
 #include "MacOS/MacOSDebug.h"
 #include "MacOS/MacOSDLib.h"
 #include "MacOS/MacOSString.h"
@@ -125,9 +126,7 @@ namespace cube
                 defer:NO
             ];
 
-            U8String u8Title;
-            String_ConvertAndAppend(u8Title, title);
-            [mWindow setTitle:[NSString stringWithUTF8String:u8Title.c_str()]];
+            [mWindow setTitle:ToNSString(title)];
 
             mWindowDelegate = [[CubeWindowDelegate alloc] init];
             [mWindow setDelegate:mWindowDelegate];
@@ -317,7 +316,6 @@ namespace cube
             while (1)
             {
                 static int cnt = 0;
-                CUBE_LOG(LogType::Info, Engine, "Run loop: {}", cnt);
                 cnt++;
 
                 if (cnt == 5)

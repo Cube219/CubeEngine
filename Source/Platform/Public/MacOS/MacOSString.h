@@ -4,7 +4,10 @@
 
 #include "PlatformHeader.h"
 
+#include <Foundation/Foundation.h>
+
 #include "CubeString.h"
+#include "Format.h"
 
 namespace cube
 {
@@ -23,6 +26,24 @@ namespace cube
         CUBE_PLATFORM_EXPORT int EncodeCharacterAndAppend(Uint32 code, MacOSCharacter* pStr);
 #endif
     } // namespace string_internal
+
+    template <typename DstStr>
+    void String_ConvertAndAppend(DstStr& dst, NSString* srcStr)
+    {
+        String_ConvertAndAppend(dst, [srcStr UTF8String]) ;
+    }
+    template <typename SrcStrView>
+    NSString* ToNSString(const SrcStrView& src)
+    {
+        FormatString<U8Character> u8Src;
+        String_ConvertAndAppend(u8Src, src);
+
+        NSString* res = [NSString stringWithUTF8String:u8Src.data()];
+
+        format::internal::DiscardFormatAllocations();
+
+        return res;
+    }
 } // namespace cube
 
 #endif // CUBE_PLATFORM_MACOS

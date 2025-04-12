@@ -84,9 +84,7 @@ namespace cube
             {
                 osStr.push_back('\n');
                 MacOSUtility::DispatchToMainThread([osStr, colorCategory] {
-                    NSString *nsText = [NSString stringWithUTF8String:osStr.c_str()];
-                    AppendLogText(nsText, colorCategory);
-                    [nsText release];
+                    AppendLogText(ToNSString(osStr), colorCategory);
                 });
             }
         }
@@ -361,15 +359,10 @@ namespace cube
         {
             CHECK_MAIN_THREAD()
 
-            U8String titleU8;
-            String_ConvertAndAppend(titleU8, title);
-            U8String msgU8;
-            String_ConvertAndAppend(msgU8, msg);
-            
             @autoreleasepool {
                 NSAlert* alert = [[NSAlert alloc] init];
-                [alert setMessageText:[NSString stringWithUTF8String:titleU8.data()]];
-                [alert setInformativeText:[NSString stringWithUTF8String:msgU8.data()]];
+                [alert setMessageText:ToNSString(title)];
+                [alert setInformativeText:ToNSString(msg)];
                 [alert setAlertStyle:NSAlertStyleCritical];
                 [alert addButtonWithTitle:@"Exit"];
                 [alert addButtonWithTitle:@"Ignore"];
