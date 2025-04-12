@@ -3,6 +3,7 @@
 #include "MacOS/MacOSPlatform.h"
 
 #include <MacTypes.h>
+#include <mach/mach.h>
 #include <unistd.h>
 
 #include "Checker.h"
@@ -256,6 +257,16 @@ namespace cube
             [mAppDelegate release];
         }
 
+        void MacOSPlatform::ForceTerminateMainLoopThread()
+        {
+            pthread_t pThread = mMainLoopThread.native_handle();
+            thread_t machThread;
+            pthread_threadid_np(pThread, (uint64_t*)&machThread);
+            thread_terminate(machThread);
+
+            mMainLoopThread.detach();
+        }
+
         void MacOSPlatform::CreateMainMenu()
         {
             CHECK_MAIN_THREAD()
@@ -303,6 +314,11 @@ namespace cube
                 static int cnt = 0;
                 CUBE_LOG(LogType::Info, Engine, "Run loop: {}", cnt);
                 cnt++;
+
+                if (cnt == 5)
+                {
+                    CHECK(false);
+                }
 
                 if (mIsFinished)
                 {

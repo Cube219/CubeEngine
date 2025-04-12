@@ -58,6 +58,8 @@ namespace cube
             static bool IsApplicationClosed() { return mIsApplicationClosed; }
 
             static void Cleanup();
+
+            static void ForceTerminateMainLoopThread();
         private:
             static void CreateMainMenu();
             static void MainLoop();

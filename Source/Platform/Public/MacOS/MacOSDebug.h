@@ -45,6 +45,8 @@ namespace cube
             static void CloseAndDestroyLoggerWindow();
 
         private:
+            static void ShowDebugMessageAlert(StringView title, StringView msg);
+        
             static CubeLoggerWindow* mLoggerWindow;
             static CubeLoggerWindowDelegate* mLoggerWindowDelegaate;
             static CubeLoggerTextView* mLoggerTextView;

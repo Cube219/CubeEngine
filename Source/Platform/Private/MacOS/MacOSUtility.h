@@ -28,6 +28,13 @@ namespace cube
                     func();
                 });
             }
+
+            static void DispatchToMainThreadAndWait(std::function<void()> func)
+            {
+                dispatch_sync(dispatch_get_main_queue(), ^{
+                    func();
+                });
+            }
         };
     } // namespace platform
 } // namespace cube
