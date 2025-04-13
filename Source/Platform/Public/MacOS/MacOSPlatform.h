@@ -105,6 +105,7 @@ namespace cube
 
             static SharedPtr<DLib> LoadDLibImpl(StringView path);
 
+            static CubeWindow* GetWindow() { return mWindow; }
             static bool IsMainWindowCreated();
             static void CloseMainWindow();
 
@@ -149,10 +150,11 @@ namespace cube
             static bool mIsOptionKeyPressed;
             static bool mIsCommandKeyPressed;
             static bool mIsFunctionKeyPressed;
-            
+
 
             static std::thread mMainLoopThread;
-            static bool mIsFinished;
+            static bool mIsLoopStarted;
+            static bool mIsLoopFinished;
 
             MacOSPlatform() = delete;
             ~MacOSPlatform() = delete;

@@ -20,6 +20,7 @@ namespace cube
             int argc;
             const char** argv;
             GAPIName gapi;
+            bool drawImGUI = true;
             bool runShutdownInOnClosingFunc = false;
         };
         CUBE_CORE_EXPORT static void Initialize(const EngineInitializeInfo& initInfo);
@@ -45,6 +46,7 @@ namespace cube
         static bool mRunShutdownInClosingFunc;
 
         static UniquePtr<Renderer> mRenderer;
+        static bool mDrawImGUI;
 
         static ImGUIContext mImGUIContext;
         static bool mImGUIShowDemoWindow;

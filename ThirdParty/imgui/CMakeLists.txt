@@ -40,6 +40,16 @@ if(PLATFORM_WINDOWS)
         ${imgui_SOURCE_DIR}/backends/imgui_impl_win32.cpp
     )
 endif()
+if(PLATFORM_MACOS)
+    set(PLATFORM_INCLUDE
+        ${imgui_SOURCE_DIR}/backends/imgui_impl_metal.h
+        ${imgui_SOURCE_DIR}/backends/imgui_impl_osx.h
+    )
+    set(PLATFORM_SOURCE
+        ${imgui_SOURCE_DIR}/backends/imgui_impl_metal.mm
+        ${imgui_SOURCE_DIR}/backends/imgui_impl_osx.mm
+    )
+endif()
 
 # Target settings
 add_library(imgui STATIC

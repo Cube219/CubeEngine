@@ -31,9 +31,16 @@ namespace cube
 
             static void DispatchToMainThreadAndWait(std::function<void()> func)
             {
-                dispatch_sync(dispatch_get_main_queue(), ^{
+                if ([NSThread isMainThread])
+                {
                     func();
-                });
+                }
+                else
+                    {
+                    dispatch_sync(dispatch_get_main_queue(), ^{
+                        func();
+                    });
+                }
             }
         };
     } // namespace platform

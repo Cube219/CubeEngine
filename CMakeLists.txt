@@ -33,6 +33,9 @@ if(PLATFORM_WINDOWS)
 endif()
 if(PLATFORM_MACOS)
     add_definitions(-DCUBE_PLATFORM_MACOS)
+    # Execute path has three more depths Bundled app.
+    #    (##.app/Contents/MacOS/)
+    add_definitions(-DCUBE_OVERRIDE_ROOT_DIR_PATH="../../../../..")
 endif()
 
 # Output directory

@@ -4,6 +4,12 @@
 
 #include "GAPI.h"
 
+#include "Platform.h"
+
+@interface CubeMTKView : MTKView <MTKViewDelegate>
+
+@end
+
 namespace cube
 {
     extern "C" CUBE_METAL_EXPORT GAPI* CreateGAPI();
@@ -36,5 +42,14 @@ namespace cube
         virtual gapi::TimestampList GetLastTimestampList() override;
 
     private:
+        void InitializeImGUI(const ImGUIContext& imGUIInfo);
+        void ShutdownImGUI(const ImGUIContext& imGUIInfo);
+
+        id<MTLDevice> mDevice;
+        CubeMTKView* mView;
+        MTLRenderPassDescriptor* mRenderPassDescriptor;
+        id<MTLCommandQueue> mCommandQueue;
+
+        ImGUIContext mImGUIContext;
     };
 } // namespace cube

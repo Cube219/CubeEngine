@@ -75,11 +75,16 @@ namespace cube
     bool Engine::mRunShutdownInClosingFunc;
 
     UniquePtr<Renderer> Engine::mRenderer;
+    bool Engine::mDrawImGUI;
 
     ImGUIContext Engine::mImGUIContext;
     bool Engine::mImGUIShowDemoWindow = true;
 
+#if defined(CUBE_OVERRIDE_ROOT_DIR_PATH)
+    String Engine::mRootDirectoryPath = CUBE_T(CUBE_OVERRIDE_ROOT_DIR_PATH);
+#else
     String Engine::mRootDirectoryPath = CUBE_T("../..");
+#endif
 
     Uint64 Engine::mStartTime;
     Uint64 Engine::mLastTime;
@@ -111,6 +116,8 @@ namespace cube
 
         CUBE_LOG(LogType::Info, Engine, "Initialize CubeEngine.");
 
+        mDrawImGUI = initInfo.drawImGUI;
+        if (mDrawImGUI)
         {
             // ImGUI init
             IMGUI_CHECKVERSION();
@@ -130,11 +137,11 @@ namespace cube
             );
         }
 
-        // mRenderer = std::make_unique<Renderer>();
-        // CUBE_LOG(LogType::Info, Engine, "Using GAPI {}.", GAPINameToString(initInfo.gapi));
-        // mRenderer->Initialize(initInfo.gapi, mImGUIContext);
+        mRenderer = std::make_unique<Renderer>();
+        CUBE_LOG(LogType::Info, Engine, "Using GAPI {}.", GAPINameToString(initInfo.gapi));
+        mRenderer->Initialize(initInfo.gapi, mImGUIContext);
 
-        // CameraSystem::Initialize();
+        CameraSystem::Initialize();
 
         mStartTime = GetNow();
         mCurrentTime = mStartTime;
@@ -147,19 +154,21 @@ namespace cube
     {
         CUBE_LOG(LogType::Info, Engine, "Shutdown CubeEngine.");
 
-        // CameraSystem::Shutdown();
+        CameraSystem::Shutdown();
 
-        // mRenderer->Shutdown(mImGUIContext);
-        // mRenderer = nullptr;
+        mRenderer->Shutdown(mImGUIContext);
+        mRenderer = nullptr;
 
-        ImGui::SetCurrentContext((ImGuiContext*)(mImGUIContext.context));
-        ImGui::SetAllocatorFunctions(
-            (ImGuiMemAllocFunc)(mImGUIContext.allocFunc),
-            (ImGuiMemFreeFunc)(mImGUIContext.freeFunc),
-            (void*)(mImGUIContext.userData));
+        if (mDrawImGUI)
+        {
+            ImGui::SetCurrentContext((ImGuiContext*)(mImGUIContext.context));
+            ImGui::SetAllocatorFunctions(
+                (ImGuiMemAllocFunc)(mImGUIContext.allocFunc),
+                (ImGuiMemFreeFunc)(mImGUIContext.freeFunc),
+                (void*)(mImGUIContext.userData));
 
-        ImGui::DestroyContext((ImGuiContext*)mImGUIContext.context);
-
+            ImGui::DestroyContext((ImGuiContext*)mImGUIContext.context);
+        }
         platform::Platform::GetResizeEvent().RemoveListener(mOnResizeEventFunc);
         platform::Platform::GetClosingEvent().RemoveListener(mOnClosingEventFunc);
         platform::Platform::GetLoopEvent().RemoveListener(mOnLoopEventFunc);
@@ -179,11 +188,11 @@ namespace cube
         const double deltaTimeSec = static_cast<double>(mCurrentTime - mLastTime) / std::nano::den;
         CalculateFrameTimeAndFPS(deltaTimeSec);
 
-        // CameraSystem::OnLoop(deltaTimeSec);
+        CameraSystem::OnLoop(deltaTimeSec);
 
         LoopImGUI();
 
-        // mRenderer->Render();
+        mRenderer->Render();
     }
 
     void Engine::OnClosing()
@@ -200,40 +209,45 @@ namespace cube
 
     void Engine::OnResize(Uint32 width, Uint32 height)
     {
-        // mRenderer->OnResize(width, height);
-        // CameraSystem::OnResize(width, height);
+        mRenderer->OnResize(width, height);
+        CameraSystem::OnResize(width, height);
     }
 
     void Engine::LoopImGUI()
     {
-        // ImGui::NewFrame();
-
-        // // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-        // if (mImGUIShowDemoWindow)
-        //     ImGui::ShowDemoWindow(&mImGUIShowDemoWindow);
-
-        { // Basic stats
-            // static bool showBasicStats = true;
-
-            // ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove;
-
-            // const float PAD = 10.0f;
-            // const ImGuiViewport* viewport = ImGui::GetMainViewport();
-            // ImVec2 work_pos = viewport->WorkPos; // Use work area to avoid menu-bar/task-bar, if any!
-            // ImVec2 work_size = viewport->WorkSize;
-            // ImGui::SetNextWindowPos({ work_pos.x + work_size.x - PAD, work_pos.x + PAD }, ImGuiCond_Always, { 1.0f, 0.0f });
-            // ImGui::SetNextWindowBgAlpha(0.35f);
-            // ImGui::SetNextWindowSize({ 180.0f, 70.0f });
-            // if (ImGui::Begin("Basic Stats", &showBasicStats, flags))
-            // {
-            //     ImGui::Text("FrameTime: %.3f ms", mCurrentFrameTimeMS);
-            //     ImGui::Text("FPS: %.2f ms", mCurrentFPS);
-            //     ImGui::Text("GPU: %.2f ms", mCurrentGPUTimeMS);
-            // }
-            // ImGui::End();
+        if (!mDrawImGUI)
+        {
+            return;
         }
 
-        // CameraSystem::OnLoopImGUI();
+        ImGui::NewFrame();
+
+        // // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
+        if (mImGUIShowDemoWindow)
+            ImGui::ShowDemoWindow(&mImGUIShowDemoWindow);
+
+        { // Basic stats
+            static bool showBasicStats = true;
+
+            ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove;
+
+            const float PAD = 10.0f;
+            const ImGuiViewport* viewport = ImGui::GetMainViewport();
+            ImVec2 work_pos = viewport->WorkPos; // Use work area to avoid menu-bar/task-bar, if any!
+            ImVec2 work_size = viewport->WorkSize;
+            ImGui::SetNextWindowPos({ work_pos.x + work_size.x - PAD, work_pos.x + PAD }, ImGuiCond_Always, { 1.0f, 0.0f });
+            ImGui::SetNextWindowBgAlpha(0.35f);
+            ImGui::SetNextWindowSize({ 180.0f, 70.0f });
+            if (ImGui::Begin("Basic Stats", &showBasicStats, flags))
+            {
+                ImGui::Text("FrameTime: %.3f ms", mCurrentFrameTimeMS);
+                ImGui::Text("FPS: %.2f ms", mCurrentFPS);
+                ImGui::Text("GPU: %.2f ms", mCurrentGPUTimeMS);
+            }
+            ImGui::End();
+        }
+
+        CameraSystem::OnLoopImGUI();
     }
 
     Uint64 Engine::GetNow()
@@ -246,6 +260,6 @@ namespace cube
         // TODO: Smooth way?
         mCurrentFrameTimeMS = static_cast<float>(deltaTimeSec * 1000.0f);
         mCurrentFPS = static_cast<float>(1.0 / deltaTimeSec);
-        // mCurrentGPUTimeMS = mRenderer->GetGPUTimeMS();
+        mCurrentGPUTimeMS = mRenderer->GetGPUTimeMS();
     }
 } // namespace cube

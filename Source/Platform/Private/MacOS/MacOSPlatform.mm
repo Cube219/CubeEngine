@@ -259,7 +259,8 @@ namespace cube
         bool MacOSPlatform::mIsFunctionKeyPressed = false;
 
         std::thread MacOSPlatform::mMainLoopThread;
-        bool MacOSPlatform::mIsFinished = false;
+        bool MacOSPlatform::mIsLoopStarted = false;
+        bool MacOSPlatform::mIsLoopFinished = false;
 
         void MacOSPlatform::InitializeImpl()
         {
@@ -365,6 +366,7 @@ namespace cube
 
         void MacOSPlatform::StartLoopImpl()
         {
+            mIsLoopStarted = true;
             mMainLoopThread = std::thread(&MacOSPlatform::MainLoop);
 
             [NSApp run];
@@ -373,7 +375,8 @@ namespace cube
 
         void MacOSPlatform::FinishLoopImpl()
         {
-            mIsFinished = true;
+            mIsLoopStarted = false;
+            mIsLoopFinished = true;
             mMainLoopThread.join();
         }
 
@@ -473,12 +476,17 @@ namespace cube
 
         void MacOSPlatform::ForceTerminateMainLoopThread()
         {
-            pthread_t pThread = mMainLoopThread.native_handle();
-            thread_t machThread;
-            pthread_threadid_np(pThread, (uint64_t*)&machThread);
-            thread_terminate(machThread);
+            if (mIsLoopStarted)
+            {
+                pthread_t pThread = mMainLoopThread.native_handle();
+                thread_t machThread;
+                pthread_threadid_np(pThread, (uint64_t*)&machThread);
+                thread_terminate(machThread);
 
-            mMainLoopThread.detach();
+                mMainLoopThread.detach();
+            }
+            mIsLoopStarted = false;
+            mIsLoopFinished = true;
         }
 
         void MacOSPlatform::DispatchEvent(MacOSEventType type, void* pData)
@@ -741,24 +749,13 @@ namespace cube
         {
             while (1)
             {
-                static int cnt = 0;
-                cnt++;
-
-                if (cnt % 5 == 0)
-                {
-                }
-
-                if (mIsFinished)
+                if (mIsLoopFinished)
                 {
                     break;
                 }
 
                 mLoopEvent.Dispatch();
-                // CUBE_LOG(LogType::Info, TMP, "Main Loop: {}", cnt);
-                Sleep(0.5f);
             }
-
-            CUBE_LOG(LogType::Info, Engine, "End run main loop");
         }
     } // namespace platform
 } // namespace cube

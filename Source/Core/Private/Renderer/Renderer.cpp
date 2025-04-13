@@ -51,6 +51,7 @@ namespace cube
             .enableDebugLayer = true,
             .imGUI = imGUIContext
         });
+        mRenderImGUI = (imGUIContext.context != nullptr);
 
         mIsViewPerspectiveMatrixDirty = true;
         mGlobalConstantBuffer = mGAPI->CreateBuffer({
@@ -119,7 +120,10 @@ namespace cube
         RenderImpl();
         mGAPI->OnAfterRender();
 
-        ImGui::Render();
+        if (mRenderImGUI)
+        {
+            ImGui::Render();
+        }
 
         mGAPI->OnBeforePresent(mViewport.get());
         mViewport->Present();
