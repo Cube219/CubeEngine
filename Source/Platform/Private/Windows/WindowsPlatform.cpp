@@ -309,6 +309,13 @@ namespace cube
                 }
                 break;
 
+            case WM_MOVE:
+            {
+                WindowsPlatform::mWindowPosX = (short)LOWORD(lParam);
+                WindowsPlatform::mWindowPosY = (short)HIWORD(lParam);
+                break;
+            }
+
             case WM_KEYDOWN:
                 Platform::GetKeyDownEvent().Dispatch(static_cast<KeyCode>(wParam));
                 break;
