@@ -35,8 +35,8 @@ namespace cube
         WindowsString WindowsPlatform::mWindowTitle;
         Uint32 WindowsPlatform::mWindowWidth;
         Uint32 WindowsPlatform::mWindowHeight;
-        Uint32 WindowsPlatform::mWindowPosX;
-        Uint32 WindowsPlatform::mWindowPosY;
+        Int32 WindowsPlatform::mWindowPosX;
+        Int32 WindowsPlatform::mWindowPosY;
 
         bool WindowsPlatform::mIsCursorShown = true;
 
@@ -73,7 +73,7 @@ namespace cube
 #endif // CUBE_DEBUG
         }
 
-        void WindowsPlatform::InitWindowImpl(StringView title, Uint32 width, Uint32 height, Uint32 posX, Uint32 posY)
+        void WindowsPlatform::InitWindowImpl(StringView title, Uint32 width, Uint32 height, Int32 posX, Int32 posY)
         {
             String_ConvertAndAppend(mWindowTitle, title);
             mWindowWidth = width;
@@ -224,12 +224,12 @@ namespace cube
             return mWindowHeight;
         }
 
-        Uint32 WindowsPlatform::GetWindowPositionXImpl()
+        Int32 WindowsPlatform::GetWindowPositionXImpl()
         {
             return mWindowPosX;
         }
 
-        Uint32 WindowsPlatform::GetWindowPositionYImpl()
+        Int32 WindowsPlatform::GetWindowPositionYImpl()
         {
             return mWindowPosY;
         }

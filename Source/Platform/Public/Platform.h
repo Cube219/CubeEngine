@@ -22,7 +22,7 @@ namespace cube
             static void Initialize();
             static void Shutdown();
 
-            static void InitWindow(StringView title, Uint32 width, Uint32 height, Uint32 posX, Uint32 posY);
+            static void InitWindow(StringView title, Uint32 width, Uint32 height, Int32 posX, Int32 posY);
             static void ShowWindow();
             static void ChangeWindowTitle(StringView title);
 
@@ -42,8 +42,8 @@ namespace cube
 
             static Uint32 GetWindowWidth();
             static Uint32 GetWindowHeight();
-            static Uint32 GetWindowPositionX();
-            static Uint32 GetWindowPositionY();
+            static Int32 GetWindowPositionX();
+            static Int32 GetWindowPositionY();
 
             static SharedPtr<DLib> LoadDLib(StringView path);
 
@@ -80,7 +80,7 @@ namespace cube
         void Platform::Initialize() { ChildClass::InitializeImpl(); } \
         void Platform::Shutdown() { ChildClass::ShutdownImpl(); } \
         \
-        void Platform::InitWindow(StringView title, Uint32 width, Uint32 height, Uint32 posX, Uint32 posY) { \
+        void Platform::InitWindow(StringView title, Uint32 width, Uint32 height, Int32 posX, Int32 posY) { \
             ChildClass::InitWindowImpl(title, width, height, posX, posY); \
         } \
         void Platform::ShowWindow() { ChildClass::ShowWindowImpl(); } \
@@ -102,8 +102,8 @@ namespace cube
         \
         Uint32 Platform::GetWindowWidth() { return ChildClass::GetWindowWidthImpl(); } \
         Uint32 Platform::GetWindowHeight() { return ChildClass::GetWindowHeightImpl(); } \
-        Uint32 Platform::GetWindowPositionX() { return ChildClass::GetWindowPositionXImpl(); } \
-        Uint32 Platform::GetWindowPositionY() { return ChildClass::GetWindowPositionYImpl(); } \
+        Int32 Platform::GetWindowPositionX() { return ChildClass::GetWindowPositionXImpl(); } \
+        Int32 Platform::GetWindowPositionY() { return ChildClass::GetWindowPositionYImpl(); } \
         \
         SharedPtr<DLib> Platform::LoadDLib(StringView path) { return ChildClass::LoadDLibImpl(path); }
     } // namespace platform

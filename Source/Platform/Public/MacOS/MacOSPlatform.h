@@ -8,7 +8,12 @@
 #include <AppKit/AppKit.h>
 #include <thread>
 
+#include "KeyCode.h"
 #include "MacOSString.h"
+
+@interface CubeWindow : NSWindow
+
+@end
 
 @interface CubeAppDelegate : NSObject <NSApplicationDelegate>
 
@@ -22,13 +27,60 @@ namespace cube
 {
     namespace platform
     {
+        enum class MacOSEventType
+        {
+            ResizeWindow,
+            MoveWindow,
+            KeyDown,
+            KeyUp,
+            MouseDown,
+            MouseUp,
+            MouseWheel,
+            MousePosition
+        };
+        struct MacOSKeyDownEvent
+        {
+            Uint32 keyCode;
+        };
+        struct MacOSKeyUpEvent
+        {
+            Uint32 keyCode;
+        };
+        struct MacOSMouseDownEvent
+        {
+            MouseButton button;
+        };
+        struct MacOSMouseUpEvent
+        {
+            MouseButton button;
+        };
+        struct MacOSMouseWheelEvent
+        {
+            int delta;
+        };
+        struct MacOSResizeWindowEvent
+        {
+            Uint32 newWidth;
+            Uint32 newHeight;
+        };
+        struct MacOSMoveWindowEvent
+        {
+            Int32 newX;
+            Int32 newY;
+        };
+        struct MacOSMousePositionEvent
+        {
+            Int32 x;
+            Int32 y;
+        };
+
         class MacOSPlatform : public Platform
         {
         public:
             static void InitializeImpl();
             static void ShutdownImpl();
 
-            static void InitWindowImpl(StringView title, Uint32 width, Uint32 height, Uint32 posX, Uint32 posY);
+            static void InitWindowImpl(StringView title, Uint32 width, Uint32 height, Int32 posX, Int32 posY);
             static void ShowWindowImpl();
             static void ChangeWindowTitleImpl(StringView title);
 
@@ -48,8 +100,8 @@ namespace cube
 
             static Uint32 GetWindowWidthImpl();
             static Uint32 GetWindowHeightImpl();
-            static Uint32 GetWindowPositionXImpl();
-            static Uint32 GetWindowPositionYImpl();
+            static Int32 GetWindowPositionXImpl();
+            static Int32 GetWindowPositionYImpl();
 
             static SharedPtr<DLib> LoadDLibImpl(StringView path);
 
@@ -61,14 +113,43 @@ namespace cube
             static void Cleanup();
 
             static void ForceTerminateMainLoopThread();
+
+            static void DispatchEvent(MacOSEventType type, void* pData);
+
         private:
+            friend class CubeWindowDelegate;
+
+            static void InitializeKeyCodeMapping();
+
+            static void ReceiveModifierKeyEvent(NSEventModifierFlags flags);
+
             static void CreateMainMenu();
+
             static void MainLoop();
 
+            static Array<KeyCode, MaxKeyCode> mKeyCodeMapping;
+
             static bool mIsApplicationClosed;
-            static NSWindow* mWindow;
+            static CubeWindow* mWindow;
             static CubeAppDelegate* mAppDelegate;
             static CubeWindowDelegate* mWindowDelegate;
+            static Uint32 mWindowWidth;
+            static Uint32 mWindowHeight;
+            static Int32 mWindowPositionX;
+            static Int32 mWindowPositionY;
+
+            static bool mIsMouseHidden;
+            static Int32 mMousePositionX;
+            static Int32 mMousePositionY;
+
+            static id mModifierEventHandler;
+            static bool mIsCapsLockKeyPressed;
+            static bool mIsShiftKeyPressed;
+            static bool mIsControlKeyPressed;
+            static bool mIsOptionKeyPressed;
+            static bool mIsCommandKeyPressed;
+            static bool mIsFunctionKeyPressed;
+            
 
             static std::thread mMainLoopThread;
             static bool mIsFinished;
