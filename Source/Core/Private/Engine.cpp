@@ -34,9 +34,23 @@ namespace cube
     class EngineLoggerExtension : public ILoggerExtension
     {
     public:
-        void WriteFormattedLog(StringView formattedLog) override
+        void WriteFormattedLog(LogType logType, StringView formattedLog) override
         {
-            platform::PlatformDebug::PrintToDebugConsole(formattedLog);
+            platform::PrintColorCategory colorCategory;
+            switch (logType)
+            {
+            case LogType::Warning:
+                colorCategory = platform::PrintColorCategory::Warning;
+                break;
+            case LogType::Error:
+                colorCategory = platform::PrintColorCategory::Error;
+                break;
+            case LogType::Info:
+            default:
+                colorCategory = platform::PrintColorCategory::Default;
+                break;
+            }
+            platform::PlatformDebug::PrintToDebugConsole(formattedLog, colorCategory);
         }
     };
 
@@ -58,13 +72,19 @@ namespace cube
     EventFunction<void()> Engine::mOnClosingEventFunc;
     EventFunction<void()> Engine::mOnLoopEventFunc;
     EventFunction<void(Uint32, Uint32)> Engine::mOnResizeEventFunc;
+    bool Engine::mRunShutdownInClosingFunc;
 
     UniquePtr<Renderer> Engine::mRenderer;
+    bool Engine::mDrawImGUI;
 
     ImGUIContext Engine::mImGUIContext;
     bool Engine::mImGUIShowDemoWindow = true;
 
+#if defined(CUBE_OVERRIDE_ROOT_DIR_PATH)
+    String Engine::mRootDirectoryPath = CUBE_T(CUBE_OVERRIDE_ROOT_DIR_PATH);
+#else
     String Engine::mRootDirectoryPath = CUBE_T("../..");
+#endif
 
     Uint64 Engine::mStartTime;
     Uint64 Engine::mLastTime;
@@ -73,8 +93,10 @@ namespace cube
     float Engine::mCurrentFPS;
     float Engine::mCurrentGPUTimeMS;
 
-    void Engine::Initialize()
+    void Engine::Initialize(const EngineInitializeInfo& initInfo)
     {
+        mRunShutdownInClosingFunc = initInfo.runShutdownInOnClosingFunc;
+
         platform::Platform::Initialize();
 
         GetMyThreadFrameAllocator().Initialize("Main thread frame allocator", 10 * 1024 * 1024); // 10 MiB
@@ -94,6 +116,8 @@ namespace cube
 
         CUBE_LOG(LogType::Info, Engine, "Initialize CubeEngine.");
 
+        mDrawImGUI = initInfo.drawImGUI;
+        if (mDrawImGUI)
         {
             // ImGUI init
             IMGUI_CHECKVERSION();
@@ -114,7 +138,8 @@ namespace cube
         }
 
         mRenderer = std::make_unique<Renderer>();
-        mRenderer->Initialize(GAPIName::DX12, mImGUIContext);
+        CUBE_LOG(LogType::Info, Engine, "Using GAPI {}.", GAPINameToString(initInfo.gapi));
+        mRenderer->Initialize(initInfo.gapi, mImGUIContext);
 
         CameraSystem::Initialize();
 
@@ -134,14 +159,16 @@ namespace cube
         mRenderer->Shutdown(mImGUIContext);
         mRenderer = nullptr;
 
-        ImGui::SetCurrentContext((ImGuiContext*)(mImGUIContext.context));
-        ImGui::SetAllocatorFunctions(
-            (ImGuiMemAllocFunc)(mImGUIContext.allocFunc),
-            (ImGuiMemFreeFunc)(mImGUIContext.freeFunc),
-            (void*)(mImGUIContext.userData));
+        if (mDrawImGUI)
+        {
+            ImGui::SetCurrentContext((ImGuiContext*)(mImGUIContext.context));
+            ImGui::SetAllocatorFunctions(
+                (ImGuiMemAllocFunc)(mImGUIContext.allocFunc),
+                (ImGuiMemFreeFunc)(mImGUIContext.freeFunc),
+                (void*)(mImGUIContext.userData));
 
-        ImGui::DestroyContext((ImGuiContext*)mImGUIContext.context);
-
+            ImGui::DestroyContext((ImGuiContext*)mImGUIContext.context);
+        }
         platform::Platform::GetResizeEvent().RemoveListener(mOnResizeEventFunc);
         platform::Platform::GetClosingEvent().RemoveListener(mOnClosingEventFunc);
         platform::Platform::GetLoopEvent().RemoveListener(mOnLoopEventFunc);
@@ -171,6 +198,13 @@ namespace cube
     void Engine::OnClosing()
     {
         platform::Platform::FinishLoop();
+
+        // Also execute Engine::Shutdown function. Some platform cannot execute remain logic after Engine::Initialize().
+        //   Ex) MacOS
+        if (mRunShutdownInClosingFunc)
+        {
+            Shutdown();
+        }
     }
 
     void Engine::OnResize(Uint32 width, Uint32 height)
@@ -181,9 +215,14 @@ namespace cube
 
     void Engine::LoopImGUI()
     {
+        if (!mDrawImGUI)
+        {
+            return;
+        }
+
         ImGui::NewFrame();
 
-        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
+        // // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
         if (mImGUIShowDemoWindow)
             ImGui::ShowDemoWindow(&mImGUIShowDemoWindow);
 

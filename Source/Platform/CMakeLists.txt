@@ -5,7 +5,6 @@ set(PUBLIC_FILES
     Public/FileSystem.h
     Public/Platform.h
     Public/PlatformDebug.h
-    Public/PlatformDefines.h
     Public/PlatformHeader.h
 )
 set(PRIVATE_FILES
@@ -27,6 +26,22 @@ if(PLATFORM_WINDOWS)
         Private/Windows/WindowsString.cpp
     )
 endif()
+if(PLATFORM_MACOS)
+    set(PLATFORM_PUBLIC_FILES
+        Public/MacOS/MacOSDebug.h
+        Public/MacOS/MacOSDLib.h
+        Public/MacOS/MacOSFileSystem.h
+        Public/MacOS/MacOSPlatform.h
+        Public/MacOS/MacOSString.h
+    )
+    set(PLATFORM_PRIVATE_FILES
+        Private/MacOS/MacOSDebug.mm
+        Private/MacOS/MacOSDLib.mm
+        Private/MacOS/MacOSFileSystem.mm
+        Private/MacOS/MacOSPlatform.mm
+        Private/MacOS/MacOSString.mm
+    )
+endif()
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${PUBLIC_FILES} ${PRIVATE_FILES} ${PLATFORM_PUBLIC_FILES} ${PLATFORM_PRIVATE_FILES})
 
@@ -43,7 +58,6 @@ target_include_directories(CE-Platform
 )
 target_link_libraries(CE-Platform
     PRIVATE
-        Dbghelp.lib
         CE-Base
         CE-Logger
 )
@@ -51,6 +65,12 @@ if(PLATFORM_WINDOWS)
     target_link_libraries(CE-Platform
         PRIVATE
             Dbghelp.lib
+    )
+endif()
+if(PLATFORM_MACOS)
+    target_link_libraries(CE-Platform
+        PRIVATE
+            "-framework AppKit"
     )
 endif()
 target_compile_definitions(CE-Platform

@@ -25,6 +25,8 @@ namespace cube
         Event<void(WindowActivatedState)> Platform::mActivatedEvent;
         Event<void()> Platform::mClosingEvent;
 
+        PLATFORM_CLASS_DEFINITIONS(WindowsPlatform)
+
         bool WindowsPlatform::mIsFinished = false;
 
         HINSTANCE WindowsPlatform::mInstance;
@@ -33,8 +35,8 @@ namespace cube
         WindowsString WindowsPlatform::mWindowTitle;
         Uint32 WindowsPlatform::mWindowWidth;
         Uint32 WindowsPlatform::mWindowHeight;
-        Uint32 WindowsPlatform::mWindowPosX;
-        Uint32 WindowsPlatform::mWindowPosY;
+        Int32 WindowsPlatform::mWindowPosX;
+        Int32 WindowsPlatform::mWindowPosY;
 
         bool WindowsPlatform::mIsCursorShown = true;
 
@@ -43,23 +45,23 @@ namespace cube
         void WindowsPlatform::InitializeImpl()
         {
             // Show logger window in debug mode
-#ifdef _DEBUG
+#ifdef CUBE_DEBUG
             WindowsDebug::CreateAndShowLoggerWindow();
-#endif // _DEBUG
+#endif // CUBE_DEBUG
         }
 
         void WindowsPlatform::ShutdownImpl()
         {
-#ifdef _DEBUG
+#ifdef CUBE_DEBUG
             // Wait console input not to close console immediately
             std::wcout << L"Press any key to close the window..." << std::endl;
 
             FlushConsoleInputBuffer(GetStdHandle(STD_INPUT_HANDLE));
             _getch();
-#endif
+#endif // CUBE_DEBUG
         }
 
-        void WindowsPlatform::InitWindowImpl(StringView title, Uint32 width, Uint32 height, Uint32 posX, Uint32 posY)
+        void WindowsPlatform::InitWindowImpl(StringView title, Uint32 width, Uint32 height, Int32 posX, Int32 posY)
         {
             String_ConvertAndAppend(mWindowTitle, title);
             mWindowWidth = width;
@@ -156,9 +158,9 @@ namespace cube
             mIsFinished = true;
         }
 
-        void WindowsPlatform::SleepImpl(Uint32 time)
+        void WindowsPlatform::SleepImpl(float timeSec)
         {
-            ::Sleep(time);
+            ::Sleep(timeSec * 1000.0f);
         }
 
         void WindowsPlatform::ShowCursorImpl()
@@ -210,12 +212,12 @@ namespace cube
             return mWindowHeight;
         }
 
-        Uint32 WindowsPlatform::GetWindowPositionXImpl()
+        Int32 WindowsPlatform::GetWindowPositionXImpl()
         {
             return mWindowPosX;
         }
 
-        Uint32 WindowsPlatform::GetWindowPositionYImpl()
+        Int32 WindowsPlatform::GetWindowPositionYImpl()
         {
             return mWindowPosY;
         }

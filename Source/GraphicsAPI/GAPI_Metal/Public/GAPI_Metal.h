@@ -1,0 +1,55 @@
+#pragma once
+
+#include "MetalHeader.h"
+
+#include "GAPI.h"
+
+#include "Platform.h"
+
+@interface CubeMTKView : MTKView <MTKViewDelegate>
+
+@end
+
+namespace cube
+{
+    extern "C" CUBE_METAL_EXPORT GAPI* CreateGAPI();
+
+    class CUBE_METAL_EXPORT GAPI_Metal : public GAPI
+    {
+    public:
+        GAPI_Metal() = default;
+        virtual ~GAPI_Metal() = default;
+
+        virtual void Initialize(const GAPIInitInfo& initInfo) override;
+        virtual void Shutdown(const ImGUIContext& imGUIInfo) override;
+
+        virtual void OnBeforeRender() override;
+        virtual void OnAfterRender() override;
+        virtual void OnBeforePresent(gapi::Viewport* viewport) override;
+        virtual void OnAfterPresent() override;
+
+        virtual void WaitForGPU() override;
+
+        virtual SharedPtr<gapi::Buffer> CreateBuffer(const gapi::BufferCreateInfo& info) override;
+        virtual SharedPtr<gapi::CommandList> CreateCommandList(const gapi::CommandListCreateInfo& info) override;
+        virtual SharedPtr<gapi::Fence> CreateFence(const gapi::FenceCreateInfo& info) override;
+        virtual SharedPtr<gapi::Pipeline> CreateGraphicsPipeline(const gapi::GraphicsPipelineCreateInfo& info) override;
+        virtual SharedPtr<gapi::Pipeline> CreateComputePipeline(const gapi::ComputePipelineCreateInfo& info) override;
+        virtual SharedPtr<gapi::Shader> CreateShader(const gapi::ShaderCreateInfo& info) override;
+        virtual SharedPtr<gapi::ShaderVariablesLayout> CreateShaderVariablesLayout(const gapi::ShaderVariablesLayoutCreateInfo& info) override;
+        virtual SharedPtr<gapi::Viewport> CreateViewport(const gapi::ViewportCreateInfo& info) override;
+
+        virtual gapi::TimestampList GetLastTimestampList() override;
+
+    private:
+        void InitializeImGUI(const ImGUIContext& imGUIInfo);
+        void ShutdownImGUI(const ImGUIContext& imGUIInfo);
+
+        id<MTLDevice> mDevice;
+        CubeMTKView* mView;
+        MTLRenderPassDescriptor* mRenderPassDescriptor;
+        id<MTLCommandQueue> mCommandQueue;
+
+        ImGUIContext mImGUIContext;
+    };
+} // namespace cube

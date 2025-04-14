@@ -64,6 +64,7 @@ namespace cube
 
         SharedPtr<platform::DLib> mGAPI_DLib;
         SharedPtr<GAPI> mGAPI;
+        bool mRenderImGUI;
 
         Matrix mViewMatrix;
         Matrix mPerspectiveMatrix;

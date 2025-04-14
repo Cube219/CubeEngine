@@ -2,21 +2,24 @@
 
 namespace cube
 {
+    // Based on Windows virtual key code
     enum class KeyCode
     {
+        Invalid = 0,
+
         Backspace = 8,
         Tab = 9,
         Clear = 12,
         Enter = 13,
-        LeftShift = 16,
-        LeftControl = 17,
-        LeftAlt = 18,
+        Shift = 16,
+        Control = 17,
+        Alt = 18,
         Pause = 19,
         CapsLock = 20,
         Escape = 27,
         Space = 32,
-        Prior = 33,
-        Next = 34,
+        PageUp = 33,
+        PageDown = 34,
         End = 35,
         Home = 36,
         LeftArrow = 37,
@@ -62,6 +65,8 @@ namespace cube
         Y = 89,
         Z = 90,
         Windows = 91,
+        RightWindows = 92,
+        AppKey = 93, // Context Menu in MacOS
         NumPad0 = 96,
         NumPad1 = 97,
         NumPad2 = 98,
@@ -72,10 +77,12 @@ namespace cube
         NumPad7 = 103,
         NumPad8 = 104,
         NumPad9 = 105,
-        NumPadAsterisk = 106,
-        NumPadPlus = 107,
-        NumPadMinus = 109,
-        NumPadSlash = 111,
+        NumPadMultiply = 106,
+        NumPadAdd = 107,
+        NumPadSeparator = 108,
+        NumPadSubtract = 109,
+        NumPadDecimal = 110,
+        NumPadDivide = 111,
         F1 = 112,
         F2 = 113,
         F3 = 114,
@@ -88,8 +95,19 @@ namespace cube
         F10 = 121,
         F11 = 122,
         F12 = 123,
+        F13 = 124,
+        F14 = 125,
+        F15 = 126,
+        F16 = 127,
+        F17 = 128,
+        F18 = 129,
+        F19 = 130,
+        F20 = 131,
         NumLock = 144,
         ScrollLock = 145,
+        RightShift = 161,
+        RightControl = 163,
+        RightAlt = 165,
         Semicolon = 186,
         Plus = 187,
         Comma = 188,
@@ -100,8 +118,8 @@ namespace cube
         LeftBracket = 219,
         BackSlash = 220,
         RightBracket = 221,
-        Quote = 222
+        Quote = 222,
     };
 
-    constexpr int MaxKeyCode = 223;
+    constexpr int MaxKeyCode = 256;
 } // namespace cube

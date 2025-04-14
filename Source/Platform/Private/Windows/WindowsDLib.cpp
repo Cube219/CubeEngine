@@ -9,6 +9,8 @@ namespace cube
 {
     namespace platform
     {
+        DLIB_CLASS_DEFINITIONS(WindowsDLib)
+
         WindowsDLib::WindowsDLib(StringView path)
         {
             WindowsString pathWithExtension;

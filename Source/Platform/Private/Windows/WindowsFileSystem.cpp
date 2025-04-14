@@ -11,6 +11,8 @@ namespace cube
 {
     namespace platform
     {
+        FILE_CLASS_DEFINITIONS(WindowsFile)
+
         Uint64 WindowsFile::GetFileSizeImpl() const
         {
             LARGE_INTEGER size_LI;
@@ -63,6 +65,8 @@ namespace cube
         {
             CloseHandle(mFileHandle);
         }
+
+        FILE_SYSTEM_CLASS_DEFINITIONS(WindowsFileSystem)
 
         SharedPtr<File> WindowsFileSystem::OpenFileImpl(StringView path, FileAccessModeFlags accessModeFlags, bool createIfNotExist)
         {

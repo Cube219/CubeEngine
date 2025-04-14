@@ -7,6 +7,7 @@ namespace cube
     namespace string_internal
     {
         // ===== Ansi =====
+#if CUBE_SUPPORT_UNICODE_CHARACTER // Ansi will be use UTF8 functions if uncode characters is not supported
         template <>
         Uint32 DecodeCharacterAndMove(const AnsiCharacter*& pStr)
         {
@@ -23,6 +24,7 @@ namespace cube
 
             return 1;
         }
+#endif
 
         // ===== UTF8 =====
         template <>
@@ -147,6 +149,7 @@ namespace cube
         }
 
         // ===== UTF16 =====
+#if CUBE_SUPPORT_UNICODE_CHARACTER // UTF16 will be use UTF32 functions if uncode characters is not supported
         template <>
         Uint32 DecodeCharacterAndMove(const U16Character*& pStr)
         {
@@ -199,6 +202,7 @@ namespace cube
                 return 2;
             }
         }
+#endif
 
         // ===== UTF32 =====
         template <>

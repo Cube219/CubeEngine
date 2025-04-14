@@ -19,7 +19,7 @@ namespace cube
             static void InitializeImpl();
             static void ShutdownImpl();
 
-            static void InitWindowImpl(StringView title, Uint32 width, Uint32 height, Uint32 posX, Uint32 posY);
+            static void InitWindowImpl(StringView title, Uint32 width, Uint32 height, Int32 posX, Int32 posY);
             static void ShowWindowImpl();
             static void ChangeWindowTitleImpl(StringView title);
 
@@ -30,7 +30,7 @@ namespace cube
 
             static void StartLoopImpl();
             static void FinishLoopImpl();
-            static void SleepImpl(Uint32 time);
+            static void SleepImpl(float timeSec);
 
             static void ShowCursorImpl();
             static void HideCursorImpl();
@@ -39,8 +39,8 @@ namespace cube
 
             static Uint32 GetWindowWidthImpl();
             static Uint32 GetWindowHeightImpl();
-            static Uint32 GetWindowPositionXImpl();
-            static Uint32 GetWindowPositionYImpl();
+            static Int32 GetWindowPositionXImpl();
+            static Int32 GetWindowPositionYImpl();
 
             static SharedPtr<DLib> LoadDLibImpl(StringView path);
 
@@ -60,15 +60,14 @@ namespace cube
             static WindowsString mWindowTitle;
             static Uint32 mWindowWidth;
             static Uint32 mWindowHeight;
-            static Uint32 mWindowPosX;
-            static Uint32 mWindowPosY;
+            static Int32 mWindowPosX;
+            static Int32 mWindowPosY;
 
             static bool mIsCursorShown;
 
             WindowsPlatform() = delete;
             ~WindowsPlatform() = delete;
         };
-        PLATFORM_CLASS_DEFINITIONS(WindowsPlatform)
 
         LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
     } // namespace platform

@@ -1,14 +1,5 @@
 #include "Engine.h"
-
-namespace cube
-{
-    void MainImpl()
-    {
-        Engine::Initialize();
-
-        Engine::Shutdown();
-    }
-} // namespace cube
+#include "GAPI.h"
 
 #ifdef CUBE_PLATFORM_WINDOWS
 
@@ -16,9 +7,32 @@ namespace cube
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
 {
-    cube::MainImpl();
+    // TODO: argc / argv
+    cube::Engine::EngineInitializeInfo initInfo = {
+        .argc = 0,
+        .argv = nullptr,
+        .gapi = cube::GAPIName::DX12,
+        .runShutdownInOnClosingFunc = false
+    };
+    cube::Engine::Initialize(initInfo);
+    cube::Engine::Shutdown();
 
     return 0;
 }
 
-#endif // CUBE_PLATFORM_WINDOWS
+#elif CUBE_PLATFORM_MACOS
+
+int main(int argc, const char* argv[])
+{
+    cube::Engine::EngineInitializeInfo initInfo = {
+        .argc = argc,
+        .argv = argv,
+        .gapi = cube::GAPIName::Metal,
+        .runShutdownInOnClosingFunc = true
+    };
+    cube::Engine::Initialize(initInfo);
+    // Remain logic will not be executed. So Engine::Shutdown() will be executed in Engine::OnClosing().
+    return 0;
+}
+
+#endif

@@ -20,7 +20,9 @@ namespace cube
 {
     namespace platform
     {
-        void WindowsDebug::PrintToDebugConsoleImpl(StringView str)
+        PLATFORM_DEBUG_CLASS_DEFINITIONS(WindowsDebug)
+
+        void WindowsDebug::PrintToDebugConsoleImpl(StringView str, PrintColorCategory colorCategory)
         {
             // TODO: Use custom allocator (logger allocator?)
             WindowsString winStr;

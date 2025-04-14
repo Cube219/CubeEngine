@@ -29,7 +29,8 @@ namespace cube
     enum class GAPIName
     {
         Unknown,
-        DX12
+        DX12,
+        Metal
     };
     inline const Character* GAPINameToString(GAPIName gAPIName)
     {
@@ -37,6 +38,8 @@ namespace cube
         {
         case GAPIName::DX12:
             return CUBE_T("DX12");
+        case GAPIName::Metal:
+            return CUBE_T("Metal");
         case GAPIName::Unknown:
         default:
             return CUBE_T("Unknown");

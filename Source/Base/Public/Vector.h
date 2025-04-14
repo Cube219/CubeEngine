@@ -1,6 +1,6 @@
 #pragma once
 
-#include "fmt/format.h"
+#include "Defines.h"
 
 #include "Format.h"
 
@@ -45,6 +45,8 @@ namespace cube
         float z;
         float w;
     };
+
+    class Matrix;
 
     template <int N>
     class VectorBase

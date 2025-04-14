@@ -8,10 +8,17 @@ namespace cube
 {
     namespace platform
     {
+        enum class PrintColorCategory
+        {
+            Default,
+            Warning,
+            Error
+        };
+
         class CUBE_PLATFORM_EXPORT PlatformDebug
         {
         public:
-            static void PrintToDebugConsole(StringView str);
+            static void PrintToDebugConsole(StringView str, PrintColorCategory colorCategory = PrintColorCategory::Default);
 
             static void ProcessFatalError(StringView msg);
 
@@ -24,28 +31,28 @@ namespace cube
         };
 
 #define PLATFORM_DEBUG_CLASS_DEFINITIONS(ChildClass) \
-        inline void PlatformDebug::PrintToDebugConsole(StringView str) \
+        void PlatformDebug::PrintToDebugConsole(StringView str, PrintColorCategory colorCategory) \
         { \
-            ChildClass::PrintToDebugConsoleImpl(str); \
+            ChildClass::PrintToDebugConsoleImpl(str, colorCategory); \
         } \
         \
-        inline void PlatformDebug::ProcessFatalError(StringView msg) \
+        void PlatformDebug::ProcessFatalError(StringView msg) \
         { \
             ChildClass::ProcessFatalErrorImpl(msg); \
         } \
-        inline void PlatformDebug::ProcessFailedCheck(const char* fileName, int lineNum, StringView formattedMsg) \
+        void PlatformDebug::ProcessFailedCheck(const char* fileName, int lineNum, StringView formattedMsg) \
         { \
             ChildClass::ProcessFailedCheckImpl(fileName, lineNum, formattedMsg); \
         } \
-        inline String PlatformDebug::DumpStackTrace(bool removeBeforeProjectFolderPath) \
+        String PlatformDebug::DumpStackTrace(bool removeBeforeProjectFolderPath) \
         { \
             return ChildClass::DumpStackTraceImpl(removeBeforeProjectFolderPath); \
         } \
-        inline bool PlatformDebug::IsDebuggerAttached() \
+        bool PlatformDebug::IsDebuggerAttached() \
         { \
             return ChildClass::IsDebuggerAttachedImpl(); \
         } \
-        inline void PlatformDebug::BreakDebug() \
+        void PlatformDebug::BreakDebug() \
         { \
             ChildClass::BreakDebugImpl(); \
         }

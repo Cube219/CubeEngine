@@ -14,7 +14,7 @@ namespace cube
         class WindowsDebug : public PlatformDebug
         {
         public:
-            static void PrintToDebugConsoleImpl(StringView str);
+            static void PrintToDebugConsoleImpl(StringView str, PrintColorCategory colorCategory);
 
             static void ProcessFatalErrorImpl(StringView msg);
 
@@ -30,7 +30,6 @@ namespace cube
         private:
             static void ShowDebugMessageBox(const WindowsString& title, const WindowsString& msg);
         };
-        PLATFORM_DEBUG_CLASS_DEFINITIONS(WindowsDebug)
     } // namespace platform
 } // namespace cube
 

@@ -35,13 +35,13 @@ namespace cube
         };
 
 #define FILE_CLASS_DEFINITIONS(ChildClass) \
-        inline Uint64 File::GetFileSize() const { return reinterpret_cast<const ChildClass*>(this)->GetFileSizeImpl(); } \
+        Uint64 File::GetFileSize() const { return reinterpret_cast<const ChildClass*>(this)->GetFileSizeImpl(); } \
         \
-        inline void File::SetFilePointer(Uint64 offset) { reinterpret_cast<ChildClass*>(this)->SetFilePointerImpl(offset); } \
-        inline void File::MoveFilePointer(Int64 distance) { reinterpret_cast<ChildClass*>(this)->MoveFilePointerImpl(distance); } \
+        void File::SetFilePointer(Uint64 offset) { reinterpret_cast<ChildClass*>(this)->SetFilePointerImpl(offset); } \
+        void File::MoveFilePointer(Int64 distance) { reinterpret_cast<ChildClass*>(this)->MoveFilePointerImpl(distance); } \
         \
-        inline Uint64 File::Read(void* pReadBuffer, Uint64 bufferSizeToRead) { return reinterpret_cast<ChildClass*>(this)->ReadImpl(pReadBuffer, bufferSizeToRead); } \
-        inline void File::Write(void* pWriteBuffer, Uint64 bufferSize) { return reinterpret_cast<ChildClass*>(this)->WriteImpl(pWriteBuffer, bufferSize); }
+        Uint64 File::Read(void* pReadBuffer, Uint64 bufferSizeToRead) { return reinterpret_cast<ChildClass*>(this)->ReadImpl(pReadBuffer, bufferSizeToRead); } \
+        void File::Write(void* pWriteBuffer, Uint64 bufferSize) { return reinterpret_cast<ChildClass*>(this)->WriteImpl(pWriteBuffer, bufferSize); }
 
         class CUBE_PLATFORM_EXPORT FileSystem
         {
@@ -55,13 +55,13 @@ namespace cube
         };
 
 #define FILE_SYSTEM_CLASS_DEFINITIONS(ChildClass) \
-        inline SharedPtr<File> FileSystem::OpenFile(StringView path, FileAccessModeFlags accessModeFlags, bool createIfNotExist) { \
+        SharedPtr<File> FileSystem::OpenFile(StringView path, FileAccessModeFlags accessModeFlags, bool createIfNotExist) { \
             return ChildClass::OpenFileImpl(path, accessModeFlags, createIfNotExist); \
         } \
-        inline char FileSystem::GetSeparator() { \
+        char FileSystem::GetSeparator() { \
             return ChildClass::GetSeparatorImpl(); \
         } \
-        inline const char* FileSystem::SplitFileNameFromFullPath(const char* fullPath) { \
+        const char* FileSystem::SplitFileNameFromFullPath(const char* fullPath) { \
             return ChildClass::SplitFileNameFromFullPathImpl(fullPath); \
         }
     } // namespace platform

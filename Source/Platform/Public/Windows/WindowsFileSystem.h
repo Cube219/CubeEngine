@@ -28,7 +28,6 @@ namespace cube
         private:
             HANDLE mFileHandle;
         };
-        FILE_CLASS_DEFINITIONS(WindowsFile)
 
         class WindowsFileSystem : public FileSystem
         {
@@ -43,7 +42,6 @@ namespace cube
         private:
             static DWORD GetDwDesiredAccess(FileAccessModeFlags accessModeFlags);
         };
-        FILE_SYSTEM_CLASS_DEFINITIONS(WindowsFileSystem)
     }
 }
 

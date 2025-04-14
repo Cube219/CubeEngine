@@ -30,6 +30,9 @@ namespace cube
         case GAPIName::DX12:
             dLibName = CUBE_T("CE-GAPI_DX12");
             break;
+        case GAPIName::Metal:
+            dLibName = CUBE_T("CE-GAPI_Metal");
+            break;
 
         case GAPIName::Unknown:
         default:
@@ -48,6 +51,7 @@ namespace cube
             .enableDebugLayer = true,
             .imGUI = imGUIContext
         });
+        mRenderImGUI = (imGUIContext.context != nullptr);
 
         mIsViewPerspectiveMatrixDirty = true;
         mGlobalConstantBuffer = mGAPI->CreateBuffer({
@@ -116,7 +120,10 @@ namespace cube
         RenderImpl();
         mGAPI->OnAfterRender();
 
-        ImGui::Render();
+        if (mRenderImGUI)
+        {
+            ImGui::Render();
+        }
 
         mGAPI->OnBeforePresent(mViewport.get());
         mViewport->Present();
@@ -319,7 +326,7 @@ namespace cube
                 .vertexShader = mVertexShader,
                 .pixelShader = mPixelShader,
                 .inputLayout = inputLayout,
-                .numInputLayoutElements = _countof(inputLayout),
+                .numInputLayoutElements = std::size(inputLayout),
                 .depthStencilState = {
                     .enableDepth = true,
                     .depthFunction = gapi::CompareFunction::Greater

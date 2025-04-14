@@ -4,14 +4,21 @@ project(CubeEngine)
 
 # Sets
 set (DEPENDENCIES_DIR ${PROJECT_SOURCE_DIR}/Dependencies)
+set (RESOURCES_DIR ${PROJECT_SOURCE_DIR}/Resources)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set (DEBUG_MODE TRUE)
 endif()
 
 set(PLATFORM_WINDOWS FALSE)
+set(PLATFORM_MACOS FALSE)
 if(WIN32)
     set(PLATFORM_WINDOWS TRUE)
     message("Target platform: Windows")
+elseif(APPLE)
+    set(PLATFORM_MACOS TRUE)
+    message("Target platform: MacOS")
+else()
+
 endif()
 
 # Global project settings
@@ -23,6 +30,12 @@ if(PLATFORM_WINDOWS)
 
     add_definitions(-D_UNICODE -DUNICODE -DNOMINMAX)
     add_compile_options(/utf-8)
+endif()
+if(PLATFORM_MACOS)
+    add_definitions(-DCUBE_PLATFORM_MACOS)
+    # Execute path has three more depths Bundled app.
+    #    (##.app/Contents/MacOS/)
+    add_definitions(-DCUBE_OVERRIDE_ROOT_DIR_PATH="../../../../..")
 endif()
 
 # Output directory
