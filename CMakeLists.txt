@@ -8,6 +8,9 @@ set (RESOURCES_DIR ${PROJECT_SOURCE_DIR}/Resources)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set (DEBUG_MODE TRUE)
 endif()
+set (GLOBAL_FILES
+    ${RESOURCES_DIR}/natvis/CubeEngine.natvis
+)
 
 set(PLATFORM_WINDOWS FALSE)
 set(PLATFORM_MACOS FALSE)

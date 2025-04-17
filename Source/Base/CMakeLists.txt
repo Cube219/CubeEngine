@@ -45,6 +45,7 @@ source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${PUBLIC_FILES} ${PRIVATE_
 
 # Target settings
 add_library(CE-Base STATIC
+    ${GLOBAL_FILES}
     ${PUBLIC_FILES} ${PRIVATE_FILES}
 )
 target_include_directories(CE-Base

@@ -13,7 +13,10 @@ set(PRIVATE_FILES
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${PUBLIC_FILES} ${PRIVATE_FILES})
 
 # Target settings
-add_library(CE-Logger SHARED ${PUBLIC_FILES} ${PRIVATE_FILES})
+add_library(CE-Logger SHARED
+    ${GLOBAL_FILES}
+    ${PUBLIC_FILES} ${PRIVATE_FILES}
+)
 target_include_directories(CE-Logger
     PUBLIC
         Public

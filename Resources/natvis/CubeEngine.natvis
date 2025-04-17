@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+
+  <!-- Vector SSE version -->
+  <Type Name="cube::VectorBase&lt;2&gt;">
+    <DisplayString>{{ x={mData.m128_f32[0]} y={mData.m128_f32[1]} }}</DisplayString>
+  </Type>
+  <Type Name="cube::VectorBase&lt;3&gt;">
+    <DisplayString>{{ x={mData.m128_f32[0]} y={mData.m128_f32[1]} z={mData.m128_f32[2]} }}</DisplayString>
+  </Type>
+  <Type Name="cube::VectorBase&lt;4&gt;">
+    <DisplayString>{{ x={mData.m128_f32[0]} y={mData.m128_f32[1]} z={mData.m128_f32[2]} w={mData.m128_f32[3]} }}</DisplayString>
+  </Type>
+  
+  <!-- Vector Array version -->
+  <Type Name="cube::VectorBase&lt;2&gt;" Priority="MediumLow">
+    <DisplayString>{{ x={mData[0]} y={mData[1]} }}</DisplayString>
+  </Type>
+  <Type Name="cube::VectorBase&lt;3&gt;" Priority="MediumLow">
+    <DisplayString>{{ x={mData[0]} y={mData[1]} z={mData[2]} }}</DisplayString>
+  </Type>
+  <Type Name="cube::VectorBase&lt;4&gt;" Priority="MediumLow">
+    <DisplayString>{{ x={mData[0]} y={mData[1]} z={mData[2]} w={mData[3]} }}</DisplayString>
+  </Type>
+
+</AutoVisualizer>
