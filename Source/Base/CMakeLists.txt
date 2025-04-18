@@ -57,5 +57,6 @@ target_include_directories(CE-Base
 
 # Third-party
 target_link_libraries(CE-Base
-    fmt::fmt
+    PUBLIC
+        fmt::fmt
 )
