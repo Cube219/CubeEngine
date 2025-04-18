@@ -2,8 +2,8 @@
 
 #ifdef CUBE_PLATFORM_WINDOWS
 
-#include "PlatformHeader.h"
 #include "FileSystem.h"
+#include "PlatformHeader.h"
 
 #include <Windows.h>
 
@@ -49,7 +49,7 @@ namespace cube
         private:
             static DWORD GetDwDesiredAccess(FileAccessModeFlags accessModeFlags);
         };
-    }
-}
+    } // namespace platform
+} // namespace cube
 
 #endif // CUBE_PLATFORM_WINDOWS

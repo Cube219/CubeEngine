@@ -10,8 +10,9 @@
 #include "PlatformDebug.h"
 
 #include "Allocator/FrameAllocator.h"
-#include "Camera.h"
 #include "Renderer/Renderer.h"
+#include "Systems/CameraSystem.h"
+#include "Systems/ModelLoaderSystem.h"
 
 namespace cube
 {
@@ -95,7 +96,7 @@ namespace cube
 
         platform::Platform::Initialize();
 
-        GetMyThreadFrameAllocator().Initialize("Main thread frame allocator", 10 * 1024 * 1024); // 10 MiB
+        GetMyThreadFrameAllocator().Initialize("Main thread frame allocator", 100u * 1024 * 1024); // 100 MiB
 
         Logger::Init(&tempAllocator);
         Logger::SetFilePathSeparator(platform::FileSystem::GetSeparator());
@@ -107,7 +108,7 @@ namespace cube
 
         SearchAndSetRootDirectory();
 
-        platform::Platform::InitWindow(CUBE_T("CubeEngine"), 1024, 768, 100, 100);
+        platform::Platform::InitWindow(CUBE_T("CubeEngine"), 1200, 900, 100, 100);
         platform::Platform::ShowWindow();
 
         mOnLoopEventFunc = platform::Platform::GetLoopEvent().AddListener(OnLoop);
@@ -131,14 +132,14 @@ namespace cube
             ImGui::GetAllocatorFunctions(
                 (ImGuiMemAllocFunc*)&mImGUIContext.allocFunc,
                 (ImGuiMemFreeFunc*)&mImGUIContext.freeFunc,
-                &mImGUIContext.userData
-            );
+                &mImGUIContext.userData);
         }
 
         mRenderer = std::make_unique<Renderer>();
         CUBE_LOG(Info, Engine, "Using GAPI {}.", GAPINameToString(initInfo.gapi));
         mRenderer->Initialize(initInfo.gapi, mImGUIContext);
 
+        ModelLoaderSystem::Initialize();
         CameraSystem::Initialize();
 
         mStartTime = GetNow();
@@ -153,6 +154,7 @@ namespace cube
         CUBE_LOG(Info, Engine, "Shutdown CubeEngine.");
 
         CameraSystem::Shutdown();
+        ModelLoaderSystem::Shutdown();
 
         mRenderer->Shutdown(mImGUIContext);
         mRenderer = nullptr;
@@ -174,6 +176,11 @@ namespace cube
         GetMyThreadFrameAllocator().Shutdown();
 
         platform::Platform::Shutdown();
+    }
+
+    void Engine::SetMesh(SharedPtr<MeshData> mesh)
+    {
+        mRenderer->SetMesh(mesh);
     }
 
     void Engine::OnLoop()
@@ -246,6 +253,7 @@ namespace cube
         }
 
         CameraSystem::OnLoopImGUI();
+        ModelLoaderSystem::OnLoopImGUI();
     }
 
     Uint64 Engine::GetNow()

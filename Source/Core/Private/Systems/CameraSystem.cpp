@@ -1,4 +1,4 @@
-#include "Camera.h"
+#include "CameraSystem.h"
 
 #include "imguizmo_quat/imGuIZMOquat.h"
 #include "imgui.h"
@@ -271,7 +271,7 @@ namespace cube
 
         // Speed and reset
         ImGui::NewLine();
-        ImGui::SliderFloat("Speed", &mMovementSpeed, 0.5f, 30.0f);
+        ImGui::SliderFloat("Speed", &mMovementSpeed, 0.5f, 100.0f);
         ImGui::SliderFloat("Mouse Speed", &mMouseSpeed, 0.5f, 10.0f);
 
         ImGui::NewLine();
@@ -297,7 +297,7 @@ namespace cube
     void CameraSystem::UpdatePerspectiveMatrix()
     {
         // Reverse Z
-        Engine::GetRenderer()->SetPerspectiveMatrix(Math::Deg2Rad(mFOV), mAspectRatio, 100.0f, 0.1f);
+        Engine::GetRenderer()->SetPerspectiveMatrix(Math::Deg2Rad(mFOV), mAspectRatio, 10000.0f, 0.1f);
     }
 
     void CameraSystem::UpdateDirection()

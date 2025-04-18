@@ -50,10 +50,13 @@ namespace cube
 
         GAPI& GetGAPI() const { return *mGAPI; }
 
+        void SetObjectModelMatrix(const Vector3& position, const Vector3& rotation, const Vector3& scale);
         void SetViewMatrix(const Vector3& eye, const Vector3& target, const Vector3& upDir);
         void SetPerspectiveMatrix(float fovAngleY, float aspectRatio, float nearZ, float farZ);
 
         float GetGPUTimeMS() const;
+
+        void SetMesh(SharedPtr<MeshData> meshData);
 
     private:
         void SetGlobalConstantBuffers();
@@ -80,7 +83,7 @@ namespace cube
         Uint32 mViewportHeight;
         SharedPtr<gapi::Viewport> mViewport;
 
-        SharedPtr<Mesh> mBoxMesh;
+        SharedPtr<Mesh> mMesh;
         SharedPtr<gapi::Shader> mVertexShader;
         SharedPtr<gapi::Shader> mPixelShader;
         SharedPtr<gapi::ShaderVariablesLayout> mShaderVariablesLayout;
@@ -90,6 +93,7 @@ namespace cube
         SharedPtr<gapi::Buffer> mObjectBuffer;
         Uint8* mObjectBufferDataPointer;
 
+        SharedPtr<Mesh> mBoxMesh;
         ObjectBufferData mObjectBufferData_X;
         SharedPtr<gapi::Buffer> mObjectBuffer_X;
         Uint8* mObjectBufferDataPointer_X;

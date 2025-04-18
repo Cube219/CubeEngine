@@ -18,8 +18,10 @@ set(PRIVATE_FILES
     Private/Renderer/RenderObject.h
     Private/Renderer/Shader.cpp
     Private/Renderer/Shader.h
-    Private/Camera.cpp
-    Private/Camera.h
+    Private/Systems/CameraSystem.cpp
+    Private/Systems/CameraSystem.h
+    Private/Systems/ModelLoaderSystem.cpp
+    Private/Systems/ModelLoaderSystem.h
     Private/Engine.cpp
 )
 
@@ -39,6 +41,8 @@ target_include_directories(CE-Core
 target_link_libraries(CE-Core
     PRIVATE
         imgui
+        tinygltf
+        tinyobjloader
         CE-Base
         CE-Logger
         CE-Platform
