@@ -41,7 +41,6 @@ namespace cube
 
         mInfo = {
             .apiName = GAPIName::Metal,
-            .isEnabled = false,
             .useLeftHanded = false
         };
 

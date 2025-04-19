@@ -28,6 +28,7 @@ int main(int argc, const char* argv[])
         .argc = argc,
         .argv = argv,
         .gapi = cube::GAPIName::Metal,
+        .drawImGUI = false, // TODO: Enable while developing GAPI_Metal
         .runShutdownInOnClosingFunc = true
     };
     cube::Engine::Initialize(initInfo);
