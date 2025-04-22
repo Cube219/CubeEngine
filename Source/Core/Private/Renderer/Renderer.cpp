@@ -21,7 +21,7 @@ namespace cube
 {
     void Renderer::Initialize(GAPIName gAPIName, const ImGUIContext& imGUIContext)
     {
-        CUBE_LOG(LogType::Info, Renderer, "Initialize renderer. (GAPI: {})", GAPINameToString(gAPIName));
+        CUBE_LOG(Info, Renderer, "Initialize renderer. (GAPI: {})", GAPINameToString(gAPIName));
 
         // GAPI init
         const Character* dLibName = CUBE_T("");
@@ -92,7 +92,7 @@ namespace cube
 
     void Renderer::Shutdown(const ImGUIContext& imGUIContext)
     {
-        CUBE_LOG(LogType::Info, Renderer, "Shutdown renderer.");
+        CUBE_LOG(Info, Renderer, "Shutdown renderer.");
 
         mGAPI->WaitForGPU();
 

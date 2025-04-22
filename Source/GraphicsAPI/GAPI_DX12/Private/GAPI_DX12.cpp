@@ -88,7 +88,7 @@ namespace cube
 
     void GAPI_DX12::Initialize(const GAPIInitInfo& initInfo)
     {
-        CUBE_LOG(LogType::Info, DX12, "Initialize GAPI_DX12.");
+        CUBE_LOG(Info, DX12, "Initialize GAPI_DX12.");
 
         mInfo = {
             .apiName = GAPIName::DX12,
@@ -137,10 +137,10 @@ namespace cube
         CHECK(mDevices.size() > 0);
         mMainDevice = mDevices[0];
 
-        CUBE_LOG(LogType::Info, DX12, "Found {0} devices.", mDevices.size());
+        CUBE_LOG(Info, DX12, "Found {0} devices.", mDevices.size());
         String tempStr;
         String_ConvertAndAppend(tempStr, WindowsStringView(mMainDevice->GetAdapterDesc().Description));
-        CUBE_LOG(LogType::Info, DX12, "Use the first device: {0}", tempStr);
+        CUBE_LOG(Info, DX12, "Use the first device: {0}", tempStr);
 
         InitializeImGUI(initInfo.imGUI);
 
@@ -149,7 +149,7 @@ namespace cube
 
     void GAPI_DX12::Shutdown(const ImGUIContext& imGUIInfo)
     {
-        CUBE_LOG(LogType::Info, DX12, "Shutdown GAPI_DX12.");
+        CUBE_LOG(Info, DX12, "Shutdown GAPI_DX12.");
 
         ShutdownImGUI(imGUIInfo);
 
@@ -298,7 +298,7 @@ namespace cube
             return;
         }
 
-        CUBE_LOG(LogType::Info, DX12, "ImGUI context is set in the initialize info. Initialize ImGUI.");
+        CUBE_LOG(Info, DX12, "ImGUI context is set in the initialize info. Initialize ImGUI.");
 
         mImGUIContext = imGUIInfo;
 
@@ -344,7 +344,7 @@ namespace cube
         {
             return;
         }
-        CUBE_LOG(LogType::Info, DX12, "Shtudown ImGUI.");
+        CUBE_LOG(Info, DX12, "Shtudown ImGUI.");
 
         ImGui_ImplDX12_Shutdown();
         ImGui_ImplWin32_Shutdown();

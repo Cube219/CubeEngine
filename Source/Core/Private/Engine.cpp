@@ -114,7 +114,7 @@ namespace cube
         mOnClosingEventFunc = platform::Platform::GetClosingEvent().AddListener(OnClosing);
         mOnResizeEventFunc = platform::Platform::GetResizeEvent().AddListener(OnResize);
 
-        CUBE_LOG(LogType::Info, Engine, "Initialize CubeEngine.");
+        CUBE_LOG(Info, Engine, "Initialize CubeEngine.");
 
         mDrawImGUI = initInfo.drawImGUI;
         if (mDrawImGUI)
@@ -138,7 +138,7 @@ namespace cube
         }
 
         mRenderer = std::make_unique<Renderer>();
-        CUBE_LOG(LogType::Info, Engine, "Using GAPI {}.", GAPINameToString(initInfo.gapi));
+        CUBE_LOG(Info, Engine, "Using GAPI {}.", GAPINameToString(initInfo.gapi));
         mRenderer->Initialize(initInfo.gapi, mImGUIContext);
 
         CameraSystem::Initialize();
@@ -146,13 +146,13 @@ namespace cube
         mStartTime = GetNow();
         mCurrentTime = mStartTime;
 
-        CUBE_LOG(LogType::Info, Engine, "Start CubeEngine.");
+        CUBE_LOG(Info, Engine, "Start CubeEngine.");
         platform::Platform::StartLoop();
     }
 
     void Engine::Shutdown()
     {
-        CUBE_LOG(LogType::Info, Engine, "Shutdown CubeEngine.");
+        CUBE_LOG(Info, Engine, "Shutdown CubeEngine.");
 
         CameraSystem::Shutdown();
 

@@ -20,7 +20,7 @@ namespace cube
             mDLib = LoadLibrary(pathWithExtension.c_str());
             if (mDLib == nullptr)
             {
-                CUBE_LOG(LogType::Warning, WindowsDLib, "Failed to load a DLib. ({0}.dll) (ErrorCode: {1})", path, GetLastError());
+                CUBE_LOG(Warning, WindowsDLib, "Failed to load a DLib. ({0}.dll) (ErrorCode: {1})", path, GetLastError());
             }
         }
 
@@ -45,7 +45,7 @@ namespace cube
             auto pFunction = GetProcAddress(mDLib, aName.c_str());
             if (pFunction == nullptr)
             {
-                CUBE_LOG(LogType::Warning, WindowsDLib, "Failed to get the function({0}). (ErrorCode: {1})", name, GetLastError());
+                CUBE_LOG(Warning, WindowsDLib, "Failed to get the function({0}). (ErrorCode: {1})", name, GetLastError());
             }
 
             return reinterpret_cast<void*>(pFunction);

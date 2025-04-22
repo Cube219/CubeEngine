@@ -92,7 +92,7 @@ namespace cube
                 err = GetLastError();
             }
 
-            CUBE_LOG(LogType::Warning, WindowsFileSystem, "Failed to open a file. ({0}) (ErrorCode: {1})", path, err);
+            CUBE_LOG(Warning, WindowsFileSystem, "Failed to open a file. ({0}) (ErrorCode: {1})", path, err);
             return nullptr;
         }
 

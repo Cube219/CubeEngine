@@ -25,7 +25,7 @@ namespace cube
 
             outDxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
 
-            CUBE_LOG(LogType::Info, DX12, "Enabled DX12 debug layer.");
+            CUBE_LOG(Info, DX12, "Enabled DX12 debug layer.");
         }
 
         mDXGIDebugDLib = platform::Platform::LoadDLib(CUBE_T("dxgidebug"));
@@ -37,7 +37,7 @@ namespace cube
 			{
 				DXGIGetDebugInterfaceFunc(IID_PPV_ARGS(&mDXGIDebug));
 
-			    CUBE_LOG(LogType::Info, DX12, "Enabled DXGI debug layer.");
+			    CUBE_LOG(Info, DX12, "Enabled DXGI debug layer.");
 			}
         }
 
@@ -53,13 +53,13 @@ namespace cube
 
         if (mDXGIDebug)
         {
-			CUBE_LOG(LogType::Info, DX12, "===== Begin live objects =====");
+			CUBE_LOG(Info, DX12, "===== Begin live objects =====");
 
             DXGI_DEBUG_RLO_FLAGS flags = DXGI_DEBUG_RLO_ALL;
             mDXGIDebug->ReportLiveObjects(DXGI_DEBUG_ALL, flags);
             mDXGIDebug = nullptr;
 
-            CUBE_LOG(LogType::Info, DX12, "===== End live objects =====");
+            CUBE_LOG(Info, DX12, "===== End live objects =====");
         }
         mDXGIDebugDLib = nullptr;
     }
@@ -112,7 +112,7 @@ namespace cube
                     {
                     case D3D12_MESSAGE_SEVERITY_CORRUPTION:
                     case D3D12_MESSAGE_SEVERITY_ERROR:
-                        CUBE_LOG(LogType::Error, DX12, "[DX12Debug]: {}", message->pDescription);
+                        CUBE_LOG(Error, DX12, "[DX12Debug]: {}", message->pDescription);
 
                         if (platform::PlatformDebug::IsDebuggerAttached())
                         {
@@ -122,12 +122,12 @@ namespace cube
                         break;
 
                     case D3D12_MESSAGE_SEVERITY_WARNING:
-                        CUBE_LOG(LogType::Warning, DX12, "[DX12Debug]: {}", message->pDescription);
+                        CUBE_LOG(Warning, DX12, "[DX12Debug]: {}", message->pDescription);
                         break;
 
                     case D3D12_MESSAGE_SEVERITY_INFO:
                     case D3D12_MESSAGE_SEVERITY_MESSAGE:
-                        CUBE_LOG(LogType::Info, DX12, "[DX12Debug]: {}", message->pDescription);
+                        CUBE_LOG(Info, DX12, "[DX12Debug]: {}", message->pDescription);
                         break;
                     }
                 }

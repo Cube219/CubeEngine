@@ -82,4 +82,4 @@ namespace cube
     };
 } // namespace cube
 
-#define CUBE_LOG(type, category, format, ...) cube::Logger::WriteLogFormatting(type, __FILE__, __LINE__, CUBE_T(#category), CUBE_T(format), ##__VA_ARGS__)
+#define CUBE_LOG(type, category, format, ...) cube::Logger::WriteLogFormatting(LogType::type, __FILE__, __LINE__, CUBE_T(#category), CUBE_T(format), ##__VA_ARGS__)

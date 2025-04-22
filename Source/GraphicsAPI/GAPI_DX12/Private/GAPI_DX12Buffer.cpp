@@ -44,7 +44,7 @@ namespace cube
                 if ((mSize & 255) != 0)
                 {
                     Uint64 newSize = (mSize + 255) & ~255;
-                    CUBE_LOG(LogType::Warning, DX12, "CB size should be 256 byte aligned. Size will be changed. ({} -> {})", mSize, newSize);
+                    CUBE_LOG(Warning, DX12, "CB size should be 256 byte aligned. Size will be changed. ({} -> {})", mSize, newSize);
                     mSize = newSize;
                 }
 

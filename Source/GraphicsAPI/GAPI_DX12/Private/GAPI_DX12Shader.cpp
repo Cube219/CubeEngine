@@ -22,7 +22,7 @@ namespace cube
                 // LoadFromDXIL(info);
                 // break;
             default:
-                CUBE_LOG(LogType::Error, DX12, "Not supported shader language: {}", (int)info.language);
+                CUBE_LOG(Error, DX12, "Not supported shader language: {}", (int)info.language);
                 CHECK(false);
                 break;
             }
@@ -48,7 +48,7 @@ namespace cube
                 target = "ps_5_0";
                 break;
             default:
-                CUBE_LOG(LogType::Error, DX12, "Not supported shader type: {}", (int)info.type);
+                CUBE_LOG(Error, DX12, "Not supported shader type: {}", (int)info.type);
                 CHECK(false);
                 break;
             }

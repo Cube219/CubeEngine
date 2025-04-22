@@ -109,7 +109,7 @@ namespace cube
 
             if (SetWindowText(mWindow, mWindowTitle.c_str()) == 0)
             {
-                CUBE_LOG(LogType::Warning, WindowsPlatform, "Failed to change the window title '{}'. (ErrorCode: {})", title, GetLastError());
+                CUBE_LOG(Warning, WindowsPlatform, "Failed to change the window title '{}'. (ErrorCode: {})", title, GetLastError());
             }
         }
 
@@ -287,7 +287,7 @@ namespace cube
                 }
                 else
                 {
-                    CUBE_LOG(LogType::Error, WindowsPlatform, "Invalid activated state ({0})", s);
+                    CUBE_LOG(Error, WindowsPlatform, "Invalid activated state ({0})", s);
                 }
 
                 Platform::GetActivatedEvent().Dispatch(state);

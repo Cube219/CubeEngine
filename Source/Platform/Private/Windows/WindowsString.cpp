@@ -30,7 +30,7 @@ namespace cube
             else if ((ch & 0xFC00) == 0xD800)
             {
                 // Invalid
-                CUBE_LOG(LogType::Error, WindowsString, "Invalid UTF16 Character({0}). It is low surrogates.", (int)ch);
+                CUBE_LOG(Error, WindowsString, "Invalid UTF16 Character({0}). It is low surrogates.", (int)ch);
 
                 return 0;
             }

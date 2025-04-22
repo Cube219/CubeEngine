@@ -137,7 +137,7 @@ namespace cube
         {
             if (gDX12ElementFormatInfos[i].unsupported == false && gDX12ElementFormatInfos[i].bytes == 0)
             {
-                CUBE_LOG(LogType::Warning, DX12, "Found uninitialized element format info: {}", i);
+                CUBE_LOG(Warning, DX12, "Found uninitialized element format info: {}", i);
             }
         }
     }
