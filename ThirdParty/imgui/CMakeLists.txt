@@ -5,11 +5,13 @@ include(FetchContent)
 FetchContent_Declare(
     imgui
     GIT_REPOSITORY https://github.com/ocornut/imgui
-    GIT_TAG        v1.91.8)
+    GIT_TAG        dbb5eeaadffb6a3ba6a60de1290312e5802dba5a # v1.91.8
+)
 FetchContent_Declare(
     imguizmoquat
     GIT_REPOSITORY https://github.com/BrutPitt/imGuIZMO.quat
-    GIT_TAG        v4.0)
+    GIT_TAG        f0328f070263c4e7f945e912319457db8e883ca2 # v4.0
+)
 FetchContent_MakeAvailable(imgui imguizmoquat)
 
 set(INCLUDE
