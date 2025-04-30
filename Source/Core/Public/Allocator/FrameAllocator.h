@@ -90,7 +90,7 @@ namespace cube
 #ifdef CUBE_FRAME_ALLOCATOR_TRACK_ALLOCATION
         Uint64 mAllocatedSize = 0;
         const char* mDebugName;
-#endif // CUBE_DEBUG
+#endif
 
         // Class for Std
     public:

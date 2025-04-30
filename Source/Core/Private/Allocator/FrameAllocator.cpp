@@ -175,7 +175,11 @@ namespace cube
         }
 
         // Allocate new additional block
+#ifdef CUBE_FRAME_ALLOCATOR_TRACK_ALLOCATION
+        AllocateAdditionalBlock(size + sizeof(Uint64));
+#else
         AllocateAdditionalBlock(size);
+#endif
         ptr = mAdditionalMemBlocks.back().Allocate(size);
 
 #ifdef CUBE_FRAME_ALLOCATOR_TRACK_ALLOCATION
@@ -219,7 +223,11 @@ namespace cube
         }
 
         // Allocate new additional block
+#ifdef CUBE_FRAME_ALLOCATOR_TRACK_ALLOCATION
+        AllocateAdditionalBlock(size + alignment + alignment + sizeof(Uint64));
+#else
         AllocateAdditionalBlock(size + alignment);
+#endif
         ptr = mAdditionalMemBlocks.back().AllocateAligned(size, alignment);
 
 #ifdef CUBE_FRAME_ALLOCATOR_TRACK_ALLOCATION
