@@ -37,7 +37,7 @@ namespace cube
 
     void GAPI_Metal::Initialize(const GAPIInitInfo& initInfo)
     {
-        CUBE_LOG(LogType::Info, Metal, "Initialize GAPI_Metal.");
+        CUBE_LOG(Info, Metal, "Initialize GAPI_Metal.");
 
         mInfo = {
             .apiName = GAPIName::Metal,
@@ -64,7 +64,7 @@ namespace cube
 
     void GAPI_Metal::Shutdown(const ImGUIContext& imGUIInfo)
     {
-        CUBE_LOG(LogType::Info, Metal, "Shutdown GAPI_Metal.");
+        CUBE_LOG(Info, Metal, "Shutdown GAPI_Metal.");
 
         ShutdownImGUI(imGUIInfo);
     }
@@ -170,7 +170,7 @@ namespace cube
             return;
         }
 
-        CUBE_LOG(LogType::Info, DX12, "ImGUI context is set in the initialize info. Initialize ImGUI.");
+        CUBE_LOG(Info, DX12, "ImGUI context is set in the initialize info. Initialize ImGUI.");
 
         mImGUIContext = imGUIInfo;
 
@@ -196,7 +196,7 @@ namespace cube
         {
             return;
         }
-        CUBE_LOG(LogType::Info, DX12, "Shtudown ImGUI.");
+        CUBE_LOG(Info, DX12, "Shtudown ImGUI.");
 
         ImGui_ImplMetal_Shutdown();
         ImGui_ImplOSX_Shutdown();
