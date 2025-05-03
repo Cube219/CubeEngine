@@ -1,5 +1,6 @@
 #include "Engine.h"
 #include "GAPI.h"
+#include "Platform.h"
 
 #ifdef CUBE_PLATFORM_WINDOWS
 
@@ -7,15 +8,17 @@
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
 {
+    using namespace cube;
+
     // TODO: argc / argv
-    cube::Engine::EngineInitializeInfo initInfo = {
+    Engine::EngineInitializeInfo initInfo = {
         .argc = 0,
         .argv = nullptr,
         .gapi = cube::GAPIName::DX12,
-        .runShutdownInOnClosingFunc = false
     };
-    cube::Engine::Initialize(initInfo);
-    cube::Engine::Shutdown();
+    Engine::Initialize(initInfo);
+    Engine::StartLoop();
+    Engine::Shutdown();
 
     return 0;
 }
@@ -24,15 +27,25 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
 
 int main(int argc, const char* argv[])
 {
-    cube::Engine::EngineInitializeInfo initInfo = {
+    using namespace cube;
+
+    Engine::EngineInitializeInfo initInfo = {
         .argc = argc,
         .argv = argv,
         .gapi = cube::GAPIName::Metal,
-        .drawImGUI = false, // TODO: Enable while developing GAPI_Metal
-        .runShutdownInOnClosingFunc = true
+        .runInitializeAndShutdownInLoopFunction = true
     };
-    cube::Engine::Initialize(initInfo);
-    // Remain logic will not be executed. So Engine::Shutdown() will be executed in Engine::OnClosing().
+    platform::Platform::SetEngineInitializeFunction([initInfo](){
+        Engine::EngineInitializeInfo info2 = initInfo;        
+        info2.runInitializeAndShutdownInLoopFunction = false;
+        Engine::Initialize(info2);
+    });
+    platform::Platform::SetEngineShutdownFunction(&Engine::Shutdown);
+
+    Engine::Initialize(initInfo);
+    // Remain logic will not be executed. Instead they will be executed in platform loop function.
+    // Engine::StartLoop();
+    // Engine::Shutdown();
     return 0;
 }
 

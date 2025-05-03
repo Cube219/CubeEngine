@@ -72,7 +72,6 @@ namespace cube
     EventFunction<void()> Engine::mOnClosingEventFunc;
     EventFunction<void()> Engine::mOnLoopEventFunc;
     EventFunction<void(Uint32, Uint32)> Engine::mOnResizeEventFunc;
-    bool Engine::mRunShutdownInClosingFunc;
 
     UniquePtr<Renderer> Engine::mRenderer;
     bool Engine::mDrawImGUI;
@@ -95,9 +94,13 @@ namespace cube
 
     void Engine::Initialize(const EngineInitializeInfo& initInfo)
     {
-        mRunShutdownInClosingFunc = initInfo.runShutdownInOnClosingFunc;
-
         platform::Platform::Initialize();
+
+        if (initInfo.runInitializeAndShutdownInLoopFunction)
+        {
+            // Initialization logic will be executed in another main loop thread.
+            return;
+        }
 
         GetMyThreadFrameAllocator().Initialize("Main thread frame allocator", 10 * 1024 * 1024); // 10 MiB
 
@@ -142,11 +145,15 @@ namespace cube
         mRenderer->Initialize(initInfo.gapi, mImGUIContext);
 
         CameraSystem::Initialize();
+    }
+
+    void Engine::StartLoop()
+    {
+        CUBE_LOG(Info, Engine, "Start CubeEngine.");
 
         mStartTime = GetNow();
         mCurrentTime = mStartTime;
 
-        CUBE_LOG(Info, Engine, "Start CubeEngine.");
         platform::Platform::StartLoop();
     }
 
@@ -198,13 +205,6 @@ namespace cube
     void Engine::OnClosing()
     {
         platform::Platform::FinishLoop();
-
-        // Also execute Engine::Shutdown function. Some platform cannot execute remain logic after Engine::Initialize().
-        //   Ex) MacOS
-        if (mRunShutdownInClosingFunc)
-        {
-            Shutdown();
-        }
     }
 
     void Engine::OnResize(Uint32 width, Uint32 height)

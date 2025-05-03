@@ -31,6 +31,8 @@ namespace cube
             static void* AllocateAligned(Uint64 size, Uint64 alignment);
             static void FreeAligned(void* ptr);
 
+            static void SetEngineInitializeFunction(std::function<void()> function);
+            static void SetEngineShutdownFunction(std::function<void()> function);
             static void StartLoop();
             static void FinishLoop();
             static void Sleep(float timeSec);
@@ -91,6 +93,8 @@ namespace cube
         void* Platform::AllocateAligned(Uint64 size, Uint64 alignment) { return ChildClass::AllocateAlignedImpl(size, alignment); } \
         void Platform::FreeAligned(void* ptr) { ChildClass::FreeAlignedImpl(ptr); } \
         \
+        void Platform::SetEngineInitializeFunction(std::function<void()> function) { ChildClass::SetEngineInitializeFunctionImpl(function); } \
+        void Platform::SetEngineShutdownFunction(std::function<void()> function) { ChildClass::SetEngineShutdownFunctionImpl(function); } \
         void Platform::StartLoop() { ChildClass::StartLoopImpl(); } \
         void Platform::FinishLoop() { ChildClass::FinishLoopImpl(); } \
         void Platform::Sleep(float timeSec) { ChildClass::SleepImpl(timeSec); } \

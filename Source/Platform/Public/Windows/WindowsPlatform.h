@@ -28,6 +28,8 @@ namespace cube
             static void* AllocateAlignedImpl(Uint64 size, Uint64 alignment);
             static void FreeAlignedImpl(void* ptr);
 
+            static void SetEngineInitializeFunctionImpl(std::function<void()> function);
+            static void SetEngineShutdownFunctionImpl(std::function<void()> function);
             static void StartLoopImpl();
             static void FinishLoopImpl();
             static void SleepImpl(float timeSec);

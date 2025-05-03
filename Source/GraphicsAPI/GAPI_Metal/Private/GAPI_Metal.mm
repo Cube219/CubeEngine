@@ -15,6 +15,7 @@
 #include "GAPI_MetalViewport.h"
 #include "Logger.h"
 #include "MacOS/MacOSPlatform.h"
+#include "MacOS/MacOSUtility.h"
 
 @implementation CubeMTKView
 
@@ -44,27 +45,32 @@ namespace cube
             .useLeftHanded = false
         };
 
-        mDevice = MTLCreateSystemDefaultDevice();
+        platform::MacOSUtility::DispatchToMainThreadAndWait([this]{
+            mDevice = MTLCreateSystemDefaultDevice();
 
-        CubeWindow* window = platform::MacOSPlatform::GetWindow();
-        NSRect windowFrame = window.contentView.bounds;
-        mView = [[CubeMTKView alloc]
-            initWithFrame:windowFrame
-            device:mDevice
-        ];
-        mView.delegate = mView;
-        [mView setPaused:NO];
-        mView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
-        [window.contentView addSubview:mView];
-        
-        mCommandQueue = [mDevice newCommandQueue];
-        
+            CubeWindow* window = platform::MacOSPlatform::GetWindow();
+            NSRect windowFrame = window.contentView.bounds;
+            mView = [[CubeMTKView alloc]
+                initWithFrame:windowFrame
+                device:mDevice
+            ];
+            mView.delegate = mView;
+            mView.paused = YES;
+            mView.enableSetNeedsDisplay = YES;
+            mView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+            [window.contentView addSubview:mView];
+
+            mCommandQueue = [mDevice newCommandQueue];
+        });
+
         InitializeImGUI(initInfo.imGUI);
     }
 
     void GAPI_Metal::Shutdown(const ImGUIContext& imGUIInfo)
     {
         CUBE_LOG(Info, Metal, "Shutdown GAPI_Metal.");
+
+        WaitForGPU();
 
         ShutdownImGUI(imGUIInfo);
     }
@@ -94,6 +100,7 @@ namespace cube
             [renderEncoder endEncoding];
 
             // Present
+            // TODO: Move to swapchain?
             [commandBuffer presentDrawable:mView.currentDrawable];
             [commandBuffer commit];
         }
@@ -101,6 +108,9 @@ namespace cube
 
     void GAPI_Metal::OnAfterPresent()
     {
+        // TODO: Move to swapchain?
+        [mView draw];
+
         if (mImGUIContext.context)
         {
             do
@@ -115,6 +125,10 @@ namespace cube
 
     void GAPI_Metal::WaitForGPU()
     {
+        // TODO: Use another way not using comand buffer?
+        id<MTLCommandBuffer> commandBuffer = [mCommandQueue commandBuffer];
+        [commandBuffer commit];
+        [commandBuffer waitUntilCompleted];
     }
 
     SharedPtr<gapi::Buffer> GAPI_Metal::CreateBuffer(const gapi::BufferCreateInfo& info)
@@ -198,6 +212,9 @@ namespace cube
         }
         CUBE_LOG(Info, DX12, "Shtudown ImGUI.");
 
+        // Wait until the main queue will flush.
+        platform::MacOSUtility::DispatchToMainThreadAndWait([] {});
+        
         ImGui_ImplMetal_Shutdown();
         ImGui_ImplOSX_Shutdown();
     }

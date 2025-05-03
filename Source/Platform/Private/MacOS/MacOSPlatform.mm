@@ -141,11 +141,12 @@
 {
     using namespace cube::platform;
 
-    if (MacOSDebug::IsLoggerWindowCreated()
-        && !MacOSPlatform::IsApplicationClosed())
+    // Cancel termination if the engine/platform is not shutdown
+    // Termination will be called after shutdown (in platform::Shutdown)
+    if (!MacOSPlatform::IsApplicationClosed())
     {
-        // Prevent termination if the logger window is created to see the logs
-        MacOSPlatform::CloseMainWindow();
+        cube::platform::Platform::GetClosingEvent().Dispatch();
+
         return NSApplicationTerminateReply::NSTerminateCancel;
     }
     return NSApplicationTerminateReply::NSTerminateNow;
@@ -155,9 +156,7 @@
 {
     using namespace cube::platform;
 
-    Platform::GetClosingEvent().Dispatch();
-    MacOSDebug::CloseAndDestroyLoggerWindow();
-    MacOSPlatform::Cleanup();
+    MacOSPlatform::LastCleanup();
 }
 
 - (BOOL) applicationShouldTerminateAfterLastWindowClosed:(NSApplication* ) sender
@@ -181,9 +180,12 @@
     Platform::GetActivatedEvent().Dispatch(WindowActivatedState::Inactive);
 }
 
-- (void) windowWillClose:(NSNotification* ) notification;
+- (BOOL) windowShouldClose:(NSWindow* ) window
 {
-    cube::platform::Platform::GetClosingEvent().Dispatch();
+    // Just call termination. Remain logic will be processed in applicationShouldTerminate.
+    [NSApp terminate:nil];
+
+    return NO;
 }
 
 - (void) windowDidResize:(NSNotification* ) notification
@@ -237,7 +239,7 @@ namespace cube
 
         Array<KeyCode, MaxKeyCode> MacOSPlatform::mKeyCodeMapping;
 
-        bool MacOSPlatform::mIsApplicationClosed = false;
+        std::atomic<bool> MacOSPlatform::mIsApplicationClosed = false;
         CubeWindow* MacOSPlatform::mWindow;
         CubeAppDelegate* MacOSPlatform::mAppDelegate;
         CubeWindowDelegate* MacOSPlatform::mWindowDelegate;
@@ -258,12 +260,21 @@ namespace cube
         bool MacOSPlatform::mIsCommandKeyPressed = false;
         bool MacOSPlatform::mIsFunctionKeyPressed = false;
 
+        std::function<void()> MacOSPlatform::mEngineInitializeFunction;
+        std::function<void()> MacOSPlatform::mEngineShutdownFunction;
+        Signal MacOSPlatform::mRunMainLoopSignal;
         std::thread MacOSPlatform::mMainLoopThread;
         bool MacOSPlatform::mIsLoopStarted = false;
         bool MacOSPlatform::mIsLoopFinished = false;
 
         void MacOSPlatform::InitializeImpl()
         {
+            if (![NSThread isMainThread])
+            {
+                // Called in main loop thread and initialization was already finished in main thread.
+                return;
+            }
+
             InitializeKeyCodeMapping();
             // Register modifier key event
             mModifierEventHandler = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskFlagsChanged handler:^(NSEvent* event)
@@ -280,61 +291,79 @@ namespace cube
             [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
 
             CreateMainMenu();
-            
+
 #if CUBE_DEBUG
             MacOSDebug::CreateAndShowLoggerWindow();
 #endif
+            mMainLoopThread = std::thread(&MacOSPlatform::MainLoop);
+
+            [NSApp run];
+            // Remain logic will not be executed after [NSApp run].
         }
 
         void MacOSPlatform::ShutdownImpl()
         {
-            [NSEvent removeMonitor:mModifierEventHandler];
+            CHECK_NOT_MAIN_THREAD();
 
             mIsApplicationClosed = true;
-            if (MacOSDebug::IsLoggerWindowCreated())
-            {
-                MacOSUtility::DispatchToMainThread([] {
+
+            MacOSUtility::DispatchToMainThread([] {
+                // Wait until finishing shutdown
+                mMainLoopThread.join();
+
+                if (mWindow)
+                {
+                    [mWindow close];
+                }
+
+                [NSEvent removeMonitor:mModifierEventHandler];
+
+                if (MacOSDebug::IsLoggerWindowCreated())
+                {
                     MacOSDebug::AppendLogText(@"Press any key to close the application...", PrintColorCategory::Default);
-                });
-            }
-            // Not run clean up logic at this. It runs in termination and termination will be executed when all window are closed.
+                }
+                else
+                {
+                    [NSApp terminate:nil];
+                }
+            });
         }
 
         void MacOSPlatform::InitWindowImpl(StringView title, Uint32 width, Uint32 height, Int32 posX, Int32 posY)
         {
-            CHECK_MAIN_THREAD()
+            MacOSUtility::DispatchToMainThreadAndWait([&]{
+                mWindowWidth = width;
+                mWindowHeight = height;
+                mWindowPositionX = posX;
+                mWindowPositionY = posY;
 
-            mWindowWidth = width;
-            mWindowHeight = height;
-            mWindowPositionX = posX;
-            mWindowPositionY = posY;
+                NSUInteger style = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable;
 
-            NSUInteger style = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable;
+                // Unlike Windows, y position starts at the bottom of screen.
+                // So, flip it for consistency.
+                NSRect screenFrame = [[NSScreen mainScreen] frame];
+                posY = NSMaxY(screenFrame) - height - posY;
 
-            // Unlike Windows, y position starts at the bottom of screen.
-            // So, flip it for consistency.
-            NSRect screenFrame = [[NSScreen mainScreen] frame];
-            posY = NSMaxY(screenFrame) - height - posY;
-            
-            mWindow = [[CubeWindow alloc]
-                initWithContentRect:NSMakeRect(posX, posY, width, height)
-                styleMask:style
-                backing:NSBackingStoreBuffered
-                defer:NO
-            ];
+                mWindow = [[CubeWindow alloc]
+                    initWithContentRect:NSMakeRect(posX, posY, width, height)
+                    styleMask:style
+                    backing:NSBackingStoreBuffered
+                    defer:NO
+                ];
 
-            [mWindow setTitle:ToNSString(title)];
-            [mWindow setAcceptsMouseMovedEvents:YES];
+                [mWindow setTitle:ToNSString(title)];
+                [mWindow setAcceptsMouseMovedEvents:YES];
 
-            mWindowDelegate = [[CubeWindowDelegate alloc] init];
-            [mWindow setDelegate:mWindowDelegate];
+                mWindowDelegate = [[CubeWindowDelegate alloc] init];
+                [mWindow setDelegate:mWindowDelegate];
+            });
         }
 
         void MacOSPlatform::ShowWindowImpl()
         {
-            CHECK_MAIN_THREAD()
-
-            [mWindow makeKeyAndOrderFront:nil];
+            MacOSUtility::DispatchToMainThreadAndWait([&]{
+                [mWindow makeKeyAndOrderFront:nil];
+            });
         }
 
         void MacOSPlatform::ChangeWindowTitleImpl(StringView title)
@@ -364,20 +393,26 @@ namespace cube
             free(ptr);
         }
 
+        void MacOSPlatform::SetEngineInitializeFunctionImpl(std::function<void()> function)
+        {
+            mEngineInitializeFunction = function;
+        }
+
+        void MacOSPlatform::SetEngineShutdownFunctionImpl(std::function<void()> function)
+        {
+            mEngineShutdownFunction = function;
+        }
+
         void MacOSPlatform::StartLoopImpl()
         {
             mIsLoopStarted = true;
-            mMainLoopThread = std::thread(&MacOSPlatform::MainLoop);
-
-            [NSApp run];
-            // Remain logic will not be executed after [NSApp run].
+            mRunMainLoopSignal.Notify();
         }
 
         void MacOSPlatform::FinishLoopImpl()
         {
             mIsLoopStarted = false;
             mIsLoopFinished = true;
-            mMainLoopThread.join();
         }
 
         void MacOSPlatform::SleepImpl(float timeSec)
@@ -456,6 +491,11 @@ namespace cube
             return res;
         }
 
+        CubeWindow* MacOSPlatform::GetWindow()
+        {
+            return mWindow;
+        }
+
         bool MacOSPlatform::IsMainWindowCreated()
         {
             return mWindow != nullptr;
@@ -466,10 +506,13 @@ namespace cube
             [mWindow close];
         }
 
-        void MacOSPlatform::Cleanup()
+        void MacOSPlatform::LastCleanup()
         {
+            CHECK_MAIN_THREAD();
+
+            MacOSDebug::CloseAndDestroyLoggerWindow();
+
             [mWindowDelegate release];
-            [mWindow release];
 
             [mAppDelegate release];
         }
@@ -491,6 +534,8 @@ namespace cube
 
         void MacOSPlatform::DispatchEvent(MacOSEventType type, void* pData)
         {
+            CHECK_MAIN_THREAD()
+
             switch (type)
             {
             case MacOSEventType::ResizeWindow:
@@ -679,6 +724,8 @@ namespace cube
 
         void MacOSPlatform::ReceiveModifierKeyEvent(NSEventModifierFlags flags)
         {
+            CHECK_MAIN_THREAD()
+
 #define PROCESS_MODIFIER_KEY(variable, eventFlag, kVK_keyCode)  \
     if (variable != ((flags & eventFlag) > 0)) \
     {                                          \
@@ -747,6 +794,17 @@ namespace cube
 
         void MacOSPlatform::MainLoop()
         {
+            if (mEngineInitializeFunction)
+            {
+                mEngineInitializeFunction();
+                mEngineInitializeFunction = nullptr;
+            }
+
+            MacOSUtility::DispatchToMainThread([]{
+                Platform::StartLoop();
+            });
+
+            mRunMainLoopSignal.Wait();
             while (1)
             {
                 if (mIsLoopFinished)
@@ -755,6 +813,12 @@ namespace cube
                 }
 
                 mLoopEvent.Dispatch();
+            }
+
+            if (mEngineShutdownFunction)
+            {
+                mEngineShutdownFunction();
+                mEngineShutdownFunction = nullptr;
             }
         }
     } // namespace platform

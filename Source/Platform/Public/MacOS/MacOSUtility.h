@@ -14,6 +14,9 @@ namespace cube
     CHECK_FORMAT([NSThread isMainThread], "You must call UI-releated functions in main thread. " \
         "Consider MacOSUtility::DispatchToMainThread().");
 
+#define CHECK_NOT_MAIN_THREAD() \
+    CHECK_FORMAT(![NSThread isMainThread], "This function should not be called in main thread.");
+
     namespace platform
     {
         class MacOSUtility

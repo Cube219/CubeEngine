@@ -133,6 +133,16 @@ namespace cube
             _aligned_free(ptr);
         }
 
+        void WindowsPlatform::SetEngineInitializeFunctionImpl(std::function<void()> function)
+        {
+            // Do nothing
+        }
+
+        void WindowsPlatform::SetEngineShutdownFunctionImpl(std::function<void()> function)
+        {
+            // Do nothing
+        }
+
         void WindowsPlatform::StartLoopImpl()
         {
             MSG msg;

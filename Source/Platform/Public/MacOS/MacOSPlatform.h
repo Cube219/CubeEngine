@@ -8,6 +8,7 @@
 #include <AppKit/AppKit.h>
 #include <thread>
 
+#include "Async.h"
 #include "KeyCode.h"
 #include "MacOSString.h"
 
@@ -89,6 +90,8 @@ namespace cube
             static void* AllocateAlignedImpl(Uint64 size, Uint64 alignment);
             static void FreeAlignedImpl(void* ptr);
 
+            static void SetEngineInitializeFunctionImpl(std::function<void()> function);
+            static void SetEngineShutdownFunctionImpl(std::function<void()> function);
             static void StartLoopImpl();
             static void FinishLoopImpl();
             static void SleepImpl(float timeSec);
@@ -105,13 +108,13 @@ namespace cube
 
             static SharedPtr<DLib> LoadDLibImpl(StringView path);
 
-            static CubeWindow* GetWindow() { return mWindow; }
+            static CubeWindow* GetWindow();
             static bool IsMainWindowCreated();
             static void CloseMainWindow();
 
             static bool IsApplicationClosed() { return mIsApplicationClosed; }
 
-            static void Cleanup();
+            static void LastCleanup();
 
             static void ForceTerminateMainLoopThread();
 
@@ -130,7 +133,7 @@ namespace cube
 
             static Array<KeyCode, MaxKeyCode> mKeyCodeMapping;
 
-            static bool mIsApplicationClosed;
+            static std::atomic<bool> mIsApplicationClosed;
             static CubeWindow* mWindow;
             static CubeAppDelegate* mAppDelegate;
             static CubeWindowDelegate* mWindowDelegate;
@@ -151,7 +154,9 @@ namespace cube
             static bool mIsCommandKeyPressed;
             static bool mIsFunctionKeyPressed;
 
-
+            static std::function<void()> mEngineInitializeFunction;
+            static std::function<void()> mEngineShutdownFunction;
+            static Signal mRunMainLoopSignal;
             static std::thread mMainLoopThread;
             static bool mIsLoopStarted;
             static bool mIsLoopFinished;

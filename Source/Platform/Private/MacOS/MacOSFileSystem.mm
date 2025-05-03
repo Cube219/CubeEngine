@@ -129,14 +129,12 @@ namespace cube
 
             if (fileHandle != nil)
             {
-                [nsPath release];
                 return std::make_shared<MacOSFile>(fileHandle);
             }
             else
             {
                 CUBE_LOG(Warning, MacOSFileSystem, "Failed to open a file. ({0})", path);
             }
-            [nsPath release];
             return nullptr;
         }
 
