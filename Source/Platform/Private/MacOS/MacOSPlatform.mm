@@ -158,20 +158,43 @@ namespace cube
     });
 }
 
+namespace cube { namespace platform { namespace internal
+{
+    void ProcessMouseMoveEvent(NSEvent* event, NSWindow* window)
+    {
+        using namespace cube::platform;
+
+        NSPoint location = [event locationInWindow];
+        int x = static_cast<Int32>(location.x);
+        int y = static_cast<Int32>(window.contentView.frame.size.height - location.y); // Flip y
+
+        MacOSPlatform::QueueEvent([x, y]() {
+            using namespace cube;
+
+            MacOSPlatformPrivateAccessor::SetMousePosition(x, y);
+            MacOSPlatform::GetMousePositionEvent().Dispatch(x, y);
+        });
+    }
+}}} // namespace cube::platform::internal
+
 - (void) mouseMoved:(NSEvent* ) event
 {
-    using namespace cube::platform;
+    cube::platform::internal::ProcessMouseMoveEvent(event, self);
+}
 
-    NSPoint location = [event locationInWindow];
-    int x = static_cast<Int32>(location.x);
-    int y = static_cast<Int32>(self.contentView.frame.size.height - location.y); // Flip y
+- (void) mouseDragged:(NSEvent* ) event
+{
+    cube::platform::internal::ProcessMouseMoveEvent(event, self);
+}
 
-    MacOSPlatform::QueueEvent([x, y]() {
-        using namespace cube;
+- (void) rightMouseDragged:(NSEvent* ) event
+{
+    cube::platform::internal::ProcessMouseMoveEvent(event, self);
+}
 
-        internal::MacOSPlatformPrivateAccessor::SetMousePosition(x, y);
-        MacOSPlatform::GetMousePositionEvent().Dispatch(x, y);
-    });
+- (void) otherMouseDragged:(NSEvent* ) event
+{
+    cube::platform::internal::ProcessMouseMoveEvent(event, self);
 }
 
 @end
