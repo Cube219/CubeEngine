@@ -14,105 +14,148 @@
 #include "MacOS/MacOSString.h"
 #include "MacOS/MacOSUtility.h"
 
+namespace cube
+{
+    namespace platform
+    {
+        namespace internal
+        {
+            struct MacOSPlatformPrivateAccessor
+            {
+                static const Array<KeyCode, MaxKeyCode>& GetKeyCodeMapping()
+                {
+                    return MacOSPlatform::mKeyCodeMapping;
+                }
+
+                static void SetWindowSize(Uint32 newWidth, Uint32 newHeight)
+                {
+                    MacOSPlatform::mWindowWidth = newWidth;
+                    MacOSPlatform::mWindowHeight = newHeight;
+                }
+
+                static void SetWindowPosition(Int32 newX, Int32 newY)
+                {
+                    MacOSPlatform::mWindowPositionX = newX;
+                    MacOSPlatform::mWindowPositionY = newY;
+                }
+
+                static void SetMousePosition(Int32 newX, Int32 newY)
+                {
+                    MacOSPlatform::mMousePositionX = newX;
+                    MacOSPlatform::mMousePositionY = newY;
+                }
+            };
+        } // namespace internal
+    } // namespace platform
+} // namespace cube
+
 @implementation CubeWindow
 
 - (void) keyDown:(NSEvent* ) event
 {
+    using namespace cube;
     using namespace cube::platform;
 
-    MacOSKeyDownEvent keyDownEvent = {
-        .keyCode = event.keyCode
-    };
+    KeyCode code = internal::MacOSPlatformPrivateAccessor::GetKeyCodeMapping()[event.keyCode];
+    if (code != KeyCode::Invalid)
+    {
+        MacOSPlatform::QueueEvent([code]() {
+            using namespace cube;
 
-    MacOSPlatform::DispatchEvent(MacOSEventType::KeyDown, (void*)&keyDownEvent);
+            MacOSPlatform::GetKeyDownEvent().Dispatch(code);
+        });
+    }
 }
 
 - (void) keyUp:(NSEvent* ) event
 {
+    using namespace cube;
     using namespace cube::platform;
 
-    MacOSKeyUpEvent keyUpEvent = {
-        .keyCode = event.keyCode
-    };
+    KeyCode code = internal::MacOSPlatformPrivateAccessor::GetKeyCodeMapping()[event.keyCode];
+    if (code != KeyCode::Invalid)
+    {
+        MacOSPlatform::QueueEvent([code]() {
+            using namespace cube;
 
-    MacOSPlatform::DispatchEvent(MacOSEventType::KeyUp, (void*)&keyUpEvent);
+            MacOSPlatform::GetKeyUpEvent().Dispatch(code);
+        });
+    }
 }
 
 - (void) mouseDown:(NSEvent* ) event
 {
     using namespace cube::platform;
 
-    MacOSMouseDownEvent mouseDownEvent = {
-        .button = cube::MouseButton::Left
-    };
-
-    MacOSPlatform::DispatchEvent(MacOSEventType::MouseDown, (void*)&mouseDownEvent);
+    MacOSPlatform::QueueEvent([]() {
+        using namespace cube;
+        MacOSPlatform::GetMouseDownEvent().Dispatch(MouseButton::Left);
+    });
 }
 
 - (void) mouseUp:(NSEvent* ) event
 {
     using namespace cube::platform;
 
-    MacOSMouseUpEvent mouseUpEvent = {
-        .button = cube::MouseButton::Left
-    };
-
-    MacOSPlatform::DispatchEvent(MacOSEventType::MouseUp, (void*)&mouseUpEvent);
+    MacOSPlatform::QueueEvent([]() {
+        using namespace cube;
+        MacOSPlatform::GetMouseUpEvent().Dispatch(MouseButton::Left);
+    });
 }
 
 - (void) rightMouseDown:(NSEvent* ) event
 {
     using namespace cube::platform;
 
-    MacOSMouseDownEvent mouseDownEvent = {
-        .button = cube::MouseButton::Right
-    };
+    MacOSPlatform::QueueEvent([]() {
+        using namespace cube;
 
-    MacOSPlatform::DispatchEvent(MacOSEventType::MouseDown, (void*)&mouseDownEvent);
+        MacOSPlatform::GetMouseDownEvent().Dispatch(MouseButton::Right);
+    });
 }
 
 - (void) rightMouseUp:(NSEvent* ) event
 {
     using namespace cube::platform;
 
-    MacOSMouseUpEvent mouseUpEvent = {
-        .button = cube::MouseButton::Right
-    };
+    MacOSPlatform::QueueEvent([]() {
+        using namespace cube;
 
-    MacOSPlatform::DispatchEvent(MacOSEventType::MouseUp, (void*)&mouseUpEvent);
+        MacOSPlatform::GetMouseUpEvent().Dispatch(MouseButton::Right);
+    });
 }
 
 - (void) otherMouseDown:(NSEvent* ) event
 {
     using namespace cube::platform;
 
-    MacOSMouseDownEvent mouseDownEvent = {
-        .button = cube::MouseButton::Middle
-    };
+    MacOSPlatform::QueueEvent([]() {
+        using namespace cube;
 
-    MacOSPlatform::DispatchEvent(MacOSEventType::MouseDown, (void*)&mouseDownEvent);
+        MacOSPlatform::GetMouseDownEvent().Dispatch(MouseButton::Middle);
+    });
 }
 
 - (void) otherMouseUp:(NSEvent* ) event
 {
     using namespace cube::platform;
 
-    MacOSMouseUpEvent mouseUpEvent = {
-        .button = cube::MouseButton::Middle
-    };
+    MacOSPlatform::QueueEvent([]() {
+        using namespace cube;
 
-    MacOSPlatform::DispatchEvent(MacOSEventType::MouseUp, (void*)&mouseUpEvent);
+        MacOSPlatform::GetMouseUpEvent().Dispatch(MouseButton::Middle);
+    });
 }
 
 - (void) scrollWheel:(NSEvent* ) event
 {
     using namespace cube::platform;
 
-    MacOSMouseWheelEvent mouseWheelEvent = {
-        .delta = static_cast<int>(event.scrollingDeltaY)
-    };
+    MacOSPlatform::QueueEvent([delta = event.scrollingDeltaY]() {
+        using namespace cube;
 
-    MacOSPlatform::DispatchEvent(MacOSEventType::MouseWheel, (void*)&mouseWheelEvent);
+        MacOSPlatform::GetMouseWheelEvent().Dispatch(static_cast<int>(delta));
+    });
 }
 
 - (void) mouseMoved:(NSEvent* ) event
@@ -120,13 +163,15 @@
     using namespace cube::platform;
 
     NSPoint location = [event locationInWindow];
-    
-    MacOSMousePositionEvent mousePositionEvent = {
-        .x = static_cast<Int32>(location.x),
-        .y = static_cast<Int32>(self.contentView.frame.size.height - location.y) // Flip y
-    };
+    int x = static_cast<Int32>(location.x);
+    int y = static_cast<Int32>(self.contentView.frame.size.height - location.y); // Flip y
 
-    MacOSPlatform::DispatchEvent(MacOSEventType::MousePosition, (void*)&mousePositionEvent);
+    MacOSPlatform::QueueEvent([x, y]() {
+        using namespace cube;
+
+        internal::MacOSPlatformPrivateAccessor::SetMousePosition(x, y);
+        MacOSPlatform::GetMousePositionEvent().Dispatch(x, y);
+    });
 }
 
 @end
@@ -193,12 +238,15 @@
     using namespace cube::platform;
 
     NSWindow* window = notification.object;
-    MacOSResizeWindowEvent resizeEvent = {
-        .newWidth = static_cast<Uint32>(window.contentView.frame.size.width),
-        .newHeight = static_cast<Uint32>(window.contentView.frame.size.height)
-    };
+    Uint32 newWidth = static_cast<Uint32>(window.contentView.frame.size.width);
+    Uint32 newHeight = static_cast<Uint32>(window.contentView.frame.size.height);
 
-    MacOSPlatform::DispatchEvent(MacOSEventType::ResizeWindow, (void*)&resizeEvent);
+    MacOSPlatform::QueueEvent([newWidth, newHeight]() {
+        using namespace cube;
+
+        internal::MacOSPlatformPrivateAccessor::SetWindowSize(newWidth, newHeight);
+        MacOSPlatform::GetResizeEvent().Dispatch(newWidth, newHeight);
+    });
 }
 
 - (void) windowDidMove:(NSNotification* ) notification
@@ -206,15 +254,16 @@
     using namespace cube::platform;
 
     NSWindow* window = notification.object;
-
     NSRect screenFrame = [[NSScreen mainScreen] frame];
 
-    MacOSMoveWindowEvent moveEvent = {
-        .newX = static_cast<Int32>(window.frame.origin.x),
-        .newY = static_cast<Int32>(NSMaxY(screenFrame) - NSMaxY(window.frame)) // Flip y
-    };
+    Int32 newX = static_cast<Int32>(window.frame.origin.x);
+    Int32 newY = static_cast<Int32>(NSMaxY(screenFrame) - NSMaxY(window.frame)); // Flip y
 
-    MacOSPlatform::DispatchEvent(MacOSEventType::MoveWindow, (void*)&moveEvent);
+    MacOSPlatform::QueueEvent([newX, newY]() {
+        using namespace cube;
+
+        internal::MacOSPlatformPrivateAccessor::SetWindowPosition(newX, newY);
+    });
 }
 
 @end
@@ -266,6 +315,9 @@ namespace cube
         std::thread MacOSPlatform::mMainLoopThread;
         bool MacOSPlatform::mIsLoopStarted = false;
         bool MacOSPlatform::mIsLoopFinished = false;
+
+        std::mutex MacOSPlatform::mEventQueueMutex;
+        Vector<std::function<void()>> MacOSPlatform::mEventQueue;
 
         void MacOSPlatform::InitializeImpl()
         {
@@ -532,75 +584,11 @@ namespace cube
             mIsLoopFinished = true;
         }
 
-        void MacOSPlatform::DispatchEvent(MacOSEventType type, void* pData)
+        void MacOSPlatform::QueueEvent(std::function<void()> eventFunction)
         {
-            CHECK_MAIN_THREAD()
+            std::unique_lock<std::mutex> lock(mEventQueueMutex);
 
-            switch (type)
-            {
-            case MacOSEventType::ResizeWindow:
-            {
-                MacOSResizeWindowEvent* event = (MacOSResizeWindowEvent*)pData;
-                mWindowWidth = event->newWidth;
-                mWindowHeight = event->newHeight;
-                mResizeEvent.Dispatch(event->newWidth, event->newHeight);
-                break;
-            }
-            case MacOSEventType::MoveWindow:
-            {
-                MacOSMoveWindowEvent* event = (MacOSMoveWindowEvent*)pData;
-                mWindowPositionX = event->newX;
-                mWindowPositionY = event->newY;
-                break;
-            }
-            case MacOSEventType::KeyDown:
-            {
-                MacOSKeyDownEvent* event = (MacOSKeyDownEvent*)pData;
-                KeyCode code = mKeyCodeMapping[event->keyCode];
-                if (code != KeyCode::Invalid)
-                {
-                    mKeyDownEvent.Dispatch(code);
-                }
-                break;
-            }
-            case MacOSEventType::KeyUp:
-            {
-                MacOSKeyUpEvent* event = (MacOSKeyUpEvent*)pData;
-                KeyCode code = mKeyCodeMapping[event->keyCode];
-                if (code != KeyCode::Invalid)
-                {
-                    mKeyUpEvent.Dispatch(code);
-                }
-                break;
-            }
-            case MacOSEventType::MouseDown:
-            {
-                MacOSMouseDownEvent* event = (MacOSMouseDownEvent*)pData;
-                mMouseDownEvent.Dispatch(event->button);
-                break;
-            }
-            case MacOSEventType::MouseUp:
-            {
-                MacOSMouseUpEvent* event = (MacOSMouseUpEvent*)pData;
-                mMouseUpEvent.Dispatch(event->button);
-                break;
-            }
-            case MacOSEventType::MouseWheel:
-            {
-                MacOSMouseWheelEvent* event = (MacOSMouseWheelEvent*)pData;
-                mMouseWheelEvent.Dispatch(event->delta);
-                break;
-            }
-            case MacOSEventType::MousePosition:
-            {
-                MacOSMousePositionEvent* event = (MacOSMousePositionEvent*)pData;
-                mMousePositionEvent.Dispatch(event->x, event->y);
-                break;
-            }
-            
-            default:
-                break;
-            }
+            mEventQueue.push_back(std::move(eventFunction));
         }
 
         void MacOSPlatform::InitializeKeyCodeMapping()
@@ -726,19 +714,23 @@ namespace cube
         {
             CHECK_MAIN_THREAD()
 
-#define PROCESS_MODIFIER_KEY(variable, eventFlag, kVK_keyCode)  \
+#define PROCESS_MODIFIER_KEY(variable, eventFlag, kVK_keyCode) \
     if (variable != ((flags & eventFlag) > 0)) \
-    {                                          \
-        variable = ((flags & eventFlag) > 0);  \
-        if (variable) \
+    { \
+        KeyCode code = internal::MacOSPlatformPrivateAccessor::GetKeyCodeMapping()[kVK_keyCode]; \
+        if (code != KeyCode::Invalid) \
         { \
-            MacOSKeyDownEvent event = { .keyCode = kVK_keyCode }; \
-            DispatchEvent(MacOSEventType::KeyDown, &event); \
-        } \
-        else \
-        { \
-            MacOSKeyUpEvent event = { .keyCode = kVK_keyCode }; \
-            DispatchEvent(MacOSEventType::KeyUp, &event); \
+            variable = ((flags & eventFlag) > 0); \
+            std::function<void()> eventFunc; \
+            if (variable) \
+            { \
+                eventFunc = [code]() { MacOSPlatform::GetKeyDownEvent().Dispatch(code); }; \
+            } \
+            else \
+            { \
+                eventFunc = [code]() { MacOSPlatform::GetKeyUpEvent().Dispatch(code); }; \
+            } \
+            MacOSPlatform::QueueEvent(eventFunc); \
         } \
     }
 
@@ -810,6 +802,18 @@ namespace cube
                 if (mIsLoopFinished)
                 {
                     break;
+                }
+
+                Vector<std::function<void()>> eventFunctions;
+                {
+                    std::unique_lock<std::mutex> lock(mEventQueueMutex);
+                    eventFunctions = std::move(mEventQueue);
+                    mEventQueue.empty();
+                }
+
+                for (auto& func : eventFunctions)
+                {
+                    func();
                 }
 
                 mLoopEvent.Dispatch();

@@ -28,52 +28,10 @@ namespace cube
 {
     namespace platform
     {
-        enum class MacOSEventType
+        namespace internal
         {
-            ResizeWindow,
-            MoveWindow,
-            KeyDown,
-            KeyUp,
-            MouseDown,
-            MouseUp,
-            MouseWheel,
-            MousePosition
-        };
-        struct MacOSKeyDownEvent
-        {
-            Uint32 keyCode;
-        };
-        struct MacOSKeyUpEvent
-        {
-            Uint32 keyCode;
-        };
-        struct MacOSMouseDownEvent
-        {
-            MouseButton button;
-        };
-        struct MacOSMouseUpEvent
-        {
-            MouseButton button;
-        };
-        struct MacOSMouseWheelEvent
-        {
-            int delta;
-        };
-        struct MacOSResizeWindowEvent
-        {
-            Uint32 newWidth;
-            Uint32 newHeight;
-        };
-        struct MacOSMoveWindowEvent
-        {
-            Int32 newX;
-            Int32 newY;
-        };
-        struct MacOSMousePositionEvent
-        {
-            Int32 x;
-            Int32 y;
-        };
+            struct MacOSPlatformPrivateAccessor;
+        } // namespace internal
 
         class MacOSPlatform : public Platform
         {
@@ -118,10 +76,11 @@ namespace cube
 
             static void ForceTerminateMainLoopThread();
 
-            static void DispatchEvent(MacOSEventType type, void* pData);
+            static void QueueEvent(std::function<void()> eventFunction);
 
         private:
             friend class CubeWindowDelegate;
+            friend struct internal::MacOSPlatformPrivateAccessor;
 
             static void InitializeKeyCodeMapping();
 
@@ -160,6 +119,9 @@ namespace cube
             static std::thread mMainLoopThread;
             static bool mIsLoopStarted;
             static bool mIsLoopFinished;
+
+            static std::mutex mEventQueueMutex;
+            static Vector<std::function<void()>> mEventQueue;
 
             MacOSPlatform() = delete;
             ~MacOSPlatform() = delete;
