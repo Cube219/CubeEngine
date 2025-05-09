@@ -73,3 +73,6 @@ target_compile_definitions(CE-GAPI_DX12
     PRIVATE
         CUBE_MODULE_GAPI_DX12
 )
+
+list(APPEND G_ENABLED_GAPI_MODULES "CE-GAPI_DX12")
+set(G_ENABLED_GAPI_MODULES "${G_ENABLED_GAPI_MODULES}" CACHE INTERNAL "g_enabled_gapi_modules")

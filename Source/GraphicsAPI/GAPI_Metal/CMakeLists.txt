@@ -52,3 +52,6 @@ target_compile_definitions(CE-GAPI_Metal
 #         METAL_DEVICE_WRAPPER_TYPE=1
 # )
 # endif()
+
+list(APPEND G_ENABLED_GAPI_MODULES "CE-GAPI_Metal")
+set(G_ENABLED_GAPI_MODULES "${G_ENABLED_GAPI_MODULES}" CACHE INTERNAL "g_enabled_gapi_modules")

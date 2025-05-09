@@ -24,6 +24,9 @@ else()
 
 endif()
 
+# Global variables
+set(G_ENABLED_GAPI_MODULES "" CACHE INTERNAL "g_enabled_gapi_modules")
+
 # Global project settings
 set (CMAKE_CXX_STANDARD 20)
 
