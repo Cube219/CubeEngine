@@ -40,6 +40,8 @@ namespace cube
         static Uint64 GetNow();
         static void CalculateFrameTimeAndFPS(double deltaTimeSec);
 
+        static void SearchAndSetRootDirectory();
+
         static EventFunction<void()> mOnLoopEventFunc;
         static EventFunction<void()> mOnClosingEventFunc;
         static EventFunction<void(Uint32, Uint32)> mOnResizeEventFunc;

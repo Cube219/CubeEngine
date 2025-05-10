@@ -37,11 +37,16 @@ namespace cube
             MacOSFileSystem() = delete;
             ~MacOSFileSystem() = delete;
 
-            static SharedPtr<File> OpenFileImpl(StringView path, FileAccessModeFlags accessModeFlags, bool createIfNotExist = false);
-            static char GetSeparatorImpl();
-            static const char* SplitFileNameFromFullPathImpl(const char* fullPath);
+            static bool IsExistImpl(StringView path);
+            static bool IsDirectoryImpl(StringView path);
+            static bool IsFileImpl(StringView path);
+            static Vector<String> GetListImpl(StringView directoryPath);
 
-        private:
+            static String GetCurrentDirectoryPathImpl();
+            static Character GetSeparatorImpl();
+
+            static SharedPtr<File> OpenFileImpl(StringView path, FileAccessModeFlags accessModeFlags, bool createIfNotExist = false);
+            static const char* SplitFileNameFromFullPathImpl(const char* fullPath);
         };
     }
 }

@@ -30,7 +30,7 @@ namespace cube
     template <typename DstStr>
     void String_ConvertAndAppend(DstStr& dst, NSString* srcStr)
     {
-        String_ConvertAndAppend(dst, [srcStr UTF8String]) ;
+        String_ConvertAndAppend(dst, U8StringView([srcStr UTF8String])) ;
     }
     template <typename SrcStrView>
     NSString* ToNSString(const SrcStrView& src)
