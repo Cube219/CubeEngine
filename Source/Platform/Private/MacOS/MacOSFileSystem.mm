@@ -22,11 +22,11 @@ namespace cube
             // Get the file size
             if (![mFileHandle seekToEndReturningOffset:&mSize error:&error])
             {
-                CUBE_LOG(LogType::Warning, MacOSFile, "Failed to get the file size. ({})", [[error localizedDescription] UTF8String]);
+                CUBE_LOG(Warning, MacOSFile, "Failed to get the file size. ({})", [[error localizedDescription] UTF8String]);
             }
             if (![mFileHandle seekToOffset:0 error:&error])
             {
-                CUBE_LOG(LogType::Warning, MacOSFile, "Failed to restore the file pointer. ({})", [[error localizedDescription] UTF8String]);
+                CUBE_LOG(Warning, MacOSFile, "Failed to restore the file pointer. ({})", [[error localizedDescription] UTF8String]);
             }
         }}
 
@@ -134,7 +134,7 @@ namespace cube
             }
             else
             {
-                CUBE_LOG(LogType::Warning, MacOSFileSystem, "Failed to open a file. ({0})", path);
+                CUBE_LOG(Warning, MacOSFileSystem, "Failed to open a file. ({0})", path);
             }
             [nsPath release];
             return nullptr;

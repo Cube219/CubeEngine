@@ -24,7 +24,7 @@ namespace cube
 
             if (mHandle == nullptr)
             {
-                CUBE_LOG(LogType::Warning, MacOSDLib, "Failed to load a DLib. (lib{0}.dylib)", path);
+                CUBE_LOG(Warning, MacOSDLib, "Failed to load a DLib. (lib{0}.dylib)", path);
             }
         }
 
@@ -48,7 +48,7 @@ namespace cube
             void *pFunction = dlsym(mHandle, macName.c_str());
             if (pFunction == nullptr)
             {
-                CUBE_LOG(LogType::Warning, MacOSDLib, "Failed to get the function({0}).", name);
+                CUBE_LOG(Warning, MacOSDLib, "Failed to get the function({0}).", name);
             }
 
             return pFunction;
