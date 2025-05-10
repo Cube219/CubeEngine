@@ -1,6 +1,7 @@
 #include "GAPI_Metal.h"
 
 #include <memory>
+#include <Metal/Metal.h>
 #include "imgui.h"
 #include "imgui_impl_metal.h"
 #include "imgui_impl_osx.h"
@@ -16,8 +17,9 @@
 #include "Logger.h"
 #include "MacOS/MacOSPlatform.h"
 #include "MacOS/MacOSUtility.h"
+#include "MetalDevice.h"
 
-@implementation CubeMTKView
+@implementation CubeImGUIMTKView
 
 - (void) drawInMTKView:(MTKView* ) view
 {
@@ -45,23 +47,12 @@ namespace cube
             .useLeftHanded = false
         };
 
-        platform::MacOSUtility::DispatchToMainThreadAndWait([this]{
-            mDevice = MTLCreateSystemDefaultDevice();
+        mDevices.resize(1);
+        mDevices[0] = new MetalDevice();
+        mDevices[0]->Initialize(MTLCreateSystemDefaultDevice());
+        mMainDevice = mDevices[0];
 
-            CubeWindow* window = platform::MacOSPlatform::GetWindow();
-            NSRect windowFrame = window.contentView.bounds;
-            mView = [[CubeMTKView alloc]
-                initWithFrame:windowFrame
-                device:mDevice
-            ];
-            mView.delegate = mView;
-            mView.paused = YES;
-            mView.enableSetNeedsDisplay = YES;
-            mView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
-            [window.contentView addSubview:mView];
-
-            mCommandQueue = [mDevice newCommandQueue];
-        });
+        mCommandQueue = [mMainDevice->GetDevice() newCommandQueue];
 
         InitializeImGUI(initInfo.imGUI);
     }
@@ -73,6 +64,13 @@ namespace cube
         WaitForGPU();
 
         ShutdownImGUI(imGUIInfo);
+
+        for (MetalDevice* device : mDevices)
+        {
+            device->Shutdown();
+            delete device;
+        }
+        mDevices.clear();
     }
 
     void GAPI_Metal::OnBeforeRender()
@@ -87,11 +85,18 @@ namespace cube
     {
         if (mImGUIContext.context)
         {
+            // Call Metal_NewFrame at this instead of OnAfterPresent
+            do
+            {
+                mRenderPassDescriptor = mImGUIView.currentRenderPassDescriptor;
+            } while (mRenderPassDescriptor == nil);
+            ImGui_ImplMetal_NewFrame(mRenderPassDescriptor);
+
             id<MTLCommandBuffer> commandBuffer = [mCommandQueue commandBuffer];
 
             ImDrawData* draw_data = ImGui::GetDrawData();
 
-            static ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+            static ImVec4 clear_color = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
             mRenderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
             id <MTLRenderCommandEncoder> renderEncoder = [commandBuffer renderCommandEncoderWithDescriptor:mRenderPassDescriptor];
             [renderEncoder pushDebugGroup:@"Dear ImGui rendering"];
@@ -99,27 +104,20 @@ namespace cube
             [renderEncoder popDebugGroup];
             [renderEncoder endEncoding];
 
-            // Present
-            // TODO: Move to swapchain?
-            [commandBuffer presentDrawable:mView.currentDrawable];
             [commandBuffer commit];
         }
     }
 
     void GAPI_Metal::OnAfterPresent()
     {
-        // TODO: Move to swapchain?
-        [mView draw];
-
         if (mImGUIContext.context)
         {
-            do
-            {
-                mRenderPassDescriptor = mView.currentRenderPassDescriptor;
-            } while (mRenderPassDescriptor == nil);
+            [mImGUIView.currentDrawable present];
+            [mImGUIView draw];
 
-            ImGui_ImplMetal_NewFrame(mRenderPassDescriptor);
-            ImGui_ImplOSX_NewFrame(mView);
+            // Does not call Metal_NewFrame at this point because currentRenderPassDescriptor
+            // in MTKView block the process until available.
+            ImGui_ImplOSX_NewFrame(mImGUIView);
         }
     }
 
@@ -169,7 +167,7 @@ namespace cube
 
     SharedPtr<gapi::Viewport> GAPI_Metal::CreateViewport(const gapi::ViewportCreateInfo& info)
     {
-        return std::make_shared<gapi::MetalViewport>(info);
+        return std::make_shared<gapi::MetalViewport>(mMainDevice->GetDevice(), mImGUIView, info);
     }
 
     gapi::TimestampList GAPI_Metal::GetLastTimestampList()
@@ -195,13 +193,28 @@ namespace cube
             (void*)(imGUIInfo.userData)
         );
 
-        ImGui_ImplOSX_Init(mView);
-        ImGui_ImplMetal_Init(mDevice);
+        platform::MacOSUtility::DispatchToMainThreadAndWait([this] {
+            CubeWindow* window = platform::MacOSPlatform::GetWindow();
+            NSRect windowFrame = window.contentView.bounds;
+            mImGUIView = [[CubeImGUIMTKView alloc]
+                initWithFrame:windowFrame
+                device:mMainDevice->GetDevice()
+            ];
+            mImGUIView.delegate = mImGUIView;
+            mImGUIView.paused = YES;
+            mImGUIView.enableSetNeedsDisplay = YES;
+            mImGUIView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+            mImGUIView.layer.opaque = NO;
+            [window.contentView addSubview:mImGUIView];
+        });
+
+        ImGui_ImplOSX_Init(mImGUIView);
+        ImGui_ImplMetal_Init(mMainDevice->GetDevice());
 
         // Start new frame before starting ImGUI loop in Engine class
-        mRenderPassDescriptor = mView.currentRenderPassDescriptor;
-        ImGui_ImplMetal_NewFrame(mView.currentRenderPassDescriptor);
-        ImGui_ImplOSX_NewFrame(mView);
+        mRenderPassDescriptor = mImGUIView.currentRenderPassDescriptor;
+        ImGui_ImplMetal_NewFrame(mImGUIView.currentRenderPassDescriptor);
+        ImGui_ImplOSX_NewFrame(mImGUIView);
     }
 
     void GAPI_Metal::ShutdownImGUI(const ImGUIContext& imGUIInfo)
@@ -214,7 +227,9 @@ namespace cube
 
         // Wait until the main queue will flush.
         platform::MacOSUtility::DispatchToMainThreadAndWait([] {});
-        
+
+        [mImGUIView release];
+
         ImGui_ImplMetal_Shutdown();
         ImGui_ImplOSX_Shutdown();
     }

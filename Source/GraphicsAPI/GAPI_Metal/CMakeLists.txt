@@ -14,6 +14,9 @@ set(PUBLIC_FILES
 )
 set(PRIVATE_FILES
     Private/GAPI_Metal.mm
+    Private/GAPI_MetalViewport.mm
+    Private/MetalDevice.h
+    Private/MetalDevice.mm
 )
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${PUBLIC_FILES} ${PRIVATE_FILES})
@@ -52,3 +55,9 @@ target_compile_definitions(CE-GAPI_Metal
 #         METAL_DEVICE_WRAPPER_TYPE=1
 # )
 # endif()
+if(DEBUG_MODE)
+target_compile_definitions(CE-GAPI_Metal
+    PRIVATE
+        MTL_CAPTURE_ENABLED=1
+)
+endif()
