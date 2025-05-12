@@ -97,23 +97,23 @@ namespace cube
 
         bool MacOSFileSystem::IsExistImpl(StringView path)
         { @autoreleasepool {
-            NSString* path = ToNSString(path);
-            return [[NSFileManager defaultManager] fileExistsAtPath:path];
+            NSString* nsPath = String_Convert<NSString*>(path);
+            return [[NSFileManager defaultManager] fileExistsAtPath:nsPath];
         }}
 
         bool MacOSFileSystem::IsDirectoryImpl(StringView path)
         { @autoreleasepool {
-            NSString* path = ToNSString(path);
+            NSString* nsPath = String_Convert<NSString*>(path);
             BOOL isDirectory;
-            [[NSFileManager defaultManager] fileExistsAtPath:path isDirectory:&isDirectory];
+            [[NSFileManager defaultManager] fileExistsAtPath:nsPath isDirectory:&isDirectory];
             return isDirectory;
         }}
 
         bool MacOSFileSystem::IsFileImpl(StringView path)
         { @autoreleasepool {
-            NSString* path = ToNSString(path);
+            NSString* nsPath = String_Convert<NSString*>(path);
             BOOL isDirectory;
-            [[NSFileManager defaultManager] fileExistsAtPath:path isDirectory:&isDirectory];
+            [[NSFileManager defaultManager] fileExistsAtPath:nsPath isDirectory:&isDirectory];
             return !isDirectory;
         }}
 
@@ -121,15 +121,14 @@ namespace cube
         {
             Vector<String> result;
             @autoreleasepool {
-                NSString* path = ToNSString(directoryPath);
-                NSArray* list = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:path error:nil];
+                NSString* nsPath = String_Convert<NSString*>(directoryPath);
+                NSArray* list = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:nsPath error:nil];
 
                 if (list)
                 {
                     for (NSString* fileOrDirectory in list)
                     {
-                        result.push_back({});
-                        String_ConvertAndAppend(result.back(), fileOrDirectory);
+                        result.push_back(String_Convert<String>(fileOrDirectory));
                     }
                 }
             }
@@ -142,7 +141,7 @@ namespace cube
             String result;
             @autoreleasepool {
                 NSString* path = [[NSFileManager defaultManager] currentDirectoryPath];
-                String_ConvertAndAppend(result, path);
+                result = String_Convert<String>(path);
             }
 
             return result;
@@ -155,7 +154,7 @@ namespace cube
 
         SharedPtr<File> MacOSFileSystem::OpenFileImpl(StringView path, FileAccessModeFlags accessModeFlags, bool createIfNotExist)
         {
-            NSString* nsPath = ToNSString(path);
+            NSString* nsPath = String_Convert<NSString*>(path);
 
             if (createIfNotExist)
             {

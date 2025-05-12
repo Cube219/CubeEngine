@@ -70,8 +70,7 @@ namespace cube
 
         bool WindowsFileSystem::IsExistImpl(StringView path)
         {
-            WindowsString WinPath;
-            String_ConvertAndAppend(WinPath, path);
+            WindowsString WinPath = String_Convert<WindowsString>(path);
 
             DWORD res = GetFileAttributes(WinPath.c_str());
             return res != INVALID_FILE_ATTRIBUTES;
@@ -79,8 +78,7 @@ namespace cube
 
         bool WindowsFileSystem::IsDirectoryImpl(StringView path)
         {
-            WindowsString WinPath;
-            String_ConvertAndAppend(WinPath, path);
+            WindowsString WinPath = String_Convert<WindowsString>(path);
 
             DWORD res = GetFileAttributes(WinPath.c_str());
             return res != INVALID_FILE_ATTRIBUTES && !!(res & FILE_ATTRIBUTE_DIRECTORY);
@@ -88,8 +86,7 @@ namespace cube
 
         bool WindowsFileSystem::IsFileImpl(StringView path)
         {
-            WindowsString WinPath;
-            String_ConvertAndAppend(WinPath, path);
+            WindowsString WinPath = String_Convert<WindowsString>(path);
 
             DWORD res = GetFileAttributes(WinPath.c_str());
             return res != INVALID_FILE_ATTRIBUTES && !(res & FILE_ATTRIBUTE_DIRECTORY);
@@ -107,8 +104,7 @@ namespace cube
             {
                 do
                 {
-                    res.emplace_back();
-                    String_ConvertAndAppend(res.back(), WindowsStringView(data.cFileName));
+                    res.emplace_back(String_Convert<String>(WindowsStringView(data.cFileName)));
                 } while (FindNextFile(handle, &data));
             }
 
@@ -123,9 +119,7 @@ namespace cube
 
             if (GetCurrentDirectory(len, winPath.data()))
             {
-                String result;
-                String_ConvertAndAppend(result, winPath);
-                return result;
+                return String_Convert<String>(winPath);
             }
             else
             {
@@ -143,8 +137,7 @@ namespace cube
         SharedPtr<File> WindowsFileSystem::OpenFileImpl(StringView path, FileAccessModeFlags accessModeFlags, bool createIfNotExist)
         {
             DWORD desiredAccess = GetDwDesiredAccess(accessModeFlags);
-            WindowsString pPath;
-            String_ConvertAndAppend(pPath, path);
+            WindowsString pPath = String_Convert<WindowsString>(path);
 
             HANDLE file = CreateFile(pPath.c_str(), desiredAccess, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 

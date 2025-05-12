@@ -1,6 +1,8 @@
 #pragma once
 
 #include "fmt/format.h"
+#include "algorithm" // std::copy in xchar.h
+#include "fmt/xchar.h"
 
 #include "CubeString.h"
 #include "Types.h"
@@ -49,10 +51,11 @@ namespace cube
         {
             // ----- Convert different string types -----
 #define CUBE_IS_SAME_STR_TYPE(DstChar, SrcType) (std::is_same<DstChar, typename decltype(fmt::detail::to_string_view(std::declval<SrcType>()))::value_type>::value)
-            // Not string type
+            // Not string type (Does not have the converter)
             template <typename DstChar, typename SrcType>
-            inline typename std::enable_if<
-                !fmt::detail::has_to_string_view<SrcType>::value, const SrcType&>::type
+            inline std::enable_if_t<
+                !string_internal::Converter<std::basic_string<DstChar>, SrcType>::Available,
+            const SrcType&>
             ConvertIfStringTypeIsDifferent(const SrcType& value)
             {
                 return value;
@@ -60,9 +63,10 @@ namespace cube
 
             // Same string type
             template <typename DstChar, typename SrcType>
-            inline typename std::enable_if<
-                fmt::detail::has_to_string_view<SrcType>::value &&
-                CUBE_IS_SAME_STR_TYPE(DstChar, SrcType), const SrcType&>::type
+            inline std::enable_if_t<
+                string_internal::Converter<std::basic_string<DstChar>, SrcType>::Available &&
+                CUBE_IS_SAME_STR_TYPE(DstChar, SrcType),
+            const SrcType&>
             ConvertIfStringTypeIsDifferent(const SrcType& value)
             {
                 return value;
@@ -70,9 +74,10 @@ namespace cube
 
             // Different string type
             template <typename DstChar, typename SrcType>
-            inline typename std::enable_if<
-                fmt::detail::has_to_string_view<SrcType>::value &&
-                !CUBE_IS_SAME_STR_TYPE(DstChar, SrcType), fmt::basic_string_view<DstChar>>::type
+            inline std::enable_if_t<
+                string_internal::Converter<std::basic_string<DstChar>, SrcType>::Available &&
+                !CUBE_IS_SAME_STR_TYPE(DstChar, SrcType),
+            fmt::basic_string_view<DstChar>>
             ConvertIfStringTypeIsDifferent(const SrcType& value)
             {
                 // temp string will be deallocated when DiscardFormatAllocations() is called.
@@ -80,7 +85,7 @@ namespace cube
                 void* tempMem = AllocateFormat(sizeof(FormatString<DstChar>));
                 FormatString<DstChar>* temp = new(tempMem) FormatString<DstChar>;
 
-                String_ConvertAndAppend(*temp, fmt::detail::to_string_view(value));
+                String_ConvertAndAppend(*temp, string_internal::ToStringView(value));
 
                 fmt::basic_string_view<DstChar> view(temp->data(), temp->size());
                 return view;

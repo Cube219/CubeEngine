@@ -43,8 +43,7 @@ namespace cube
                 return nullptr;
             }
 
-            MacOSString macName;
-            String_ConvertAndAppend(macName, name);
+            MacOSString macName = String_Convert<MacOSString>(name);
             void *pFunction = dlsym(mHandle, macName.c_str());
             if (pFunction == nullptr)
             {

@@ -25,8 +25,7 @@ namespace cube
         void WindowsDebug::PrintToDebugConsoleImpl(StringView str, PrintColorCategory colorCategory)
         {
             // TODO: Use custom allocator (logger allocator?)
-            WindowsString winStr;
-            String_ConvertAndAppend(winStr, str);
+            WindowsString winStr = String_Convert<WindowsString>(str);
 
             std::wcout << winStr << std::endl;
             OutputDebugString(winStr.c_str());
@@ -36,19 +35,13 @@ namespace cube
         void WindowsDebug::ProcessFatalErrorImpl(StringView msg)
         {
             // TODO: Use custom allocator (logger allocator?)
-            WindowsString winStr;
-            String_ConvertAndAppend(winStr, msg);
-
-            ShowDebugMessageBox(WINDOWS_T("Fatal error"), winStr);
+            ShowDebugMessageBox(WINDOWS_T("Fatal error"), String_Convert<WindowsString>(msg));
         }
 
         void WindowsDebug::ProcessFailedCheckImpl(const char* fileName, int lineNum, StringView formattedMsg)
         {
             // TODO: Use custom allocator (logger allocator?)
-            WindowsString winStr;
-            String_ConvertAndAppend(winStr, formattedMsg);
-
-            ShowDebugMessageBox(WINDOWS_T("Check failed"), winStr);
+            ShowDebugMessageBox(WINDOWS_T("Check failed"), String_Convert<WindowsString>(formattedMsg));
         }
 
         constexpr int MAX_NUM_FRAMES = 128;
@@ -151,9 +144,7 @@ namespace cube
                 str += Format<AnsiString>("{}!{}() - {}:{}\n", moduleName, functionName, fileName, lineNum);
             }
 
-            String res;
-            String_ConvertAndAppend(res, str);
-            return res;
+            return String_Convert<String>(str);
         }
 
         bool WindowsDebug::IsDebuggerAttachedImpl()

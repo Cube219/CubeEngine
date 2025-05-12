@@ -138,9 +138,7 @@ namespace cube
         mMainDevice = mDevices[0];
 
         CUBE_LOG(Info, DX12, "Found {0} devices.", mDevices.size());
-        String tempStr;
-        String_ConvertAndAppend(tempStr, WindowsStringView(mMainDevice->GetAdapterDesc().Description));
-        CUBE_LOG(Info, DX12, "Use the first device: {0}", tempStr);
+        CUBE_LOG(Info, DX12, "Use the first device: {0}", WindowsStringView(mMainDevice->GetAdapterDesc().Description));
 
         InitializeImGUI(initInfo.imGUI);
 

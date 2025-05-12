@@ -63,7 +63,7 @@ namespace cube
 
         void WindowsPlatform::InitWindowImpl(StringView title, Uint32 width, Uint32 height, Int32 posX, Int32 posY)
         {
-            String_ConvertAndAppend(mWindowTitle, title);
+            mWindowTitle = String_Convert<WindowsString>(title);
             mWindowWidth = width;
             mWindowHeight = height;
             mWindowPosX = posX;
@@ -104,8 +104,7 @@ namespace cube
 
         void WindowsPlatform::ChangeWindowTitleImpl(StringView title)
         {
-            mWindowTitle.clear();
-            String_ConvertAndAppend(mWindowTitle, title);
+            mWindowTitle = String_Convert<WindowsString>(title);
 
             if (SetWindowText(mWindow, mWindowTitle.c_str()) == 0)
             {

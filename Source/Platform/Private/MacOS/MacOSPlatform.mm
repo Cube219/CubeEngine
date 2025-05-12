@@ -323,7 +323,7 @@ namespace cube
                 defer:NO
             ];
 
-            [mWindow setTitle:ToNSString(title)];
+            [mWindow setTitle:String_Convert<NSString*>(title)];
             [mWindow setAcceptsMouseMovedEvents:YES];
 
             mWindowDelegate = [[CubeWindowDelegate alloc] init];
@@ -339,7 +339,7 @@ namespace cube
 
         void MacOSPlatform::ChangeWindowTitleImpl(StringView title)
         {
-            MacOSUtility::DispatchToMainThread([nsTitle = ToNSString(title)]() {
+            MacOSUtility::DispatchToMainThread([nsTitle = String_Convert<NSString*>(title)]() {
                 [mWindow setTitle:nsTitle];
             });
         }
