@@ -25,6 +25,7 @@ namespace cube
     EventFunction<void(MouseButton)> CameraSystem::mMouseDownEventFunc;
     EventFunction<void(MouseButton)> CameraSystem::mMouseUpEventFunc;
     EventFunction<void(Int32, Int32)> CameraSystem::mMousePositionEventFunc;
+    EventFunction<void(int)> CameraSystem::mMouseWheelEventFunc;
     EventFunction<void(platform::WindowActivatedState)> CameraSystem::mWindowActivateEventFunc;
 
     bool CameraSystem::mIsForwardKeyPressed = false;
@@ -43,6 +44,9 @@ namespace cube
     Int32 CameraSystem::mCurrentMouseX;
     Int32 CameraSystem::mCurrentMouseY;
     float CameraSystem::mMouseSpeed = 3.0f;
+
+    bool CameraSystem::mIsMouseWheelMoved;
+    int CameraSystem::mMouseWheelDelta;
 
     void CameraSystem::Initialize()
     {
@@ -135,6 +139,12 @@ namespace cube
             mCurrentMouseX = x;
             mCurrentMouseY = y;
         });
+        mMouseWheelEventFunc = platform::Platform::GetMouseWheelEvent().AddListener([](int delta)
+        {
+            mIsMouseWheelMoved = true;
+
+            mMouseWheelDelta = delta;
+        });
         mWindowActivateEventFunc = platform::Platform::GetActivatedEvent().AddListener([](platform::WindowActivatedState state)
         {
             if (state == platform::WindowActivatedState::Inactive)
@@ -162,6 +172,7 @@ namespace cube
     void CameraSystem::Shutdown()
     {
         platform::Platform::GetActivatedEvent().RemoveListener(mWindowActivateEventFunc);
+        platform::Platform::GetMouseWheelEvent().RemoveListener(mMouseWheelEventFunc);
         platform::Platform::GetMousePositionEvent().RemoveListener(mMousePositionEventFunc);
         platform::Platform::GetMouseUpEvent().RemoveListener(mMouseUpEventFunc);
         platform::Platform::GetMouseDownEvent().RemoveListener(mMouseDownEventFunc);
@@ -199,8 +210,16 @@ namespace cube
                 mAxisXAngle = Math::Max(-89.9f, Math::Min(89.9f, mAxisXAngle - static_cast<float>(deltaY) * scaledMouseSpeed));
                 mAxisYAngle = mAxisYAngle - static_cast<float>(deltaX) * scaledMouseSpeed;
                 UpdateDirection();
+
+                mIsMouseMoved = false;
             }
-            mIsMouseMoved = false;
+
+            if (mIsMouseWheelMoved)
+            {
+                mPosition += mDirection * static_cast<double>(mMouseWheelDelta) * deltaTime;
+
+                mIsMouseWheelMoved = false;
+            }
         }
 
         UpdateViewMatrix();
