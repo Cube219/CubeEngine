@@ -93,11 +93,16 @@ namespace cube
         void WindowsPlatform::ShowWindowImpl()
         {
             // Create Window
+            RECT rect = { 0, 0, (LONG)mWindowWidth, (LONG)mWindowHeight };
+            AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, FALSE);
+
             mWindow = CreateWindowEx(0,
-                                     mWindowTitle.c_str(), mWindowTitle.c_str(),
-                                     WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_SYSMENU,
-                                     mWindowPosX, mWindowPosY, mWindowWidth, mWindowHeight,
-                                     nullptr, nullptr, mInstance, nullptr);
+                mWindowTitle.c_str(), mWindowTitle.c_str(),
+                WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_SYSMENU,
+                mWindowPosX, mWindowPosY,
+                rect.right - rect.left, rect.bottom - rect.top,
+                nullptr, nullptr, mInstance, nullptr
+            );
 
             CHECK_FORMAT(mWindow, "Failed to create a window. (ErrorCode: {0})", GetLastError());
         }
