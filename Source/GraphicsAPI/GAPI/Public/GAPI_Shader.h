@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Blob.h"
 #include "GAPIHeader.h"
 
 #include "CubeString.h"
@@ -58,7 +59,7 @@ namespace cube
             ShaderType type;
             ShaderLanguage language;
 
-            const char* code;
+            BlobView code;
             const char* entryPoint;
 
             const char* debugName = "Unknown";

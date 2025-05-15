@@ -292,21 +292,20 @@ namespace cube
         mBoxMesh = std::make_shared<Mesh>(BaseMeshGenerator::GetBoxMeshData());
         SetMesh(nullptr); // Load default mesh
 
-        FrameAnsiString shaderCode;
         {
             FrameString vertexShaderFilePath = FrameString(Engine::GetRootDirectoryPath()) + CUBE_T("/Resources/Shaders/HelloWorldVS.hlsl");
             SharedPtr<platform::File> vertexShaderFile = platform::FileSystem::OpenFile(vertexShaderFilePath, platform::FileAccessModeFlag::Read);
             CHECK(vertexShaderFile);
             Uint64 vertexShaderFileSize = vertexShaderFile->GetFileSize();
 
-            shaderCode.resize(vertexShaderFileSize);
-            Uint64 readSize = vertexShaderFile->Read(shaderCode.data(), vertexShaderFileSize);
+            Blob shaderCode(vertexShaderFileSize);
+            Uint64 readSize = vertexShaderFile->Read(shaderCode.GetData(), vertexShaderFileSize);
             CHECK(readSize <= vertexShaderFileSize);
 
             mVertexShader = mGAPI->CreateShader({
                 .type = gapi::ShaderType::Vertex,
                 .language = gapi::ShaderLanguage::HLSL,
-                .code = shaderCode.c_str(),
+                .code = shaderCode,
                 .entryPoint = "VSMain",
                 .debugName = "HelloWorldVS"
             });
@@ -317,14 +316,14 @@ namespace cube
             CHECK(pixelShaderFile);
             Uint64 pixelShaderFileSize = pixelShaderFile->GetFileSize();
 
-            shaderCode.resize(pixelShaderFileSize);
-            Uint64 readSize = pixelShaderFile->Read(shaderCode.data(), pixelShaderFileSize);
+            Blob shaderCode(pixelShaderFileSize);
+            Uint64 readSize = pixelShaderFile->Read(shaderCode.GetData(), pixelShaderFileSize);
             CHECK(readSize <= pixelShaderFileSize);
 
             mPixelShader = mGAPI->CreateShader({
                 .type = gapi::ShaderType::Pixel,
                 .language = gapi::ShaderLanguage::HLSL,
-                .code = shaderCode.c_str(),
+                .code = shaderCode,
                 .entryPoint = "PSMain",
                 .debugName = "HelloWorldPS"
             });

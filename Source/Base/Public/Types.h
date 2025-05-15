@@ -17,6 +17,8 @@ static constexpr Uint32 Uint32InvalidValue = (Uint32)(-1);
 using Uint64 = uint64_t;
 static constexpr Uint64 Uint64InvalidValue = (Uint64)(-1);
 
+using Byte = char;
+
 #include <cstddef>
 using SizeType = size_t;
 

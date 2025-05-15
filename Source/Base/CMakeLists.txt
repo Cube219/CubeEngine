@@ -8,6 +8,7 @@ set(PUBLIC_FILES
     Public/VectorImpl/VectorArray.inl
     Public/VectorImpl/VectorSSE.inl
     Public/Allocator.h
+    Public/Blob.h
     Public/CubeMath.h
     Public/CubeString.h
     Public/Defines.h

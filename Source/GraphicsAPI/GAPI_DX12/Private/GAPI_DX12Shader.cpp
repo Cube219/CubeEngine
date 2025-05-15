@@ -53,11 +53,10 @@ namespace cube
                 break;
             }
 
-            int codeLen = strlen(info.code);
             int compilerFlags = D3DCOMPILE_DEBUG;
 
             ComPtr<ID3DBlob> errorMessageBlob;
-            HRESULT res = D3DCompile(info.code, codeLen, NULL, NULL, NULL, info.entryPoint, target, compilerFlags, 0, &mShader, &errorMessageBlob);
+            HRESULT res = D3DCompile(info.code.GetData(), info.code.GetSize(), NULL, NULL, NULL, info.entryPoint, target, compilerFlags, 0, &mShader, &errorMessageBlob);
             if (res != S_OK)
             {
                 const char* errorMessage = (const char*)errorMessageBlob->GetBufferPointer();
