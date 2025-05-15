@@ -309,6 +309,7 @@ namespace cube
                 .entryPoint = "VSMain",
                 .debugName = "HelloWorldVS"
             });
+            CHECK(mVertexShader);
         }
         {
             FrameString pixelShaderFilePath = FrameString(Engine::GetRootDirectoryPath()) + CUBE_T("/Resources/Shaders/HelloWorldPS.hlsl");
@@ -327,6 +328,7 @@ namespace cube
                 .entryPoint = "PSMain",
                 .debugName = "HelloWorldPS"
             });
+            CHECK(mPixelShader);
         }
         {
             mShaderVariablesLayout = mGAPI->CreateShaderVariablesLayout({

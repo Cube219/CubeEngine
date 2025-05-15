@@ -29,6 +29,8 @@ set(PRIVATE_FILES
     Private/DX12QueryManager.h
     Private/DX12QueueManager.cpp
     Private/DX12QueueManager.h
+    Private/DX12ShaderCompiler.cpp
+    Private/DX12ShaderCompiler.h
     Private/DX12Types.cpp
     Private/DX12Types.h
     Private/DX12Utility.h

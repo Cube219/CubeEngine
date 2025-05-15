@@ -4,6 +4,7 @@
 #include "GAPIHeader.h"
 
 #include "CubeString.h"
+#include "Format.h"
 
 namespace cube
 {
@@ -70,6 +71,44 @@ namespace cube
         public:
             Shader() = default;
             virtual ~Shader() = default;
+        };
+
+        struct ShaderCompileResult
+        {
+            bool isSuccess;
+            String warning;
+            String error;
+
+            void Reset()
+            {
+                isSuccess = false;
+                warning.clear();
+                error.clear();
+            }
+
+            void AddWarning(StringView message, bool isBegin = true)
+            {
+                if (isBegin)
+                {
+                    warning += Format(CUBE_T("\tShader compile WARNING: {0}\n"), message);
+                }
+                else
+                {
+                    warning += Format(CUBE_T("{0}\n"), message);
+                }
+            }
+
+            void AddError(StringView message, bool isBegin = true)
+            {
+                if (isBegin)
+                {
+                    warning += Format(CUBE_T("\tShader compile ERROR: {0}\n"), message);
+                }
+                else
+                {
+                    warning += Format(CUBE_T("{0}\n"), message);
+                }
+            }
         };
     } // namespace gapi
 } // namespace cube
