@@ -28,6 +28,7 @@ endif()
 
 # Add enabled APIs
 add_subdirectory("GAPI")
+add_subdirectory("GAPI_Base")
 
 if(CUBE_GAPI_ENABLE_DX12 AND DX12_SUPPORTED)
     add_subdirectory("GAPI_DX12")

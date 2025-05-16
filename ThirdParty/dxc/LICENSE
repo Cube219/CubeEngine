@@ -1,0 +1,8 @@
+## Licenses
+
+The included licenses apply to the following files:
+
+| License file     | Applies to      |
+| ---------------- | --------------- |
+| LICENSE-MIT.txt  | d3d12shader.h   |
+| LICENSE-LLVM.txt | all other files |

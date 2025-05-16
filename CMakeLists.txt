@@ -51,10 +51,12 @@ set (CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Binaries/${CMAKE_BUILD
 
 add_subdirectory("ThirdParty/fmt")
 add_subdirectory("ThirdParty/imgui")
+add_subdirectory("ThirdParty/slang")
 add_subdirectory("ThirdParty/tinygltf")
 add_subdirectory("ThirdParty/tinyobjloader")
 if(PLATFORM_WINDOWS)
     add_subdirectory("ThirdParty/D3D12MemoryAllocator")
+    add_subdirectory("ThirdParty/dxc")
 endif()
 
 add_subdirectory("Source/Base")

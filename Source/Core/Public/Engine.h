@@ -29,7 +29,7 @@ namespace cube
 
         static Renderer* GetRenderer() { return mRenderer.get(); }
 
-        static const String& GetRootDirectoryPath() { return mRootDirectoryPath; }
+        CUBE_CORE_EXPORT static const String& GetRootDirectoryPath() { return mRootDirectoryPath; }
 
         static void SetMesh(SharedPtr<MeshData> meshData);
 

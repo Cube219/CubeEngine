@@ -293,7 +293,7 @@ namespace cube
         SetMesh(nullptr); // Load default mesh
 
         {
-            FrameString vertexShaderFilePath = FrameString(Engine::GetRootDirectoryPath()) + CUBE_T("/Resources/Shaders/HelloWorldVS.hlsl");
+            FrameString vertexShaderFilePath = FrameString(Engine::GetRootDirectoryPath()) + CUBE_T("/Resources/Shaders/HelloWorld.slang");
             SharedPtr<platform::File> vertexShaderFile = platform::FileSystem::OpenFile(vertexShaderFilePath, platform::FileAccessModeFlag::Read);
             CHECK(vertexShaderFile);
             Uint64 vertexShaderFileSize = vertexShaderFile->GetFileSize();
@@ -304,7 +304,9 @@ namespace cube
 
             mVertexShader = mGAPI->CreateShader({
                 .type = gapi::ShaderType::Vertex,
-                .language = gapi::ShaderLanguage::HLSL,
+                .language = gapi::ShaderLanguage::Slang,
+                .fileName = StringView(CUBE_T("HelloWorld.slang")),
+                .path = vertexShaderFilePath,
                 .code = shaderCode,
                 .entryPoint = "VSMain",
                 .debugName = "HelloWorldVS"
@@ -312,7 +314,7 @@ namespace cube
             CHECK(mVertexShader);
         }
         {
-            FrameString pixelShaderFilePath = FrameString(Engine::GetRootDirectoryPath()) + CUBE_T("/Resources/Shaders/HelloWorldPS.hlsl");
+            FrameString pixelShaderFilePath = FrameString(Engine::GetRootDirectoryPath()) + CUBE_T("/Resources/Shaders/HelloWorld.slang");
             SharedPtr<platform::File> pixelShaderFile = platform::FileSystem::OpenFile(pixelShaderFilePath, platform::FileAccessModeFlag::Read);
             CHECK(pixelShaderFile);
             Uint64 pixelShaderFileSize = pixelShaderFile->GetFileSize();
@@ -323,7 +325,9 @@ namespace cube
 
             mPixelShader = mGAPI->CreateShader({
                 .type = gapi::ShaderType::Pixel,
-                .language = gapi::ShaderLanguage::HLSL,
+                .language = gapi::ShaderLanguage::Slang,
+                .fileName = StringView(CUBE_T("HelloWorld.slang")),
+                .path = pixelShaderFilePath,
                 .code = shaderCode,
                 .entryPoint = "PSMain",
                 .debugName = "HelloWorldPS"

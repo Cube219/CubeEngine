@@ -24,5 +24,6 @@ namespace cube
     private:
         static ID3DBlob* CompileFromHLSL(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult);
         static ID3DBlob* CompileFromDXIL(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult);
+        static ID3DBlob* CompileFromSlang(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult);
     };
 } // namespace cube

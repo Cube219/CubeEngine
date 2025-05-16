@@ -64,7 +64,8 @@ namespace cube
             mSize = other.mSize;
             mData = other.mData;
 
-            other.Release();
+            other.mSize = 0;
+            other.mData = nullptr;
         }
         Blob& operator=(Blob&& rhs) noexcept
         {
@@ -73,7 +74,9 @@ namespace cube
                 Release();
                 mSize = rhs.mSize;
                 mData = rhs.mData;
-                rhs.Release();
+
+                rhs.mSize = 0;
+                rhs.mData = nullptr;
             }
             return *this;
         }
@@ -97,8 +100,8 @@ namespace cube
         operator BlobView() const
         {
             BlobView res;
-            res.mData = mData;
             res.mSize = mSize;
+            res.mData = mData;
 
             return res;
         }

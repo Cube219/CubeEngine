@@ -152,6 +152,7 @@ namespace cube
         CUBE_LOG(Info, DX12, "Shutdown GAPI_DX12.");
 
         DX12ShaderCompiler::Shutdown();
+
         ShutdownImGUI(imGUIInfo);
 
         for (DX12Device* device : mDevices)
