@@ -122,8 +122,8 @@
     NSPoint location = [event locationInWindow];
     
     MacOSMousePositionEvent mousePositionEvent = {
-        .x = static_cast<Int32>(location.x),
-        .y = static_cast<Int32>(self.contentView.frame.size.height - location.y) // Flip y
+        .x = static_cast<cube::Int32>(location.x),
+        .y = static_cast<cube::Int32>(self.contentView.frame.size.height - location.y) // Flip y
     };
 
     MacOSPlatform::DispatchEvent(MacOSEventType::MousePosition, (void*)&mousePositionEvent);
@@ -192,8 +192,8 @@
 
     NSWindow* window = notification.object;
     MacOSResizeWindowEvent resizeEvent = {
-        .newWidth = static_cast<Uint32>(window.contentView.frame.size.width),
-        .newHeight = static_cast<Uint32>(window.contentView.frame.size.height)
+        .newWidth = static_cast<cube::Uint32>(window.contentView.frame.size.width),
+        .newHeight = static_cast<cube::Uint32>(window.contentView.frame.size.height)
     };
 
     MacOSPlatform::DispatchEvent(MacOSEventType::ResizeWindow, (void*)&resizeEvent);
@@ -208,8 +208,8 @@
     NSRect screenFrame = [[NSScreen mainScreen] frame];
 
     MacOSMoveWindowEvent moveEvent = {
-        .newX = static_cast<Int32>(window.frame.origin.x),
-        .newY = static_cast<Int32>(NSMaxY(screenFrame) - NSMaxY(window.frame)) // Flip y
+        .newX = static_cast<cube::Int32>(window.frame.origin.x),
+        .newY = static_cast<cube::Int32>(NSMaxY(screenFrame) - NSMaxY(window.frame)) // Flip y
     };
 
     MacOSPlatform::DispatchEvent(MacOSEventType::MoveWindow, (void*)&moveEvent);
