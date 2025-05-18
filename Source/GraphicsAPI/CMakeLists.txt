@@ -1,9 +1,5 @@
 cmake_minimum_required(VERSION 3.19)
 
-# Options
-option(CUBE_GAPI_ENABLE_DX12 "GraphicsAPI - Enable DirectX12" ON)
-option(CUBE_GAPI_ENABLE_METAL "GraphicsAPI - Enable Metal" ON)
-
 # Check the APIs have been supported
 set(DX12_SUPPORTED FALSE)
 set(METAL_SUPPORTED FALSE)

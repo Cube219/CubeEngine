@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.19)
 project(CubeEngine)
 
 # Options
+option(CUBE_GAPI_ENABLE_DX12 "GraphicsAPI - Enable DirectX12" ON)
+option(CUBE_GAPI_ENABLE_METAL "GraphicsAPI - Enable Metal" ON)
 option(CUBE_FETCH_GLTF_SAMPLES "Fetch glTF sample assets" OFF)
 
 # Sets

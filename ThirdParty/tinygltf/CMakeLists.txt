@@ -4,6 +4,8 @@ include(FetchContent)
 
 message(STATUS "CubeEngine: Fetching tinygltf...")
 
+set(TINYGLTF_BUILD_LOADER_EXAMPLE OFF CACHE BOOL "" FORCE)
+
 FetchContent_Declare(
     tinygltf
     GIT_REPOSITORY https://github.com/syoyo/tinygltf
