@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.19)
 
 include(FetchContent)
 
+message(STATUS "CubeEngine: Fetching imgui/imGuIZMO...")
+
 FetchContent_Declare(
     imgui
     GIT_REPOSITORY https://github.com/ocornut/imgui

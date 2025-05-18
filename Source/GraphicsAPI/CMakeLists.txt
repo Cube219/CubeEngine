@@ -14,7 +14,7 @@ if(PLATFORM_WINDOWS)
     set(DX12_SUPPORTED TRUE)
 endif()
 if(DX12_SUPPORTED)
-    message("GAPI: DX12 supported.")
+    message(STATUS "CubeEngine: DX12 supported.")
 endif()
 
 # - Metal
@@ -23,7 +23,7 @@ if(PLATFORM_MACOS)
     set(METAL_SUPPORTED TRUE)
 endif()
 if(METAL_SUPPORTED)
-    message("GAPI: Metal supported.")
+    message(STATUS "CubeEngine: Metal supported.")
 endif()
 
 # Add enabled APIs
