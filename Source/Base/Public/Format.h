@@ -50,33 +50,22 @@ namespace cube
         namespace internal
         {
             // ----- Convert different string types -----
-#define CUBE_IS_SAME_STR_TYPE(DstChar, SrcType) (std::is_same<DstChar, typename decltype(fmt::detail::to_string_view(std::declval<SrcType>()))::value_type>::value)
-            // Not string type (Does not have the converter)
+            // Not has converter or conversion is not needed (Not string type or same string type)
             template <typename DstChar, typename SrcType>
             inline std::enable_if_t<
-                !string_internal::Converter<std::basic_string<DstChar>, SrcType>::Available,
+                !string_internal::Converter<std::basic_string<DstChar>, SrcType>::Available || 
+                !string_internal::Converter<std::basic_string<DstChar>, SrcType>::NeedConvert ,
             const SrcType&>
             ConvertIfStringTypeIsDifferent(const SrcType& value)
             {
                 return value;
             }
 
-            // Same string type
+            // Has converter and conversion is needed
             template <typename DstChar, typename SrcType>
             inline std::enable_if_t<
                 string_internal::Converter<std::basic_string<DstChar>, SrcType>::Available &&
-                CUBE_IS_SAME_STR_TYPE(DstChar, SrcType),
-            const SrcType&>
-            ConvertIfStringTypeIsDifferent(const SrcType& value)
-            {
-                return value;
-            }
-
-            // Different string type
-            template <typename DstChar, typename SrcType>
-            inline std::enable_if_t<
-                string_internal::Converter<std::basic_string<DstChar>, SrcType>::Available &&
-                !CUBE_IS_SAME_STR_TYPE(DstChar, SrcType),
+                string_internal::Converter<std::basic_string<DstChar>, SrcType>::NeedConvert,
             fmt::basic_string_view<DstChar>>
             ConvertIfStringTypeIsDifferent(const SrcType& value)
             {
@@ -85,7 +74,7 @@ namespace cube
                 void* tempMem = AllocateFormat(sizeof(FormatString<DstChar>));
                 FormatString<DstChar>* temp = new(tempMem) FormatString<DstChar>;
 
-                String_ConvertAndAppend(*temp, string_internal::ToStringView(value));
+                String_ConvertAndAppend(*temp, value);
 
                 fmt::basic_string_view<DstChar> view(temp->data(), temp->size());
                 return view;

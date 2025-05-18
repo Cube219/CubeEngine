@@ -35,6 +35,7 @@ namespace cube
         >
         {
             static constexpr bool Available = true;
+            static constexpr bool NeedConvert = true;
 
             static void ConvertAndAppend(NSString*& dst, const SrcStr& src)
             {
@@ -56,6 +57,7 @@ namespace cube
         >
         {
             static constexpr bool Available = true;
+            static constexpr bool NeedConvert = true;
 
             static void ConvertAndAppend(DstString& dst, const NSString* src)
             {

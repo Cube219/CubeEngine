@@ -118,6 +118,19 @@ namespace cube
             std::void_t<decltype(ToStringView(std::declval<T>()))>
         > : std::true_type {};
 
+        // IsSameStr
+        template <typename Str1, typename Str2, typename Enabled = void>
+        struct IsSameStr : std::false_type {};
+        template <typename Str1, typename Str2>
+        struct IsSameStr<Str1, Str2,
+            std::enable_if_t<
+                std::is_same_v<
+                    typename decltype(ToStringView(std::declval<Str1>()))::value_type,
+                    typename decltype(ToStringView(std::declval<Str2>()))::value_type
+                >
+            >
+        > : std::true_type {};
+
         // Decode/Encode function
         // Do not implement general template function to identify unspecialized functions in link error.
         template <typename Character>
@@ -141,6 +154,7 @@ namespace cube
         struct Converter
         {
             static constexpr bool Available = false;
+            static constexpr bool NeedConvert = false;
 
             static void ConvertAndAppend(DstString& dst, const SrcStr& src)
             {
@@ -153,11 +167,13 @@ namespace cube
         struct Converter<DstString, SrcStr,
             std::enable_if_t<
                 IsString<DstString>::value &&
-                IsStringViewable<SrcStr>::value
+                IsStringViewable<SrcStr>::value && 
+                !IsSameStr<DstString, SrcStr>::value // Does not create converting same type string
             >
         >
         {
             static constexpr bool Available = true;
+            static constexpr bool NeedConvert = true;
 
             static void ConvertAndAppend(DstString& dst, const SrcStr& src)
             {
@@ -175,6 +191,21 @@ namespace cube
                     int size = string_internal::ConvertCodeAndMove(srcCurrent, tempBuffer);
                     dst.append(tempBuffer, size);
                 }
+            }
+        };
+
+        // Same string type. Specialize it to avoid static assert error.
+        template <typename DstString, typename SrcStr>
+        struct Converter<DstString, SrcStr,
+            std::enable_if_t<IsSameStr<DstString, SrcStr>::value>
+        >
+        {
+            static constexpr bool Available = true;
+            static constexpr bool NeedConvert = false;
+
+            static void ConvertAndAppend(DstString& dst, const SrcStr& src)
+            {
+                dst = src;
             }
         };
     } // namespace string_internal
