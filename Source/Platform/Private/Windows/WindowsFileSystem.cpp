@@ -13,6 +13,15 @@ namespace cube
     {
         FILE_CLASS_DEFINITIONS(WindowsFile)
 
+        WindowsFile::WindowsFile(HANDLE fileHandle) :
+            mFileHandle(fileHandle)
+        {}
+
+        WindowsFile::~WindowsFile()
+        {
+            CloseHandle(mFileHandle);
+        }
+
         Uint64 WindowsFile::GetFileSizeImpl() const
         {
             LARGE_INTEGER size_LI;
@@ -57,22 +66,78 @@ namespace cube
             CHECK_FORMAT(res, "Failed to write the file. (ErrorCode: {0})", GetLastError());
         }
 
-        WindowsFile::WindowsFile(HANDLE fileHandle) :
-            mFileHandle(fileHandle)
-        {}
+        FILE_SYSTEM_CLASS_DEFINITIONS(WindowsFileSystem)
 
-        WindowsFile::~WindowsFile()
+        bool WindowsFileSystem::IsExistImpl(StringView path)
         {
-            CloseHandle(mFileHandle);
+            WindowsString WinPath = String_Convert<WindowsString>(path);
+
+            DWORD res = GetFileAttributes(WinPath.c_str());
+            return res != INVALID_FILE_ATTRIBUTES;
         }
 
-        FILE_SYSTEM_CLASS_DEFINITIONS(WindowsFileSystem)
+        bool WindowsFileSystem::IsDirectoryImpl(StringView path)
+        {
+            WindowsString WinPath = String_Convert<WindowsString>(path);
+
+            DWORD res = GetFileAttributes(WinPath.c_str());
+            return res != INVALID_FILE_ATTRIBUTES && !!(res & FILE_ATTRIBUTE_DIRECTORY);
+        }
+
+        bool WindowsFileSystem::IsFileImpl(StringView path)
+        {
+            WindowsString WinPath = String_Convert<WindowsString>(path);
+
+            DWORD res = GetFileAttributes(WinPath.c_str());
+            return res != INVALID_FILE_ATTRIBUTES && !(res & FILE_ATTRIBUTE_DIRECTORY);
+        }
+
+        Vector<String> WindowsFileSystem::GetListImpl(StringView directoryPath)
+        {
+            Vector<String> res;
+
+            WindowsString winPath = Format<WindowsString>(WINDOWS_T("{}/*.*"), directoryPath);
+            WIN32_FIND_DATA data;
+
+            HANDLE handle = FindFirstFile(winPath.c_str(), &data);
+            if (handle != INVALID_HANDLE_VALUE)
+            {
+                do
+                {
+                    res.emplace_back(String_Convert<String>(WindowsStringView(data.cFileName)));
+                } while (FindNextFile(handle, &data));
+            }
+
+            return res;
+        }
+
+        String WindowsFileSystem::GetCurrentDirectoryPathImpl()
+        {
+            DWORD len = GetCurrentDirectory(0, NULL);
+            WindowsString winPath;
+            winPath.resize(len);
+
+            if (GetCurrentDirectory(len, winPath.data()))
+            {
+                return String_Convert<String>(winPath);
+            }
+            else
+            {
+                DWORD err = GetLastError();
+                CUBE_LOG(Error, WindowsFileSystem, "Failed to get the current directory path. (ErrorCode: {0})", err);
+                return CUBE_T("");
+            }
+        }
+
+        Character WindowsFileSystem::GetSeparatorImpl()
+        {
+            return CUBE_T('\\');
+        }
 
         SharedPtr<File> WindowsFileSystem::OpenFileImpl(StringView path, FileAccessModeFlags accessModeFlags, bool createIfNotExist)
         {
             DWORD desiredAccess = GetDwDesiredAccess(accessModeFlags);
-            WindowsString pPath;
-            String_ConvertAndAppend(pPath, path);
+            WindowsString pPath = String_Convert<WindowsString>(path);
 
             HANDLE file = CreateFile(pPath.c_str(), desiredAccess, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
@@ -94,11 +159,6 @@ namespace cube
 
             CUBE_LOG(Warning, WindowsFileSystem, "Failed to open a file. ({0}) (ErrorCode: {1})", path, err);
             return nullptr;
-        }
-
-        char WindowsFileSystem::GetSeparatorImpl()
-        {
-            return '\\';
         }
 
         const char* WindowsFileSystem::SplitFileNameFromFullPathImpl(const char* fullPath)

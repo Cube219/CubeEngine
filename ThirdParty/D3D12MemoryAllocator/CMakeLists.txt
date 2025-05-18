@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.19)
 
 include(FetchContent)
 
+message(STATUS "CubeEngine: Fetching D3D12MemoryAllocator...")
+
 FetchContent_Declare(
     D3D12MemoryAllocator
     GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator

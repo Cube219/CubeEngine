@@ -11,15 +11,12 @@ namespace cube
         class DX12Shader : public Shader
         {
         public:
-            DX12Shader(const ShaderCreateInfo& info);
+            DX12Shader(ID3DBlob* shader);
             virtual ~DX12Shader();
 
             ID3DBlob* GetShader() const { return mShader; }
 
         private:
-            void LoadFromHLSL(const ShaderCreateInfo& info);
-            void LoadFromDXIL(const ShaderCreateInfo& info);
-
             ID3DBlob* mShader;
         };
     } // namespace gapi

@@ -63,7 +63,7 @@ namespace cube
         mGlobalConstantBufferDataPointer = static_cast<Uint8*>(mGlobalConstantBuffer->Map());
 
         mObjectBufferData.model = Matrix::Identity();
-        mObjectBufferData.color = Vector4::Zero();
+        mObjectBufferData.color = Vector4(1, 1, 0, 1);
         mObjectBuffer = mGAPI->CreateBuffer({
             .type = gapi::BufferType::Constant,
             .usage = gapi::ResourceUsage::CPUtoGPU,
@@ -143,6 +143,12 @@ namespace cube
         }
     }
 
+    void Renderer::SetObjectModelMatrix(const Vector3& position, const Vector3& rotation, const Vector3& scale)
+    {
+        mObjectBufferData.model = MatrixUtility::GetScale(scale) * MatrixUtility::GetRotationXYZ(rotation) + MatrixUtility::GetTranslation(position);
+        memcpy(mObjectBufferDataPointer, &mObjectBufferData, sizeof(ObjectBufferData));
+    }
+
     void Renderer::SetViewMatrix(const Vector3& eye, const Vector3& target, const Vector3& upDir)
     {
         if (mGAPI->GetInfo().useLeftHanded)
@@ -181,6 +187,18 @@ namespace cube
         else
         {
             return 0.0f;
+        }
+    }
+
+    void Renderer::SetMesh(SharedPtr<MeshData> meshData)
+    {
+        if (meshData)
+        {
+            mMesh = std::make_shared<Mesh>(meshData);
+        }
+        else
+        {
+            mMesh = std::make_shared<Mesh>(BaseMeshGenerator::GetBoxMeshData());
         }
     }
 
@@ -224,28 +242,37 @@ namespace cube
             mCommandList->SetShaderVariableConstantBuffer(1, mObjectBuffer);
 
             Uint32 vertexBufferOffset = 0;
-            SharedPtr<gapi::Buffer> vertexBuffer = mBoxMesh->GetVertexBuffer();
-            mCommandList->BindVertexBuffers(0, 1, &vertexBuffer, &vertexBufferOffset);
-            mCommandList->BindIndexBuffer(mBoxMesh->GetIndexBuffer(), 0);
-            const Vector<SubMesh>& subMeshes = mBoxMesh->GetSubMeshes();
-            for(const SubMesh& subMesh : subMeshes)
             {
-                mCommandList->DrawIndexed(subMesh.numIndices, subMesh.indexOffset, subMesh.vertexOffset);
+                // Center object
+                SharedPtr<gapi::Buffer> vertexBuffer = mMesh->GetVertexBuffer();
+                mCommandList->BindVertexBuffers(0, 1, &vertexBuffer, &vertexBufferOffset);
+                mCommandList->BindIndexBuffer(mMesh->GetIndexBuffer(), 0);
+                const Vector<SubMesh>& subMeshes = mMesh->GetSubMeshes();
+                for(const SubMesh& subMesh : subMeshes)
+                {
+                    mCommandList->DrawIndexed(subMesh.numIndices, subMesh.indexOffset, subMesh.vertexOffset);
+                }
             }
 
             {
+                // Axis
+                SharedPtr<gapi::Buffer> boxVertexBuffer = mBoxMesh->GetVertexBuffer();
+                mCommandList->BindVertexBuffers(0, 1, &boxVertexBuffer, &vertexBufferOffset);
+                mCommandList->BindIndexBuffer(mBoxMesh->GetIndexBuffer(), 0);
+                const Vector<SubMesh>& boxSubMeshes = mBoxMesh->GetSubMeshes();
+
                 mCommandList->SetShaderVariableConstantBuffer(1, mObjectBuffer_X);
-                for (const SubMesh& subMesh : subMeshes)
+                for (const SubMesh& subMesh : boxSubMeshes)
                 {
                     mCommandList->DrawIndexed(subMesh.numIndices, subMesh.indexOffset, subMesh.vertexOffset);
                 }
                 mCommandList->SetShaderVariableConstantBuffer(1, mObjectBuffer_Y);
-                for (const SubMesh& subMesh : subMeshes)
+                for (const SubMesh& subMesh : boxSubMeshes)
                 {
                     mCommandList->DrawIndexed(subMesh.numIndices, subMesh.indexOffset, subMesh.vertexOffset);
                 }
                 mCommandList->SetShaderVariableConstantBuffer(1, mObjectBuffer_Z);
-                for (const SubMesh& subMesh : subMeshes)
+                for (const SubMesh& subMesh : boxSubMeshes)
                 {
                     mCommandList->DrawIndexed(subMesh.numIndices, subMesh.indexOffset, subMesh.vertexOffset);
                 }
@@ -263,43 +290,49 @@ namespace cube
     void Renderer::LoadResources()
     {
         mBoxMesh = std::make_shared<Mesh>(BaseMeshGenerator::GetBoxMeshData());
+        SetMesh(nullptr); // Load default mesh
 
-        FrameAnsiString shaderCode;
         {
-            FrameString vertexShaderFilePath = FrameString(Engine::GetRootDirectoryPath()) + CUBE_T("/Resources/Shaders/HelloWorldVS.hlsl");
+            FrameString vertexShaderFilePath = FrameString(Engine::GetRootDirectoryPath()) + CUBE_T("/Resources/Shaders/HelloWorld.slang");
             SharedPtr<platform::File> vertexShaderFile = platform::FileSystem::OpenFile(vertexShaderFilePath, platform::FileAccessModeFlag::Read);
             CHECK(vertexShaderFile);
             Uint64 vertexShaderFileSize = vertexShaderFile->GetFileSize();
 
-            shaderCode.resize(vertexShaderFileSize);
-            Uint64 readSize = vertexShaderFile->Read(shaderCode.data(), vertexShaderFileSize);
+            Blob shaderCode(vertexShaderFileSize);
+            Uint64 readSize = vertexShaderFile->Read(shaderCode.GetData(), vertexShaderFileSize);
             CHECK(readSize <= vertexShaderFileSize);
 
             mVertexShader = mGAPI->CreateShader({
                 .type = gapi::ShaderType::Vertex,
-                .language = gapi::ShaderLanguage::HLSL,
-                .code = shaderCode.c_str(),
+                .language = gapi::ShaderLanguage::Slang,
+                .fileName = StringView(CUBE_T("HelloWorld.slang")),
+                .path = vertexShaderFilePath,
+                .code = shaderCode,
                 .entryPoint = "VSMain",
                 .debugName = "HelloWorldVS"
             });
+            CHECK(mVertexShader);
         }
         {
-            FrameString pixelShaderFilePath = FrameString(Engine::GetRootDirectoryPath()) + CUBE_T("/Resources/Shaders/HelloWorldPS.hlsl");
+            FrameString pixelShaderFilePath = FrameString(Engine::GetRootDirectoryPath()) + CUBE_T("/Resources/Shaders/HelloWorld.slang");
             SharedPtr<platform::File> pixelShaderFile = platform::FileSystem::OpenFile(pixelShaderFilePath, platform::FileAccessModeFlag::Read);
             CHECK(pixelShaderFile);
             Uint64 pixelShaderFileSize = pixelShaderFile->GetFileSize();
 
-            shaderCode.resize(pixelShaderFileSize);
-            Uint64 readSize = pixelShaderFile->Read(shaderCode.data(), pixelShaderFileSize);
+            Blob shaderCode(pixelShaderFileSize);
+            Uint64 readSize = pixelShaderFile->Read(shaderCode.GetData(), pixelShaderFileSize);
             CHECK(readSize <= pixelShaderFileSize);
 
             mPixelShader = mGAPI->CreateShader({
                 .type = gapi::ShaderType::Pixel,
-                .language = gapi::ShaderLanguage::HLSL,
-                .code = shaderCode.c_str(),
+                .language = gapi::ShaderLanguage::Slang,
+                .fileName = StringView(CUBE_T("HelloWorld.slang")),
+                .path = pixelShaderFilePath,
+                .code = shaderCode,
                 .entryPoint = "PSMain",
                 .debugName = "HelloWorldPS"
             });
+            CHECK(mPixelShader);
         }
         {
             mShaderVariablesLayout = mGAPI->CreateShaderVariablesLayout({
@@ -319,6 +352,11 @@ namespace cube
                     .name = "COLOR",
                     .format = gapi::ElementFormat::RGBA32_Float,
                     .offset = 12,
+                },
+                {
+                    .name = "NORMAL",
+                    .format = gapi::ElementFormat::RGB32_Float,
+                    .offset = 28
                 }
             };
 
@@ -383,6 +421,8 @@ namespace cube
         mShaderVariablesLayout = nullptr;
         mPixelShader = nullptr;
         mVertexShader = nullptr;
+
+        mMesh = nullptr;
         mBoxMesh = nullptr;
     }
 } // namespace cube

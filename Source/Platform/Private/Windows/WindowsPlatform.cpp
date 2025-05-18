@@ -63,7 +63,7 @@ namespace cube
 
         void WindowsPlatform::InitWindowImpl(StringView title, Uint32 width, Uint32 height, Int32 posX, Int32 posY)
         {
-            String_ConvertAndAppend(mWindowTitle, title);
+            mWindowTitle = String_Convert<WindowsString>(title);
             mWindowWidth = width;
             mWindowHeight = height;
             mWindowPosX = posX;
@@ -93,19 +93,23 @@ namespace cube
         void WindowsPlatform::ShowWindowImpl()
         {
             // Create Window
+            RECT rect = { 0, 0, (LONG)mWindowWidth, (LONG)mWindowHeight };
+            AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, FALSE);
+
             mWindow = CreateWindowEx(0,
-                                     mWindowTitle.c_str(), mWindowTitle.c_str(),
-                                     WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_SYSMENU,
-                                     mWindowPosX, mWindowPosY, mWindowWidth, mWindowHeight,
-                                     nullptr, nullptr, mInstance, nullptr);
+                mWindowTitle.c_str(), mWindowTitle.c_str(),
+                WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_SYSMENU,
+                mWindowPosX, mWindowPosY,
+                rect.right - rect.left, rect.bottom - rect.top,
+                nullptr, nullptr, mInstance, nullptr
+            );
 
             CHECK_FORMAT(mWindow, "Failed to create a window. (ErrorCode: {0})", GetLastError());
         }
 
         void WindowsPlatform::ChangeWindowTitleImpl(StringView title)
         {
-            mWindowTitle.clear();
-            String_ConvertAndAppend(mWindowTitle, title);
+            mWindowTitle = String_Convert<WindowsString>(title);
 
             if (SetWindowText(mWindow, mWindowTitle.c_str()) == 0)
             {

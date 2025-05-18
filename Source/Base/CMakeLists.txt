@@ -9,6 +9,7 @@ set(PUBLIC_FILES
     Public/VectorImpl/VectorSSE.inl
     Public/Async.h
     Public/Allocator.h
+    Public/Blob.h
     Public/CubeMath.h
     Public/CubeString.h
     Public/Defines.h

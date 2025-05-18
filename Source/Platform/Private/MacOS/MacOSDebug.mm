@@ -66,8 +66,7 @@ namespace cube
 
         void MacOSDebug::PrintToDebugConsoleImpl(StringView str, PrintColorCategory colorCategory)
         {
-            MacOSString osStr;
-            String_ConvertAndAppend(osStr, str);
+            MacOSString osStr = String_Convert<MacOSString>(str);
 
             std::cout << osStr << std::endl;
 
@@ -75,7 +74,7 @@ namespace cube
             {
                 osStr.push_back('\n');
                 MacOSUtility::DispatchToMainThread([osStr, colorCategory] {
-                    AppendLogText(ToNSString(osStr), colorCategory);
+                    AppendLogText(String_Convert<NSString*>(osStr), colorCategory);
                 });
             }
         }
@@ -348,8 +347,8 @@ namespace cube
 
             @autoreleasepool {
                 NSAlert* alert = [[NSAlert alloc] init];
-                [alert setMessageText:ToNSString(title)];
-                [alert setInformativeText:ToNSString(msg)];
+                [alert setMessageText:String_Convert<NSString*>(title)];
+                [alert setInformativeText:String_Convert<NSString*>(msg)];
                 [alert setAlertStyle:NSAlertStyleCritical];
                 [alert addButtonWithTitle:@"Exit"];
                 [alert addButtonWithTitle:@"Ignore"];

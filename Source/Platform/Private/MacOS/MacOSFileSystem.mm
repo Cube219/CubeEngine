@@ -2,6 +2,8 @@
 
 #include "MacOS/MacOSFileSystem.h"
 
+#include <Foundation/Foundation.h>
+
 #include "Checker.h"
 #include "FileSystem.h"
 #include "Logger.h"
@@ -93,9 +95,66 @@ namespace cube
 
         FILE_SYSTEM_CLASS_DEFINITIONS(MacOSFileSystem)
 
+        bool MacOSFileSystem::IsExistImpl(StringView path)
+        { @autoreleasepool {
+            NSString* nsPath = String_Convert<NSString*>(path);
+            return [[NSFileManager defaultManager] fileExistsAtPath:nsPath];
+        }}
+
+        bool MacOSFileSystem::IsDirectoryImpl(StringView path)
+        { @autoreleasepool {
+            NSString* nsPath = String_Convert<NSString*>(path);
+            BOOL isDirectory;
+            [[NSFileManager defaultManager] fileExistsAtPath:nsPath isDirectory:&isDirectory];
+            return isDirectory;
+        }}
+
+        bool MacOSFileSystem::IsFileImpl(StringView path)
+        { @autoreleasepool {
+            NSString* nsPath = String_Convert<NSString*>(path);
+            BOOL isDirectory;
+            [[NSFileManager defaultManager] fileExistsAtPath:nsPath isDirectory:&isDirectory];
+            return !isDirectory;
+        }}
+
+        Vector<String> MacOSFileSystem::GetListImpl(StringView directoryPath)
+        {
+            Vector<String> result;
+            @autoreleasepool {
+                NSString* nsPath = String_Convert<NSString*>(directoryPath);
+                NSArray* list = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:nsPath error:nil];
+
+                if (list)
+                {
+                    for (NSString* fileOrDirectory in list)
+                    {
+                        result.push_back(String_Convert<String>(fileOrDirectory));
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        String MacOSFileSystem::GetCurrentDirectoryPathImpl()
+        {
+            String result;
+            @autoreleasepool {
+                NSString* path = [[NSFileManager defaultManager] currentDirectoryPath];
+                result = String_Convert<String>(path);
+            }
+
+            return result;
+        }
+
+        Character MacOSFileSystem::GetSeparatorImpl()
+        {
+            return CUBE_T('/');
+        }
+
         SharedPtr<File> MacOSFileSystem::OpenFileImpl(StringView path, FileAccessModeFlags accessModeFlags, bool createIfNotExist)
         {
-            NSString* nsPath = ToNSString(path);
+            NSString* nsPath = String_Convert<NSString*>(path);
 
             if (createIfNotExist)
             {
@@ -136,11 +195,6 @@ namespace cube
                 CUBE_LOG(Warning, MacOSFileSystem, "Failed to open a file. ({0})", path);
             }
             return nullptr;
-        }
-
-        char MacOSFileSystem::GetSeparatorImpl()
-        {
-            return '/';
         }
 
         const char* MacOSFileSystem::SplitFileNameFromFullPathImpl(const char* fullPath)

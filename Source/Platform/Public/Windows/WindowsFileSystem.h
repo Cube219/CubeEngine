@@ -2,8 +2,8 @@
 
 #ifdef CUBE_PLATFORM_WINDOWS
 
-#include "PlatformHeader.h"
 #include "FileSystem.h"
+#include "PlatformHeader.h"
 
 #include <Windows.h>
 
@@ -35,14 +35,21 @@ namespace cube
             WindowsFileSystem() = delete;
             ~WindowsFileSystem() = delete;
 
+            static bool IsExistImpl(StringView path);
+            static bool IsDirectoryImpl(StringView path);
+            static bool IsFileImpl(StringView path);
+            static Vector<String> GetListImpl(StringView directoryPath);
+
+            static String GetCurrentDirectoryPathImpl();
+            static Character GetSeparatorImpl();
+
             static SharedPtr<File> OpenFileImpl(StringView path, FileAccessModeFlags accessModeFlags, bool createIfNotExist = false);
-            static char GetSeparatorImpl();
             static const char* SplitFileNameFromFullPathImpl(const char* fullPath);
 
         private:
             static DWORD GetDwDesiredAccess(FileAccessModeFlags accessModeFlags);
         };
-    }
-}
+    } // namespace platform
+} // namespace cube
 
 #endif // CUBE_PLATFORM_WINDOWS

@@ -7,6 +7,7 @@
 #include "Windows/WindowsPlatform.h"
 
 #include "DX12Debug.h"
+#include "DX12ShaderCompiler.h"
 #include "DX12Types.h"
 #include "DX12Utility.h"
 #include "GAPI_DX12Buffer.h"
@@ -138,11 +139,10 @@ namespace cube
         mMainDevice = mDevices[0];
 
         CUBE_LOG(Info, DX12, "Found {0} devices.", mDevices.size());
-        String tempStr;
-        String_ConvertAndAppend(tempStr, WindowsStringView(mMainDevice->GetAdapterDesc().Description));
-        CUBE_LOG(Info, DX12, "Use the first device: {0}", tempStr);
+        CUBE_LOG(Info, DX12, "Use the first device: {0}", WindowsStringView(mMainDevice->GetAdapterDesc().Description));
 
         InitializeImGUI(initInfo.imGUI);
+        DX12ShaderCompiler::Initialize();
 
         mCurrentRenderFrame = 0;
     }
@@ -150,6 +150,8 @@ namespace cube
     void GAPI_DX12::Shutdown(const ImGUIContext& imGUIInfo)
     {
         CUBE_LOG(Info, DX12, "Shutdown GAPI_DX12.");
+
+        DX12ShaderCompiler::Shutdown();
 
         ShutdownImGUI(imGUIInfo);
 
@@ -273,7 +275,26 @@ namespace cube
 
     SharedPtr<gapi::Shader> GAPI_DX12::CreateShader(const gapi::ShaderCreateInfo& info)
     {
-        return std::make_shared<gapi::DX12Shader>(info);
+        gapi::ShaderCompileResult compileResult;
+
+        ID3DBlob* shader = DX12ShaderCompiler::Compile(info, compileResult);
+        if (!compileResult.warning.empty())
+        {
+            CUBE_LOG(Warning, DX12, "{0}", compileResult.warning);
+        }
+
+        if (!compileResult.error.empty())
+        {
+            CUBE_LOG(Error, DX12, "{0}", compileResult.error);
+        }
+
+        if (shader == nullptr)
+        {
+            CUBE_LOG(Error, DX12, "Failed to create shader!");
+            return nullptr;
+        }
+
+        return std::make_shared<gapi::DX12Shader>(shader);
     }
 
     SharedPtr<gapi::ShaderVariablesLayout> GAPI_DX12::CreateShaderVariablesLayout(const gapi::ShaderVariablesLayoutCreateInfo& info)

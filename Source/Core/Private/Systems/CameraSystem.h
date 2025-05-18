@@ -54,6 +54,7 @@ namespace cube
         static EventFunction<void(MouseButton)> mMouseDownEventFunc;
         static EventFunction<void(MouseButton)> mMouseUpEventFunc;
         static EventFunction<void(Int32, Int32)> mMousePositionEventFunc;
+        static EventFunction<void(int)> mMouseWheelEventFunc;
         static EventFunction<void(platform::WindowActivatedState)> mWindowActivateEventFunc;
 
         static bool mIsForwardKeyPressed;
@@ -72,5 +73,8 @@ namespace cube
         static Int32 mCurrentMouseX;
         static Int32 mCurrentMouseY;
         static float mMouseSpeed;
+
+        static bool mIsMouseWheelMoved;
+        static int mMouseWheelDelta;
     };
 } // namespace cube

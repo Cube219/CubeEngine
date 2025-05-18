@@ -29,6 +29,8 @@ set(PRIVATE_FILES
     Private/DX12QueryManager.h
     Private/DX12QueueManager.cpp
     Private/DX12QueueManager.h
+    Private/DX12ShaderCompiler.cpp
+    Private/DX12ShaderCompiler.h
     Private/DX12Types.cpp
     Private/DX12Types.h
     Private/DX12Utility.h
@@ -61,15 +63,28 @@ target_link_libraries(CE-GAPI_DX12
         d3d12.lib
         dxgi.lib
         dxguid.lib
-        imgui
         D3D12MemoryAllocator
+        imgui
         CE-Base
         CE-Logger
         CE-Platform
         CE-GAPI
+        CE-GAPI_Base
         CE-Core
 )
 target_compile_definitions(CE-GAPI_DX12
     PRIVATE
         CUBE_MODULE_GAPI_DX12
 )
+
+# Copy thied-party DLibs
+add_custom_command(
+    TARGET CE-GAPI_DX12 POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:dxc>
+        $<TARGET_FILE_DIR:CE-GAPI_DX12>
+    COMMAND_EXPAND_LISTS
+)
+
+list(APPEND G_ENABLED_GAPI_MODULES "CE-GAPI_DX12")
+set(G_ENABLED_GAPI_MODULES "${G_ENABLED_GAPI_MODULES}" CACHE INTERNAL "g_enabled_gapi_modules")

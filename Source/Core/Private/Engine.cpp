@@ -10,8 +10,9 @@
 #include "PlatformDebug.h"
 
 #include "Allocator/FrameAllocator.h"
-#include "Camera.h"
 #include "Renderer/Renderer.h"
+#include "Systems/CameraSystem.h"
+#include "Systems/ModelLoaderSystem.h"
 
 namespace cube
 {
@@ -79,11 +80,7 @@ namespace cube
     ImGUIContext Engine::mImGUIContext;
     bool Engine::mImGUIShowDemoWindow = true;
 
-#if defined(CUBE_OVERRIDE_ROOT_DIR_PATH)
-    String Engine::mRootDirectoryPath = CUBE_T(CUBE_OVERRIDE_ROOT_DIR_PATH);
-#else
-    String Engine::mRootDirectoryPath = CUBE_T("../..");
-#endif
+    String Engine::mRootDirectoryPath;
 
     Uint64 Engine::mStartTime;
     Uint64 Engine::mLastTime;
@@ -102,7 +99,7 @@ namespace cube
             return;
         }
 
-        GetMyThreadFrameAllocator().Initialize("Main thread frame allocator", 10 * 1024 * 1024); // 10 MiB
+        GetMyThreadFrameAllocator().Initialize("Main thread frame allocator", 100u * 1024 * 1024); // 100 MiB
 
         Logger::Init(&tempAllocator);
         Logger::SetFilePathSeparator(platform::FileSystem::GetSeparator());
@@ -110,14 +107,16 @@ namespace cube
 
         Checker::RegisterExtension<EngineCheckerExtension>();
 
-        platform::Platform::InitWindow(CUBE_T("CubeEngine"), 1024, 768, 100, 100);
+        CUBE_LOG(Info, Engine, "Initialize CubeEngine.");
+
+        SearchAndSetRootDirectory();
+
+        platform::Platform::InitWindow(CUBE_T("CubeEngine"), 1200, 900, 100, 100);
         platform::Platform::ShowWindow();
 
         mOnLoopEventFunc = platform::Platform::GetLoopEvent().AddListener(OnLoop);
         mOnClosingEventFunc = platform::Platform::GetClosingEvent().AddListener(OnClosing);
         mOnResizeEventFunc = platform::Platform::GetResizeEvent().AddListener(OnResize);
-
-        CUBE_LOG(Info, Engine, "Initialize CubeEngine.");
 
         mDrawImGUI = initInfo.drawImGUI;
         if (mDrawImGUI)
@@ -136,14 +135,14 @@ namespace cube
             ImGui::GetAllocatorFunctions(
                 (ImGuiMemAllocFunc*)&mImGUIContext.allocFunc,
                 (ImGuiMemFreeFunc*)&mImGUIContext.freeFunc,
-                &mImGUIContext.userData
-            );
+                &mImGUIContext.userData);
         }
 
         mRenderer = std::make_unique<Renderer>();
         CUBE_LOG(Info, Engine, "Using GAPI {}.", GAPINameToString(initInfo.gapi));
         mRenderer->Initialize(initInfo.gapi, mImGUIContext);
 
+        ModelLoaderSystem::Initialize();
         CameraSystem::Initialize();
     }
 
@@ -162,6 +161,7 @@ namespace cube
         CUBE_LOG(Info, Engine, "Shutdown CubeEngine.");
 
         CameraSystem::Shutdown();
+        ModelLoaderSystem::Shutdown();
 
         mRenderer->Shutdown(mImGUIContext);
         mRenderer = nullptr;
@@ -183,6 +183,11 @@ namespace cube
         GetMyThreadFrameAllocator().Shutdown();
 
         platform::Platform::Shutdown();
+    }
+
+    void Engine::SetMesh(SharedPtr<MeshData> mesh)
+    {
+        mRenderer->SetMesh(mesh);
     }
 
     void Engine::OnLoop()
@@ -248,6 +253,7 @@ namespace cube
         }
 
         CameraSystem::OnLoopImGUI();
+        ModelLoaderSystem::OnLoopImGUI();
     }
 
     Uint64 Engine::GetNow()
@@ -261,5 +267,44 @@ namespace cube
         mCurrentFrameTimeMS = static_cast<float>(deltaTimeSec * 1000.0f);
         mCurrentFPS = static_cast<float>(1.0 / deltaTimeSec);
         mCurrentGPUTimeMS = mRenderer->GetGPUTimeMS();
+    }
+
+    void Engine::SearchAndSetRootDirectory()
+    {
+        FrameString path(platform::FileSystem::GetCurrentDirectoryPath());
+
+        // Find the CubeEngine directory
+        const Character sep = platform::FileSystem::GetSeparator();
+        while (1)
+        {
+            Vector<String> list = platform::FileSystem::GetList(path);
+            if (std::find(list.begin(), list.end(), CUBE_T("Resources")) != list.end())
+            {
+                mRootDirectoryPath = path;
+                CUBE_LOG(Info, Engine, "Found the root directory path: {0}", mRootDirectoryPath);
+                return;
+            }
+
+            int i;
+            for (i = path.size() - 1; i >= 0; --i)
+            {
+                if (path[i] == sep)
+                {
+                    break;
+                }
+            }
+
+            if (i >= 1)
+            {
+                // Move to parent
+                path = path.substr(0, i);
+            }
+            else
+            {
+                mRootDirectoryPath = platform::FileSystem::GetCurrentDirectoryPath();
+                CUBE_LOG(Error, Engine, "Failed to find the root directory path. Use the current directory path: {0}", mRootDirectoryPath);
+                break;
+            }
+        }
     }
 } // namespace cube

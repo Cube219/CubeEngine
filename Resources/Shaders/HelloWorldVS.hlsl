@@ -13,9 +13,10 @@ struct PSInput
 {
 	float4 position : SV_POSITION;
 	float4 color : COLOR;
+	float3 normal : NORMAL;
 };
 
-PSInput VSMain(float4 position : POSITION, float4 color : COLOR)
+PSInput VSMain(float4 position : POSITION, float4 color : COLOR, float3 normal : NORMAL)
 {
 	PSInput result;
 
@@ -29,6 +30,7 @@ PSInput VSMain(float4 position : POSITION, float4 color : COLOR)
 	{
 		result.color = color;
 	}
+	result.normal = normal;
 
 	return result;
 }

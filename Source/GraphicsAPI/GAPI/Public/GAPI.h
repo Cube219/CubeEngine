@@ -16,6 +16,7 @@ namespace cube
         struct ComputePipelineCreateInfo;
         class Shader;
         struct ShaderCreateInfo;
+        struct ShaderCompileResult;
         class Buffer;
         struct BufferCreateInfo;
         class CommandList;

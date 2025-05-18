@@ -25,25 +25,44 @@ namespace cube
         template <>
         CUBE_PLATFORM_EXPORT int EncodeCharacterAndAppend(Uint32 code, MacOSCharacter* pStr);
 #endif
+
+        // String -> NSString
+        template <typename SrcStr>
+        struct Converter<NSString*, SrcStr,
+            std::enable_if_t<
+                IsStringViewable<SrcStr>::value
+            >
+        >
+        {
+            static constexpr bool Available = true;
+
+            static void ConvertAndAppend(NSString*& dst, const SrcStr& src)
+            {
+                FormatString<U8Character> u8Src;
+                String_ConvertAndAppend(u8Src, src);
+
+                dst = [NSString stringWithUTF8String:u8Src.data()];
+
+                format::internal::DiscardFormatAllocations();
+            }
+        };
+
+        // NSString -> String
+        template <typename DstString>
+        struct Converter<DstString, NSString*,
+            std::enable_if_t<
+                IsString<DstString>::value
+            >
+        >
+        {
+            static constexpr bool Available = true;
+
+            static void ConvertAndAppend(DstString& dst, const NSString* src)
+            {
+                String_ConvertAndAppend(dst, U8StringView([src UTF8String]));
+            }
+        };
     } // namespace string_internal
-
-    template <typename DstStr>
-    void String_ConvertAndAppend(DstStr& dst, NSString* srcStr)
-    {
-        String_ConvertAndAppend(dst, [srcStr UTF8String]) ;
-    }
-    template <typename SrcStrView>
-    NSString* ToNSString(const SrcStrView& src)
-    {
-        FormatString<U8Character> u8Src;
-        String_ConvertAndAppend(u8Src, src);
-
-        NSString* res = [NSString stringWithUTF8String:u8Src.data()];
-
-        format::internal::DiscardFormatAllocations();
-
-        return res;
-    }
 } // namespace cube
 
 #endif // CUBE_PLATFORM_MACOS

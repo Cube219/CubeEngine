@@ -261,8 +261,8 @@ namespace cube { namespace platform { namespace internal
     using namespace cube::platform;
 
     NSWindow* window = notification.object;
-    Uint32 newWidth = static_cast<Uint32>(window.contentView.frame.size.width);
-    Uint32 newHeight = static_cast<Uint32>(window.contentView.frame.size.height);
+    cube::Uint32 newWidth = static_cast<cube::Uint32>(window.contentView.frame.size.width);
+    cube::Uint32 newHeight = static_cast<cube::Uint32>(window.contentView.frame.size.height);
 
     MacOSPlatform::QueueEvent([newWidth, newHeight]() {
         using namespace cube;
@@ -279,8 +279,8 @@ namespace cube { namespace platform { namespace internal
     NSWindow* window = notification.object;
     NSRect screenFrame = [[NSScreen mainScreen] frame];
 
-    Int32 newX = static_cast<Int32>(window.frame.origin.x);
-    Int32 newY = static_cast<Int32>(NSMaxY(screenFrame) - NSMaxY(window.frame)); // Flip y
+    cube::Int32 newX = static_cast<cube::Int32>(window.frame.origin.x);
+    cube::Int32 newY = static_cast<cube::Int32>(NSMaxY(screenFrame) - NSMaxY(window.frame)); // Flip y
 
     MacOSPlatform::QueueEvent([newX, newY]() {
         using namespace cube;
@@ -426,7 +426,7 @@ namespace cube
                     defer:NO
                 ];
 
-                [mWindow setTitle:ToNSString(title)];
+                [mWindow setTitle:String_Convert<NSString*>(title)];
                 [mWindow setAcceptsMouseMovedEvents:YES];
 
                 mWindowDelegate = [[CubeWindowDelegate alloc] init];
@@ -443,7 +443,7 @@ namespace cube
 
         void MacOSPlatform::ChangeWindowTitleImpl(StringView title)
         {
-            MacOSUtility::DispatchToMainThread([nsTitle = ToNSString(title)]() {
+            MacOSUtility::DispatchToMainThread([nsTitle = String_Convert<NSString*>(title)]() {
                 [mWindow setTitle:nsTitle];
             });
         }

@@ -7,6 +7,7 @@
 
 namespace cube
 {
+    class MeshData;
     class Renderer;
 
     class Engine
@@ -31,7 +32,9 @@ namespace cube
 
         static Renderer* GetRenderer() { return mRenderer.get(); }
 
-        static const String& GetRootDirectoryPath() { return mRootDirectoryPath; }
+        CUBE_CORE_EXPORT static const String& GetRootDirectoryPath() { return mRootDirectoryPath; }
+
+        static void SetMesh(SharedPtr<MeshData> meshData);
 
     private:
         static void OnLoop();
@@ -42,6 +45,8 @@ namespace cube
 
         static Uint64 GetNow();
         static void CalculateFrameTimeAndFPS(double deltaTimeSec);
+
+        static void SearchAndSetRootDirectory();
 
         static EventFunction<void()> mOnLoopEventFunc;
         static EventFunction<void()> mOnClosingEventFunc;

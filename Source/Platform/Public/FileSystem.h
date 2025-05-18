@@ -49,17 +49,29 @@ namespace cube
             FileSystem() = delete;
             ~FileSystem() = delete;
 
+            static bool IsExist(StringView path);
+            static bool IsDirectory(StringView path);
+            static bool IsFile(StringView path);
+            static Vector<String> GetList(StringView directoryPath);
+
+            static String GetCurrentDirectoryPath();
+            static Character GetSeparator();
+
             static SharedPtr<File> OpenFile(StringView path, FileAccessModeFlags accessModeFlags, bool createIfNotExist = false);
-            static char GetSeparator();
             static const char* SplitFileNameFromFullPath(const char* fullPath);
         };
 
 #define FILE_SYSTEM_CLASS_DEFINITIONS(ChildClass) \
+        bool FileSystem::IsExist(StringView path) { return ChildClass::IsExistImpl(path); } \
+        bool FileSystem::IsDirectory(StringView path) { return ChildClass::IsDirectoryImpl(path); } \
+        bool FileSystem::IsFile(StringView path) { return ChildClass::IsFileImpl(path); } \
+        Vector<String> FileSystem::GetList(StringView directoryPath) { return ChildClass::GetListImpl(directoryPath); } \
+        \
+        String FileSystem::GetCurrentDirectoryPath() { return ChildClass::GetCurrentDirectoryPathImpl(); } \
+        Character FileSystem::GetSeparator() { return ChildClass::GetSeparatorImpl(); } \
+        \
         SharedPtr<File> FileSystem::OpenFile(StringView path, FileAccessModeFlags accessModeFlags, bool createIfNotExist) { \
             return ChildClass::OpenFileImpl(path, accessModeFlags, createIfNotExist); \
-        } \
-        char FileSystem::GetSeparator() { \
-            return ChildClass::GetSeparatorImpl(); \
         } \
         const char* FileSystem::SplitFileNameFromFullPath(const char* fullPath) { \
             return ChildClass::SplitFileNameFromFullPathImpl(fullPath); \

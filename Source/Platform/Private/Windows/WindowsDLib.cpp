@@ -13,8 +13,7 @@ namespace cube
 
         WindowsDLib::WindowsDLib(StringView path)
         {
-            WindowsString pathWithExtension;
-            String_ConvertAndAppend(pathWithExtension, path);
+            WindowsString pathWithExtension = String_Convert<WindowsString>(path);
             pathWithExtension.append(L".dll");
 
             mDLib = LoadLibrary(pathWithExtension.c_str());
@@ -40,8 +39,7 @@ namespace cube
                 return nullptr;
             }
 
-            AnsiString aName;
-            String_ConvertAndAppend(aName, name);
+            AnsiString aName = String_Convert<AnsiString>(name);
             auto pFunction = GetProcAddress(mDLib, aName.c_str());
             if (pFunction == nullptr)
             {

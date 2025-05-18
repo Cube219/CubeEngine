@@ -1,0 +1,450 @@
+#include "ModelLoaderSystem.h"
+
+#include "imgui.h"
+#define TINYOBJLOADER_IMPLEMENTATION
+#include "tiny_obj_loader.h"
+#define TINYGLTF_IMPLEMENTATION
+#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "tiny_gltf.h"
+
+#include "Allocator/FrameAllocator.h"
+#include "Checker.h"
+#include "CubeString.h"
+#include "Engine.h"
+#include "FileSystem.h"
+#include "Renderer/Mesh.h"
+#include "Renderer/Renderer.h"
+
+namespace cube
+{
+    Vector<ModelPathInfo> ModelLoaderSystem::mModelPathList;
+    int ModelLoaderSystem::mCurrentSelectModelIndex;
+
+    float ModelLoaderSystem::mModelScale;
+
+    void ModelLoaderSystem::Initialize()
+    {
+        mCurrentSelectModelIndex = -1;
+        ResetModelScale();
+    }
+
+    void ModelLoaderSystem::Shutdown()
+    {
+    }
+
+    void ModelLoaderSystem::OnLoopImGUI()
+    {
+        ImGui::Begin("Model Loader");
+
+        const char* modelSelectPreview = mCurrentSelectModelIndex >= 0 ? mModelPathList[mCurrentSelectModelIndex].name.c_str() : "";
+        static bool modelDropdownExpandedLastFrame = false;
+        if (ImGui::BeginCombo("Models", modelSelectPreview))
+        {
+            if (!modelDropdownExpandedLastFrame)
+            {
+                mModelPathList.clear();
+                LoadModelList();
+            }
+            modelDropdownExpandedLastFrame = true;
+            if (mCurrentSelectModelIndex > mModelPathList.size())
+            {
+                mCurrentSelectModelIndex = -1;
+            }
+
+            ModelType currentType = (ModelType)(-1);
+            for (int i = 0; i < mModelPathList.size(); ++i)
+            {
+                const ModelPathInfo& info = mModelPathList[i];
+                if (info.type != currentType)
+                {
+                    switch (info.type)
+                    {
+                    case ModelType::glTF:
+                        ImGui::SeparatorText("glTF Sample Asset");
+                        break;
+                    }
+
+                    currentType = info.type;
+                }
+
+                if (ImGui::Selectable(info.name.c_str(), i == mCurrentSelectModelIndex))
+                {
+                    mCurrentSelectModelIndex = i;
+                    LoadCurrentModelAndSet();
+                }
+
+                if (i == mCurrentSelectModelIndex)
+                {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+
+            ImGui::EndCombo();
+        }
+        else
+        {
+            modelDropdownExpandedLastFrame = false;
+        }
+
+        const float lastModelScale = mModelScale;
+        ImGui::DragFloat("Model Scale", &mModelScale, 0.1f);
+        if (lastModelScale != mModelScale)
+        {
+            UpdateModelMatrix();
+        }
+
+        if (ImGui::Button("Reset"))
+        {
+            ResetModelScale();
+        }
+
+        ImGui::End();
+    }
+
+    SharedPtr<MeshData> ModelLoaderSystem::LoadModel(ModelType type, StringView path)
+    {
+        switch (type)
+        {
+        case ModelType::glTF:
+            return LoadModel_glTF(path);
+        default:
+            NO_ENTRY();
+        }
+
+        return nullptr;
+    }
+    
+
+    void ModelLoaderSystem::LoadModelList()
+    {
+        mModelPathList.clear();
+
+        FrameString resourceBasePath = FrameString(Engine::GetRootDirectoryPath()) + CUBE_T("/Resources/Models/glTFSampleAssets/Models/");
+        static const Character* gltfLoadModels[] = {
+            CUBE_T("DamagedHelmet"),
+            CUBE_T("FlightHelmet"),
+            CUBE_T("MetalRoughSpheres"),
+            CUBE_T("MetalRoughSpheresNoTextures"),
+            CUBE_T("Sponza"),
+            CUBE_T("Suzanne"),
+        };
+        Vector<String> list = platform::FileSystem::GetList(resourceBasePath);
+        for (const String& e : list)
+        {
+            bool contained = false;
+            for (const Character* modelName : gltfLoadModels)
+            {
+                if (e == modelName)
+                {
+                    contained = true;
+                    break;
+                }
+            }
+
+            if (contained)
+            {
+                mModelPathList.push_back({
+                    .type = ModelType::glTF,
+                    .name = String_Convert<AnsiString>(e),
+                    .path = Format<String>(CUBE_T("{0}/{1}/glTF/{1}.gltf"), resourceBasePath, e)
+                });
+            }
+        }
+    }
+
+    void ModelLoaderSystem::LoadCurrentModelAndSet()
+    {
+        const ModelPathInfo& info = mModelPathList[mCurrentSelectModelIndex];
+
+        SharedPtr<MeshData> meshData = LoadModel(info.type, info.path);
+        Engine::SetMesh(meshData);
+    }
+
+    SharedPtr<MeshData> ModelLoaderSystem::LoadModel_glTF(StringView path)
+    {
+        tinygltf::Model model;
+        AnsiString error;
+        AnsiString warning;
+        tinygltf::TinyGLTF loader;
+
+        AnsiString pathStr;
+        String_ConvertAndAppend(pathStr, path);
+        bool res = loader.LoadASCIIFromFile(&model, &error, &warning, pathStr);
+
+        if (!warning.empty())
+        {
+            CUBE_LOG(Warning, ModelLoaderSystem, "There's some warning while loading from glTF: {}", warning);
+        }
+
+        if (!error.empty())
+        {
+            CUBE_LOG(Error, ModelLoaderSystem, "There's some error while loading from glTF: {}", error);
+        }
+
+        if (!res)
+        {
+            CUBE_LOG(Error, ModelLoaderSystem, "Failed to load the model from glTF");
+            return nullptr;
+        }
+
+        FrameVector<Vertex> vertices;
+        FrameVector<Index> indices;
+        FrameVector<SubMesh> subMeshes;
+
+        for (const tinygltf::Mesh& mesh : model.meshes)
+        {
+            constexpr int NONE = -1;
+            
+            for (const tinygltf::Primitive& prim : mesh.primitives)
+            {
+                int positionAccessor = NONE;
+                int normalAccessor = NONE;
+                int colorAccessor = NONE;
+                int texCoordAccessor = NONE;
+
+                if (auto posIt = prim.attributes.find("POSITION"); posIt != prim.attributes.end())
+                {
+                    positionAccessor = posIt->second;
+                }
+                if (auto normalIt = prim.attributes.find("NORMAL"); normalIt != prim.attributes.end())
+                {
+                    normalAccessor = normalIt->second;
+                }
+                if (auto colorIt = prim.attributes.find("COLOR_0"); colorIt != prim.attributes.end())
+                {
+                    colorAccessor = colorIt->second;
+                }
+                if (auto texIt = prim.attributes.find("TEXCOORD_0"); texIt != prim.attributes.end())
+                {
+                    texCoordAccessor = texIt->second;
+                }
+
+                Uint64 numVertices = 0;
+                auto UpdateNumVertices = [&model, &numVertices](int accessorIndex)
+                {
+                    if (accessorIndex != NONE)
+                    {
+                        const Uint64 count = model.accessors[accessorIndex].count;
+                        if (numVertices > 0 && numVertices != count)
+                        {
+                            CUBE_LOG(Warning, ModelLoaderSystem, "Mismatch count in vertices ({0} != {1}). Use the greater one.", numVertices, count);
+                        }
+                        numVertices = std::max(numVertices, count);
+                    }
+                };
+                UpdateNumVertices(positionAccessor);
+                UpdateNumVertices(normalAccessor);
+                UpdateNumVertices(colorAccessor);
+                UpdateNumVertices(texCoordAccessor);
+
+                const Uint64 vertexOffset = vertices.size();
+                const Uint64 indexOffset = indices.size();
+                const Uint64 numIndices = model.accessors[prim.indices].count;
+
+                subMeshes.push_back({
+                    .vertexOffset = vertexOffset,
+                    .indexOffset = indexOffset,
+                    .numIndices = numIndices
+                });
+
+                vertices.insert(vertices.end(), numVertices, {});
+
+                auto ProcessData = [&model](int accessorIndex, std::function<void(const tinygltf::Accessor&)> checker, std::function<void(Uint64, const void*, int, int)> onComponent)
+                {
+                    const tinygltf::Accessor& accessor = model.accessors[accessorIndex];
+                    const tinygltf::BufferView& bufferView = model.bufferViews[accessor.bufferView];
+                    const tinygltf::Buffer& buffer = model.buffers[bufferView.buffer];
+
+                    checker(accessor);
+
+                    const Uint64 count = accessor.count;
+                    const Uint64 offset = accessor.byteOffset + bufferView.byteOffset;
+                    CHECK(accessor.ByteStride(bufferView) == std::max((Uint64)bufferView.byteStride, (Uint64)tinygltf::GetComponentSizeInBytes(accessor.componentType) * tinygltf::GetNumComponentsInType(accessor.type)));
+                    const Uint64 stride = accessor.ByteStride(bufferView);
+                    for (Uint64 i = 0; i < count; ++i)
+                    {
+                        onComponent(i, (void*)&(buffer.data[offset + stride * i]), accessor.type, accessor.componentType);
+                    }
+                };
+                // POSITION
+                if (positionAccessor != NONE)
+                {
+                    ProcessData(positionAccessor,
+                        [](const tinygltf::Accessor& accessor)
+                        {
+                            CHECK(accessor.type == TINYGLTF_TYPE_VEC3);
+                            CHECK(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
+                        },
+                        [&vertices, vertexOffset](Uint64 index, const void* pData, int type, int componentType)
+                        {
+                            float xyz[3];
+                            memcpy(xyz, pData, sizeof(xyz));
+
+                            vertices[vertexOffset + index].position = { xyz[0], xyz[1], xyz[2] };
+                        }
+                    );
+                }
+                // NORMAL
+                if (normalAccessor != NONE)
+                {
+                    ProcessData(normalAccessor,
+                        [](const tinygltf::Accessor& accessor)
+                        {
+                            CHECK(accessor.type == TINYGLTF_TYPE_VEC3);
+                            CHECK(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
+                        },
+                        [&vertices, vertexOffset](Uint64 index, const void* pData, int type, int componentType)
+                        {
+                            float xyz[3];
+                            memcpy(xyz, pData, sizeof(xyz));
+
+                            vertices[vertexOffset + index].normal = { xyz[0], xyz[1], xyz[2] };
+                        }
+                    );
+                }
+                // TEXCOORD
+                if (texCoordAccessor != NONE)
+                {
+                    ProcessData(texCoordAccessor,
+                        [](const tinygltf::Accessor& accessor)
+                        {
+                            CHECK(accessor.type == TINYGLTF_TYPE_VEC2);
+                            CHECK(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT
+                                || accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE
+                                || accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT);
+                        },
+                        [&vertices, vertexOffset](Uint64 index, const void* pData, int type, int componentType)
+                        {
+                            float uv[2];
+                            if (componentType == TINYGLTF_COMPONENT_TYPE_FLOAT)
+                            {
+                                memcpy(uv, pData, sizeof(uv));
+                            }
+                            else if (componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE)
+                            {
+                                unsigned char uvByte[2];
+                                memcpy(uvByte, pData, sizeof(uvByte));
+                                uv[0] = static_cast<float>(uvByte[0]) / 255.0f;
+                                uv[1] = static_cast<float>(uvByte[1]) / 255.0f;
+                            }
+                            else if (componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT)
+                            {
+                                unsigned short uvShort[2];
+                                memcpy(uvShort, pData, sizeof(uvShort));
+                                uv[0] = static_cast<float>(uvShort[0]) / 65535.0f;
+                                uv[1] = static_cast<float>(uvShort[1]) / 65535.0f;
+                            }
+
+                            vertices[vertexOffset + index].texCoord = { uv[0], uv[1] };
+                        }
+                    );
+                }
+                // COLOR
+                if (colorAccessor != NONE)
+                {
+                    ProcessData(colorAccessor,
+                        [](const tinygltf::Accessor& accessor)
+                        {
+                            CHECK(accessor.type == TINYGLTF_TYPE_VEC3
+                                || accessor.type == TINYGLTF_TYPE_VEC4);
+                            CHECK(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT
+                                || accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE
+                                || accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT);
+                        },
+                        [&vertices, vertexOffset](Uint64 index, const void* pData, int type, int componentType)
+                        {
+                            float rgba[4];
+                            rgba[3] = 1.0f;
+
+                            int num = 4;
+                            if (type == TINYGLTF_TYPE_VEC3)
+                            {
+                                num = 3;
+                            }
+
+                            if (componentType == TINYGLTF_COMPONENT_TYPE_FLOAT)
+                            {
+                                memcpy(rgba, pData, sizeof(float) * num);
+                            }
+                            else if (componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE)
+                            {
+                                unsigned char rgbaByte[4];
+                                rgbaByte[3] = 255;
+                                memcpy(rgbaByte, pData, sizeof(unsigned char) * num);
+                                rgba[0] = static_cast<float>(rgbaByte[0]) / 255.0f;
+                                rgba[1] = static_cast<float>(rgbaByte[1]) / 255.0f;
+                                rgba[2] = static_cast<float>(rgbaByte[2]) / 255.0f;
+                                rgba[3] = static_cast<float>(rgbaByte[3]) / 255.0f;
+                            }
+                            else if (componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT)
+                            {
+                                unsigned short rgbaShort[4];
+                                rgbaShort[3] = 65535;
+                                memcpy(rgbaShort, pData, sizeof(unsigned short) * num);
+                                rgba[0] = static_cast<float>(rgbaShort[0]) / 65535.0f;
+                                rgba[1] = static_cast<float>(rgbaShort[1]) / 65535.0f;
+                                rgba[2] = static_cast<float>(rgbaShort[2]) / 65535.0f;
+                                rgba[3] = static_cast<float>(rgbaShort[3]) / 65535.0f;
+                            }
+
+                            vertices[vertexOffset + index].color = { rgba[0], rgba[1], rgba[2], rgba[3] };
+                        }
+                    );
+                }
+
+                // Index
+                {
+                    CHECK_FORMAT(prim.mode == TINYGLTF_MODE_TRIANGLES, "Currently only support triangle mode.");
+                    indices.insert(indices.end(), numIndices, {});
+                    ProcessData(prim.indices,
+                        [](const tinygltf::Accessor& accessor)
+                        {
+                            CHECK(accessor.type == TINYGLTF_TYPE_SCALAR);
+                            CHECK(accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE
+                                || accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT
+                                || accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT)
+                        },
+                        [&indices, indexOffset](Uint64 index, const void* pData, int type, int componentType)
+                        {
+                            Uint32 v = 0;
+                            if (componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE)
+                            {
+                                unsigned char ch;
+                                memcpy(&ch, pData, sizeof(ch));
+                                v = ch;
+                            }
+                            else if (componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT)
+                            {
+                                unsigned short sh;
+                                memcpy(&sh, pData, sizeof(sh));
+                                v = sh;
+                            }
+                            else if (componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT)
+                            {
+                                unsigned int in;
+                                memcpy(&in, pData, sizeof(in));
+                                v = in;
+                            }
+
+                            indices[indexOffset + index] = v;
+                        }
+                    );
+                }
+            }
+        }
+
+        return std::make_shared<MeshData>(vertices.size(), vertices.data(), indices.size(), indices.data(), static_cast<Uint32>(subMeshes.size()), subMeshes.data());
+    }
+
+    void ModelLoaderSystem::UpdateModelMatrix()
+    {
+        Engine::GetRenderer()->SetObjectModelMatrix(Vector3::Zero(), Vector3::Zero(), Vector3(mModelScale, mModelScale, mModelScale));
+    }
+
+    void ModelLoaderSystem::ResetModelScale()
+    {
+        mModelScale = 1.0f;
+        UpdateModelMatrix();
+    }
+} // namespace cube

@@ -1,8 +1,10 @@
 #pragma once
 
+#include "Blob.h"
 #include "GAPIHeader.h"
 
 #include "CubeString.h"
+#include "Format.h"
 
 namespace cube
 {
@@ -34,7 +36,8 @@ namespace cube
             HLSL,
             GLSL,
             DXIL,
-            SPIR_V
+            SPIR_V,
+            Slang
         };
         inline const Character* ShaderLanguageToString(ShaderLanguage shaderLanguage)
         {
@@ -48,6 +51,8 @@ namespace cube
                 return CUBE_T("DXIL");
             case ShaderLanguage::SPIR_V:
                 return CUBE_T("SPIR_V");
+            case ShaderLanguage::Slang:
+                return CUBE_T("Slang");
             default:
                 return CUBE_T("Unknown");
             }
@@ -58,7 +63,10 @@ namespace cube
             ShaderType type;
             ShaderLanguage language;
 
-            const char* code;
+            StringView fileName;
+            StringView path;
+
+            BlobView code;
             const char* entryPoint;
 
             const char* debugName = "Unknown";
@@ -69,6 +77,53 @@ namespace cube
         public:
             Shader() = default;
             virtual ~Shader() = default;
+
+            bool IsValid() const { return mCreated; }
+            StringView GetWarningMessage() const { return warningMessage; }
+            StringView GetErrorMessage() const { return errorMessage; }
+
+        protected:
+            bool mCreated;
+            String warningMessage;
+            String errorMessage;
+        };
+
+        struct ShaderCompileResult
+        {
+            bool isSuccess;
+            String warning;
+            String error;
+
+            void Reset()
+            {
+                isSuccess = false;
+                warning.clear();
+                error.clear();
+            }
+
+            void AddWarning(StringView message, bool isBegin = true)
+            {
+                if (isBegin)
+                {
+                    warning += Format(CUBE_T("\tShader compile WARNING: {0}\n"), message);
+                }
+                else
+                {
+                    warning += Format(CUBE_T("{0}\n"), message);
+                }
+            }
+
+            void AddError(StringView message, bool isBegin = true)
+            {
+                if (isBegin)
+                {
+                    warning += Format(CUBE_T("\tShader compile ERROR: {0}\n"), message);
+                }
+                else
+                {
+                    warning += Format(CUBE_T("{0}\n"), message);
+                }
+            }
         };
     } // namespace gapi
 } // namespace cube
