@@ -5,7 +5,6 @@ project(CubeEngine)
 # Options
 option(CUBE_GAPI_ENABLE_DX12 "GraphicsAPI - Enable DirectX12" ON)
 option(CUBE_GAPI_ENABLE_METAL "GraphicsAPI - Enable Metal" ON)
-option(CUBE_FETCH_GLTF_SAMPLES "Fetch glTF sample assets" OFF)
 
 # Sets
 set (DEPENDENCIES_DIR ${PROJECT_SOURCE_DIR}/Dependencies)
@@ -67,6 +66,3 @@ add_subdirectory("Source/Platform")
 add_subdirectory("Source/GraphicsAPI")
 add_subdirectory("Source/Core")
 add_subdirectory("Source/Main")
-
-# Fetch model resources
-add_subdirectory("Resources/Models")

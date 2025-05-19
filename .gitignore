@@ -467,7 +467,7 @@ Binaries/
 
 # Model resources
 Resources/Models/*
-!Resources/Models/CMakeLists.txt
+!Resources/Models/FetchglTFSampleAssets.bat
 
 # VSCode
 .vscode/
