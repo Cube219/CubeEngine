@@ -22,6 +22,8 @@ set(PRIVATE_FILES
     Private/Systems/CameraSystem.h
     Private/Systems/ModelLoaderSystem.cpp
     Private/Systems/ModelLoaderSystem.h
+    Private/Systems/StatsSystem.cpp
+    Private/Systems/StatsSystem.h
     Private/Engine.cpp
 )
 

@@ -35,7 +35,7 @@ namespace cube
 
     void ModelLoaderSystem::OnLoopImGUI()
     {
-        ImGui::Begin("Model Loader");
+        ImGui::Begin("Model Loader", 0, ImGuiWindowFlags_AlwaysAutoResize);
 
         const char* modelSelectPreview = mCurrentSelectModelIndex >= 0 ? mModelPathList[mCurrentSelectModelIndex].name.c_str() : "";
         static bool modelDropdownExpandedLastFrame = false;

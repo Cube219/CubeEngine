@@ -44,7 +44,6 @@ namespace cube
         static void LoopImGUI();
 
         static Uint64 GetNow();
-        static void CalculateFrameTimeAndFPS(double deltaTimeSec);
 
         static void SearchAndSetRootDirectory();
 
@@ -63,8 +62,5 @@ namespace cube
         static Uint64 mStartTime;
         static Uint64 mLastTime;
         static Uint64 mCurrentTime;
-        static float mCurrentFrameTimeMS;
-        static float mCurrentFPS;
-        static float mCurrentGPUTimeMS;
     };
 } // namespace cube

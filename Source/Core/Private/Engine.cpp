@@ -2,17 +2,18 @@
 
 #include <chrono>
 #include "imgui.h"
+#include "implot.h"
 
+#include "Allocator/FrameAllocator.h"
 #include "Checker.h"
 #include "FileSystem.h"
 #include "Logger.h"
 #include "Platform.h"
 #include "PlatformDebug.h"
-
-#include "Allocator/FrameAllocator.h"
 #include "Renderer/Renderer.h"
 #include "Systems/CameraSystem.h"
 #include "Systems/ModelLoaderSystem.h"
+#include "Systems/StatsSystem.h"
 
 namespace cube
 {
@@ -85,9 +86,6 @@ namespace cube
     Uint64 Engine::mStartTime;
     Uint64 Engine::mLastTime;
     Uint64 Engine::mCurrentTime;
-    float Engine::mCurrentFrameTimeMS;
-    float Engine::mCurrentFPS;
-    float Engine::mCurrentGPUTimeMS;
 
     void Engine::Initialize(const EngineInitializeInfo& initInfo)
     {
@@ -136,12 +134,15 @@ namespace cube
                 (ImGuiMemAllocFunc*)&mImGUIContext.allocFunc,
                 (ImGuiMemFreeFunc*)&mImGUIContext.freeFunc,
                 &mImGUIContext.userData);
+
+            ImPlot::CreateContext();
         }
 
         mRenderer = std::make_unique<Renderer>();
         CUBE_LOG(Info, Engine, "Using GAPI {}.", GAPINameToString(initInfo.gapi));
         mRenderer->Initialize(initInfo.gapi, mImGUIContext);
 
+        StatsSystem::Initialize();
         ModelLoaderSystem::Initialize();
         CameraSystem::Initialize();
     }
@@ -162,6 +163,7 @@ namespace cube
 
         CameraSystem::Shutdown();
         ModelLoaderSystem::Shutdown();
+        StatsSystem::Shutdown();
 
         mRenderer->Shutdown(mImGUIContext);
         mRenderer = nullptr;
@@ -174,6 +176,7 @@ namespace cube
                 (ImGuiMemFreeFunc)(mImGUIContext.freeFunc),
                 (void*)(mImGUIContext.userData));
 
+            ImPlot::DestroyContext();
             ImGui::DestroyContext((ImGuiContext*)mImGUIContext.context);
         }
         platform::Platform::GetResizeEvent().RemoveListener(mOnResizeEventFunc);
@@ -198,9 +201,9 @@ namespace cube
         mCurrentTime = GetNow();
 
         const double deltaTimeSec = static_cast<double>(mCurrentTime - mLastTime) / std::nano::den;
-        CalculateFrameTimeAndFPS(deltaTimeSec);
 
         CameraSystem::OnLoop(deltaTimeSec);
+        StatsSystem::OnLoop(deltaTimeSec);
 
         LoopImGUI();
 
@@ -243,30 +246,21 @@ namespace cube
             ImGui::SetNextWindowPos({ work_pos.x + work_size.x - PAD, work_pos.x + PAD }, ImGuiCond_Always, { 1.0f, 0.0f });
             ImGui::SetNextWindowBgAlpha(0.35f);
             ImGui::SetNextWindowSize({ 180.0f, 70.0f });
-            if (ImGui::Begin("Basic Stats", &showBasicStats, flags))
+            if (ImGui::Begin("Basic Stats (old)", &showBasicStats, flags))
             {
-                ImGui::Text("FrameTime: %.3f ms", mCurrentFrameTimeMS);
-                ImGui::Text("FPS: %.2f ms", mCurrentFPS);
-                ImGui::Text("GPU: %.2f ms", mCurrentGPUTimeMS);
+                ImGui::Text("Test");
             }
             ImGui::End();
         }
 
         CameraSystem::OnLoopImGUI();
         ModelLoaderSystem::OnLoopImGUI();
+        StatsSystem::OnLoopImGUI();
     }
 
     Uint64 Engine::GetNow()
     {
         return std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count();
-    }
-
-    void Engine::CalculateFrameTimeAndFPS(double deltaTimeSec)
-    {
-        // TODO: Smooth way?
-        mCurrentFrameTimeMS = static_cast<float>(deltaTimeSec * 1000.0f);
-        mCurrentFPS = static_cast<float>(1.0 / deltaTimeSec);
-        mCurrentGPUTimeMS = mRenderer->GetGPUTimeMS();
     }
 
     void Engine::SearchAndSetRootDirectory()

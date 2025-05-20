@@ -104,6 +104,10 @@ namespace cube
         });
         mMouseDownEventFunc = platform::Platform::GetMouseDownEvent().AddListener([](MouseButton mouseButton)
         {
+            if (ImGui::GetIO().WantCaptureMouse)
+            {
+                return;
+            }
             switch (mouseButton)
             {
             case MouseButton::Left:
@@ -141,6 +145,10 @@ namespace cube
         });
         mMouseWheelEventFunc = platform::Platform::GetMouseWheelEvent().AddListener([](int delta)
         {
+            if (ImGui::GetIO().WantCaptureMouse)
+            {
+                return;
+            }
             mIsMouseWheelMoved = true;
 
             mMouseWheelDelta = delta;
