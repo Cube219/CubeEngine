@@ -90,6 +90,11 @@ namespace cube
 
         void MacOSDebug::ProcessFatalErrorImpl(StringView msg)
         {
+            if (PlatformDebug::IsDebuggerAttached())
+            {
+                PlatformDebug::BreakDebug();
+            }
+
             MacOSUtility::DispatchToMainThreadAndWait([msg]() {
                 ShowDebugMessageAlert(CUBE_T("Fatal error"), msg);
             });
@@ -97,9 +102,16 @@ namespace cube
 
         void MacOSDebug::ProcessFailedCheckImpl(const char* fileName, int lineNum, StringView formattedMsg)
         {
-            MacOSUtility::DispatchToMainThreadAndWait([formattedMsg]() {
-                ShowDebugMessageAlert(CUBE_T("Check failed"), formattedMsg);
-            });
+            if (PlatformDebug::IsDebuggerAttached())
+            {
+                PlatformDebug::BreakDebug();
+            }
+            else
+            {
+                MacOSUtility::DispatchToMainThreadAndWait([formattedMsg]() {
+                    ShowDebugMessageAlert(CUBE_T("Check failed"), formattedMsg);
+                });
+            }
         }
 
         constexpr int MAX_NUM_FRAMES = 128;
@@ -250,7 +262,7 @@ namespace cube
 
         void MacOSDebug::BreakDebugImpl()
         {
-            __builtin_trap();
+            __builtin_debugtrap();
         }
 
         void MacOSDebug::CreateAndShowLoggerWindow()

@@ -34,14 +34,26 @@ namespace cube
 
         void WindowsDebug::ProcessFatalErrorImpl(StringView msg)
         {
+            if (PlatformDebug::IsDebuggerAttached())
+            {
+                PlatformDebug::BreakDebug();
+            }
+
             // TODO: Use custom allocator (logger allocator?)
             ShowDebugMessageBox(WINDOWS_T("Fatal error"), String_Convert<WindowsString>(msg));
         }
 
         void WindowsDebug::ProcessFailedCheckImpl(const char* fileName, int lineNum, StringView formattedMsg)
         {
-            // TODO: Use custom allocator (logger allocator?)
-            ShowDebugMessageBox(WINDOWS_T("Check failed"), String_Convert<WindowsString>(formattedMsg));
+            if (PlatformDebug::IsDebuggerAttached())
+            {
+                PlatformDebug::BreakDebug();
+            }
+            else
+            {
+                // TODO: Use custom allocator (logger allocator?)
+                ShowDebugMessageBox(WINDOWS_T("Check failed"), String_Convert<WindowsString>(formattedMsg));
+            }
         }
 
         constexpr int MAX_NUM_FRAMES = 128;
