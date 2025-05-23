@@ -18,6 +18,7 @@
 #include "MacOS/MacOSPlatform.h"
 #include "MacOS/MacOSUtility.h"
 #include "MetalDevice.h"
+#include "MetalShaderCompiler.h"
 
 @implementation CubeImGUIMTKView
 
@@ -55,6 +56,7 @@ namespace cube
         mCommandQueue = [mMainDevice->GetDevice() newCommandQueue];
 
         InitializeImGUI(initInfo.imGUI);
+        MetalShaderCompiler::Initialize(mMainDevice);
     }
 
     void GAPI_Metal::Shutdown(const ImGUIContext& imGUIInfo)
@@ -63,6 +65,7 @@ namespace cube
 
         WaitForGPU();
 
+        MetalShaderCompiler::Shutdown();
         ShutdownImGUI(imGUIInfo);
 
         for (MetalDevice* device : mDevices)
@@ -157,7 +160,26 @@ namespace cube
 
     SharedPtr<gapi::Shader> GAPI_Metal::CreateShader(const gapi::ShaderCreateInfo& info)
     {
-        return std::make_shared<gapi::MetalShader>(info);
+        gapi::ShaderCompileResult compileResult;
+
+        MetalShaderCompileResult shaderResult = MetalShaderCompiler::Compile(info, compileResult);
+        if (!compileResult.warning.empty())
+        {
+            CUBE_LOG(Warning, Metal, "{0}", compileResult.warning);
+        }
+
+        if (!compileResult.error.empty())
+        {
+            CUBE_LOG(Error, Metal, "{0}", compileResult.error);
+        }
+
+        if (shaderResult.function == nil)
+        {
+            CUBE_LOG(Error, Metal, "Failed to create the shader!");
+            return nullptr;
+        }
+
+        return std::make_shared<gapi::MetalShader>(shaderResult);
     }
 
     SharedPtr<gapi::ShaderVariablesLayout> GAPI_Metal::CreateShaderVariablesLayout(const gapi::ShaderVariablesLayoutCreateInfo& info)
@@ -182,7 +204,7 @@ namespace cube
             return;
         }
 
-        CUBE_LOG(Info, DX12, "ImGUI context is set in the initialize info. Initialize ImGUI.");
+        CUBE_LOG(Info, Metal, "ImGUI context is set in the initialize info. Initialize ImGUI.");
 
         mImGUIContext = imGUIInfo;
 
@@ -223,7 +245,7 @@ namespace cube
         {
             return;
         }
-        CUBE_LOG(Info, DX12, "Shtudown ImGUI.");
+        CUBE_LOG(Info, Metal, "Shtudown ImGUI.");
 
         // Wait until the main queue will flush.
         platform::MacOSUtility::DispatchToMainThreadAndWait([] {});

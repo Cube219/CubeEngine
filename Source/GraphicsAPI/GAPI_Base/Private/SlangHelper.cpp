@@ -3,9 +3,10 @@
 #include <slang.h>
 #include <slang-com-ptr.h>
 
+#include "Allocator/FrameAllocator.h"
 #include "Checker.h"
 #include "Engine.h"
-#include "Allocator/FrameAllocator.h"
+#include "GAPI_Shader.h"
 
 using Slang::ComPtr;
 
@@ -107,6 +108,12 @@ namespace cube
         case gapi::ShaderLanguage::SPIR_V:
             targetDesc.format = SLANG_SPIRV;
             break;
+        case gapi::ShaderLanguage::Metal:
+            targetDesc.format = SLANG_METAL;
+            break;
+        case gapi::ShaderLanguage::MetalLib:
+            targetDesc.format = SLANG_METAL_LIB;
+            break;
         default:
             CHECK_FORMAT(false, "Not supported shader target type");
             break;
@@ -163,24 +170,34 @@ namespace cube
         // Check the composition
         ComPtr<slang::IComponentType> composedProgram;
         SlangResult slangRes = session->createCompositeComponentType(componentTypes.data(), componentTypes.size(), composedProgram.writeRef(), diagnosticBlob.writeRef());
-        if (diagnosticBlob)
-        {
-            compileResult.AddError(Format<FrameString>(CUBE_T("Failed to composite the components!\n\n{0}\n"), (const char*)diagnosticBlob->getBufferPointer()));
-        }
         if (slangRes != SLANG_OK)
         {
+            compileResult.AddError(Format<FrameString>(CUBE_T("Failed to composite the components! ({0})"), GetErrorCodeString(slangRes)));
+            if (diagnosticBlob)
+            {
+                compileResult.AddError(Format<FrameString>(CUBE_T("\n{0}\n"), (const char*)diagnosticBlob->getBufferPointer()), false);
+            }
             return {};
+        }
+        else if (diagnosticBlob)
+        {
+            compileResult.AddWarning(Format<FrameString>(CUBE_T("Warning about compositing the components.\n\n{0}\n"), (const char*)diagnosticBlob->getBufferPointer()));
         }
 
         ComPtr<slang::IBlob> code;
         slangRes = composedProgram->getEntryPointCode(0, 0, code.writeRef(), diagnosticBlob.writeRef());
-        if (diagnosticBlob)
-        {
-            compileResult.AddError(Format<FrameString>(CUBE_T("Failed to get the code!\n\n{0}\n"), (const char*)diagnosticBlob->getBufferPointer()));
-        }
         if (slangRes != SLANG_OK)
         {
+            compileResult.AddError(Format<FrameString>(CUBE_T("Failed to get the code! ({0})"), GetErrorCodeString(slangRes)));
+            if (diagnosticBlob)
+            {
+                compileResult.AddError(Format<FrameString>(CUBE_T("\n{0}\n"), (const char*)diagnosticBlob->getBufferPointer()), false);
+            }
             return {};
+        }
+        else if (diagnosticBlob)
+        {
+            compileResult.AddWarning(Format<FrameString>(CUBE_T("Warning about getting the code.\n\n{0}\n"), (const char*)diagnosticBlob->getBufferPointer()));
         }
 
         Blob resBlob((Byte*)code->getBufferPointer(), code->getBufferSize());

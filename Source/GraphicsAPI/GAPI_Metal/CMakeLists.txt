@@ -14,9 +14,12 @@ set(PUBLIC_FILES
 )
 set(PRIVATE_FILES
     Private/GAPI_Metal.mm
+    Private/GAPI_MetalShader.mm
     Private/GAPI_MetalViewport.mm
     Private/MetalDevice.h
     Private/MetalDevice.mm
+    Private/MetalShaderCompiler.h
+    Private/MetalShaderCompiler.mm
 )
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${PUBLIC_FILES} ${PRIVATE_FILES})
@@ -42,6 +45,7 @@ target_link_libraries(CE-GAPI_Metal
         CE-Logger
         CE-Platform
         CE-GAPI
+        CE-GAPI_Base
         CE-Core
 )
 target_compile_definitions(CE-GAPI_Metal
