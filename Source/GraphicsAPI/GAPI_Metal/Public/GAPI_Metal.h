@@ -4,9 +4,10 @@
 
 #include "GAPI.h"
 
+#include "MetalDevice.h"
 #include "Platform.h"
 
-@interface CubeMTKView : MTKView <MTKViewDelegate>
+@interface CubeImGUIMTKView : MTKView <MTKViewDelegate>
 
 @end
 
@@ -45,11 +46,12 @@ namespace cube
         void InitializeImGUI(const ImGUIContext& imGUIInfo);
         void ShutdownImGUI(const ImGUIContext& imGUIInfo);
 
-        id<MTLDevice> mDevice;
-        CubeMTKView* mView;
+        Vector<MetalDevice*> mDevices;
+        MetalDevice* mMainDevice;
         MTLRenderPassDescriptor* mRenderPassDescriptor;
         id<MTLCommandQueue> mCommandQueue;
 
         ImGUIContext mImGUIContext;
+        CubeImGUIMTKView* mImGUIView;
     };
 } // namespace cube

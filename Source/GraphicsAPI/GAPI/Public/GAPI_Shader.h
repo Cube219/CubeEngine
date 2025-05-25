@@ -37,6 +37,8 @@ namespace cube
             GLSL,
             DXIL,
             SPIR_V,
+            Metal,
+            MetalLib,
             Slang
         };
         inline const Character* ShaderLanguageToString(ShaderLanguage shaderLanguage)
@@ -51,6 +53,10 @@ namespace cube
                 return CUBE_T("DXIL");
             case ShaderLanguage::SPIR_V:
                 return CUBE_T("SPIR_V");
+            case ShaderLanguage::Metal:
+                return CUBE_T("Metal");
+            case ShaderLanguage::MetalLib:
+                return CUBE_T("MetalLib");
             case ShaderLanguage::Slang:
                 return CUBE_T("Slang");
             default:
@@ -105,7 +111,7 @@ namespace cube
             {
                 if (isBegin)
                 {
-                    warning += Format(CUBE_T("\tShader compile WARNING: {0}\n"), message);
+                    warning += Format(CUBE_T("Shader compile WARNING: {0}\n"), message);
                 }
                 else
                 {
@@ -117,11 +123,11 @@ namespace cube
             {
                 if (isBegin)
                 {
-                    warning += Format(CUBE_T("\tShader compile ERROR: {0}\n"), message);
+                    error += Format(CUBE_T("Shader compile ERROR: {0}\n"), message);
                 }
                 else
                 {
-                    warning += Format(CUBE_T("{0}\n"), message);
+                    error += Format(CUBE_T("{0}\n"), message);
                 }
             }
         };

@@ -22,9 +22,12 @@ namespace cube
             const char** argv;
             GAPIName gapi;
             bool drawImGUI = true;
-            bool runShutdownInOnClosingFunc = false;
+            // Some platform cannot execute loop logic in the main thread. (Ex. MacOS)
+            // So, run initialize and shutdown logic in platform loop function which runs another thread.
+            bool runInitializeAndShutdownInLoopFunction = false;
         };
         CUBE_CORE_EXPORT static void Initialize(const EngineInitializeInfo& initInfo);
+        CUBE_CORE_EXPORT static void StartLoop();
         CUBE_CORE_EXPORT static void Shutdown();
 
         static Renderer* GetRenderer() { return mRenderer.get(); }
@@ -48,7 +51,6 @@ namespace cube
         static EventFunction<void()> mOnLoopEventFunc;
         static EventFunction<void()> mOnClosingEventFunc;
         static EventFunction<void(Uint32, Uint32)> mOnResizeEventFunc;
-        static bool mRunShutdownInClosingFunc;
 
         static UniquePtr<Renderer> mRenderer;
         static bool mDrawImGUI;

@@ -44,17 +44,8 @@
 
 - (BOOL)windowShouldClose:(NSWindow* ) sender
 {
-    // Also closing main window if it is created
-    if (cube::platform::MacOSPlatform::IsMainWindowCreated())
-    {
-        cube::platform::MacOSPlatform::CloseMainWindow();
-        // Closing event will be dispatched in main window delegate
-    }
-    else
-    {
-        // Otherwise, dispatch the event here
-        cube::platform::Platform::GetClosingEvent().Dispatch();
-    }
+    // Just call termination. Remain logic will be processed in applicationShouldTerminate.
+    [NSApp terminate:nil];
 
     return YES;
 }
@@ -270,46 +261,44 @@ namespace cube
             CHECK_MAIN_THREAD()
             CHECK(!mIsLoggerWindowCreated);
 
-            @autoreleasepool {
-                NSUInteger style = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable;
-                
-                mLoggerWindow = [[CubeLoggerWindow alloc]
-                    initWithContentRect:NSMakeRect(0, 0, 800, 400)
-                    styleMask:style
-                    backing:NSBackingStoreBuffered
-                    defer:NO
-                ];
-                [mLoggerWindow setTitle:@"CubeEngine Logger"];
+            NSUInteger style = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable;
+            
+            mLoggerWindow = [[CubeLoggerWindow alloc]
+                initWithContentRect:NSMakeRect(0, 0, 800, 400)
+                styleMask:style
+                backing:NSBackingStoreBuffered
+                defer:NO
+            ];
+            [mLoggerWindow setTitle:@"CubeEngine Logger"];
 
-                NSScrollView* scrollView = [[NSScrollView alloc] initWithFrame:[[mLoggerWindow contentView] bounds]];
-                [scrollView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
+            NSScrollView* scrollView = [[NSScrollView alloc] initWithFrame:[[mLoggerWindow contentView] bounds]];
+            [scrollView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
 
-                mLoggerTextView = [[CubeLoggerTextView alloc] initWithFrame:[[mLoggerWindow contentView] bounds]];
-                mLoggerTextView.editable = NO;
-                mLoggerTextView.selectable = YES;
+            mLoggerTextView = [[CubeLoggerTextView alloc] initWithFrame:[[mLoggerWindow contentView] bounds]];
+            mLoggerTextView.editable = NO;
+            mLoggerTextView.selectable = YES;
 
-                [scrollView setDocumentView:mLoggerTextView];
-                [scrollView setHasVerticalScroller:YES];
+            [scrollView setDocumentView:mLoggerTextView];
+            [scrollView setHasVerticalScroller:YES];
 
-                [[mLoggerWindow contentView] addSubview:scrollView];
+            [[mLoggerWindow contentView] addSubview:scrollView];
 
-                mLoggerWindowDelegaate = [[CubeLoggerWindowDelegate alloc] init];
-                [mLoggerWindow setDelegate:mLoggerWindowDelegaate];
+            mLoggerWindowDelegaate = [[CubeLoggerWindowDelegate alloc] init];
+            [mLoggerWindow setDelegate:mLoggerWindowDelegaate];
 
-                [mLoggerWindow makeKeyAndOrderFront:nil];
-                mIsLoggerWindowCreated = true;
+            [mLoggerWindow makeKeyAndOrderFront:nil];
+            mIsLoggerWindowCreated = true;
 
-                // Move to top-left
-                NSScreen* screen = [mLoggerWindow screen] ?: [NSScreen mainScreen];
-                NSRect screenFrame = [screen visibleFrame];
-                NSRect windowFrame = [mLoggerWindow frame];
+            // Move to top-left
+            NSScreen* screen = [mLoggerWindow screen] ?: [NSScreen mainScreen];
+            NSRect screenFrame = [screen visibleFrame];
+            NSRect windowFrame = [mLoggerWindow frame];
 
-                NSPoint topLeft;
-                topLeft.x = screenFrame.origin.x;
-                topLeft.y = NSMaxY(screenFrame) - windowFrame.size.height;
+            NSPoint topLeft;
+            topLeft.x = screenFrame.origin.x;
+            topLeft.y = NSMaxY(screenFrame) - windowFrame.size.height;
 
-                [mLoggerWindow setFrameOrigin:topLeft];
-            }
+            [mLoggerWindow setFrameOrigin:topLeft];
         }
 
         void MacOSDebug::AppendLogText(NSString* text, PrintColorCategory colorCategory)
@@ -356,10 +345,8 @@ namespace cube
 
             if (mIsLoggerWindowCreated)
             {
-                [mLoggerWindow close];
-
                 [mLoggerTextView release];
-                [mLoggerWindow release];
+                [mLoggerWindow close];
                 [mLoggerWindowDelegaate release];
 
                 mIsLoggerWindowCreated = false;

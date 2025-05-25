@@ -7,6 +7,7 @@ set(PUBLIC_FILES
     Public/MatrixImpl/MatrixUtilitySSE.inl
     Public/VectorImpl/VectorArray.inl
     Public/VectorImpl/VectorSSE.inl
+    Public/Async.h
     Public/Allocator.h
     Public/Blob.h
     Public/CubeMath.h
