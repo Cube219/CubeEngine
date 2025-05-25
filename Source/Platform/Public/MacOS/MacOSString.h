@@ -27,16 +27,13 @@ namespace cube
 #endif
 
         // String -> NSString
-        template <typename SrcStr>
-        struct Converter<NSString*, SrcStr,
-            std::enable_if_t<
-                IsStringViewable<SrcStr>::value
-            >
-        >
+        template <StringViewable SrcStringViewable>
+        struct Converter<NSString*, SrcStringViewable>
         {
             static constexpr bool Available = true;
+            static constexpr bool NeedConvert = true;
 
-            static void ConvertAndAppend(NSString*& dst, const SrcStr& src)
+            static void ConvertAndAppend(NSString*& dst, const SrcStringViewable& src)
             {
                 FormatString<U8Character> u8Src;
                 String_ConvertAndAppend(u8Src, src);
@@ -48,14 +45,11 @@ namespace cube
         };
 
         // NSString -> String
-        template <typename DstString>
-        struct Converter<DstString, NSString*,
-            std::enable_if_t<
-                IsString<DstString>::value
-            >
-        >
+        template <StringType DstString>
+        struct Converter<DstString, NSString*>
         {
             static constexpr bool Available = true;
+            static constexpr bool NeedConvert = true;
 
             static void ConvertAndAppend(DstString& dst, const NSString* src)
             {

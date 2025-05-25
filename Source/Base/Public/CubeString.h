@@ -1,8 +1,8 @@
 #pragma once
 
+#include <concepts>
 #include <string>
 #include <string_view>
-#include <type_traits>
 
 #include "Defines.h"
 #include "Types.h"
@@ -55,69 +55,60 @@ namespace cube
     using U32String = std::basic_string<U32Character>;
     using U32StringView = std::basic_string_view<U32Character>;
 
+    // Concepts
+    template <typename T>
+    concept CharacterType =
+        std::same_as<T, AnsiCharacter> ||
+        std::same_as<T, U8Character> ||
+        std::same_as<T, U16Character> ||
+        std::same_as<T, U32Character>;
+
+    template <typename T>
+    concept StringType =
+        std::same_as<T, std::basic_string<typename T::value_type, typename T::traits_type, typename T::allocator_type>>;
+
+    template <typename T>
+    concept StringViewType =
+        std::same_as<T, std::basic_string_view<typename T::value_type, typename T::traits_type>>;
+
     namespace string_internal
     {
-        // Traits
-        // IsCharacter
-        template <typename T, typename Enabled = void>
-        struct IsCharacter : std::false_type {};
-        template <typename T>
-        struct IsCharacter<T,
-            std::enable_if_t<
-                std::is_same_v<T, AnsiCharacter> ||
-                std::is_same_v<T, U8Character> ||
-                std::is_same_v<T, U16Character> ||
-                std::is_same_v<T, U32Character>
-            >
-        > : std::true_type {};
-
-        // IsString
-        template <typename T, typename Enabled = void>
-        struct IsString : std::false_type {};
-        template <typename T>
-        struct IsString<T,
-            std::enable_if_t<std::is_same_v<T, std::basic_string<typename T::value_type, typename T::traits_type, typename T::allocator_type>>>
-        > : std::true_type {};
-
-        // IsStringView
-        template <typename T, typename Enabled = void>
-        struct IsStringView : std::false_type {};
-        template <typename T>
-        struct IsStringView<T,
-            std::enable_if_t<std::is_same_v<T, std::basic_string_view<typename T::value_type, typename T::traits_type>>>
-        > : std::true_type {};
-
         // ToStringView
-        template <typename Char>
-        std::enable_if_t<IsCharacter<Char>::value,
-            std::basic_string_view<Char>
-        > ToStringView(const Char* srcCStr)
+        template <CharacterType SrcCharacter>
+        std::basic_string_view<SrcCharacter> ToStringView(const SrcCharacter* srcCStr)
         {
-            return std::basic_string_view<Char>(srcCStr);
+            return std::basic_string_view<SrcCharacter>(srcCStr);
         }
-        template <typename String>
-        std::enable_if_t<IsString<String>::value,
-            std::basic_string_view<typename String::value_type>
-        > ToStringView(const String& srcString)
+        template <StringType SrcString>
+        std::basic_string_view<typename SrcString::value_type> ToStringView(const SrcString& srcString)
         {
-            return std::basic_string_view<typename String::value_type>(srcString);
+            return std::basic_string_view<typename SrcString::value_type>(srcString);
         }
-        template <typename StringView>
-        std::enable_if_t<IsStringView<StringView>::value,
-            std::basic_string_view<typename StringView::value_type>
-        > ToStringView(const StringView& srcString)
+        template <StringViewType SrcStringView>
+        std::basic_string_view<typename SrcStringView::value_type> ToStringView(const SrcStringView& srcString)
         {
-            return std::basic_string_view<typename StringView::value_type>(srcString);
+            return std::basic_string_view<typename SrcStringView::value_type>(srcString);
         }
+    } // namespace string_internal
 
-        // IsStringViewable
-        template <typename T, typename Enabled = void>
-        struct IsStringViewable : std::false_type {};
-        template <typename T>
-        struct IsStringViewable<T,
-            std::void_t<decltype(ToStringView(std::declval<T>()))>
-        > : std::true_type {};
+    template <typename T>
+    concept StringViewable =
+        requires(T v)
+        {
+            string_internal::ToStringView(v);
+        };
 
+    template <typename T1, typename T2>
+    concept SameStringViewable =
+        StringViewable<T1> &&
+        StringViewable<T2> &&
+        std::is_same_v<
+            typename decltype(ToStringView(std::declval<T1>()))::value_type,
+            typename decltype(ToStringView(std::declval<T2>()))::value_type
+        >;
+
+    namespace string_internal
+    {
         // Decode/Encode function
         // Do not implement general template function to identify unspecialized functions in link error.
         template <typename Character>
@@ -126,8 +117,8 @@ namespace cube
         template <typename Character>
         int EncodeCharacterAndAppend(Uint32 code, Character* pStr);
 
-        template <typename SrcChar, typename DstChar>
-        int ConvertCodeAndMove(const SrcChar*& pSrc, DstChar* pDst)
+        template <typename SrcCharacter, typename DstCharacter>
+        int ConvertCodeAndMove(const SrcCharacter*& pSrc, DstCharacter* pDst)
         {
             Uint32 code = DecodeCharacterAndMove(pSrc);
             return EncodeCharacterAndAppend(code, pDst);
@@ -137,38 +128,36 @@ namespace cube
         struct NoEntry : std::false_type {};
 
         // Converter
-        template <typename DstString, typename SrcStr, typename Enabled = void>
+        template <typename Dst, typename Src>
         struct Converter
         {
             static constexpr bool Available = false;
+            static constexpr bool NeedConvert = false;
 
-            static void ConvertAndAppend(DstString& dst, const SrcStr& src)
+            static void ConvertAndAppend(Dst& dst, const Src& src)
             {
-                static_assert(NoEntry<DstString>::value, "Not implemented converter.");
+                static_assert(NoEntry<Dst>::value, "Not implemented converter.");
             }
         };
 
         // C-style string, std::string and std::string_view
-        template <typename DstString, typename SrcStr>
-        struct Converter<DstString, SrcStr,
-            std::enable_if_t<
-                IsString<DstString>::value &&
-                IsStringViewable<SrcStr>::value
-            >
-        >
+        template <StringType DstString, StringViewable SrcStringViewable>
+            requires (!SameStringViewable<DstString, SrcStringViewable>)
+        struct Converter<DstString, SrcStringViewable>
         {
             static constexpr bool Available = true;
+            static constexpr bool NeedConvert = true;
 
-            static void ConvertAndAppend(DstString& dst, const SrcStr& src)
+            static void ConvertAndAppend(DstString& dst, const SrcStringViewable& src)
             {
-                auto srcStrView = string_internal::ToStringView(src);
+                auto srcStringView = string_internal::ToStringView(src);
 
-                using SrcChar = typename decltype(srcStrView)::value_type;
-                using DstChar = typename DstString::value_type;
+                using SrcCharacter = typename decltype(srcStringView)::value_type;
+                using DstCharacter = typename DstString::value_type;
 
-                DstChar tempBuffer[8];
-                const SrcChar* srcCurrent = srcStrView.data();
-                const SrcChar* srcEnd = srcCurrent + srcStrView.size();
+                DstCharacter tempBuffer[8];
+                const SrcCharacter* srcCurrent = srcStringView.data();
+                const SrcCharacter* srcEnd = srcCurrent + srcStringView.size();
 
                 while (srcCurrent != srcEnd)
                 {
@@ -177,19 +166,33 @@ namespace cube
                 }
             }
         };
+
+        // Same string type. Specialize it to avoid static assert error.
+        template <StringType DstString, StringViewable SrcStringViewable>
+            requires SameStringViewable<DstString, SrcStringViewable>
+        struct Converter<DstString, SrcStringViewable>
+        {
+            static constexpr bool Available = true;
+            static constexpr bool NeedConvert = false;
+
+            static void ConvertAndAppend(DstString& dst, const SrcStringViewable& src)
+            {
+                dst = src;
+            }
+        };
     } // namespace string_internal
 
-    template <typename DstString, typename SrcStr>
-    void String_ConvertAndAppend(DstString& dst, const SrcStr& src)
+    template <typename Dst, typename Src>
+    void String_ConvertAndAppend(Dst& dst, const Src& src)
     {
-        string_internal::Converter<DstString, SrcStr>::ConvertAndAppend(dst, src);
+        string_internal::Converter<Dst, Src>::ConvertAndAppend(dst, src);
     }
 
-    template <typename DstString, typename SrcStr>
-    DstString String_Convert(const SrcStr& src)
+    template <typename Dst, typename Src>
+    Dst String_Convert(const Src& src)
     {
-        DstString res;
-        String_ConvertAndAppend<DstString, SrcStr>(res, src);
+        Dst res;
+        String_ConvertAndAppend<Dst, Src>(res, src);
         return res;
     }
 
