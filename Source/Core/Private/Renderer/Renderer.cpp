@@ -1,21 +1,20 @@
 #include "Renderer.h"
 
+#include "imguizmo_quat/imGuIZMOquat.h"
 #include "imgui.h"
 
+#include "BaseMeshGenerator.h"
+#include "Checker.h"
+#include "Engine.h"
 #include "FileSystem.h"
-#include "Platform.h"
 #include "GAPI_Buffer.h"
 #include "GAPI_CommandList.h"
 #include "GAPI_Shader.h"
 #include "GAPI_ShaderVariable.h"
 #include "GAPI_Pipeline.h"
 #include "GAPI_Viewport.h"
-
-#include "BaseMeshGenerator.h"
-#include "Checker.h"
-#include "CubeMath.h"
-#include "Engine.h"
 #include "MatrixUtility.h"
+#include "Platform.h"
 
 namespace cube
 {
@@ -62,7 +61,7 @@ namespace cube
         });
         mGlobalConstantBufferDataPointer = static_cast<Uint8*>(mGlobalConstantBuffer->Map());
 
-        mObjectBufferData.model = Matrix::Identity();
+        mObjectBufferData.SetModelMatrix(Matrix::Identity());
         mObjectBufferData.color = Vector4(1, 1, 0, 1);
         mObjectBuffer = mGAPI->CreateBuffer({
             .type = gapi::BufferType::Constant,
@@ -87,6 +86,9 @@ namespace cube
             .debugName = "MainViewport"
         });
 
+        mDirectionalLightDirection = Vector3(1.0f, 1.0f, 1.0f).Normalized();
+        mIsDirectionalLightDirty = true;
+
         LoadResources();
     }
 
@@ -108,6 +110,29 @@ namespace cube
         mGAPI->Shutdown(imGUIContext);
         mGAPI = nullptr;
         mGAPI_DLib = nullptr;
+    }
+
+    void Renderer::OnLoopImGUI()
+    {
+        ImGui::Begin("Renderer");
+
+        if (ImGui::CollapsingHeader("Lighting", ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            ImGui::SeparatorText("Directional Light");
+            {
+                vec3 directionVec3 = { mDirectionalLightDirection.GetFloat3().x, mDirectionalLightDirection.GetFloat3().y, mDirectionalLightDirection.GetFloat3().z };
+                ImGui::Text("Direction: %.3f %.3f %.3f", directionVec3.x, directionVec3.y, directionVec3.z);
+
+                imguiGizmo::resizeAxesOf({ 0.7f, 0.8f, 0.8f });
+                ImGui::gizmo3D("##Directional Light - Direction", directionVec3);
+                imguiGizmo::restoreAxesSize();
+
+                mDirectionalLightDirection = Vector3(directionVec3.x, directionVec3.y, directionVec3.z);
+                mIsDirectionalLightDirty = true;
+            }
+        }
+
+        ImGui::End();
     }
 
     void Renderer::Render()
@@ -145,7 +170,7 @@ namespace cube
 
     void Renderer::SetObjectModelMatrix(const Vector3& position, const Vector3& rotation, const Vector3& scale)
     {
-        mObjectBufferData.model = MatrixUtility::GetScale(scale) * MatrixUtility::GetRotationXYZ(rotation) + MatrixUtility::GetTranslation(position);
+        mObjectBufferData.SetModelMatrix(MatrixUtility::GetScale(scale) * MatrixUtility::GetRotationXYZ(rotation) + MatrixUtility::GetTranslation(position));
         memcpy(mObjectBufferDataPointer, &mObjectBufferData, sizeof(ObjectBufferData));
     }
 
@@ -204,11 +229,24 @@ namespace cube
 
     void Renderer::SetGlobalConstantBuffers()
     {
+        bool updateNeeded = false;
+
         if (mIsViewPerspectiveMatrixDirty)
         {
             mGlobalConstantBufferData.viewProjection = mViewMatrix * mPerspectiveMatrix;
             mIsViewPerspectiveMatrixDirty = false;
+            updateNeeded = true;
+        }
 
+        if (mIsDirectionalLightDirty)
+        {
+            mGlobalConstantBufferData.directionalLightDirection = mDirectionalLightDirection;
+            mIsDirectionalLightDirty = false;
+            updateNeeded = true;
+        }
+
+        if (updateNeeded)
+        {
             memcpy(mGlobalConstantBufferDataPointer, &mGlobalConstantBufferData, sizeof(GlobalConstantBufferData));
         }
     }
@@ -237,7 +275,7 @@ namespace cube
             mCommandList->SetRenderTarget(mViewport);
             mCommandList->ClearRenderTargetView(mViewport, { 0.2f, 0.2f, 0.2f, 1.0f });
             mCommandList->ClearDepthStencilView(mViewport, 0);
-            mCommandList->SetGraphicsPipeline(mHelloWorldPipeline);
+            mCommandList->SetGraphicsPipeline(mMainPipeline);
             mCommandList->SetShaderVariableConstantBuffer(0, mGlobalConstantBuffer);
             mCommandList->SetShaderVariableConstantBuffer(1, mObjectBuffer);
 
@@ -293,7 +331,7 @@ namespace cube
         SetMesh(nullptr); // Load default mesh
 
         {
-            FrameString vertexShaderFilePath = FrameString(Engine::GetRootDirectoryPath()) + CUBE_T("/Resources/Shaders/HelloWorld.slang");
+            FrameString vertexShaderFilePath = FrameString(Engine::GetRootDirectoryPath()) + CUBE_T("/Resources/Shaders/Main.slang");
             SharedPtr<platform::File> vertexShaderFile = platform::FileSystem::OpenFile(vertexShaderFilePath, platform::FileAccessModeFlag::Read);
             CHECK(vertexShaderFile);
             Uint64 vertexShaderFileSize = vertexShaderFile->GetFileSize();
@@ -305,16 +343,16 @@ namespace cube
             mVertexShader = mGAPI->CreateShader({
                 .type = gapi::ShaderType::Vertex,
                 .language = gapi::ShaderLanguage::Slang,
-                .fileName = StringView(CUBE_T("HelloWorld.slang")),
+                .fileName = StringView(CUBE_T("Main.slang")),
                 .path = vertexShaderFilePath,
                 .code = shaderCode,
                 .entryPoint = "VSMain",
-                .debugName = "HelloWorldVS"
+                .debugName = "MainVS"
             });
             CHECK(mVertexShader);
         }
         {
-            FrameString pixelShaderFilePath = FrameString(Engine::GetRootDirectoryPath()) + CUBE_T("/Resources/Shaders/HelloWorld.slang");
+            FrameString pixelShaderFilePath = FrameString(Engine::GetRootDirectoryPath()) + CUBE_T("/Resources/Shaders/Main.slang");
             SharedPtr<platform::File> pixelShaderFile = platform::FileSystem::OpenFile(pixelShaderFilePath, platform::FileAccessModeFlag::Read);
             CHECK(pixelShaderFile);
             Uint64 pixelShaderFileSize = pixelShaderFile->GetFileSize();
@@ -326,11 +364,11 @@ namespace cube
             mPixelShader = mGAPI->CreateShader({
                 .type = gapi::ShaderType::Pixel,
                 .language = gapi::ShaderLanguage::Slang,
-                .fileName = StringView(CUBE_T("HelloWorld.slang")),
+                .fileName = StringView(CUBE_T("Main.slang")),
                 .path = pixelShaderFilePath,
                 .code = shaderCode,
                 .entryPoint = "PSMain",
-                .debugName = "HelloWorldPS"
+                .debugName = "MainPS"
             });
             CHECK(mPixelShader);
         }
@@ -342,25 +380,29 @@ namespace cube
             });
         }
         {
+            constexpr int positionOffset = 0;
+            constexpr int colorOffset = positionOffset + sizeof(Vertex::position);
+            constexpr int normalOffset = colorOffset + sizeof(Vertex::color);
+
             gapi::InputElement inputLayout[] = {
                 {
                     .name = "POSITION",
                     .format = gapi::ElementFormat::RGB32_Float,
-                    .offset = 0,
+                    .offset = positionOffset,
                 },
                 {
                     .name = "COLOR",
                     .format = gapi::ElementFormat::RGBA32_Float,
-                    .offset = 12,
+                    .offset = colorOffset,
                 },
                 {
                     .name = "NORMAL",
                     .format = gapi::ElementFormat::RGB32_Float,
-                    .offset = 28
+                    .offset = normalOffset
                 }
             };
 
-            mHelloWorldPipeline = mGAPI->CreateGraphicsPipeline({
+            mMainPipeline = mGAPI->CreateGraphicsPipeline({
                 .vertexShader = mVertexShader,
                 .pixelShader = mPixelShader,
                 .inputLayout = inputLayout,
@@ -372,11 +414,11 @@ namespace cube
                 .numRenderTargets = 1,
                 .renderTargetFormats = { gapi::ElementFormat::RGBA8_UNorm },
                 .shaderVariablesLayout = mShaderVariablesLayout,
-                .debugName = "HelloWorldPipeline"
+                .debugName = "MainPipeline"
             });
         }
         {
-            mObjectBufferData_X.model = MatrixUtility::GetScale(4.0f, 0.2f, 0.2f) + MatrixUtility::GetTranslation(2, 0, 0);
+            mObjectBufferData_X.SetModelMatrix(MatrixUtility::GetScale(4.0f, 0.2f, 0.2f) + MatrixUtility::GetTranslation(2, 0, 0));
             mObjectBufferData_X.color = Vector4(1, 0, 0, 1);
             mObjectBuffer_X = mGAPI->CreateBuffer({
                 .type = gapi::BufferType::Constant,
@@ -387,7 +429,7 @@ namespace cube
             mObjectBufferDataPointer_X = static_cast<Uint8*>(mObjectBuffer_X->Map());
             memcpy(mObjectBufferDataPointer_X, &mObjectBufferData_X, sizeof(ObjectBufferData));
 
-            mObjectBufferData_Y.model = MatrixUtility::GetScale(0.2f, 4.0f, 0.2f) + MatrixUtility::GetTranslation(0, 2, 0);
+            mObjectBufferData_Y.SetModelMatrix(MatrixUtility::GetScale(0.2f, 4.0f, 0.2f) + MatrixUtility::GetTranslation(0, 2, 0));
             mObjectBufferData_Y.color = Vector4(0, 1, 0, 1);
             mObjectBuffer_Y = mGAPI->CreateBuffer({
                 .type = gapi::BufferType::Constant,
@@ -398,7 +440,7 @@ namespace cube
             mObjectBufferDataPointer_Y = static_cast<Uint8*>(mObjectBuffer_Y->Map());
             memcpy(mObjectBufferDataPointer_Y, &mObjectBufferData_Y, sizeof(ObjectBufferData));
 
-            mObjectBufferData_Z.model = MatrixUtility::GetScale(0.2f, 0.2f, 4.0f) + MatrixUtility::GetTranslation(0, 0, 2);
+            mObjectBufferData_Z.SetModelMatrix(MatrixUtility::GetScale(0.2f, 0.2f, 4.0f) + MatrixUtility::GetTranslation(0, 0, 2));
             mObjectBufferData_Z.color = Vector4(0, 0, 1, 1);
             mObjectBuffer_Z = mGAPI->CreateBuffer({
                 .type = gapi::BufferType::Constant,
@@ -417,7 +459,7 @@ namespace cube
         mObjectBuffer_Y = nullptr;
         mObjectBuffer_X = nullptr;
 
-        mHelloWorldPipeline = nullptr;
+        mMainPipeline = nullptr;
         mShaderVariablesLayout = nullptr;
         mPixelShader = nullptr;
         mVertexShader = nullptr;

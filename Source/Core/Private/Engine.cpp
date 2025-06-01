@@ -109,7 +109,7 @@ namespace cube
 
         SearchAndSetRootDirectory();
 
-        platform::Platform::InitWindow(CUBE_T("CubeEngine"), 1200, 900, 100, 100);
+        platform::Platform::InitWindow(CUBE_T("CubeEngine"), 1400, 900, 100, 100);
         platform::Platform::ShowWindow();
 
         mOnLoopEventFunc = platform::Platform::GetLoopEvent().AddListener(OnLoop);
@@ -234,26 +234,8 @@ namespace cube
         if (mImGUIShowDemoWindow)
             ImGui::ShowDemoWindow(&mImGUIShowDemoWindow);
 
-        { // Basic stats
-            static bool showBasicStats = true;
-
-            ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove;
-
-            const float PAD = 10.0f;
-            const ImGuiViewport* viewport = ImGui::GetMainViewport();
-            ImVec2 work_pos = viewport->WorkPos; // Use work area to avoid menu-bar/task-bar, if any!
-            ImVec2 work_size = viewport->WorkSize;
-            ImGui::SetNextWindowPos({ work_pos.x + work_size.x - PAD, work_pos.x + PAD }, ImGuiCond_Always, { 1.0f, 0.0f });
-            ImGui::SetNextWindowBgAlpha(0.35f);
-            ImGui::SetNextWindowSize({ 180.0f, 70.0f });
-            if (ImGui::Begin("Basic Stats (old)", &showBasicStats, flags))
-            {
-                ImGui::Text("Test");
-            }
-            ImGui::End();
-        }
-
         CameraSystem::OnLoopImGUI();
+        mRenderer->OnLoopImGUI();
         ModelLoaderSystem::OnLoopImGUI();
         StatsSystem::OnLoopImGUI();
     }

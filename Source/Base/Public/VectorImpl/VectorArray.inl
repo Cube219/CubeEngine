@@ -248,7 +248,7 @@ namespace cube
     inline VectorBase<N> VectorBase<N>::operator/(float rhs) const
     {
         VectorBase res(*this);
-        res *= rhs;
+        res /= rhs;
 
         return res;
     }

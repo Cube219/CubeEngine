@@ -87,13 +87,16 @@ namespace cube
             modelDropdownExpandedLastFrame = false;
         }
 
+        ImGui::PushItemWidth(60.0f);
         const float lastModelScale = mModelScale;
         ImGui::DragFloat("Model Scale", &mModelScale, 0.1f);
+        ImGui::PopItemWidth();
         if (lastModelScale != mModelScale)
         {
             UpdateModelMatrix();
         }
 
+        ImGui::NewLine();
         if (ImGui::Button("Reset"))
         {
             ResetModelScale();
@@ -281,7 +284,7 @@ namespace cube
                             float xyz[3];
                             memcpy(xyz, pData, sizeof(xyz));
 
-                            vertices[vertexOffset + index].position = { xyz[0], xyz[1], xyz[2] };
+                            vertices[vertexOffset + index].position = { xyz[0], xyz[1], xyz[2], 1.0f };
                         }
                     );
                 }

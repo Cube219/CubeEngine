@@ -143,13 +143,13 @@ namespace cube
           0  0  0  0
           0  0  0  0
           0  0  0  0
-          x  y  z  1
+          x  y  z  0
         */
         return Matrix{
             0.0f, 0.0f, 0.0f, 0.0f,
             0.0f, 0.0f, 0.0f, 0.0f,
             0.0f, 0.0f, 0.0f, 0.0f,
-            x, y, z, 1.0f
+            x, y, z, 0.0f
         };
     }
 

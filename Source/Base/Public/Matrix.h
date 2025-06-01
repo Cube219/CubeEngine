@@ -53,6 +53,9 @@ namespace cube
 
         friend Matrix operator* (float lhs, const Matrix& rhs);
         friend Vector4 operator* (const Vector4& lhs, const Matrix& rhs);
+
+        template <int removeRow, int removeCol>
+        float GetSubMatrixDet() const;
     };
 } // namespace cube
 

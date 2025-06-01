@@ -316,7 +316,7 @@ namespace cube
 
     void CameraSystem::Reset()
     {
-        mPosition = { 5.0f, 5.0f, 5.0f };
+        mPosition = { 10.0f, 10.0f, 10.0f };
         mAxisXAngle = -30.0f;
         mAxisYAngle = 45.0f;
 

@@ -29,21 +29,33 @@ namespace cube
     struct alignas(256) GlobalConstantBufferData
     {
         Matrix viewProjection;
+        Vector3 directionalLightDirection;
     };
 
     // TODO: Move to renderobject
     struct alignas(256) ObjectBufferData
     {
         Matrix model;
+        Matrix modelInverse;
         Vector4 color;
+
+        void SetModelMatrix(const Matrix& newModel)
+        {
+            model = newModel;
+            modelInverse = model.Inversed();
+        }
     };
 
     class Renderer
     {
     public:
+        Renderer() = default;
+        ~Renderer() = default;
+
         void Initialize(GAPIName gAPIName, const ImGUIContext& imGUIContext);
         void Shutdown(const ImGUIContext& imGUIContext);
 
+        void OnLoopImGUI();
         void Render();
 
         void OnResize(Uint32 width, Uint32 height);
@@ -83,11 +95,14 @@ namespace cube
         Uint32 mViewportHeight;
         SharedPtr<gapi::Viewport> mViewport;
 
+        Vector3 mDirectionalLightDirection;
+        bool mIsDirectionalLightDirty;
+
         SharedPtr<Mesh> mMesh;
         SharedPtr<gapi::Shader> mVertexShader;
         SharedPtr<gapi::Shader> mPixelShader;
         SharedPtr<gapi::ShaderVariablesLayout> mShaderVariablesLayout;
-        SharedPtr<gapi::Pipeline> mHelloWorldPipeline;
+        SharedPtr<gapi::Pipeline> mMainPipeline;
 
         ObjectBufferData mObjectBufferData;
         SharedPtr<gapi::Buffer> mObjectBuffer;

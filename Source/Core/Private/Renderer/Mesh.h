@@ -13,9 +13,9 @@ namespace cube
 
     struct Vertex
 	{
-	    Vector4 position;
+	    Vector3 position;
 	    Vector4 color;
-	    Vector4 normal;
+	    Vector3 normal;
 	    Vector2 texCoord;
 	};
 	using Index = Uint32;

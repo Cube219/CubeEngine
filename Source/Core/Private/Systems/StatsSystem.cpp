@@ -36,6 +36,13 @@ namespace cube
 
     void StatsSystem::OnLoopImGUI()
     {
+        // Always top-right position
+        const float PAD = 10.0f;
+        const ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImVec2 work_pos = viewport->WorkPos; // Use work area to avoid menu-bar/task-bar, if any!
+        ImVec2 work_size = viewport->WorkSize;
+        ImGui::SetNextWindowPos({ work_pos.x + work_size.x - PAD, work_pos.x + PAD }, ImGuiCond_Always, { 1.0f, 0.0f });
+
         ImGui::Begin("Stats");
 
         if (ImGui::CollapsingHeader("Frame", ImGuiTreeNodeFlags_DefaultOpen))
@@ -44,7 +51,7 @@ namespace cube
             static double axisX_max = NUM_STATS_HISTORY - 1;
 
             ImGui::Text("FPS: %.2f (Avg: %.2f, Min: %.2f, Max: %.2f)", mCurrentFPS, mSumFPSForAverage / NUM_AVERAGE_SAMPLE, mMinFPS, mMaxFPS);
-            if (ImPlot::BeginPlot("##FPS plot", ImVec2(-1, 150), ImPlotFlags_NoLegend | ImPlotFlags_NoMouseText))
+            if (ImPlot::BeginPlot("##FPS plot", ImVec2(-1, 150), ImPlotFlags_NoLegend | ImPlotFlags_NoMouseText | ImPlotFlags_NoBoxSelect))
             {
                 ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations | ImPlotAxisFlags_LockMax, ImPlotAxisFlags_LockMin);
                 ImPlot::SetupAxisLimits(ImAxis_X1, static_cast<double>(NUM_STATS_HISTORY) / 2,  NUM_STATS_HISTORY - 1);
@@ -59,7 +66,7 @@ namespace cube
             ImGui::Text("FrameTime: %.3f ms", mCurrentFrameTimeMS);
             ImGui::Text("GPU: %.2f ms", mCurrentGPUTimeMS);
 
-            if (ImPlot::BeginPlot("##Time plot", ImVec2(-1, 150), ImPlotFlags_NoMouseText))
+            if (ImPlot::BeginPlot("##Time plot", ImVec2(-1, 150), ImPlotFlags_NoMouseText | ImPlotFlags_NoBoxSelect))
             {
                 ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations | ImPlotAxisFlags_LockMax, ImPlotAxisFlags_LockMin);
                 ImPlot::SetupAxisLimits(ImAxis_X1, static_cast<double>(NUM_STATS_HISTORY) / 2,  NUM_STATS_HISTORY - 1);

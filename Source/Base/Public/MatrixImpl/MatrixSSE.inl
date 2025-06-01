@@ -390,6 +390,19 @@ namespace cube
         return res;
     }
 
+    inline void Matrix::Inverse()
+    {
+        
+    }
+
+    inline Matrix Matrix::Inversed() const
+    {
+        Matrix res(*this);
+        res.Inversed();
+
+        return res;
+    }
+
     inline Matrix operator* (float lhs, const Matrix& rhs)
     {
         Matrix r(rhs);

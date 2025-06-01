@@ -5,7 +5,7 @@
 #include "Format.h"
 
 #ifndef CUBE_VECTOR_USE_SSE
-#define CUBE_VECTOR_USE_SSE 1
+#define CUBE_VECTOR_USE_SSE 0
 #endif
 
 #if CUBE_VECTOR_USE_SSE
