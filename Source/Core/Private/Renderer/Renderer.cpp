@@ -347,6 +347,7 @@ namespace cube
                 .path = vertexShaderFilePath,
                 .code = shaderCode,
                 .entryPoint = "VSMain",
+                .withDebugSymbol = true, // TODO: Add option in render ui after implement shader recompilation
                 .debugName = "MainVS"
             });
             CHECK(mVertexShader);
@@ -368,6 +369,7 @@ namespace cube
                 .path = pixelShaderFilePath,
                 .code = shaderCode,
                 .entryPoint = "PSMain",
+                .withDebugSymbol = true, // TODO: Add option in render ui after implement shader recompilation
                 .debugName = "MainPS"
             });
             CHECK(mPixelShader);

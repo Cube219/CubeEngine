@@ -11,6 +11,8 @@ namespace cube
     {
         gapi::ShaderLanguage target;
         const char* profile = "sm_6_0";
+
+        bool withDebugSymbol = false;
     };
 
     class SlangHelper

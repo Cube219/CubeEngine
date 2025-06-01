@@ -75,6 +75,7 @@ namespace cube
             BlobView code;
             const char* entryPoint;
 
+            bool withDebugSymbol;
             const char* debugName = "Unknown";
         };
 

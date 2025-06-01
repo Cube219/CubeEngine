@@ -86,13 +86,21 @@ namespace cube
 
     ID3DBlob* DX12ShaderCompiler::CompileFromSlang(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult)
     {
-        const SlangCompileOptions compileOption = {
+        SlangCompileOptions compileOption = {
 #if CUBE_DX12_SLANG_TARGET_HLSL
             .target = gapi::ShaderLanguage::HLSL
 #else
             .target = gapi::ShaderLanguage::DXIL
 #endif
+            ,
+            .withDebugSymbol = createInfo.withDebugSymbol
         };
+        if (compileOption.withDebugSymbol)
+        {
+            // DXIL does not support shader debugging on RenderDoc.
+            compileOption.target = gapi::ShaderLanguage::HLSL;
+        }
+
         Blob shader = SlangHelper::Compile(createInfo, compileOption, compileResult);
 
         if (compileResult.isSuccess)
@@ -100,19 +108,22 @@ namespace cube
             // Compile the shader once again
             compileResult.isSuccess = false;
 
-#if CUBE_DX12_SLANG_TARGET_HLSL
-            gapi::ShaderCreateInfo hlslCreateInfo = createInfo;
-            hlslCreateInfo.language = gapi::ShaderLanguage::HLSL;
-            hlslCreateInfo.code = shader;
+            if (compileOption.target == gapi::ShaderLanguage::HLSL)
+            {
+                gapi::ShaderCreateInfo hlslCreateInfo = createInfo;
+                hlslCreateInfo.language = gapi::ShaderLanguage::HLSL;
+                hlslCreateInfo.code = shader;
 
-            return CompileFromHLSL(hlslCreateInfo, compileResult);
-#else
-            gapi::ShaderCreateInfo dxilCreateInfo = createInfo;
-            dxilCreateInfo.language = gapi::ShaderLanguage::DXIL;
-            dxilCreateInfo.code = shader;
+                return CompileFromHLSL(hlslCreateInfo, compileResult);
+            }
+            else if (compileOption.target == gapi::ShaderLanguage::DXIL)
+            {
+                gapi::ShaderCreateInfo dxilCreateInfo = createInfo;
+                dxilCreateInfo.language = gapi::ShaderLanguage::DXIL;
+                dxilCreateInfo.code = shader;
 
-            return CompileFromDXIL(dxilCreateInfo, compileResult);
-#endif
+                return CompileFromDXIL(dxilCreateInfo, compileResult);
+            }
         }
 
         return nullptr;

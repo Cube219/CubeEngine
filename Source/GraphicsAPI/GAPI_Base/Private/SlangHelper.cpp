@@ -120,6 +120,21 @@ namespace cube
         }
 
         FrameVector<slang::CompilerOptionEntry> compilerOptions;
+        if (options.withDebugSymbol)
+        {
+            compilerOptions.push_back({
+                .name = slang::CompilerOptionName::DebugInformation,
+                .value = {
+                    .intValue0 = SLANG_DEBUG_INFO_LEVEL_MAXIMAL
+                },
+            });
+            compilerOptions.push_back({
+                .name = slang::CompilerOptionName::Optimization,
+                .value = {
+                    .intValue0 = SLANG_OPTIMIZATION_LEVEL_NONE
+                },
+            });
+        }
 
         const char* shaderRootDirPath_CStr = mShaderSearchPath.c_str();
         const slang::SessionDesc sessionDesc = {
@@ -184,6 +199,7 @@ namespace cube
             compileResult.AddWarning(Format<FrameString>(CUBE_T("Warning about compositing the components.\n\n{0}\n"), (const char*)diagnosticBlob->getBufferPointer()));
         }
 
+        // Compile the code
         ComPtr<slang::IBlob> code;
         slangRes = composedProgram->getEntryPointCode(0, 0, code.writeRef(), diagnosticBlob.writeRef());
         if (slangRes != SLANG_OK)
