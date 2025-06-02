@@ -259,14 +259,14 @@ namespace cube
 
             mCommandList->InsertTimestamp(CUBE_T("Begin"));
 
-            mCommandList->SetViewports(1, &mViewport);
+            mCommandList->SetViewports({ &mViewport, 1 });
             gapi::ScissorRect scissor = {
                 .x = 0,
                 .y = 0,
                 .width = mViewportWidth,
                 .height = mViewportHeight
             };
-            mCommandList->SetScissors(1, &scissor);
+            mCommandList->SetScissors({ &scissor, 1 });
             mCommandList->SetPrimitiveTopology(gapi::PrimitiveTopology::TriangleList);
 
             mCommandList->ResourceTransition(mViewport, gapi::ResourceStateFlag::Present, gapi::ResourceStateFlag::RenderTarget);
@@ -283,7 +283,7 @@ namespace cube
             {
                 // Center object
                 SharedPtr<gapi::Buffer> vertexBuffer = mMesh->GetVertexBuffer();
-                mCommandList->BindVertexBuffers(0, 1, &vertexBuffer, &vertexBufferOffset);
+                mCommandList->BindVertexBuffers(0, { &vertexBuffer, 1 }, { &vertexBufferOffset, 1 });
                 mCommandList->BindIndexBuffer(mMesh->GetIndexBuffer(), 0);
                 const Vector<SubMesh>& subMeshes = mMesh->GetSubMeshes();
                 for(const SubMesh& subMesh : subMeshes)
@@ -295,7 +295,7 @@ namespace cube
             {
                 // Axis
                 SharedPtr<gapi::Buffer> boxVertexBuffer = mBoxMesh->GetVertexBuffer();
-                mCommandList->BindVertexBuffers(0, 1, &boxVertexBuffer, &vertexBufferOffset);
+                mCommandList->BindVertexBuffers(0, { &boxVertexBuffer, 1 }, { &vertexBufferOffset, 1 });
                 mCommandList->BindIndexBuffer(mBoxMesh->GetIndexBuffer(), 0);
                 const Vector<SubMesh>& boxSubMeshes = mBoxMesh->GetSubMeshes();
 

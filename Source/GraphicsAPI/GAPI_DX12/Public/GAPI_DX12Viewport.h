@@ -4,6 +4,7 @@
 
 #include "GAPI_Viewport.h"
 
+#include "DX12APIObject.h"
 #include "DX12Fence.h"
 #include "DX12MemoryAllocator.h"
 
@@ -15,7 +16,7 @@ namespace cube
 
     namespace gapi
     {
-        class CUBE_DX12_EXPORT DX12Viewport : public Viewport
+        class CUBE_DX12_EXPORT DX12Viewport : public Viewport, public DX12APIObject
         {
         public:
             DX12Viewport(IDXGIFactory2* factory, DX12Device& device, const ViewportCreateInfo& createInfo);

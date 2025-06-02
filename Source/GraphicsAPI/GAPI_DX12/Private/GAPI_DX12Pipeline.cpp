@@ -257,10 +257,6 @@ namespace cube
 
         DX12Pipeline::DX12Pipeline(DX12Device& device, const GraphicsPipelineCreateInfo& info)
         {
-            mVertexShader = info.vertexShader;
-            mPixelShader = info.pixelShader;
-            mShaderVariablesLayout = info.shaderVariablesLayout;
-
             FrameVector<D3D12_INPUT_ELEMENT_DESC> inputElements(info.numInputLayoutElements);
             for (int i = 0; i < info.numInputLayoutElements; ++i)
             {
@@ -270,18 +266,26 @@ namespace cube
             D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsPSODesc = {};
             graphicsPSODesc.InputLayout = { inputElements.data(), (Uint32)(inputElements.size()) };
             graphicsPSODesc.pRootSignature = dynamic_cast<DX12ShaderVariablesLayout*>(info.shaderVariablesLayout.get())->GetRootSignature();
+
+            CUBE_DX12_BOUND_OBJECT(info.shaderVariablesLayout);
+
             if (info.vertexShader)
             {
                 DX12Shader* dx12VertexShader = dynamic_cast<DX12Shader*>(info.vertexShader.get());
                 graphicsPSODesc.VS.pShaderBytecode = dx12VertexShader->GetShader()->GetBufferPointer();
                 graphicsPSODesc.VS.BytecodeLength = dx12VertexShader->GetShader()->GetBufferSize();
+
+                CUBE_DX12_BOUND_OBJECT(info.vertexShader);
             }
             if (info.pixelShader)
             {
                 DX12Shader* dx12PixelShader = dynamic_cast<DX12Shader*>(info.pixelShader.get());
                 graphicsPSODesc.PS.pShaderBytecode = dx12PixelShader->GetShader()->GetBufferPointer();
                 graphicsPSODesc.PS.BytecodeLength = dx12PixelShader->GetShader()->GetBufferSize();
+
+                CUBE_DX12_BOUND_OBJECT(info.pixelShader);
             }
+
             graphicsPSODesc.RasterizerState = ConvertToDX12RasterizerDesc(info.rasterizerState);
             graphicsPSODesc.BlendState = ConvertToDX12BlendDesc(info.blendStates);
             graphicsPSODesc.DepthStencilState = ConvertToDX12DepthStencilDesc(info.depthStencilState);

@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <limits>
 #include <map>
+#include <span>
 #include <stdint.h>
 #include <unordered_map>
 #include <vector>
@@ -51,6 +52,9 @@ namespace cube
 
     template <typename Type, size_t Size>
     using Array = std::array<Type, Size>;
+
+    template <typename Type, size_t Extent = std::dynamic_extent>
+    using ArrayView = std::span<Type, Extent>;
 
     template <typename Key, typename Value>
     using Map = std::map<Key, Value>;

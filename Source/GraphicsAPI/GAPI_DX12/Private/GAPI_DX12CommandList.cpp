@@ -83,35 +83,37 @@ namespace cube
             mState = State::Initial;
         }
 
-        void DX12CommandList::SetViewports(Uint32 numViewports, const SharedPtr<Viewport>* pViewports)
+        void DX12CommandList::SetViewports(ArrayView<SharedPtr<Viewport>> viewports)
         {
             CHECK(mState == State::Writing);
 
-            FrameVector<D3D12_VIEWPORT> d3d12Viewports(numViewports);
-            for (int i = 0; i < numViewports; ++i)
+            FrameVector<D3D12_VIEWPORT> d3d12Viewports(viewports.size());
+            for (int i = 0; i < viewports.size(); ++i)
             {
-                const DX12Viewport* dxViewport = dynamic_cast<DX12Viewport*>(pViewports[i].get());
+                const DX12Viewport* dxViewport = dynamic_cast<DX12Viewport*>(viewports[i].get());
                 d3d12Viewports[i] = dxViewport->GetD3D12Viewport();
+
+                CUBE_DX12_BOUND_OBJECT(viewports[i]);
             }
 
-            mCommandList->RSSetViewports(numViewports, d3d12Viewports.data());
+            mCommandList->RSSetViewports(d3d12Viewports.size(), d3d12Viewports.data());
         }
 
-        void DX12CommandList::SetScissors(Uint32 numScissors, const ScissorRect* pScissors)
+        void DX12CommandList::SetScissors(ArrayView<ScissorRect> scissors)
         {
             CHECK(mState == State::Writing);
 
-            FrameVector<D3D12_RECT> d3d12Rects(numScissors);
-            for (int i = 0; i < numScissors; ++i)
+            FrameVector<D3D12_RECT> d3d12Rects(scissors.size());
+            for (int i = 0; i < scissors.size(); ++i)
             {
                 d3d12Rects[i] = {
-                    .left = pScissors[i].x,
-                    .top = pScissors[i].y,
-                    .right = static_cast<LONG>(pScissors[i].x + pScissors[i].width - 1),
-                    .bottom = static_cast<LONG>(pScissors[i].y + pScissors[i].height - 1)
+                    .left = scissors[i].x,
+                    .top = scissors[i].y,
+                    .right = static_cast<LONG>(scissors[i].x + scissors[i].width - 1),
+                    .bottom = static_cast<LONG>(scissors[i].y + scissors[i].height - 1)
                 };
             }
-            mCommandList->RSSetScissorRects(numScissors, d3d12Rects.data());
+            mCommandList->RSSetScissorRects(d3d12Rects.size(), d3d12Rects.data());
         }
 
         void DX12CommandList::SetPrimitiveTopology(PrimitiveTopology primitiveTopology)
@@ -127,6 +129,8 @@ namespace cube
 
             const DX12ShaderVariablesLayout* dx12ShaderVariablesLayout = dynamic_cast<const DX12ShaderVariablesLayout*>(shaderVariablesLayout.get());
             mCommandList->SetGraphicsRootSignature(dx12ShaderVariablesLayout->GetRootSignature());
+
+            CUBE_DX12_BOUND_OBJECT(shaderVariablesLayout);
         }
 
         void DX12CommandList::SetGraphicsPipeline(SharedPtr<Pipeline> graphicsPipeline)
@@ -134,6 +138,8 @@ namespace cube
             CHECK(mState == State::Writing);
 
             mCommandList->SetPipelineState(dynamic_cast<DX12Pipeline*>(graphicsPipeline.get())->GetPipelineState());
+
+            CUBE_DX12_BOUND_OBJECT(graphicsPipeline);
         }
 
         void DX12CommandList::SetRenderTarget(SharedPtr<Viewport> viewport)
@@ -144,6 +150,8 @@ namespace cube
             D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = dx12Viewport->GetCurrentRTVDescriptor();
             D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = dx12Viewport->GetDSVDescriptor();
             mCommandList->OMSetRenderTargets(1, &rtvHandle, false, &dsvHandle);
+
+            CUBE_DX12_BOUND_OBJECT(viewport);
         }
 
         void DX12CommandList::ClearRenderTargetView(SharedPtr<Viewport> viewport, Float4 color)
@@ -154,6 +162,8 @@ namespace cube
             DX12Viewport* dx12Viewport = dynamic_cast<DX12Viewport*>(viewport.get());
             D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = dx12Viewport->GetCurrentRTVDescriptor();
             mCommandList->ClearRenderTargetView(rtvHandle, fColor, 0, nullptr);
+
+            CUBE_DX12_BOUND_OBJECT(viewport);
         }
 
         void DX12CommandList::ClearDepthStencilView(SharedPtr<Viewport> viewport, float depth)
@@ -163,6 +173,8 @@ namespace cube
             DX12Viewport* dx12Viewport = dynamic_cast<DX12Viewport*>(viewport.get());
             D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = dx12Viewport->GetDSVDescriptor();
             mCommandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, depth, 0, 0, nullptr);
+
+            CUBE_DX12_BOUND_OBJECT(viewport);
         }
 
         void DX12CommandList::SetShaderVariableConstantBuffer(Uint32 index, SharedPtr<Buffer> constantBuffer)
@@ -173,6 +185,8 @@ namespace cube
             const DX12Buffer* dx12Buffer = dynamic_cast<DX12Buffer*>(constantBuffer.get());
 
             mCommandList->SetGraphicsRootConstantBufferView(index, dx12Buffer->GetResource()->GetGPUVirtualAddress());
+
+            CUBE_DX12_BOUND_OBJECT(constantBuffer);
         }
 
         void DX12CommandList::ResourceTransition(SharedPtr<Buffer> buffer, ResourceStateFlags srcState, ResourceStateFlags dstState)
@@ -192,6 +206,8 @@ namespace cube
                 }
             };
             mCommandList->ResourceBarrier(1, &barrier);
+
+            CUBE_DX12_BOUND_OBJECT(buffer);
         }
 
         void DX12CommandList::ResourceTransition(SharedPtr<Viewport> viewport, ResourceStateFlags srcState, ResourceStateFlags dstState)
@@ -210,18 +226,21 @@ namespace cube
                     .StateAfter = ConvertToDX12ResourceStates(dstState) }
             };
             mCommandList->ResourceBarrier(1, &barrier);
+
+            CUBE_DX12_BOUND_OBJECT(viewport);
         }
 
-        void DX12CommandList::BindVertexBuffers(Uint32 startIndex, Uint32 numBuffers, const SharedPtr<Buffer>* pBuffers, Uint32* pOffsets)
+        void DX12CommandList::BindVertexBuffers(Uint32 startIndex, ArrayView<SharedPtr<Buffer>> buffers, ArrayView<Uint32> offsets)
         {
             CHECK(mState == State::Writing);
+            CHECK(buffers.size() == offsets.size());
 
-            FrameVector<D3D12_VERTEX_BUFFER_VIEW> d3d12VertexBufferViews(numBuffers);
-            for (Uint32 i = 0; i < numBuffers; ++i)
+            FrameVector<D3D12_VERTEX_BUFFER_VIEW> d3d12VertexBufferViews(buffers.size());
+            for (Uint32 i = 0; i < buffers.size(); ++i)
             {
-                CHECK(pBuffers[i]->GetType() == BufferType::Vertex);
+                CHECK(buffers[i]->GetType() == BufferType::Vertex);
 
-                const DX12Buffer* dx12Buffer = dynamic_cast<DX12Buffer*>(pBuffers[i].get());
+                const DX12Buffer* dx12Buffer = dynamic_cast<DX12Buffer*>(buffers[i].get());
                 D3D12_VERTEX_BUFFER_VIEW& vertexBufferView = d3d12VertexBufferViews[i];
 
                 vertexBufferView = {
@@ -229,9 +248,11 @@ namespace cube
                     .SizeInBytes = static_cast<UINT>(dx12Buffer->GetSize()),
                     .StrideInBytes = sizeof(Vertex)
                 };
+
+                CUBE_DX12_BOUND_OBJECT(buffers[i]);
             }
 
-            mCommandList->IASetVertexBuffers(0, numBuffers, d3d12VertexBufferViews.data());
+            mCommandList->IASetVertexBuffers(0, d3d12VertexBufferViews.size(), d3d12VertexBufferViews.data());
         }
 
         void DX12CommandList::BindIndexBuffer(SharedPtr<Buffer> buffer, Uint32 offset)
@@ -248,6 +269,8 @@ namespace cube
             };
 
             mCommandList->IASetIndexBuffer(&indexBufferView);
+
+            CUBE_DX12_BOUND_OBJECT(buffer);
         }
 
         void DX12CommandList::Draw(Uint32 numVertices, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance)
@@ -280,6 +303,9 @@ namespace cube
 
             ID3D12CommandList* cmdLists[] = { mCommandList.Get() };
             mQueueManager.GetMainQueue()->ExecuteCommandLists(1, cmdLists);
+
+            mCommandListManager.AddBoundObjects(mBoundObjects);
+            mBoundObjects.clear();
         }
     } // namespace gapi
 } // namespace cube

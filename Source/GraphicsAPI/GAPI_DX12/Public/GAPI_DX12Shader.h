@@ -4,11 +4,13 @@
 
 #include "GAPI_Shader.h"
 
+#include "DX12APIObject.h"
+
 namespace cube
 {
     namespace gapi
     {
-        class DX12Shader : public Shader
+        class DX12Shader : public Shader, public DX12APIObject
         {
         public:
             DX12Shader(ID3DBlob* shader);

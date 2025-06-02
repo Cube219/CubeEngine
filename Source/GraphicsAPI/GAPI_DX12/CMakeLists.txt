@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.19)
 
 set(PUBLIC_FILES
+    Public/DX12APIObject.h
     Public/DX12Header.h
     Public/GAPI_DX12.h
     Public/GAPI_DX12Buffer.h

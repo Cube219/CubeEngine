@@ -48,8 +48,8 @@ namespace cube
             virtual void End() = 0;
             virtual void Reset() = 0;
 
-            virtual void SetViewports(Uint32 numViewports, const SharedPtr<Viewport>* pViewports) = 0;
-            virtual void SetScissors(Uint32 numScissors, const ScissorRect* pScissors) = 0;
+            virtual void SetViewports(ArrayView<SharedPtr<Viewport>> viewports) = 0;
+            virtual void SetScissors(ArrayView<ScissorRect> scissors) = 0;
             virtual void SetPrimitiveTopology(PrimitiveTopology primitiveTopology) = 0;
 
             virtual void SetShaderVariablesLayout(SharedPtr<ShaderVariablesLayout> shaderVariablesLayout) = 0;
@@ -62,7 +62,7 @@ namespace cube
             virtual void ResourceTransition(SharedPtr<Buffer> buffer, ResourceStateFlags srcState, ResourceStateFlags dstState) = 0;
             virtual void ResourceTransition(SharedPtr<Viewport> viewport, ResourceStateFlags srcState, ResourceStateFlags dstState) = 0;
 
-            virtual void BindVertexBuffers(Uint32 startIndex, Uint32 numBuffers, const SharedPtr<Buffer>* pBuffers, Uint32* pOffsets) = 0;
+            virtual void BindVertexBuffers(Uint32 startIndex, ArrayView<SharedPtr<Buffer>> buffers, ArrayView<Uint32> offsets) = 0;
             virtual void BindIndexBuffer(SharedPtr<Buffer> buffer, Uint32 offset) = 0;
 
             virtual void Draw(Uint32 numVertices, Uint32 baseVertex, Uint32 numInstances = 1, Uint32 baseInstance = 0) = 0;

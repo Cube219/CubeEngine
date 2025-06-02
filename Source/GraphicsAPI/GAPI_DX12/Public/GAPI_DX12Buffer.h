@@ -4,6 +4,7 @@
 
 #include "GAPI_Buffer.h"
 
+#include "DX12APIObject.h"
 #include "DX12MemoryAllocator.h"
 
 namespace cube
@@ -12,7 +13,7 @@ namespace cube
 
     namespace gapi
     {
-        class DX12Buffer : public Buffer
+        class DX12Buffer : public Buffer, public DX12APIObject
         {
         public:
             DX12Buffer(const BufferCreateInfo& info, DX12Device& device);
