@@ -18,8 +18,8 @@ namespace cube
             void End() override {}
             void Reset() override {}
 
-            void SetViewports(Uint32 numViewports, const SharedPtr<Viewport>* pViewports) override {}
-            void SetScissors(Uint32 numScissors, const ScissorRect* pScissors) override {}
+            void SetViewports(ArrayView<SharedPtr<Viewport>> viewports) override {}
+            void SetScissors(ArrayView<ScissorRect> scissors) override {}
             void SetPrimitiveTopology(PrimitiveTopology primitiveTopology) override {}
 
             void SetShaderVariablesLayout(SharedPtr<ShaderVariablesLayout> shaderVariablesLayout) override {}
@@ -32,7 +32,7 @@ namespace cube
             void ResourceTransition(SharedPtr<Buffer> buffer, ResourceStateFlags srcState, ResourceStateFlags dstState) override {}
             void ResourceTransition(SharedPtr<Viewport> viewport, ResourceStateFlags srcState, ResourceStateFlags dstState) override {}
 
-            void BindVertexBuffers(Uint32 startIndex, Uint32 numBuffers, const SharedPtr<Buffer>* pBuffers, Uint32* pOffsets) override {}
+            void BindVertexBuffers(Uint32 startIndex, ArrayView<SharedPtr<Buffer>> buffers, ArrayView<Uint32> offsets) override {}
             void BindIndexBuffer(SharedPtr<Buffer> buffer, Uint32 offset) override {}
 
             void Draw(Uint32 numVertices, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance) override {}
