@@ -11,6 +11,7 @@ set(PUBLIC_FILES
     Public/GAPI_DX12Resource.h
     Public/GAPI_DX12Shader.h
     Public/GAPI_DX12ShaderVariable.h
+    Public/GAPI_DX12Texture.h
     Public/GAPI_DX12Viewport.h
 )
 set(PRIVATE_FILES
@@ -34,6 +35,8 @@ set(PRIVATE_FILES
     Private/DX12ShaderCompiler.h
     Private/DX12Types.cpp
     Private/DX12Types.h
+    Private/DX12UploadManager.cpp
+    Private/DX12UploadManager.h
     Private/DX12Utility.h
     Private/GAPI_DX12.cpp
     Private/GAPI_DX12Buffer.cpp
@@ -43,6 +46,7 @@ set(PRIVATE_FILES
     Private/GAPI_DX12Resource.cpp
     Private/GAPI_DX12Shader.cpp
     Private/GAPI_DX12ShaderVariable.cpp
+    Private/GAPI_DX12Texture.cpp
     Private/GAPI_DX12Viewport.cpp
 )
 

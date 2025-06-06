@@ -45,7 +45,7 @@ namespace cube
                 {
                     Uint64 newSize = (mSize + 255) & ~255;
                     CUBE_LOG(Warning, DX12, "CB size should be 256 byte aligned. Size will be changed. ({} -> {})", mSize, newSize);
-                    mSize = newSize;
+                    mSize = newSize; // TODO: Apply before allocation
                 }
 
                 mCBVDescriptor = device.GetDescriptorManager().GetSRVHeap().AllocateCPU();
@@ -69,25 +69,41 @@ namespace cube
 
         void* DX12Buffer::Map()
         {
-            if (mUsage == ResourceUsage::GPUOnly || mUsage == ResourceUsage::GPUtoCPU)
+            switch (mUsage)
             {
+            case ResourceUsage::GPUOnly:
+                // TODO: Use alignment?
+                mUploadDesc = mDevice.GetUploadManager().Allocate(ResourceType::Buffer, mSize);
+                return mUploadDesc.pData;
+            case ResourceUsage::CPUtoGPU:
+                mAllocation.Map();
+                return mAllocation.pMapPtr;
+            case ResourceUsage::GPUtoCPU:
+            default:
                 NOT_IMPLEMENTED();
                 return nullptr;
             }
-
-            mAllocation.Map();
-            return mAllocation.pMapPtr;
         }
 
         void DX12Buffer::Unmap()
         {
-            if (mUsage == ResourceUsage::GPUOnly || mUsage == ResourceUsage::GPUtoCPU)
+            switch (mUsage)
             {
-                NOT_IMPLEMENTED();
-                return;
-            }
+            case ResourceUsage::GPUOnly:
+                mUploadDesc.type = ResourceType::Buffer;
+                mUploadDesc.dstResource = mAllocation.allocation->GetResource();
+                mUploadDesc.dstAPIObject = this;
 
-            mAllocation.Unmap();
+                mDevice.GetUploadManager().Submit(mUploadDesc, true);
+                break;
+            case ResourceUsage::CPUtoGPU:
+                mAllocation.Unmap();
+                break;
+            case ResourceUsage::GPUtoCPU:
+            default:
+                NOT_IMPLEMENTED();
+                break;
+            }
         }
     } // namespace gapi
 } // namespace cube

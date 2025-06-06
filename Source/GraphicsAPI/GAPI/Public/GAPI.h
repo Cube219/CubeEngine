@@ -19,6 +19,8 @@ namespace cube
         struct ShaderCompileResult;
         class Buffer;
         struct BufferCreateInfo;
+        class Texture;
+        struct TextureCreateInfo;
         class CommandList;
         struct CommandListCreateInfo;
         class Fence;
@@ -86,6 +88,7 @@ namespace cube
         const Info& GetInfo() const { return mInfo; }
 
         virtual SharedPtr<gapi::Buffer> CreateBuffer(const gapi::BufferCreateInfo& info) = 0;
+        virtual SharedPtr<gapi::Texture> CreateTexture(const gapi::TextureCreateInfo& info) = 0;
         virtual SharedPtr<gapi::CommandList> CreateCommandList(const gapi::CommandListCreateInfo& info) = 0;
         virtual SharedPtr<gapi::Fence> CreateFence(const gapi::FenceCreateInfo& info) = 0;
         virtual SharedPtr<gapi::Pipeline> CreateGraphicsPipeline(const gapi::GraphicsPipelineCreateInfo& info) = 0;

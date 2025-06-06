@@ -13,6 +13,7 @@
 #include "GAPI_MetalPipeline.h"
 #include "GAPI_MetalShader.h"
 #include "GAPI_MetalShaderVariable.h"
+#include "GAPI_MetalTexture.h"
 #include "GAPI_MetalViewport.h"
 #include "Logger.h"
 #include "MacOS/MacOSPlatform.h"
@@ -135,6 +136,11 @@ namespace cube
     SharedPtr<gapi::Buffer> GAPI_Metal::CreateBuffer(const gapi::BufferCreateInfo& info)
     {
         return std::make_shared<gapi::MetalBuffer>(info);
+    }
+
+    SharedPtr<gapi::Texture> GAPI_Metal::CreateTexture(const gapi::TextureCreateInfo& info)
+    {
+        return std::make_shared<gapi::MetalTexture>(info);
     }
 
     SharedPtr<gapi::CommandList> GAPI_Metal::CreateCommandList(const gapi::CommandListCreateInfo& info)

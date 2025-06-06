@@ -6,6 +6,8 @@ namespace cube
 {
     class DX12Device;
 
+    using DX12FenceValue = Uint64;
+
     class DX12Fence
     {
     public:
@@ -16,14 +18,14 @@ namespace cube
         void Shutdown(bool skipPendingSignal = false);
 
         void Signal(ID3D12CommandQueue* queue, Uint64 fenceValue);
-        void Wait(Uint64 fenceValue);
-        Uint64 GetCompletedValue();
+        void Wait(DX12FenceValue fenceValue);
+        DX12FenceValue GetCompletedValue();
 
     private:
         DX12Device& mDevice;
 
         ComPtr<ID3D12Fence> mFence;
         HANDLE mFenceEvent;
-        Uint64 mLastSignalFenceValue;
+        DX12FenceValue mLastSignalFenceValue;
     };
 } // namespace cube

@@ -14,6 +14,7 @@
 // (https://developercommunity.visualstudio.com/content/problem/274945/stdmake-shared-is-not-honouring-alignment-of-a.html)
 #define _ENABLE_EXTENDED_ALIGNED_STORAGE 1
 #include <memory>
+#include <set>
 
 namespace cube
 {    
@@ -55,6 +56,9 @@ namespace cube
 
     template <typename Type, size_t Extent = std::dynamic_extent>
     using ArrayView = std::span<Type, Extent>;
+
+    template <typename Value>
+    using Set = std::set<Value>;
 
     template <typename Key, typename Value>
     using Map = std::map<Key, Value>;

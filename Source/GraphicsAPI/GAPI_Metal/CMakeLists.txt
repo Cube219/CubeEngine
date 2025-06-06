@@ -9,6 +9,7 @@ set(PUBLIC_FILES
     Public/GAPI_MetalResource.h
     Public/GAPI_MetalShader.h
     Public/GAPI_MetalShaderVariable.h
+    Public/GAPI_MetalTexture.h
     Public/GAPI_MetalViewport.h
     Public/MetalHeader.h
 )

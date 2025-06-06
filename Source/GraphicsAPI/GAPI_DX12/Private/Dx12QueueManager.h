@@ -18,10 +18,12 @@ namespace cube
         void Shutdown();
 
         ID3D12CommandQueue* GetMainQueue() const { return mMainQueue.Get(); }
+        ID3D12CommandQueue* GetCopyQueue() const { return mCopyQueue.Get(); }
 
     private:
         DX12Device& mDevice;
 
         ComPtr<ID3D12CommandQueue> mMainQueue;
+        ComPtr<ID3D12CommandQueue> mCopyQueue;
     };
 } // namespace cube

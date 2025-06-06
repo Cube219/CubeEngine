@@ -9,6 +9,12 @@ namespace cube
 {
     namespace gapi
     {
+        enum class ResourceType
+        {
+            Buffer,
+            Texture
+        };
+
         enum class ResourceUsage
         {
             GPUOnly,

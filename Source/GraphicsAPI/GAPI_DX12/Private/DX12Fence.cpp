@@ -37,15 +37,15 @@ namespace cube
         mFence = nullptr;
     }
 
-    void DX12Fence::Signal(ID3D12CommandQueue* queue, Uint64 fenceValue)
+    void DX12Fence::Signal(ID3D12CommandQueue* queue, DX12FenceValue fenceValue)
     {
         queue->Signal(mFence.Get(), fenceValue);
         mLastSignalFenceValue = fenceValue;
     }
 
-    void DX12Fence::Wait(Uint64 fenceValue)
+    void DX12Fence::Wait(DX12FenceValue fenceValue)
     {
-        Uint64 comp = mFence->GetCompletedValue();
+        DX12FenceValue comp = mFence->GetCompletedValue();
         if (comp < fenceValue)
         {
             CHECK_HR(mFence->SetEventOnCompletion(fenceValue, mFenceEvent));
@@ -53,7 +53,7 @@ namespace cube
         }
     }
 
-    Uint64 DX12Fence::GetCompletedValue()
+    DX12FenceValue DX12Fence::GetCompletedValue()
     {
         return mFence->GetCompletedValue();
     }

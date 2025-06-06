@@ -1,8 +1,7 @@
 #include "Allocator/FrameAllocator.h"
 
+#include "Allocator/AllocatorUtility.h"
 #include "Platform.h"
-
-#include "AllocatorUtility.h"
 
 namespace cube
 {

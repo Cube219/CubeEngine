@@ -3,9 +3,6 @@
 #include "imgui_impl_dx12.h"
 #include "imgui_impl_win32.h"
 
-#include "Logger.h"
-#include "Windows/WindowsPlatform.h"
-
 #include "DX12Debug.h"
 #include "DX12ShaderCompiler.h"
 #include "DX12Types.h"
@@ -16,7 +13,10 @@
 #include "GAPI_DX12Pipeline.h"
 #include "GAPI_DX12Shader.h"
 #include "GAPI_DX12ShaderVariable.h"
+#include "GAPI_DX12Texture.h"
 #include "GAPI_DX12Viewport.h"
+#include "Logger.h"
+#include "Windows/WindowsPlatform.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -247,6 +247,11 @@ namespace cube
     SharedPtr<gapi::Buffer> GAPI_DX12::CreateBuffer(const gapi::BufferCreateInfo& info)
     {
         return std::make_shared<gapi::DX12Buffer>(info, *mMainDevice);
+    }
+
+    SharedPtr<gapi::Texture> GAPI_DX12::CreateTexture(const gapi::TextureCreateInfo& info)
+    {
+        return std::make_shared<gapi::DX12Texture>(info, *mMainDevice);
     }
 
     SharedPtr<gapi::CommandList> GAPI_DX12::CreateCommandList(const gapi::CommandListCreateInfo& info)

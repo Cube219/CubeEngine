@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 3.19)
 
 set(PUBLIC_FILES
+    Public/Allocator/AllocatorUtility.h
     Public/Allocator/FrameAllocator.h
     Public/CoreHeader.h
     Public/Engine.h
 )
 set(PRIVATE_FILES
-    Private/Allocator/AllocatorUtility.h
     Private/Allocator/FrameAllocator.cpp
     Private/Renderer/BaseMeshGenerator.cpp
     Private/Renderer/BaseMeshGenerator.h

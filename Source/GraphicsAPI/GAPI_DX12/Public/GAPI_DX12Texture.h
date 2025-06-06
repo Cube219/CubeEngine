@@ -2,7 +2,7 @@
 
 #include "DX12Header.h"
 
-#include "GAPI_Buffer.h"
+#include "GAPI_Texture.h"
 
 #include "DX12APIObject.h"
 #include "DX12MemoryAllocator.h"
@@ -14,25 +14,26 @@ namespace cube
 
     namespace gapi
     {
-        class DX12Buffer : public Buffer, public DX12APIObject
+        class DX12Texture : public Texture, public DX12APIObject
         {
         public:
-            DX12Buffer(const BufferCreateInfo& info, DX12Device& device);
-            virtual ~DX12Buffer();
+            DX12Texture(const TextureCreateInfo& info, DX12Device& device);
+            virtual ~DX12Texture();
 
             virtual void* Map() override;
             virtual void Unmap() override;
 
             ID3D12Resource* GetResource() const { return mAllocation.allocation->GetResource(); }
-            D3D12_CPU_DESCRIPTOR_HANDLE GetCBVDescriptor() const { return mCBVDescriptor; }
 
         private:
             DX12Device& mDevice;
 
             DX12Allocation mAllocation;
-            DX12UploadDesc mUploadDesc;
 
-            D3D12_CPU_DESCRIPTOR_HANDLE mCBVDescriptor;
+            D3D12_PLACED_SUBRESOURCE_FOOTPRINT mLayout;
+            Uint64 mTotalSize;
+
+            DX12UploadDesc mUploadDesc;
         };
     } // namespace gapi
 } // namespace cube

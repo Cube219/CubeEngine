@@ -8,6 +8,7 @@ set(PUBLIC_FILES
     Public/GAPI_Resource.h
     Public/GAPI_Shader.h
     Public/GAPI_ShaderVariable.h
+    Public/GAPI_Texture.h
     Public/GAPI_Timestamp.h
     Public/GAPI_Viewport.h
     Public/GAPI.h

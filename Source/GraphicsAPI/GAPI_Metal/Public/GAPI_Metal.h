@@ -32,6 +32,7 @@ namespace cube
         virtual void WaitForGPU() override;
 
         virtual SharedPtr<gapi::Buffer> CreateBuffer(const gapi::BufferCreateInfo& info) override;
+        virtual SharedPtr<gapi::Texture> CreateTexture(const gapi::TextureCreateInfo& info) override;
         virtual SharedPtr<gapi::CommandList> CreateCommandList(const gapi::CommandListCreateInfo& info) override;
         virtual SharedPtr<gapi::Fence> CreateFence(const gapi::FenceCreateInfo& info) override;
         virtual SharedPtr<gapi::Pipeline> CreateGraphicsPipeline(const gapi::GraphicsPipelineCreateInfo& info) override;

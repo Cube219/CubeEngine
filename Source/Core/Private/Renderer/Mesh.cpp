@@ -42,15 +42,17 @@ namespace cube
             using namespace gapi;
             BufferCreateInfo vertexBufferCreateInfo = {
                 .type = BufferType::Vertex,
-                .usage = ResourceUsage::CPUtoGPU,
-                .size = sizeof(Vertex) * meshData->GetNumVertices()
+                .usage = ResourceUsage::GPUOnly,
+                .size = sizeof(Vertex) * meshData->GetNumVertices(),
+                .debugName = "Vertex buffer"
             };
             mVertexBuffer = gAPI.CreateBuffer(vertexBufferCreateInfo);
 
             BufferCreateInfo indexBufferCreateInfo = {
                 .type = BufferType::Index,
-                .usage = ResourceUsage::CPUtoGPU,
-                .size = sizeof(Index) * meshData->GetNumIndices()
+                .usage = ResourceUsage::GPUOnly,
+                .size = sizeof(Index) * meshData->GetNumIndices(),
+                .debugName = "Index buffer"
             };
             mIndexBuffer = gAPI.CreateBuffer(indexBufferCreateInfo);
 
