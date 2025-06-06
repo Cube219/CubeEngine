@@ -23,6 +23,7 @@ namespace cube
         void Shutdown();
 
         IDXGIAdapter1* GetAdapter() const { return mAdapter.Get(); }
+        IDXGIAdapter3* GetAdapter3() const { return mAdapter3.Get(); }
         const DXGI_ADAPTER_DESC& GetAdapterDesc() const { return mAdapterDesc; }
         ID3D12Device* GetDevice() const { return mDevice.Get(); }
 
@@ -34,6 +35,7 @@ namespace cube
 
     private:
         ComPtr<IDXGIAdapter1> mAdapter;
+        ComPtr<IDXGIAdapter3> mAdapter3;
         DXGI_ADAPTER_DESC mAdapterDesc;
         ComPtr<ID3D12Device> mDevice;
 

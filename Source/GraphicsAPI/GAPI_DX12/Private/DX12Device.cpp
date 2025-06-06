@@ -20,6 +20,7 @@ namespace cube
     void DX12Device::Initialize(const ComPtr<IDXGIAdapter1>& adapter)
     {
         mAdapter = adapter;
+        mAdapter.As(&mAdapter3);
 
 		CHECK_HR(mAdapter->GetDesc(&mAdapterDesc));
 

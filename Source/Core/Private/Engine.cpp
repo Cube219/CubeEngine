@@ -136,6 +136,7 @@ namespace cube
                 &mImGUIContext.userData);
 
             ImPlot::CreateContext();
+            ImPlot::StyleColorsDark();
         }
 
         mRenderer = std::make_unique<Renderer>();

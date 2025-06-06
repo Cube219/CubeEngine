@@ -95,6 +95,7 @@ namespace cube
         virtual SharedPtr<gapi::Viewport> CreateViewport(const gapi::ViewportCreateInfo& info) = 0;
 
         virtual gapi::TimestampList GetLastTimestampList() = 0;
+        virtual gapi::VRAMStatus GetVRAMUsage() = 0;
 
     protected:
         Info mInfo;

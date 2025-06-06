@@ -17,7 +17,7 @@ namespace cube
         static void OnLoopImGUI();
 
     private:
-        static void CalculateFrameTimeAndFPS(double deltaTimeSec);
+        static void CalculateStats(double deltaTimeSec);
 
         static float mCurrentFrameTimeMS;
         static float mCurrentFPS;
@@ -33,5 +33,12 @@ namespace cube
         static Array<float, NUM_STATS_HISTORY * 2> mFrameTimeMSHistory;
         static Array<float, NUM_STATS_HISTORY * 2> mFPSHistory;
         static Array<float, NUM_STATS_HISTORY * 2> mGPUTimeMSHistory;
+
+        static float mCurrentPhysicalVRAMMiB;
+        static float mMaximumPhysicalVRAMMiB;
+        static float mCurrentLogicalVRAMMiB;
+        static float mMaximumLogicalVRAMMiB;
+        static Array<float, NUM_STATS_HISTORY * 2> mPhysicalVRAMMiBHistory;
+        static Array<float, NUM_STATS_HISTORY * 2> mLogicalVRAMMiBHistory;
     };
 } // namespace cube

@@ -135,5 +135,13 @@ namespace cube
         };
         using ColorMaskFlags = Flags<ColorMaskFlag>;
         FLAGS_OPERATOR(ColorMaskFlag);
+
+        struct VRAMStatus
+        {
+            Uint64 physicalCurrentUsage;
+            Uint64 physicalMaximumUsage;
+            Uint64 logicalCurrentUsage;
+            Uint64 logicalMaximumUsage;
+        };
     } // namespace gapi
 } // namespace cube

@@ -312,6 +312,33 @@ namespace cube
         return mMainDevice->GetQueryManager().GetLastTimestampList();
     }
 
+    gapi::VRAMStatus GAPI_DX12::GetVRAMUsage()
+    {
+        gapi::VRAMStatus res = {
+            .physicalCurrentUsage = 0, .physicalMaximumUsage = 0,
+            .logicalCurrentUsage = 0, .logicalMaximumUsage = 0
+        };
+
+        IDXGIAdapter3* adapter3 = mMainDevice->GetAdapter3();
+        if (adapter3)
+        {
+            DXGI_QUERY_VIDEO_MEMORY_INFO memoryInfo;
+            if (SUCCEEDED(adapter3->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &memoryInfo)))
+            {
+                res.physicalCurrentUsage = memoryInfo.CurrentUsage;
+                res.physicalMaximumUsage = memoryInfo.Budget;
+            }
+
+            if (SUCCEEDED(adapter3->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &memoryInfo)))
+            {
+                res.logicalCurrentUsage = memoryInfo.CurrentUsage;
+                res.logicalMaximumUsage = memoryInfo.Budget;
+            }
+        }
+
+        return res;
+    }
+
     void GAPI_DX12::InitializeImGUI(const ImGUIContext& imGUIInfo)
     {
         if (imGUIInfo.context == nullptr)

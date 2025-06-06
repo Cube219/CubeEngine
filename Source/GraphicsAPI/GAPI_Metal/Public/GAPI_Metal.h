@@ -41,6 +41,7 @@ namespace cube
         virtual SharedPtr<gapi::Viewport> CreateViewport(const gapi::ViewportCreateInfo& info) override;
 
         virtual gapi::TimestampList GetLastTimestampList() override;
+        virtual gapi::VRAMStatus GetVRAMUsage() override;
 
     private:
         void InitializeImGUI(const ImGUIContext& imGUIInfo);

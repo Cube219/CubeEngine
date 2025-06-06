@@ -197,6 +197,17 @@ namespace cube
         return {};
     }
 
+    gapi::VRAMStatus GAPI_Metal::GetVRAMUsage()
+    {
+        gapi::VRAMStatus res = {
+            .physicalCurrentUsage = 0, .physicalMaximumUsage = 0,
+            .logicalCurrentUsage = 0, .logicalMaximumUsage = 0
+        };
+
+        res.logicalCurrentUsage = mMainDevice->GetDevice().currentAllocatedSize;
+        return res;
+    }
+
     void GAPI_Metal::InitializeImGUI(const ImGUIContext& imGUIInfo)
     {
         if (imGUIInfo.context == nullptr)
