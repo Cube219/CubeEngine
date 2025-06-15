@@ -57,6 +57,7 @@ add_subdirectory("ThirdParty/tinygltf")
 add_subdirectory("ThirdParty/tinyobjloader")
 if(PLATFORM_WINDOWS)
     add_subdirectory("ThirdParty/D3D12MemoryAllocator")
+    add_subdirectory("ThirdParty/directx-headers")
     add_subdirectory("ThirdParty/dxc")
 endif()
 

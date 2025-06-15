@@ -119,7 +119,20 @@ namespace cube
             {
                 DX12Device* device = new DX12Device();
                 device->Initialize(adapter);
-                mDevices.push_back(device);
+
+                CUBE_LOG(Info, DX12, "Found device: {0}", WindowsStringView(desc.Description));
+
+                if (device->CheckFeatureRequirements())
+                {
+                    mDevices.push_back(device);
+                }
+                else
+                {
+                    CUBE_LOG(Info, DX12, "Device {0} does not meet the feature requirements. It will not be used.", WindowsStringView(desc.Description));
+
+                    device->Shutdown();
+                    delete device;
+                }
             }
         };
         if (mFactory6)
@@ -136,10 +149,10 @@ namespace cube
                 CheckAndCreateDevice(adapter.Get());
             }
         }
-        CHECK(mDevices.size() > 0);
+        CHECK_FORMAT(mDevices.size() > 0, "No device found that can run this engine!");
         mMainDevice = mDevices[0];
 
-        CUBE_LOG(Info, DX12, "Found {0} devices.", mDevices.size());
+        CUBE_LOG(Info, DX12, "Found {0} supported devices.", mDevices.size());
         CUBE_LOG(Info, DX12, "Use the first device: {0}", WindowsStringView(mMainDevice->GetAdapterDesc().Description));
 
         InitializeImGUI(initInfo.imGUI);

@@ -23,6 +23,8 @@ namespace cube
         void Initialize(const ComPtr<IDXGIAdapter1>& adapter);
         void Shutdown();
 
+        bool CheckFeatureRequirements();
+
         IDXGIAdapter1* GetAdapter() const { return mAdapter.Get(); }
         IDXGIAdapter3* GetAdapter3() const { return mAdapter3.Get(); }
         const DXGI_ADAPTER_DESC& GetAdapterDesc() const { return mAdapterDesc; }
@@ -40,6 +42,8 @@ namespace cube
         ComPtr<IDXGIAdapter3> mAdapter3;
         DXGI_ADAPTER_DESC mAdapterDesc;
         ComPtr<ID3D12Device> mDevice;
+
+        CD3DX12FeatureSupport mFeatureSupport;
 
         DX12MemoryAllocator mMemoryAllocator;
         DX12QueueManager mQueueManager;

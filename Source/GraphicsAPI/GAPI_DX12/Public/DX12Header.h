@@ -3,6 +3,7 @@
 #include "Defines.h"
 #include "Types.h"
 
+#include <directx/d3dx12.h> // Should be included before other dx12 headers
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <wrl/client.h>

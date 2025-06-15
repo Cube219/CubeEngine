@@ -68,10 +68,11 @@ target_include_directories(CE-GAPI_DX12
 target_link_libraries(CE-GAPI_DX12
     PRIVATE
         d3d12.lib
-        dxc
         dxgi.lib
         dxguid.lib
         D3D12MemoryAllocator
+        Microsoft::DirectX-Headers
+        dxc
         imgui
         CE-Base
         CE-Logger
