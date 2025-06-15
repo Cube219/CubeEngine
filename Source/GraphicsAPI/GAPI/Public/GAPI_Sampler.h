@@ -25,6 +25,7 @@ namespace cube
 
         struct SamplerCreateInfo
         {
+            // TODO: comparison filter?
             SamplerFilterType minFilter;
             SamplerFilterType magFilter;
             SamplerFilterType mipFilter;

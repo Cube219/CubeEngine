@@ -66,7 +66,7 @@ namespace cube
                 .AddressW = ConvertToD3D12TextureAddressMode(info.addressW),
                 .MipLODBias = info.mipLodBias,
                 .MaxAnisotropy = info.maxAnisotropy,
-                .ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS,
+                .ComparisonFunc = D3D12_COMPARISON_FUNC_NONE,
                 .BorderColor = {
                     info.borderColor[0],
                     info.borderColor[1],
