@@ -19,6 +19,7 @@ namespace cube
             TextureCubeArray
         };
 
+        // TODO: mipmapping
         struct TextureCreateInfo
         {
             ResourceUsage usage;
@@ -41,7 +42,9 @@ namespace cube
                 mWidth(info.width),
                 mHeight(info.height),
                 mDepth(info.depth),
-                mArraySize(info.arraySize)
+                mArraySize(info.arraySize),
+                mRowPitch(0),
+                mBindlessIndex(-1)
             {}
             virtual ~Texture() = default;
 
@@ -56,6 +59,8 @@ namespace cube
             Uint32 GetArraySize() const { return mArraySize; }
             Uint32 GetRowPitch() const { return mRowPitch; }
 
+            int GetBindlessIndex() const { return mBindlessIndex; }
+
         protected:
             ResourceUsage mUsage;
             ElementFormat mFormat;
@@ -64,6 +69,8 @@ namespace cube
             Uint32 mDepth;
             Uint32 mArraySize;
             Uint32 mRowPitch;
+
+            int mBindlessIndex;
         };
     } // namespace gapi
 } // namespace cube

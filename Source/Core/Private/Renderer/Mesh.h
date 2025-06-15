@@ -2,6 +2,7 @@
 
 #include "CoreHeader.h"
 
+#include "Renderer/RenderTypes.h"
 #include "Vector.h"
 
 namespace cube
@@ -9,16 +10,7 @@ namespace cube
     namespace gapi
     {
         class Buffer;
-    }
-
-    struct Vertex
-	{
-	    Vector3 position;
-	    Vector4 color;
-	    Vector3 normal;
-	    Vector2 texCoord;
-	};
-	using Index = Uint32;
+    } // namespace gapi
 
 	struct SubMesh
 	{

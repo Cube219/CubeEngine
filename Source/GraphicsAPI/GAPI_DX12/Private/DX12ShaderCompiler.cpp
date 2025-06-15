@@ -1,10 +1,11 @@
 #include "DX12ShaderCompiler.h"
 
-#include <d3dcompiler.h>
+#include <dxcapi.h>
 
 #include "DX12Device.h"
 #include "GAPI_Shader.h"
 #include "SlangHelper.h"
+#include "Windows/WindowsString.h"
 
 #ifndef CUBE_DX12_SLANG_TARGET_HLSL
 #define CUBE_DX12_SLANG_TARGET_HLSL 0
@@ -12,17 +13,26 @@
 
 namespace cube
 {
+    ComPtr<IDxcUtils> DX12ShaderCompiler::mUtils;
+    ComPtr<IDxcCompiler3> DX12ShaderCompiler::mCompiler;
+
     void DX12ShaderCompiler::Initialize()
     {
         SlangHelper::Initialize();
+
+        CHECK_HR(DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&mUtils)));
+        CHECK_HR(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&mCompiler)));
     }
 
     void DX12ShaderCompiler::Shutdown()
     {
+        mCompiler = nullptr;
+        mUtils = nullptr;
+
         SlangHelper::Shutdown();
     }
 
-    ID3DBlob* DX12ShaderCompiler::Compile(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult)
+    Blob DX12ShaderCompiler::Compile(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult)
     {
         compileResult.Reset();
 
@@ -36,55 +46,84 @@ namespace cube
             return CompileFromSlang(createInfo, compileResult);
         default:
             compileResult.AddError(Format<FrameString>(CUBE_T("Not supported shader language: {0}"), (int)createInfo.language));
-            return nullptr;
+            return {};
         }
     }
 
-    ID3DBlob* DX12ShaderCompiler::CompileFromHLSL(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult)
+    Blob DX12ShaderCompiler::CompileFromHLSL(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult)
     {
-        const char* target = nullptr;
+        using FrameWindowsString = TFrameString<WindowsCharacter>;
+
+        FrameVector<const WindowsCharacter*> args;
+        args.push_back(WINDOWS_T("-E"));
+        FrameWindowsString entryPoint = String_Convert<FrameWindowsString>(createInfo.entryPoint);
+        args.push_back(entryPoint.c_str());
+
+        args.push_back(WINDOWS_T("-T"));
         switch (createInfo.type)
         {
         case gapi::ShaderType::Vertex:
-            target = "vs_5_0";
+            args.push_back(WINDOWS_T("vs_6_6"));
             break;
         case gapi::ShaderType::Pixel:
-            target = "ps_5_0";
+            args.push_back(WINDOWS_T("ps_6_6"));
             break;
         default:
             compileResult.AddError(Format<FrameString>(CUBE_T("Not supported shader type: {0}"), (int)createInfo.type));
-            return nullptr;
+            return {};
+        }
+        if (createInfo.withDebugSymbol)
+        {
+            args.push_back(WINDOWS_T("-Zi"));
+            args.push_back(WINDOWS_T("-Qembed_debug"));
         }
 
-        int compilerFlags = D3DCOMPILE_DEBUG;
+        DxcBuffer sourceBuffer = {
+            .Ptr = createInfo.code.GetData(),
+            .Size = createInfo.code.GetSize(),
+            .Encoding = DXC_CP_ACP
+        };
 
-        ID3DBlob* shader;
-        ComPtr<ID3DBlob> errorMessageBlob;
-        HRESULT res = D3DCompile(createInfo.code.GetData(), createInfo.code.GetSize(), NULL, NULL, NULL, createInfo.entryPoint, target, compilerFlags, 0, &shader, &errorMessageBlob);
+        ComPtr<IDxcResult> dxcResult;
+        CHECK_HR(mCompiler->Compile(&sourceBuffer, args.data(), args.size(), nullptr, IID_PPV_ARGS(&dxcResult)));
+
+        HRESULT res;
+        dxcResult->GetStatus(&res);
         if (res == S_OK)
         {
             compileResult.isSuccess = true;
-            return shader;
+
+            ComPtr<IDxcBlob> shader;
+            dxcResult->GetResult(&shader);
+            return Blob(shader->GetBufferPointer(), shader->GetBufferSize());
         }
         else
         {
-            const char* errorMessage = (const char*)errorMessageBlob->GetBufferPointer();
-            compileResult.AddError(Format<FrameString>(CUBE_T("Failed to compile HLSL shader!\n\n{0}\n"), errorMessage));
-            return nullptr;
+            ComPtr<IDxcBlobEncoding> errorBlob;
+            dxcResult->GetErrorBuffer(&errorBlob);
+            if (errorBlob && errorBlob->GetBufferSize() > 0)
+            {
+                const char* errorMessage = (const char*)errorBlob->GetBufferPointer();
+                compileResult.AddError(Format<FrameString>(CUBE_T("Failed to compile HLSL shader!\n\n{0}\n"), errorMessage));
+            }
+            else
+            {
+                compileResult.AddError(CUBE_T("Failed to compile HLSL shader!\n\nNo error message provided."));
+            }
+            return {};
         }
     }
 
-    ID3DBlob* DX12ShaderCompiler::CompileFromDXIL(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult)
+    Blob DX12ShaderCompiler::CompileFromDXIL(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult)
     {
-        ID3DBlob* shaderBlob;
-        D3DCreateBlob(createInfo.code.GetSize(), &shaderBlob);
-        memcpy(shaderBlob->GetBufferPointer(), createInfo.code.GetData(), createInfo.code.GetSize());
+        ComPtr<IDxcBlobEncoding> shader;
+        mUtils->CreateBlob(createInfo.code.GetData(), createInfo.code.GetSize(), DXC_CP_ACP, &shader);
 
         compileResult.isSuccess = true;
-        return shaderBlob;
+        return Blob(shader->GetBufferPointer(), shader->GetBufferSize());
     }
 
-    ID3DBlob* DX12ShaderCompiler::CompileFromSlang(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult)
+    Blob DX12ShaderCompiler::CompileFromSlang(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult)
     {
         SlangCompileOptions compileOption = {
 #if CUBE_DX12_SLANG_TARGET_HLSL
@@ -126,6 +165,6 @@ namespace cube
             }
         }
 
-        return nullptr;
+        return {};
     }
 } // namespace cube

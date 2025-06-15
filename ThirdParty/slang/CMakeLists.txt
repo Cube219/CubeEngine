@@ -30,25 +30,16 @@ target_include_directories(slang
         ${slang_SOURCE_DIR}/include
 )
 if(PLATFORM_WINDOWS)
-    set(SLANG_LIB
-        ${slang_SOURCE_DIR}/lib/slang.lib
-    )
-    set(SLANG_DLL
-        ${slang_SOURCE_DIR}/bin/slang.dll
-    )
     set_target_properties(slang PROPERTIES
         IMPORTED_LOCATION
-            "${SLANG_DLL}"
+            ${slang_SOURCE_DIR}/bin/slang.dll
         IMPORTED_IMPLIB
-            "${SLANG_LIB}"
+            ${slang_SOURCE_DIR}/lib/slang.lib
     )
 endif()
 if(PLATFORM_MACOS)
-    set(SLANG_LIB
-        ${slang_SOURCE_DIR}/lib/libslang.dylib
-    )
     set_target_properties(slang PROPERTIES
         IMPORTED_LOCATION
-            "${SLANG_LIB}"
+            ${slang_SOURCE_DIR}/lib/libslang.dylib
     )
 endif()

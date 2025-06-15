@@ -1,14 +1,15 @@
 #include "GAPI_DX12CommandList.h"
 
 #include "Allocator/FrameAllocator.h"
-
 #include "DX12Device.h"
 #include "GAPI_DX12Buffer.h"
 #include "GAPI_DX12Pipeline.h"
 #include "GAPI_DX12Resource.h"
 #include "GAPI_DX12ShaderVariable.h"
 #include "GAPI_DX12Viewport.h"
-#include "../../../Core/Private/Renderer/Mesh.h"
+#include "GAPI_Sampler.h"
+#include "GAPI_Texture.h"
+#include "Renderer/RenderTypes.h"
 
 namespace cube
 {
@@ -36,6 +37,7 @@ namespace cube
 
         DX12CommandList::DX12CommandList(DX12Device& device, const CommandListCreateInfo& info) :
             mCommandListManager(device.GetCommandListManager()),
+            mDescriptorManager(device.GetDescriptorManager()),
             mQueueManager(device.GetQueueManager()),
             mQueryManager(device.GetQueryManager()),
             mState(State::Closed)
@@ -60,7 +62,7 @@ namespace cube
         {
             CHECK(mState == State::Writing);
 
-            if (hasTimestampQuery)
+            if (mHasTimestampQuery)
             {
                 mQueryManager.ResolveTimestampQueryData(mCommandList.Get());
             }
@@ -79,7 +81,9 @@ namespace cube
             CHECK(mState == State::Closed);
 
             CHECK_HR(mCommandList->Reset(mCommandListManager.GetCurrentAllocator(), nullptr));
-            hasTimestampQuery = false;
+            mIsDescriptorHeapSet = false;
+            mIsShaderVariableLayoutSet = false;
+            mHasTimestampQuery = false;
             mState = State::Initial;
         }
 
@@ -127,10 +131,19 @@ namespace cube
         {
             CHECK(mState == State::Writing);
 
+            if (!mIsDescriptorHeapSet)
+            {
+                ArrayView<ID3D12DescriptorHeap*> heaps = mDescriptorManager.GetD3D12ShaderVisibleHeaps();
+                mCommandList->SetDescriptorHeaps(heaps.size(), heaps.data());
+                mIsDescriptorHeapSet = true;
+            }
+
             const DX12ShaderVariablesLayout* dx12ShaderVariablesLayout = dynamic_cast<const DX12ShaderVariablesLayout*>(shaderVariablesLayout.get());
             mCommandList->SetGraphicsRootSignature(dx12ShaderVariablesLayout->GetRootSignature());
 
             CUBE_DX12_BOUND_OBJECT(shaderVariablesLayout);
+
+            mIsShaderVariableLayoutSet = true;
         }
 
         void DX12CommandList::SetGraphicsPipeline(SharedPtr<Pipeline> graphicsPipeline)
@@ -148,7 +161,7 @@ namespace cube
 
             DX12Viewport* dx12Viewport = dynamic_cast<DX12Viewport*>(viewport.get());
             D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = dx12Viewport->GetCurrentRTVDescriptor();
-            D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = dx12Viewport->GetDSVDescriptor();
+            D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = dx12Viewport->GetDSVDescriptor().handle;
             mCommandList->OMSetRenderTargets(1, &rtvHandle, false, &dsvHandle);
 
             CUBE_DX12_BOUND_OBJECT(viewport);
@@ -171,7 +184,7 @@ namespace cube
             CHECK(mState == State::Writing);
 
             DX12Viewport* dx12Viewport = dynamic_cast<DX12Viewport*>(viewport.get());
-            D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = dx12Viewport->GetDSVDescriptor();
+            D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = dx12Viewport->GetDSVDescriptor().handle;
             mCommandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, depth, 0, 0, nullptr);
 
             CUBE_DX12_BOUND_OBJECT(viewport);
@@ -180,6 +193,7 @@ namespace cube
         void DX12CommandList::SetShaderVariableConstantBuffer(Uint32 index, SharedPtr<Buffer> constantBuffer)
         {
             CHECK(mState == State::Writing);
+            CHECK(mIsShaderVariableLayoutSet);
             CHECK(constantBuffer->GetType() == BufferType::Constant);
 
             const DX12Buffer* dx12Buffer = dynamic_cast<DX12Buffer*>(constantBuffer.get());
@@ -187,6 +201,22 @@ namespace cube
             mCommandList->SetGraphicsRootConstantBufferView(index, dx12Buffer->GetResource()->GetGPUVirtualAddress());
 
             CUBE_DX12_BOUND_OBJECT(constantBuffer);
+        }
+
+        void DX12CommandList::BindTexture(SharedPtr<Texture> texture)
+        {
+            CHECK(mState == State::Writing);
+
+            // Just bind the object
+            CUBE_DX12_BOUND_OBJECT(texture);
+        }
+
+        void DX12CommandList::BindSampler(SharedPtr<Sampler> sampler)
+        {
+            CHECK(mState == State::Writing);
+
+            // Just bind the object
+            CUBE_DX12_BOUND_OBJECT(sampler);
         }
 
         void DX12CommandList::ResourceTransition(SharedPtr<Buffer> buffer, ResourceStateFlags srcState, ResourceStateFlags dstState)
@@ -223,7 +253,8 @@ namespace cube
                     .pResource = currentBackbuffer,
                     .Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
                     .StateBefore = ConvertToDX12ResourceStates(srcState),
-                    .StateAfter = ConvertToDX12ResourceStates(dstState) }
+                    .StateAfter = ConvertToDX12ResourceStates(dstState)
+                }
             };
             mCommandList->ResourceBarrier(1, &barrier);
 
@@ -294,7 +325,7 @@ namespace cube
             int index = mQueryManager.AddTimestamp(name);
             mCommandList->EndQuery(mQueryManager.GetCurrentTimestampHeap(), D3D12_QUERY_TYPE_TIMESTAMP, index);
 
-            hasTimestampQuery = true;
+            mHasTimestampQuery = true;
         }
 
         void DX12CommandList::Submit()

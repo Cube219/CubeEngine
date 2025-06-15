@@ -163,7 +163,7 @@ namespace cube
             viewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
             viewDesc.Flags = D3D12_DSV_FLAG_NONE;
             mDSVDescriptor = mDevice.GetDescriptorManager().GetDSVHeap().AllocateCPU();
-            mDevice.GetDevice()->CreateDepthStencilView(mDepthBufferAllocation.allocation->GetResource(), &viewDesc, mDSVDescriptor);
+            mDevice.GetDevice()->CreateDepthStencilView(mDepthBufferAllocation.allocation->GetResource(), &viewDesc, mDSVDescriptor.handle);
 
             ComPtr<ID3D12GraphicsCommandList> cmdList;
             mDevice.GetDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, mDevice.GetCommandListManager().GetCurrentAllocator(), nullptr, IID_PPV_ARGS(&cmdList));

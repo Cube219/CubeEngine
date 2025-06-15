@@ -1,33 +1,43 @@
-cbuffer GlobalConstantBuffer
+struct GlobalData
 {
-	float4x4 viewProjection;
-	float3 directionalLightDirection;
-}
+    float4x4 viewProjection;
+    float3 directionalLightDirection;
+};
+ConstantBuffer<GlobalData> globalCB;
 
-cbuffer ObjectBufferData
+struct PerObjectData
 {
-	float4x4 model;
-	float4x4 modelInverse;
-	float4 overrideColor;
-}
+    float4x4 model;
+    float4x4 modelInverse;
+};
+ConstantBuffer<PerObjectData> perObjectCB;
+
+struct MaterialData
+{
+    float4 baseColor;
+    bool useBaseColorTexture;
+    DescriptorHandle<Texture2D> baseColorTexture;
+    DescriptorHandle<SamplerState> sampler;
+};
+ConstantBuffer<MaterialData> materialCB;
 
 struct VSInput
 {
-	float3 position : POSITION;
-	float4 color : COLOR;
-	float3 normal : NORMAL;
+    float3 position : POSITION;
+    float3 normal : NORMAL;
+    float2 uv : TEXCOORD0;
 };
 
 struct PSInput
 {
-	float4 position : SV_POSITION;
-	float4 color : COLOR;
-	float3 normal : NORMAL;
+    float4 position : SV_POSITION;
+    float3 normal : NORMAL;
+    float2 uv : TEXCOORD0;
 };
 
 struct PSOutput
 {
-	float4 color;
+    float4 color;
 };
 
 [shader("vertex")]
@@ -35,16 +45,9 @@ PSInput VSMain(VSInput input)
 {
     PSInput output;
 
-	output.position = mul(mul(float4(input.position, 1), model), viewProjection);
-	if (overrideColor.a > 0)
-	{
-		output.color = overrideColor;
-	}
-	else
-	{
-		output.color = input.color;
-	}
-	output.normal = input.normal;
+    output.position = mul(mul(float4(input.position, 1), perObjectCB.model), globalCB.viewProjection);
+    output.normal = input.normal;
+    output.uv = input.uv;
 
     return output;
 }
@@ -52,11 +55,22 @@ PSInput VSMain(VSInput input)
 [shader("pixel")]
 PSOutput PSMain(PSInput input) : SV_TARGET
 {
-	float3 ligthDir = normalize(mul(directionalLightDirection, (float3x3)modelInverse));
-	float intensity = dot(input.normal, ligthDir);
+    float3 ligthDir = normalize(mul(globalCB.directionalLightDirection, (float3x3)perObjectCB.modelInverse));
+    float intensity = dot(input.normal, ligthDir);
 
-	PSOutput output;
-	output.color = input.color * intensity;
+    PSOutput output;
+    if (materialCB.useBaseColorTexture)
+    {
+        output.color = materialCB.baseColorTexture.Sample(
+            materialCB.sampler,
+            input.uv
+        );
+    }
+    else
+    {
+        output.color = materialCB.baseColor;
+    }
+    output.color *= intensity;
 
-	return output;
+    return output;
 }

@@ -147,14 +147,13 @@ namespace cube
     }
 
     // Define strings with frame allocator
-    using FrameAnsiString = std::basic_string<AnsiCharacter, std::char_traits<AnsiCharacter>,
-        FrameAllocator::StdAllocator<AnsiCharacter>>;
+    template <typename Char>
+    using TFrameString = std::basic_string<Char, std::char_traits<Char>, FrameAllocator::StdAllocator<Char>>;
 
-    using FrameU8String = std::basic_string<U8Character, std::char_traits<U8Character>, FrameAllocator::StdAllocator<U8Character>>;
-
-    using FrameU16String = std::basic_string<U16Character, std::char_traits<U16Character>, FrameAllocator::StdAllocator<U16Character>>;
-
-    using FrameU32String = std::basic_string<U32Character, std::char_traits<U32Character>, FrameAllocator::StdAllocator<U32Character>>;
+    using FrameAnsiString = TFrameString<AnsiCharacter>;
+    using FrameU8String = TFrameString<U8Character>;
+    using FrameU16String = TFrameString<U16Character>;
+    using FrameU32String = TFrameString<U32Character>;
 
 #if defined(CUBE_DEFAULT_STRING_UTF8)
     using FrameString = FrameU8String;

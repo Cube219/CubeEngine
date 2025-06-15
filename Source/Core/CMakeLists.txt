@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.19)
 set(PUBLIC_FILES
     Public/Allocator/AllocatorUtility.h
     Public/Allocator/FrameAllocator.h
+    Public/Renderer/RenderTypes.h
     Public/CoreHeader.h
     Public/Engine.h
 )
@@ -10,12 +11,16 @@ set(PRIVATE_FILES
     Private/Allocator/FrameAllocator.cpp
     Private/Renderer/BaseMeshGenerator.cpp
     Private/Renderer/BaseMeshGenerator.h
+    Private/Renderer/Material.cpp
+    Private/Renderer/Material.h
     Private/Renderer/Mesh.cpp
     Private/Renderer/Mesh.h
     Private/Renderer/Renderer.cpp
     Private/Renderer/Renderer.h
     Private/Renderer/RenderObject.cpp
     Private/Renderer/RenderObject.h
+    Private/Renderer/SamplerManager.cpp
+    Private/Renderer/SamplerManager.h
     Private/Renderer/Shader.cpp
     Private/Renderer/Shader.h
     Private/Systems/CameraSystem.cpp

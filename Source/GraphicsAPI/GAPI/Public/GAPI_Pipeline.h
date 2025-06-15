@@ -16,6 +16,7 @@ namespace cube
         struct InputElement
         {
             const char* name;
+            Uint32 index;
             ElementFormat format;
             Uint32 offset;
         };

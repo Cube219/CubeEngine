@@ -2,6 +2,11 @@
 
 #include "DX12Header.h"
 
+#include "Blob.h"
+
+struct IDxcCompiler3;
+struct IDxcUtils;
+
 namespace cube
 {
     namespace gapi
@@ -19,11 +24,14 @@ namespace cube
         static void Initialize();
         static void Shutdown();
 
-        static ID3DBlob* Compile(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult);
+        static Blob Compile(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult);
 
     private:
-        static ID3DBlob* CompileFromHLSL(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult);
-        static ID3DBlob* CompileFromDXIL(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult);
-        static ID3DBlob* CompileFromSlang(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult);
+        static Blob CompileFromHLSL(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult);
+        static Blob CompileFromDXIL(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult);
+        static Blob CompileFromSlang(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult);
+
+        static ComPtr<IDxcUtils> mUtils;
+        static ComPtr<IDxcCompiler3> mCompiler;
     };
 } // namespace cube

@@ -10,7 +10,7 @@ namespace cube
     struct SlangCompileOptions
     {
         gapi::ShaderLanguage target;
-        const char* profile = "sm_6_0";
+        const char* profile = "sm_6_6";
 
         bool withDebugSymbol = false;
     };

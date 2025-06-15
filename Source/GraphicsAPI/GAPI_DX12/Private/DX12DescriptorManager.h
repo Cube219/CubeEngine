@@ -6,13 +6,19 @@ namespace cube
 {
     class DX12Device;
 
+    struct DX12DescriptorHandle
+    {
+        int index = -1;
+        D3D12_CPU_DESCRIPTOR_HANDLE handle;
+    };
+
     class DX12DescriptorHeap
     {
     public:
         ID3D12DescriptorHeap* Get() const { return mHeap.Get(); }
 
-        D3D12_CPU_DESCRIPTOR_HANDLE AllocateCPU();
-        void FreeCPU(D3D12_CPU_DESCRIPTOR_HANDLE descriptor);
+        DX12DescriptorHandle AllocateCPU();
+        void FreeCPU(DX12DescriptorHandle descriptor);
 
         D3D12_GPU_DESCRIPTOR_HANDLE AllocateGPU();
         void FreeGPU(D3D12_GPU_DESCRIPTOR_HANDLE descriptor);
@@ -41,6 +47,7 @@ namespace cube
         // because it uses raw SRV heap
     };
 
+    // TODO: Is it needed buffering descriptor heap?
     class DX12DescriptorManager
     {
     public:
@@ -55,6 +62,9 @@ namespace cube
         DX12DescriptorHeap& GetRTVHeap() { return mRTVHeap; }
         DX12DescriptorHeap& GetSRVHeap() { return mSRVHeap; }
         DX12DescriptorHeap& GetDSVHeap() { return mDSVHeap; }
+        DX12DescriptorHeap& GetSamplerHeap() { return mSamplerHeap; }
+
+        ArrayView<ID3D12DescriptorHeap*> GetD3D12ShaderVisibleHeaps() { return mD3D12ShaderVislbleHeaps; }
 
     private:
         DX12Device& mDevice;
@@ -62,5 +72,7 @@ namespace cube
         DX12DescriptorHeap mRTVHeap;
         DX12DescriptorHeap mSRVHeap;
         DX12DescriptorHeap mDSVHeap;
+        DX12DescriptorHeap mSamplerHeap;
+        Array<ID3D12DescriptorHeap*, 2> mD3D12ShaderVislbleHeaps;
     };
 } // namespace cube

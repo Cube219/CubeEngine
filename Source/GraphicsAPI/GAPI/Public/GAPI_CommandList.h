@@ -10,10 +10,12 @@ namespace cube
 {
     namespace gapi
     {
-        class ShaderVariablesLayout;
         class Buffer;
         class Pipeline;
+        class Sampler;
         class ShaderVariables;
+        class ShaderVariablesLayout;
+        class Texture;
         class Viewport;
 
         struct ScissorRect
@@ -58,6 +60,8 @@ namespace cube
             virtual void ClearRenderTargetView(SharedPtr<Viewport> viewport, Float4 color) = 0;
             virtual void ClearDepthStencilView(SharedPtr<Viewport> viewport, float depth) = 0;
             virtual void SetShaderVariableConstantBuffer(Uint32 index, SharedPtr<Buffer> constantBuffer) = 0;
+            virtual void BindTexture(SharedPtr<Texture> texture) = 0;
+            virtual void BindSampler(SharedPtr<Sampler> sampler) = 0;
 
             virtual void ResourceTransition(SharedPtr<Buffer> buffer, ResourceStateFlags srcState, ResourceStateFlags dstState) = 0;
             virtual void ResourceTransition(SharedPtr<Viewport> viewport, ResourceStateFlags srcState, ResourceStateFlags dstState) = 0;

@@ -5,6 +5,7 @@
 #include "GAPI_Texture.h"
 
 #include "DX12APIObject.h"
+#include "DX12DescriptorManager.h"
 #include "DX12MemoryAllocator.h"
 #include "DX12UploadManager.h"
 
@@ -29,11 +30,12 @@ namespace cube
             DX12Device& mDevice;
 
             DX12Allocation mAllocation;
+            DX12UploadDesc mUploadDesc;
 
             D3D12_PLACED_SUBRESOURCE_FOOTPRINT mLayout;
             Uint64 mTotalSize;
 
-            DX12UploadDesc mUploadDesc;
+            DX12DescriptorHandle mSRVDescriptor;
         };
     } // namespace gapi
 } // namespace cube

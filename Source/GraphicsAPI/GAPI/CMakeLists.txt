@@ -4,6 +4,7 @@ set(PUBLIC_FILES
     Public/GAPI_Buffer.h
     Public/GAPI_CommandList.h
     Public/GAPI_Fence.h
+    Public/GAPI_Sampler.h
     Public/GAPI_Pipeline.h
     Public/GAPI_Resource.h
     Public/GAPI_Shader.h

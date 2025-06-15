@@ -33,7 +33,7 @@ namespace cube
 
             D3D12_RESOURCE_DESC desc = {
                 .Dimension = dimension,
-                .Alignment = D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT,
+                .Alignment = 0,
                 .Width = info.width,
                 .Height = info.height,
                 .DepthOrArraySize = static_cast<UINT16>(std::max(info.depth, info.arraySize)),
@@ -60,10 +60,60 @@ namespace cube
                 break;
             }
             mAllocation = device.GetMemoryAllocator().Allocate(heapType, desc);
+
+            // TODO: Add SRV/UAV/RTV flags
+            mSRVDescriptor = device.GetDescriptorManager().GetSRVHeap().AllocateCPU();
+            D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+            srvDesc.Format = GetDX12ElementFormatInfo(info.format).format;
+            srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+            switch (info.type)
+            {
+            case TextureType::Texture1D:
+                srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1D;
+                srvDesc.Texture1D.MipLevels = 1;
+                break;
+            case TextureType::Texture1DArray:
+                srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1DARRAY;
+                srvDesc.Texture1DArray.MipLevels = 1;
+                srvDesc.Texture1DArray.FirstArraySlice = 0;
+                srvDesc.Texture1DArray.ArraySize = info.arraySize;
+                break;
+            case TextureType::Texture2D:
+                srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+                srvDesc.Texture2D.MipLevels = 1;
+                break;
+            case TextureType::Texture2DArray:
+                srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+                srvDesc.Texture2DArray.MipLevels = 1;
+                srvDesc.Texture2DArray.FirstArraySlice = 0;
+                srvDesc.Texture2DArray.ArraySize = info.arraySize;
+                break;
+            case TextureType::Texture3D:
+                srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
+                srvDesc.Texture3D.MipLevels = 1;
+                break;
+            case TextureType::TextureCube:
+                srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+                srvDesc.TextureCube.MipLevels = 1;
+                break;
+            case TextureType::TextureCubeArray:
+                srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBEARRAY;
+                srvDesc.TextureCubeArray.MipLevels = 1;
+                srvDesc.TextureCubeArray.First2DArrayFace = 0;
+                srvDesc.TextureCubeArray.NumCubes = info.arraySize;
+                break;
+            default:
+                NOT_IMPLEMENTED();
+            }
+
+            device.GetDevice()->CreateShaderResourceView(mAllocation.allocation->GetResource(), &srvDesc, mSRVDescriptor.handle);
+            mBindlessIndex = mSRVDescriptor.index;
         }
 
         DX12Texture::~DX12Texture()
         {
+            mDevice.GetDescriptorManager().GetSRVHeap().FreeCPU(mSRVDescriptor);
+
             mDevice.GetMemoryAllocator().Free(mAllocation);
         }
 

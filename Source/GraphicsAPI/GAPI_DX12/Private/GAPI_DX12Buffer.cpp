@@ -53,7 +53,7 @@ namespace cube
                     .BufferLocation = mAllocation.allocation->GetResource()->GetGPUVirtualAddress(),
                     .SizeInBytes = (UINT)mSize
                 };
-                mDevice.GetDevice()->CreateConstantBufferView(&cbvDesc, mCBVDescriptor);
+                mDevice.GetDevice()->CreateConstantBufferView(&cbvDesc, mCBVDescriptor.handle);
             }
         }
 

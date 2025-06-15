@@ -4,12 +4,8 @@
 
 #include "GAPI.h"
 #include "Matrix.h"
+#include "SamplerManager.h"
 #include "Vector.h"
-
-namespace cube
-{
-    class MeshData;
-}
 
 namespace cube
 {
@@ -18,7 +14,9 @@ namespace cube
         class Shader;
     } // namespace gapi
 
+    class Material;
     class Mesh;
+    class MeshData;
 
     namespace platform
     {
@@ -37,7 +35,6 @@ namespace cube
     {
         Matrix model;
         Matrix modelInverse;
-        Vector4 color;
 
         void SetModelMatrix(const Matrix& newModel)
         {
@@ -61,6 +58,7 @@ namespace cube
         void OnResize(Uint32 width, Uint32 height);
 
         GAPI& GetGAPI() const { return *mGAPI; }
+        SamplerManager& GetSamplerManager() { return mSamplerManager; }
 
         void SetObjectModelMatrix(const Vector3& position, const Vector3& rotation, const Vector3& scale);
         void SetViewMatrix(const Vector3& eye, const Vector3& target, const Vector3& upDir);
@@ -69,6 +67,7 @@ namespace cube
         float GetGPUTimeMS() const;
 
         void SetMesh(SharedPtr<MeshData> meshData);
+        void SetMaterial(SharedPtr<Material> material);
 
     private:
         void SetGlobalConstantBuffers();
@@ -79,6 +78,9 @@ namespace cube
 
         SharedPtr<platform::DLib> mGAPI_DLib;
         SharedPtr<GAPI> mGAPI;
+
+        SamplerManager mSamplerManager;
+
         bool mRenderImGUI;
 
         Matrix mViewMatrix;
@@ -99,6 +101,7 @@ namespace cube
         bool mIsDirectionalLightDirty;
 
         SharedPtr<Mesh> mMesh;
+        SharedPtr<Material> mMaterial;
         SharedPtr<gapi::Shader> mVertexShader;
         SharedPtr<gapi::Shader> mPixelShader;
         SharedPtr<gapi::ShaderVariablesLayout> mShaderVariablesLayout;
@@ -108,15 +111,22 @@ namespace cube
         SharedPtr<gapi::Buffer> mObjectBuffer;
         Uint8* mObjectBufferDataPointer;
 
+        SharedPtr<Material> mDefaultMaterial;
+
         SharedPtr<Mesh> mBoxMesh;
-        ObjectBufferData mObjectBufferData_X;
-        SharedPtr<gapi::Buffer> mObjectBuffer_X;
-        Uint8* mObjectBufferDataPointer_X;
-        ObjectBufferData mObjectBufferData_Y;
-        SharedPtr<gapi::Buffer> mObjectBuffer_Y;
-        Uint8* mObjectBufferDataPointer_Y;
-        ObjectBufferData mObjectBufferData_Z;
-        SharedPtr<gapi::Buffer> mObjectBuffer_Z;
-        Uint8* mObjectBufferDataPointer_Z;
+        ObjectBufferData mXAxisObjectBufferData;
+        SharedPtr<gapi::Buffer> mXAxisObjectBuffer;
+        Uint8* mXAxisObjectBufferDataPointer;
+        SharedPtr<Material> mXAxisMaterial;
+
+        ObjectBufferData mYAxisObjectBufferData;
+        SharedPtr<gapi::Buffer> mYAxisObjectBuffer;
+        Uint8* mYAxisObjectBufferDataPointer;
+        SharedPtr<Material> mYAxisMaterial;
+
+        ObjectBufferData mZAxisObjectBufferData;
+        SharedPtr<gapi::Buffer> mZAxisObjectBuffer;
+        Uint8* mZAxisObjectBufferDataPointer;
+        SharedPtr<Material> mZAxisMaterial;
     };
 } // namespace cube

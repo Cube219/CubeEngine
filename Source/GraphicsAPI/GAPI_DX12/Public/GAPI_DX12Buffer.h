@@ -5,6 +5,7 @@
 #include "GAPI_Buffer.h"
 
 #include "DX12APIObject.h"
+#include "DX12DescriptorManager.h"
 #include "DX12MemoryAllocator.h"
 #include "DX12UploadManager.h"
 
@@ -24,7 +25,7 @@ namespace cube
             virtual void Unmap() override;
 
             ID3D12Resource* GetResource() const { return mAllocation.allocation->GetResource(); }
-            D3D12_CPU_DESCRIPTOR_HANDLE GetCBVDescriptor() const { return mCBVDescriptor; }
+            DX12DescriptorHandle GetCBVDescriptor() const { return mCBVDescriptor; }
 
         private:
             DX12Device& mDevice;
@@ -32,7 +33,7 @@ namespace cube
             DX12Allocation mAllocation;
             DX12UploadDesc mUploadDesc;
 
-            D3D12_CPU_DESCRIPTOR_HANDLE mCBVDescriptor;
+            DX12DescriptorHandle mCBVDescriptor;
         };
     } // namespace gapi
 } // namespace cube

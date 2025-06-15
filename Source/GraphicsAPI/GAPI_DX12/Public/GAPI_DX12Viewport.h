@@ -5,6 +5,7 @@
 #include "GAPI_Viewport.h"
 
 #include "DX12APIObject.h"
+#include "DX12DescriptorManager.h"
 #include "DX12Fence.h"
 #include "DX12MemoryAllocator.h"
 
@@ -33,7 +34,7 @@ namespace cube
 
             ID3D12Resource* GetCurrentBackbuffer() const { return mBackbuffers[mCurrentIndex].Get(); }
             D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentRTVDescriptor() const { return mRTVDescriptors[mCurrentIndex]; }
-            D3D12_CPU_DESCRIPTOR_HANDLE GetDSVDescriptor() const { return mDSVDescriptor; }
+            DX12DescriptorHandle GetDSVDescriptor() const { return mDSVDescriptor; }
 
             D3D12_VIEWPORT GetD3D12Viewport() const;
 
@@ -63,7 +64,7 @@ namespace cube
 
             // TODO: Separate depth texture while implementing GAPI texture
             DX12Allocation mDepthBufferAllocation;
-            D3D12_CPU_DESCRIPTOR_HANDLE mDSVDescriptor;
+            DX12DescriptorHandle mDSVDescriptor;
         };
     } // namespace rapi
 } // namespace cube

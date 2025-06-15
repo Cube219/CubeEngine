@@ -194,6 +194,11 @@ namespace cube
         mRenderer->SetMesh(mesh);
     }
 
+    void Engine::SetMaterial(SharedPtr<Material> material)
+    {
+        mRenderer->SetMaterial(material);
+    }
+
     void Engine::OnLoop()
     {
         GetMyThreadFrameAllocator().DiscardAllocations();

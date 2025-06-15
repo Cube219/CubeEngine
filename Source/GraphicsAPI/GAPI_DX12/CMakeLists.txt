@@ -9,6 +9,7 @@ set(PUBLIC_FILES
     Public/GAPI_DX12Fence.h
     Public/GAPI_DX12Pipeline.h
     Public/GAPI_DX12Resource.h
+    Public/GAPI_DX12Sampler.h
     Public/GAPI_DX12Shader.h
     Public/GAPI_DX12ShaderVariable.h
     Public/GAPI_DX12Texture.h
@@ -44,6 +45,7 @@ set(PRIVATE_FILES
     Private/GAPI_DX12Fence.cpp
     Private/GAPI_DX12Pipeline.cpp
     Private/GAPI_DX12Resource.cpp
+    Private/GAPI_DX12Sampler.cpp
     Private/GAPI_DX12Shader.cpp
     Private/GAPI_DX12ShaderVariable.cpp
     Private/GAPI_DX12Texture.cpp
@@ -66,6 +68,7 @@ target_include_directories(CE-GAPI_DX12
 target_link_libraries(CE-GAPI_DX12
     PRIVATE
         d3d12.lib
+        dxc
         dxgi.lib
         dxguid.lib
         D3D12MemoryAllocator
@@ -86,7 +89,8 @@ target_compile_definitions(CE-GAPI_DX12
 add_custom_command(
     TARGET CE-GAPI_DX12 POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        $<TARGET_FILE:dxc>
+        $<TARGET_FILE:dxc_dxcompiler>
+        $<TARGET_FILE:dxc_dxil>
         $<TARGET_FILE_DIR:CE-GAPI_DX12>
     COMMAND_EXPAND_LISTS
 )

@@ -11,6 +11,7 @@
 #include "GAPI_DX12CommandList.h"
 #include "GAPI_DX12Fence.h"
 #include "GAPI_DX12Pipeline.h"
+#include "GAPI_DX12Sampler.h"
 #include "GAPI_DX12Shader.h"
 #include "GAPI_DX12ShaderVariable.h"
 #include "GAPI_DX12Texture.h"
@@ -249,11 +250,6 @@ namespace cube
         return std::make_shared<gapi::DX12Buffer>(info, *mMainDevice);
     }
 
-    SharedPtr<gapi::Texture> GAPI_DX12::CreateTexture(const gapi::TextureCreateInfo& info)
-    {
-        return std::make_shared<gapi::DX12Texture>(info, *mMainDevice);
-    }
-
     SharedPtr<gapi::CommandList> GAPI_DX12::CreateCommandList(const gapi::CommandListCreateInfo& info)
     {
         return std::make_shared<gapi::DX12CommandList>(*mMainDevice, info);
@@ -278,11 +274,16 @@ namespace cube
         // return std::make_shared<gapi::DX12Pipeline>(*mMainDevice, info);
     }
 
+    SharedPtr<gapi::Sampler> GAPI_DX12::CreateSampler(const gapi::SamplerCreateInfo& info)
+    {
+        return std::make_shared<gapi::DX12Sampler>(*mMainDevice, info);
+    }
+
     SharedPtr<gapi::Shader> GAPI_DX12::CreateShader(const gapi::ShaderCreateInfo& info)
     {
         gapi::ShaderCompileResult compileResult;
 
-        ID3DBlob* shader = DX12ShaderCompiler::Compile(info, compileResult);
+        Blob shader = DX12ShaderCompiler::Compile(info, compileResult);
         if (!compileResult.warning.empty())
         {
             CUBE_LOG(Warning, DX12, "{0}", compileResult.warning);
@@ -293,18 +294,23 @@ namespace cube
             CUBE_LOG(Error, DX12, "{0}", compileResult.error);
         }
 
-        if (shader == nullptr)
+        if (shader.GetSize() == 0)
         {
             CUBE_LOG(Error, DX12, "Failed to create shader!");
             return nullptr;
         }
 
-        return std::make_shared<gapi::DX12Shader>(shader);
+        return std::make_shared<gapi::DX12Shader>(std::move(shader));
     }
 
     SharedPtr<gapi::ShaderVariablesLayout> GAPI_DX12::CreateShaderVariablesLayout(const gapi::ShaderVariablesLayoutCreateInfo& info)
     {
         return std::make_shared<gapi::DX12ShaderVariablesLayout>(*mMainDevice, info);
+    }
+
+    SharedPtr<gapi::Texture> GAPI_DX12::CreateTexture(const gapi::TextureCreateInfo& info)
+    {
+        return std::make_shared<gapi::DX12Texture>(info, *mMainDevice);
     }
 
     SharedPtr<gapi::Viewport> GAPI_DX12::CreateViewport(const gapi::ViewportCreateInfo& info)

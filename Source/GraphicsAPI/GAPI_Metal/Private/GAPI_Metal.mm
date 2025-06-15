@@ -11,6 +11,7 @@
 #include "GAPI_MetalCommandList.h"
 #include "GAPI_MetalFence.h"
 #include "GAPI_MetalPipeline.h"
+#include "GAPI_MetalSampler.h"
 #include "GAPI_MetalShader.h"
 #include "GAPI_MetalShaderVariable.h"
 #include "GAPI_MetalTexture.h"
@@ -138,11 +139,6 @@ namespace cube
         return std::make_shared<gapi::MetalBuffer>(info);
     }
 
-    SharedPtr<gapi::Texture> GAPI_Metal::CreateTexture(const gapi::TextureCreateInfo& info)
-    {
-        return std::make_shared<gapi::MetalTexture>(info);
-    }
-
     SharedPtr<gapi::CommandList> GAPI_Metal::CreateCommandList(const gapi::CommandListCreateInfo& info)
     {
         return std::make_shared<gapi::MetalCommandList>(info);
@@ -162,6 +158,11 @@ namespace cube
     {
         NOT_IMPLEMENTED();
         return nullptr;
+    }
+
+    SharedPtr<gapi::Sampler> GAPI_Metal::CreateSampler(const gapi::SamplerCreateInfo& info)
+    {
+        return std::make_shared<gapi::MetalSampler>(info);
     }
 
     SharedPtr<gapi::Shader> GAPI_Metal::CreateShader(const gapi::ShaderCreateInfo& info)
@@ -191,6 +192,11 @@ namespace cube
     SharedPtr<gapi::ShaderVariablesLayout> GAPI_Metal::CreateShaderVariablesLayout(const gapi::ShaderVariablesLayoutCreateInfo& info)
     {
         return std::make_shared<gapi::MetalShaderVariablesLayout>(info);
+    }
+
+    SharedPtr<gapi::Texture> GAPI_Metal::CreateTexture(const gapi::TextureCreateInfo& info)
+    {
+        return std::make_shared<gapi::MetalTexture>(info);
     }
 
     SharedPtr<gapi::Viewport> GAPI_Metal::CreateViewport(const gapi::ViewportCreateInfo& info)

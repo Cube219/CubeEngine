@@ -2,13 +2,13 @@
 
 #include "DX12Header.h"
 
-#include "GAPI_CommandList.h"
-
 #include "DX12APIObject.h"
+#include "GAPI_CommandList.h"
 
 namespace cube
 {
     class DX12CommandListManager;
+    class DX12DescriptorManager;
     class DX12Device;
     class DX12QueryManager;
     class DX12QueueManager;
@@ -17,6 +17,8 @@ namespace cube
     {
         class Buffer;
         class Pipeline;
+        class Sampler;
+        class Texture;
         class Viewport;
 
         class DX12CommandList : public CommandList, public DX12APIObject
@@ -39,6 +41,8 @@ namespace cube
             void ClearRenderTargetView(SharedPtr<Viewport> viewport, Float4 color) override;
             void ClearDepthStencilView(SharedPtr<Viewport> viewport, float depth) override;
             void SetShaderVariableConstantBuffer(Uint32 index, SharedPtr<Buffer> constantBuffer) override;
+            void BindTexture(SharedPtr<Texture> texture);
+            void BindSampler(SharedPtr<Sampler> sampler);
 
             void ResourceTransition(SharedPtr<Buffer> buffer, ResourceStateFlags srcState, ResourceStateFlags dstState) override;
             void ResourceTransition(SharedPtr<Viewport> viewport, ResourceStateFlags srcState, ResourceStateFlags dstState) override;
@@ -62,13 +66,16 @@ namespace cube
             };
 
             DX12CommandListManager& mCommandListManager;
+            DX12DescriptorManager& mDescriptorManager;
             DX12QueueManager& mQueueManager;
             DX12QueryManager& mQueryManager;
 
             ComPtr<ID3D12GraphicsCommandList> mCommandList;
             State mState;
 
-            bool hasTimestampQuery = false;
+            bool mIsDescriptorHeapSet = false;
+            bool mIsShaderVariableLayoutSet = false;
+            bool mHasTimestampQuery = false;
 
             Vector<SharedPtr<DX12APIObject>> mBoundObjects;
         };

@@ -13,6 +13,7 @@
 #include "GAPI_ShaderVariable.h"
 #include "GAPI_Pipeline.h"
 #include "GAPI_Viewport.h"
+#include "Material.h"
 #include "MatrixUtility.h"
 #include "Platform.h"
 
@@ -50,6 +51,9 @@ namespace cube
             .enableDebugLayer = true,
             .imGUI = imGUIContext
         });
+
+        mSamplerManager.Initialize(mGAPI.get());
+
         mRenderImGUI = (imGUIContext.context != nullptr);
 
         mIsViewPerspectiveMatrixDirty = true;
@@ -62,7 +66,6 @@ namespace cube
         mGlobalConstantBufferDataPointer = static_cast<Uint8*>(mGlobalConstantBuffer->Map());
 
         mObjectBufferData.SetModelMatrix(Matrix::Identity());
-        mObjectBufferData.color = Vector4(1, 1, 0, 1);
         mObjectBuffer = mGAPI->CreateBuffer({
             .type = gapi::BufferType::Constant,
             .usage = gapi::ResourceUsage::CPUtoGPU,
@@ -106,6 +109,8 @@ namespace cube
 
         mObjectBuffer = nullptr;
         mGlobalConstantBuffer = nullptr;
+
+        mSamplerManager.Shutdown();
 
         mGAPI->Shutdown(imGUIContext);
         mGAPI = nullptr;
@@ -227,6 +232,11 @@ namespace cube
         }
     }
 
+    void Renderer::SetMaterial(SharedPtr<Material> material)
+    {
+        mMaterial = material;
+    }
+
     void Renderer::SetGlobalConstantBuffers()
     {
         bool updateNeeded = false;
@@ -277,7 +287,6 @@ namespace cube
             mCommandList->ClearDepthStencilView(mViewport, 0);
             mCommandList->SetGraphicsPipeline(mMainPipeline);
             mCommandList->SetShaderVariableConstantBuffer(0, mGlobalConstantBuffer);
-            mCommandList->SetShaderVariableConstantBuffer(1, mObjectBuffer);
 
             Uint32 vertexBufferOffset = 0;
             {
@@ -285,8 +294,18 @@ namespace cube
                 SharedPtr<gapi::Buffer> vertexBuffer = mMesh->GetVertexBuffer();
                 mCommandList->BindVertexBuffers(0, { &vertexBuffer, 1 }, { &vertexBufferOffset, 1 });
                 mCommandList->BindIndexBuffer(mMesh->GetIndexBuffer(), 0);
+
+                mCommandList->SetShaderVariableConstantBuffer(1, mObjectBuffer);
+                if (mMaterial)
+                {
+                    mCommandList->SetShaderVariableConstantBuffer(2, mMaterial->GetMaterialBuffer());
+                }
+                else
+                {
+                    mCommandList->SetShaderVariableConstantBuffer(2, mDefaultMaterial->GetMaterialBuffer());
+                }
                 const Vector<SubMesh>& subMeshes = mMesh->GetSubMeshes();
-                for(const SubMesh& subMesh : subMeshes)
+                for (const SubMesh& subMesh : subMeshes)
                 {
                     mCommandList->DrawIndexed(subMesh.numIndices, subMesh.indexOffset, subMesh.vertexOffset);
                 }
@@ -299,17 +318,20 @@ namespace cube
                 mCommandList->BindIndexBuffer(mBoxMesh->GetIndexBuffer(), 0);
                 const Vector<SubMesh>& boxSubMeshes = mBoxMesh->GetSubMeshes();
 
-                mCommandList->SetShaderVariableConstantBuffer(1, mObjectBuffer_X);
+                mCommandList->SetShaderVariableConstantBuffer(1, mXAxisObjectBuffer);
+                mCommandList->SetShaderVariableConstantBuffer(2, mXAxisMaterial->GetMaterialBuffer());
                 for (const SubMesh& subMesh : boxSubMeshes)
                 {
                     mCommandList->DrawIndexed(subMesh.numIndices, subMesh.indexOffset, subMesh.vertexOffset);
                 }
-                mCommandList->SetShaderVariableConstantBuffer(1, mObjectBuffer_Y);
+                mCommandList->SetShaderVariableConstantBuffer(1, mYAxisObjectBuffer);
+                mCommandList->SetShaderVariableConstantBuffer(2, mYAxisMaterial->GetMaterialBuffer());
                 for (const SubMesh& subMesh : boxSubMeshes)
                 {
                     mCommandList->DrawIndexed(subMesh.numIndices, subMesh.indexOffset, subMesh.vertexOffset);
                 }
-                mCommandList->SetShaderVariableConstantBuffer(1, mObjectBuffer_Z);
+                mCommandList->SetShaderVariableConstantBuffer(1, mZAxisObjectBuffer);
+                mCommandList->SetShaderVariableConstantBuffer(2, mZAxisMaterial->GetMaterialBuffer());
                 for (const SubMesh& subMesh : boxSubMeshes)
                 {
                     mCommandList->DrawIndexed(subMesh.numIndices, subMesh.indexOffset, subMesh.vertexOffset);
@@ -376,7 +398,7 @@ namespace cube
         }
         {
             mShaderVariablesLayout = mGAPI->CreateShaderVariablesLayout({
-                .numShaderVariablesConstantBuffer = 2,
+                .numShaderVariablesConstantBuffer = 3,
                 .shaderVariablesConstantBuffer = nullptr,
                 .debugName = "ShaderVariablesLayout"
             });
@@ -385,22 +407,32 @@ namespace cube
             constexpr int positionOffset = 0;
             constexpr int colorOffset = positionOffset + sizeof(Vertex::position);
             constexpr int normalOffset = colorOffset + sizeof(Vertex::color);
+            constexpr int uvOffset = normalOffset + sizeof(Vertex::normal); 
 
             gapi::InputElement inputLayout[] = {
                 {
                     .name = "POSITION",
+                    .index = 0,
                     .format = gapi::ElementFormat::RGB32_Float,
                     .offset = positionOffset,
                 },
                 {
                     .name = "COLOR",
+                    .index = 0,
                     .format = gapi::ElementFormat::RGBA32_Float,
                     .offset = colorOffset,
                 },
                 {
                     .name = "NORMAL",
+                    .index = 0,
                     .format = gapi::ElementFormat::RGB32_Float,
                     .offset = normalOffset
+                },
+                {
+                    .name = "TEXCOORD",
+                    .index = 0,
+                    .format = gapi::ElementFormat::RG32_Float,
+                    .offset = uvOffset
                 }
             };
 
@@ -419,53 +451,66 @@ namespace cube
                 .debugName = "MainPipeline"
             });
         }
+
+        mDefaultMaterial = std::make_shared<Material>();
+        mDefaultMaterial->SetBaseColor({ 1.0f, 0.0f, 0.80392f }); // Magenta
+
         {
-            mObjectBufferData_X.SetModelMatrix(MatrixUtility::GetScale(4.0f, 0.2f, 0.2f) + MatrixUtility::GetTranslation(2, 0, 0));
-            mObjectBufferData_X.color = Vector4(1, 0, 0, 1);
-            mObjectBuffer_X = mGAPI->CreateBuffer({
+            mXAxisObjectBufferData.SetModelMatrix(MatrixUtility::GetScale(4.0f, 0.2f, 0.2f) + MatrixUtility::GetTranslation(2, 0, 0));
+            mXAxisObjectBuffer = mGAPI->CreateBuffer({
                 .type = gapi::BufferType::Constant,
                 .usage = gapi::ResourceUsage::CPUtoGPU,
                 .size = sizeof(ObjectBufferData),
                 .debugName = "ObjectBuffer_X"
             });
-            mObjectBufferDataPointer_X = static_cast<Uint8*>(mObjectBuffer_X->Map());
-            memcpy(mObjectBufferDataPointer_X, &mObjectBufferData_X, sizeof(ObjectBufferData));
+            mXAxisObjectBufferDataPointer = static_cast<Uint8*>(mXAxisObjectBuffer->Map());
+            memcpy(mXAxisObjectBufferDataPointer, &mXAxisObjectBufferData, sizeof(ObjectBufferData));
+            mXAxisMaterial = std::make_shared<Material>();
+            mXAxisMaterial->SetBaseColor({ 1.0f, 0.0f, 0.0f, 1.0f });
 
-            mObjectBufferData_Y.SetModelMatrix(MatrixUtility::GetScale(0.2f, 4.0f, 0.2f) + MatrixUtility::GetTranslation(0, 2, 0));
-            mObjectBufferData_Y.color = Vector4(0, 1, 0, 1);
-            mObjectBuffer_Y = mGAPI->CreateBuffer({
+            mYAxisObjectBufferData.SetModelMatrix(MatrixUtility::GetScale(0.2f, 4.0f, 0.2f) + MatrixUtility::GetTranslation(0, 2, 0));
+            mYAxisObjectBuffer = mGAPI->CreateBuffer({
                 .type = gapi::BufferType::Constant,
                 .usage = gapi::ResourceUsage::CPUtoGPU,
                 .size = sizeof(ObjectBufferData),
                 .debugName = "ObjectBuffer_Y"
             });
-            mObjectBufferDataPointer_Y = static_cast<Uint8*>(mObjectBuffer_Y->Map());
-            memcpy(mObjectBufferDataPointer_Y, &mObjectBufferData_Y, sizeof(ObjectBufferData));
-
-            mObjectBufferData_Z.SetModelMatrix(MatrixUtility::GetScale(0.2f, 0.2f, 4.0f) + MatrixUtility::GetTranslation(0, 0, 2));
-            mObjectBufferData_Z.color = Vector4(0, 0, 1, 1);
-            mObjectBuffer_Z = mGAPI->CreateBuffer({
+            mYAxisObjectBufferDataPointer = static_cast<Uint8*>(mYAxisObjectBuffer->Map());
+            memcpy(mYAxisObjectBufferDataPointer, &mYAxisObjectBufferData, sizeof(ObjectBufferData));
+            mYAxisMaterial = std::make_shared<Material>();
+            mYAxisMaterial->SetBaseColor({ 0.0f, 1.0f, 0.0f, 1.0f });
+            
+            mZAxisObjectBufferData.SetModelMatrix(MatrixUtility::GetScale(0.2f, 0.2f, 4.0f) + MatrixUtility::GetTranslation(0, 0, 2));
+            mZAxisObjectBuffer = mGAPI->CreateBuffer({
                 .type = gapi::BufferType::Constant,
                 .usage = gapi::ResourceUsage::CPUtoGPU,
                 .size = sizeof(ObjectBufferData),
                 .debugName = "ObjectBuffer_Z"
             });
-            mObjectBufferDataPointer_Z = static_cast<Uint8*>(mObjectBuffer_Z->Map());
-            memcpy(mObjectBufferDataPointer_Z, &mObjectBufferData_Z, sizeof(ObjectBufferData));
+            mZAxisObjectBufferDataPointer = static_cast<Uint8*>(mZAxisObjectBuffer->Map());
+            memcpy(mZAxisObjectBufferDataPointer, &mZAxisObjectBufferData, sizeof(ObjectBufferData));
+            mZAxisMaterial = std::make_shared<Material>();
+            mZAxisMaterial->SetBaseColor({ 0.0f, 0.0f, 1.0f, 1.0f });
         }
     }
 
     void Renderer::ClearResources()
     {
-        mObjectBuffer_Z = nullptr;
-        mObjectBuffer_Y = nullptr;
-        mObjectBuffer_X = nullptr;
+        mZAxisMaterial = nullptr;
+        mZAxisObjectBuffer = nullptr;
+        mYAxisMaterial = nullptr;
+        mYAxisObjectBuffer = nullptr;
+        mXAxisMaterial = nullptr;
+        mXAxisObjectBuffer = nullptr;
+
+        mDefaultMaterial = nullptr;
 
         mMainPipeline = nullptr;
         mShaderVariablesLayout = nullptr;
         mPixelShader = nullptr;
         mVertexShader = nullptr;
 
+        mMaterial = nullptr;
         mMesh = nullptr;
         mBoxMesh = nullptr;
     }

@@ -15,7 +15,7 @@ namespace cube
         {
             return D3D12_INPUT_ELEMENT_DESC{
                 .SemanticName = inputElement.name,
-                .SemanticIndex = 0,
+                .SemanticIndex = inputElement.index,
                 .Format = GetDX12ElementFormatInfo(inputElement.format).format,
                 .InputSlot = 0,
                 .AlignedByteOffset = inputElement.offset,
@@ -272,16 +272,16 @@ namespace cube
             if (info.vertexShader)
             {
                 DX12Shader* dx12VertexShader = dynamic_cast<DX12Shader*>(info.vertexShader.get());
-                graphicsPSODesc.VS.pShaderBytecode = dx12VertexShader->GetShader()->GetBufferPointer();
-                graphicsPSODesc.VS.BytecodeLength = dx12VertexShader->GetShader()->GetBufferSize();
+                graphicsPSODesc.VS.pShaderBytecode = dx12VertexShader->GetShader().GetData();
+                graphicsPSODesc.VS.BytecodeLength = dx12VertexShader->GetShader().GetSize();
 
                 CUBE_DX12_BOUND_OBJECT(info.vertexShader);
             }
             if (info.pixelShader)
             {
                 DX12Shader* dx12PixelShader = dynamic_cast<DX12Shader*>(info.pixelShader.get());
-                graphicsPSODesc.PS.pShaderBytecode = dx12PixelShader->GetShader()->GetBufferPointer();
-                graphicsPSODesc.PS.BytecodeLength = dx12PixelShader->GetShader()->GetBufferSize();
+                graphicsPSODesc.PS.pShaderBytecode = dx12PixelShader->GetShader().GetData();
+                graphicsPSODesc.PS.BytecodeLength = dx12PixelShader->GetShader().GetSize();
 
                 CUBE_DX12_BOUND_OBJECT(info.pixelShader);
             }

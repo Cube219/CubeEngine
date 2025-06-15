@@ -10,35 +10,35 @@ namespace cube
         Vertex v;
         v.position = { -0.5f, -0.5f, -0.5f, 1 };
         v.color = { 1, 0, 0, 1 };
-        v.texCoord = { 0, 0 };
+        v.uv = { 0, 0 };
         vertices.push_back(v);
         v.position = { -0.5f, 0.5f, -0.5f, 1 };
         v.color = { 0, 1, 0, 1 };
-        v.texCoord = { 1, 0 };
+        v.uv = { 1, 0 };
         vertices.push_back(v);
         v.position = { 0.5f, -0.5f, -0.5f, 1 };
         v.color = { 0, 0, 0, 1 };
-        v.texCoord = { 0, 1 };
+        v.uv = { 0, 1 };
         vertices.push_back(v);
         v.position = { 0.5f, 0.5f, -0.5f, 1 };
         v.color = { 1, 1, 0, 1 };
-        v.texCoord = { 1, 1 };
+        v.uv = { 1, 1 };
         vertices.push_back(v);
         v.position = { 0.5f, -0.5f, 0.5f, 1 };
         v.color = { 1, 0, 1, 1 };
-        v.texCoord = { 0, 0 };
+        v.uv = { 0, 0 };
         vertices.push_back(v);
         v.position = { 0.5f, 0.5f, 0.5f, 1 };
         v.color = { 0, 1, 1, 1 };
-        v.texCoord = { 1, 0 };
+        v.uv = { 1, 0 };
         vertices.push_back(v);
         v.position = { -0.5f, -0.5f, 0.5f, 1 };
         v.color = { 1, 1, 1, 1 };
-        v.texCoord = { 0, 1 };
+        v.uv = { 0, 1 };
         vertices.push_back(v);
         v.position = { -0.5f, 0.5f, 0.5f, 1 };
         v.color = { 0, 0, 0, 1 };
-        v.texCoord = { 1, 1 };
+        v.uv = { 1, 1 };
         vertices.push_back(v);
 
         FrameVector<Index> indices = {
@@ -70,12 +70,12 @@ namespace cube
             // Down
             vertices[i * 2].position = { 0.5f * Math::Cos(dTheta * i), -1.0f, 0.5f * Math::Sin(dTheta * i), 1.0f };
             vertices[i * 2].color = { 1.0f, 1.0f, 1.0f, 1.0f };
-            vertices[i * 2].texCoord = { 0.0f, 0.0f };
+            vertices[i * 2].uv = { 0.0f, 0.0f };
 
             // Up
             vertices[i * 2 + 1].position = { 0.5f * Math::Cos(dTheta * i), 1.0f, 0.5f * Math::Sin(dTheta * i), 1.0f };
             vertices[i * 2 + 1].color = { 1.0f, 1.0f, 1.0f, 1.0f };
-            vertices[i * 2 + 1].texCoord = { 0.0f, 0.0f };
+            vertices[i * 2 + 1].uv = { 0.0f, 0.0f };
         }
 
         FrameVector<Index> indices;
@@ -103,7 +103,7 @@ namespace cube
         Vertex v;
         v.position = { 0.0f, -1.0f, 0.0f, 1.0f };
         v.color = { 1.0f, 1.0f, 1.0f, 1.0f };
-        v.texCoord = { 0.0f, 0.0f };
+        v.uv = { 0.0f, 0.0f };
         vertices.push_back(v); // index: sliceCount * 2
 
         for (int i = 0; i < sliceCount - 1; i++)
@@ -119,7 +119,7 @@ namespace cube
         // Top
         v.position = { 0.0f, 1.0f, 0.0f, 1.0f };
         v.color = { 1.0f, 1.0f, 1.0f, 1.0f };
-        v.texCoord = { 0.0f, 0.0f };
+        v.uv = { 0.0f, 0.0f };
         vertices.push_back(v); // index: sliceCount * 2 + 1
 
         for (int i = 0; i < sliceCount - 1; i++)
@@ -159,7 +159,7 @@ namespace cube
         FrameVector<Vertex> vertices;
         Vertex v;
         v.color = { 1.0f, 1.0f, 1.0f, 1.0f };
-        v.texCoord = { 0.0f, 0.0f };
+        v.uv = { 0.0f, 0.0f };
 
         v.position = { -x, 0.0f, z, 1.0f };
         vertices.push_back(v);
@@ -230,7 +230,7 @@ namespace cube
         FrameVector<Vertex> vertices;
         Vertex v;
         v.color = { 1.0f, 1.0f, 1.0f, 1.0f };
-        v.texCoord = { 0.0f, 0.0f };
+        v.uv = { 0.0f, 0.0f };
 
         v.position = { -5.0f, 0.0f, -5.0f, 1.0f };
         vertices.push_back(v);

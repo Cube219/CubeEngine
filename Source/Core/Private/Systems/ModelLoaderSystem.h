@@ -6,6 +6,7 @@
 
 namespace cube
 {
+    class Material;
     class MeshData;
 
     enum class ModelType
@@ -20,6 +21,12 @@ namespace cube
         String path;
     };
 
+    struct ModelResources
+    {
+        SharedPtr<MeshData> mesh = nullptr;
+        SharedPtr<Material> material = nullptr;
+    };
+
     class ModelLoaderSystem
     {
     public:
@@ -31,13 +38,13 @@ namespace cube
 
         static void OnLoopImGUI();
 
-        static SharedPtr<MeshData> LoadModel(ModelType type, StringView path);
+        static ModelResources LoadModel(const ModelPathInfo& pathInfo);
 
     private:
         static void LoadModelList();
         static void LoadCurrentModelAndSet();
 
-        static SharedPtr<MeshData> LoadModel_glTF(StringView path);
+        static ModelResources LoadModel_glTF(const ModelPathInfo& pathInfo);
 
         static void UpdateModelMatrix();
         static void ResetModelScale();

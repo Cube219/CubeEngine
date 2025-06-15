@@ -7,7 +7,7 @@
 
 namespace cube
 {
-    D3D12_CPU_DESCRIPTOR_HANDLE DX12DescriptorHeap::AllocateCPU()
+    DX12DescriptorHandle DX12DescriptorHeap::AllocateCPU()
     {
         CHECK(mFreedIndicesCPU.size() > 0);
 
@@ -15,16 +15,18 @@ namespace cube
         mFreedIndicesCPU.pop_back();
 
         return {
-            .ptr = mBeginCPU.ptr + (SIZE_T)mDescriptorSize * index
+            .index = (int)index,
+            .handle = {
+                .ptr = mBeginCPU.ptr + (SIZE_T)mDescriptorSize * index
+            }
         };
     }
 
-    void DX12DescriptorHeap::FreeCPU(D3D12_CPU_DESCRIPTOR_HANDLE descriptor)
+    void DX12DescriptorHeap::FreeCPU(DX12DescriptorHandle descriptor)
     {
-        Uint32 index = (descriptor.ptr - mBeginCPU.ptr) / mDescriptorSize;
-        CHECK_FORMAT(std::ranges::find(mFreedIndicesCPU, index) == mFreedIndicesCPU.end(), "Freed the descriptor that already was freed.");
+        CHECK_FORMAT(std::ranges::find(mFreedIndicesCPU, descriptor.index) == mFreedIndicesCPU.end(), "Freed the descriptor that already was freed.");
 
-        mFreedIndicesCPU.push_back(index);
+        mFreedIndicesCPU.push_back(descriptor.index);
     }
 
     D3D12_GPU_DESCRIPTOR_HANDLE DX12DescriptorHeap::AllocateGPU()
@@ -89,27 +91,45 @@ namespace cube
 
     void DX12DescriptorManager::Initialize()
     {
-        D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
-        rtvHeapDesc.NumDescriptors = 10;
-        rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-        rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+        D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {
+            .Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
+            .NumDescriptors = 10,
+            .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
+            .NodeMask = 0
+        };
         mRTVHeap.Initialize(mDevice, rtvHeapDesc);
 
-        D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-        srvHeapDesc.NumDescriptors = 64;
-        srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-        srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+        D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {
+            .Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
+            .NumDescriptors = 128,
+            .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
+            .NodeMask = 0
+        };
         mSRVHeap.Initialize(mDevice, srvHeapDesc);
 
-        D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
-        dsvHeapDesc.NumDescriptors = 8;
-        dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-        dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+        D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {
+            .Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV,
+            .NumDescriptors = 8,
+            .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
+            .NodeMask = 0
+        };
         mDSVHeap.Initialize(mDevice, dsvHeapDesc);
+
+        D3D12_DESCRIPTOR_HEAP_DESC samplerHeapDesc = {
+            .Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,
+            .NumDescriptors = 16,
+            .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
+            .NodeMask = 0
+        };
+        mSamplerHeap.Initialize(mDevice, samplerHeapDesc);
+
+        mD3D12ShaderVislbleHeaps[0] = mSRVHeap.Get();
+        mD3D12ShaderVislbleHeaps[1] = mSamplerHeap.Get();
     }
 
     void DX12DescriptorManager::Shutdown()
     {
+        mSamplerHeap.Shutdown();
         mDSVHeap.Shutdown();
         mSRVHeap.Shutdown();
         mRTVHeap.Shutdown();

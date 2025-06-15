@@ -14,6 +14,8 @@ namespace cube
         class Pipeline;
         struct GraphicsPipelineCreateInfo;
         struct ComputePipelineCreateInfo;
+        class Sampler;
+        struct SamplerCreateInfo;
         class Shader;
         struct ShaderCreateInfo;
         struct ShaderCompileResult;
@@ -88,13 +90,14 @@ namespace cube
         const Info& GetInfo() const { return mInfo; }
 
         virtual SharedPtr<gapi::Buffer> CreateBuffer(const gapi::BufferCreateInfo& info) = 0;
-        virtual SharedPtr<gapi::Texture> CreateTexture(const gapi::TextureCreateInfo& info) = 0;
         virtual SharedPtr<gapi::CommandList> CreateCommandList(const gapi::CommandListCreateInfo& info) = 0;
         virtual SharedPtr<gapi::Fence> CreateFence(const gapi::FenceCreateInfo& info) = 0;
         virtual SharedPtr<gapi::Pipeline> CreateGraphicsPipeline(const gapi::GraphicsPipelineCreateInfo& info) = 0;
         virtual SharedPtr<gapi::Pipeline> CreateComputePipeline(const gapi::ComputePipelineCreateInfo& info) = 0;
+        virtual SharedPtr<gapi::Sampler> CreateSampler(const gapi::SamplerCreateInfo& info) = 0;
         virtual SharedPtr<gapi::Shader> CreateShader(const gapi::ShaderCreateInfo& info) = 0;
         virtual SharedPtr<gapi::ShaderVariablesLayout> CreateShaderVariablesLayout(const gapi::ShaderVariablesLayoutCreateInfo& info) = 0;
+        virtual SharedPtr<gapi::Texture> CreateTexture(const gapi::TextureCreateInfo& info) = 0;
         virtual SharedPtr<gapi::Viewport> CreateViewport(const gapi::ViewportCreateInfo& info) = 0;
 
         virtual gapi::TimestampList GetLastTimestampList() = 0;

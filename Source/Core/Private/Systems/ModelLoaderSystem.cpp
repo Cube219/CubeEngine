@@ -13,6 +13,8 @@
 #include "CubeString.h"
 #include "Engine.h"
 #include "FileSystem.h"
+#include "GAPI_Texture.h"
+#include "Renderer/Material.h"
 #include "Renderer/Mesh.h"
 #include "Renderer/Renderer.h"
 
@@ -105,17 +107,17 @@ namespace cube
         ImGui::End();
     }
 
-    SharedPtr<MeshData> ModelLoaderSystem::LoadModel(ModelType type, StringView path)
+    ModelResources ModelLoaderSystem::LoadModel(const ModelPathInfo& pathInfo)
     {
-        switch (type)
+        switch (pathInfo.type)
         {
         case ModelType::glTF:
-            return LoadModel_glTF(path);
+            return LoadModel_glTF(pathInfo);
         default:
-            NO_ENTRY();
+            NOT_IMPLEMENTED();
         }
 
-        return nullptr;
+        return {};
     }
     
 
@@ -160,11 +162,12 @@ namespace cube
     {
         const ModelPathInfo& info = mModelPathList[mCurrentSelectModelIndex];
 
-        SharedPtr<MeshData> meshData = LoadModel(info.type, info.path);
-        Engine::SetMesh(meshData);
+        ModelResources resources = LoadModel(info);
+        Engine::SetMesh(resources.mesh);
+        Engine::SetMaterial(resources.material);
     }
 
-    SharedPtr<MeshData> ModelLoaderSystem::LoadModel_glTF(StringView path)
+    ModelResources ModelLoaderSystem::LoadModel_glTF(const ModelPathInfo& pathInfo)
     {
         tinygltf::Model model;
         AnsiString error;
@@ -172,7 +175,7 @@ namespace cube
         tinygltf::TinyGLTF loader;
 
         AnsiString pathStr;
-        String_ConvertAndAppend(pathStr, path);
+        String_ConvertAndAppend(pathStr, pathInfo.path);
         bool res = loader.LoadASCIIFromFile(&model, &error, &warning, pathStr);
 
         if (!warning.empty())
@@ -188,9 +191,10 @@ namespace cube
         if (!res)
         {
             CUBE_LOG(Error, ModelLoaderSystem, "Failed to load the model from glTF");
-            return nullptr;
+            return {};
         }
 
+        // Load meshes
         FrameVector<Vertex> vertices;
         FrameVector<Index> indices;
         FrameVector<SubMesh> subMeshes;
@@ -339,7 +343,7 @@ namespace cube
                                 uv[1] = static_cast<float>(uvShort[1]) / 65535.0f;
                             }
 
-                            vertices[vertexOffset + index].texCoord = { uv[0], uv[1] };
+                            vertices[vertexOffset + index].uv = { uv[0], uv[1] };
                         }
                     );
                 }
@@ -437,7 +441,86 @@ namespace cube
             }
         }
 
-        return std::make_shared<MeshData>(vertices.size(), vertices.data(), indices.size(), indices.data(), static_cast<Uint32>(subMeshes.size()), subMeshes.data());
+        // Load materials
+        SharedPtr<Material> material = std::make_shared<Material>();
+
+        for (const tinygltf::Material& gltfMaterial : model.materials)
+        {
+            auto LoadTexture = [&model, &pathInfo](const Character* textureName, int textureIndex) -> SharedPtr<gapi::Texture>
+            {
+                FrameAnsiString debugName = Format<FrameAnsiString>("{0} - {1}", textureName, pathInfo.name);
+
+                if (textureIndex == -1)
+                {
+                    CUBE_LOG(Warning, ModelLoaderSystem, "Cannot load {0}: invalid texture index", debugName);
+                    return nullptr;
+                }
+                int imageIndex = model.textures[textureIndex].source;
+                if (imageIndex == -1)
+                {
+                    CUBE_LOG(Warning, ModelLoaderSystem, "Cannot load {0}: invalid image index", debugName);
+                    return nullptr;
+                }
+                tinygltf::Image& image = model.images[imageIndex];
+                if (image.image.empty())
+                {
+                    CUBE_LOG(Warning, ModelLoaderSystem, "Cannot load {0}: empty image data", debugName);
+                    return nullptr;
+                }
+
+                gapi::ElementFormat format = gapi::ElementFormat::Unknown;
+                if (image.component == 4)
+                {
+                    if (image.pixel_type == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE)
+                    {
+                        format = gapi::ElementFormat::RGBA8_UNorm;
+                    }
+                    else if (image.pixel_type == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT)
+                    {
+                        format = gapi::ElementFormat::RGBA16_UNorm;
+                    }
+                }
+                if (format == gapi::ElementFormat::Unknown)
+                {
+                    CUBE_LOG(Warning, ModelLoaderSystem, "Cannot load {0}: Unsupported element format (component: {1}, pixel_type: {2})", debugName, image.component, image.pixel_type);
+                    return nullptr;
+                }
+
+                gapi::TextureCreateInfo textureCreateInfo = {
+                    .usage = gapi::ResourceUsage::GPUOnly,
+                    .format = format,
+                    .type = gapi::TextureType::Texture2D,
+                    .width = static_cast<Uint32>(image.width),
+                    .height = static_cast<Uint32>(image.height),
+                    .debugName = debugName.c_str()
+                };
+                SharedPtr<gapi::Texture> texture = Engine::GetRenderer()->GetGAPI().CreateTexture(textureCreateInfo);
+
+                // Set texture data
+                Byte* pSrc = (Byte*)(image.image.data());
+                Uint64 rowSize = image.width * image.component * image.bits / 8;
+
+                Byte* pData = (Byte*)texture->Map();
+                Uint64 rowPitch = texture->GetRowPitch();
+                CHECK(rowSize <= rowPitch);
+                for (int y = 0; y < image.height; ++y)
+                {
+                    memcpy(pData + (y * rowPitch), pSrc + (y * rowSize), rowSize);
+                }
+                texture->Unmap();
+
+                return texture;
+            };
+
+            material->SetBaseColorTexture(LoadTexture(CUBE_T("baseColorTexture"), gltfMaterial.pbrMetallicRoughness.baseColorTexture.index));
+        }
+
+        ModelResources loadedResources = {
+            .mesh = std::make_shared<MeshData>(vertices.size(), vertices.data(), indices.size(), indices.data(), static_cast<Uint32>(subMeshes.size()), subMeshes.data()),
+            .material = material
+        };
+
+        return loadedResources;
     }
 
     void ModelLoaderSystem::UpdateModelMatrix()

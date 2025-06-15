@@ -14,25 +14,33 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(dxc)
 
 # Target settings
-add_library(dxc SHARED IMPORTED GLOBAL)
+add_library(dxc INTERFACE IMPORTED GLOBAL)
 target_include_directories(dxc
     INTERFACE
-        ${CMAKE_CURRENT_LIST_DIR}/inc
+        ${dxc_SOURCE_DIR}/inc
 )
 
 # TODO: Support arm64?
 set(DXC_ARCH "x64")
-set(DXC_LIB
-    ${dxc_SOURCE_DIR}/lib/${DXC_ARCH}/dxcompiler.lib
-    ${dxc_SOURCE_DIR}/lib/${DXC_ARCH}/dxil.lib
-)
-set(DXC_DLL
-    ${dxc_SOURCE_DIR}/bin/${DXC_ARCH}/dxcompiler.dll
-    ${dxc_SOURCE_DIR}/bin/${DXC_ARCH}/dxil.dll
-)
-set_target_properties(dxc PROPERTIES
+
+add_library(dxc_dxcompiler SHARED IMPORTED GLOBAL)
+set_target_properties(dxc_dxcompiler PROPERTIES
     IMPORTED_LOCATION
-        "${DXC_DLL}"
+        ${dxc_SOURCE_DIR}/bin/${DXC_ARCH}/dxcompiler.dll
     IMPORTED_IMPLIB
-        "${DXC_LIB}"
+        ${dxc_SOURCE_DIR}/lib/${DXC_ARCH}/dxcompiler.lib
+)
+
+add_library(dxc_dxil SHARED IMPORTED GLOBAL)
+set_target_properties(dxc_dxil PROPERTIES
+    IMPORTED_LOCATION
+        ${dxc_SOURCE_DIR}/bin/${DXC_ARCH}/dxil.dll
+    IMPORTED_IMPLIB
+        ${dxc_SOURCE_DIR}/lib/${DXC_ARCH}/dxil.lib
+)
+
+set_property(TARGET dxc PROPERTY
+    INTERFACE_LINK_LIBRARIES
+        dxc_dxcompiler
+        dxc_dxil
 )
