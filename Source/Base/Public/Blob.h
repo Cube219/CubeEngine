@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Checker.h"
 #include "Types.h"
 
 namespace cube
@@ -99,15 +100,22 @@ namespace cube
 
         operator BlobView() const
         {
-            BlobView res;
-            res.mSize = mSize;
-            res.mData = mData;
-
-            return res;
+            return CreateBlobView(0, mSize);
         }
 
         Uint64 GetSize() const { return mSize; }
         void* GetData() const { return mData; }
+
+        BlobView CreateBlobView(Uint64 offset, Uint64 size) const
+        {
+            CHECK(offset + size <= mSize);
+
+            BlobView res;
+            res.mSize = size;
+            res.mData = (Byte*)mData + offset;
+
+            return res;
+        }
 
     private:
         friend class BlobView;

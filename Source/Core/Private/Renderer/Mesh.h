@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Blob.h"
 #include "CoreHeader.h"
 
 #include "Renderer/RenderTypes.h"
@@ -25,7 +26,7 @@ namespace cube
     class MeshData
     {
     public:
-        MeshData(Uint64 numVertices, Vertex* pVertices, Uint64 numIndices, Index* pIndices, Uint32 numSubMeshes, SubMesh* pSubMeshes, AnsiStringView debugName);
+        MeshData(ArrayView<Vertex> vertices, ArrayView<Index> indices, ArrayView<SubMesh> subMeshes, AnsiStringView debugName);
         ~MeshData();
 
         MeshData(const MeshData& other) = delete;
@@ -34,12 +35,9 @@ namespace cube
         Uint64 GetNumVertices() const { return mNumVertices; }
         Uint64 GetNumIndices() const { return mNumIndices; }
 
-        void* GetVertexData() const { return mpData; }
-        Uint64 GetVertexDataSize() const { return sizeof(Vertex) * mNumVertices; }
-        void* GetIndexData() const { return (char*)mpData + mIndexOffset; }
-        Uint64 GetIndexDataSize() const { return sizeof(Index) * mNumIndices; }
-        void* GetData() const { return mpData; }
-        Uint64 GetDataSize() const { return mDataSize; }
+        BlobView GetVertexData() const { return mData.CreateBlobView(0, sizeof(Vertex) * mNumVertices); }
+        BlobView GetIndexData() const { return mData.CreateBlobView(mIndexOffset, sizeof(Index) * mNumIndices); }
+        BlobView GetData() const { return mData; }
 
         const Vector<SubMesh>& GetSubMeshes() const { return mSubMeshes; }
 
@@ -48,8 +46,7 @@ namespace cube
     private:
         Uint64 mNumVertices;
         Uint64 mNumIndices;
-        void* mpData;
-        Uint64 mDataSize;
+        Blob mData;
         Uint64 mIndexOffset;
         Vector<SubMesh> mSubMeshes;
 

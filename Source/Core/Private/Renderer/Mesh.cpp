@@ -9,31 +9,22 @@
 
 namespace cube
 {
-    MeshData::MeshData(Uint64 numVertices, Vertex* pVertices, Uint64 numIndices, Index* pIndices, Uint32 numSubMeshes, SubMesh* pSubMeshes, AnsiStringView debugName) :
-        mNumVertices(numVertices),
-        mNumIndices(numIndices),
+    MeshData::MeshData(ArrayView<Vertex> vertices, ArrayView<Index> indices, ArrayView<SubMesh> subMeshes, AnsiStringView debugName) :
+        mNumVertices(vertices.size()),
+        mNumIndices(indices.size()),
         mDebugName(debugName)
     {
-        mDataSize = sizeof(Vertex) * mNumVertices + sizeof(Index) * mNumIndices;
+        Uint64 dataSize = sizeof(Vertex) * mNumVertices + sizeof(Index) * mNumIndices;
         mIndexOffset = sizeof(Vertex) * mNumVertices;
-        mpData = platform::Platform::Allocate(mDataSize);
+        mData = Blob(dataSize);
+        memcpy(mData.GetData(), vertices.data(), sizeof(Vertex) * mNumVertices);
+        memcpy((Byte*)mData.GetData() + mIndexOffset, indices.data(), sizeof(Index) * mNumIndices);
 
-        memcpy(mpData, pVertices, sizeof(Vertex) * mNumVertices);
-        memcpy((char*)mpData + mIndexOffset, pIndices, sizeof(Index) * mNumIndices);
-
-        mSubMeshes.reserve(numSubMeshes);
-        for (Uint32 i = 0; i < numSubMeshes; ++i)
-        {
-            mSubMeshes.push_back(pSubMeshes[i]);
-        }
+        mSubMeshes = Vector<SubMesh>(subMeshes.begin(), subMeshes.end());
     }
 
     MeshData::~MeshData()
     {
-        if (mpData != nullptr)
-        {
-            platform::Platform::Free(mpData);
-        }
     }
 
     Mesh::Mesh(const SharedPtr<MeshData>& meshData) :
@@ -61,11 +52,13 @@ namespace cube
             mIndexBuffer = gAPI.CreateBuffer(indexBufferCreateInfo);
 
             void* pVertexBufferData = mVertexBuffer->Map();
-            memcpy(pVertexBufferData, meshData->GetVertexData(), meshData->GetVertexDataSize());
+            BlobView vertexData = meshData->GetVertexData();
+            memcpy(pVertexBufferData, vertexData.GetData(), vertexData.GetSize());
             mVertexBuffer->Unmap();
 
             void* pIndexBufferData = mIndexBuffer->Map();
-            memcpy(pIndexBufferData, meshData->GetIndexData(), meshData->GetIndexDataSize());
+            BlobView indexData = meshData->GetIndexData();
+            memcpy(pIndexBufferData, indexData.GetData(), indexData.GetSize());
             mIndexBuffer->Unmap();
         }
     }

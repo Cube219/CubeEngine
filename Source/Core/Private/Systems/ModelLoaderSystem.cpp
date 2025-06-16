@@ -520,7 +520,7 @@ namespace cube
         }
 
         ModelResources loadedResources = {
-            .mesh = std::make_shared<MeshData>(vertices.size(), vertices.data(), indices.size(), indices.data(), static_cast<Uint32>(subMeshes.size()), subMeshes.data(), pathInfo.name),
+            .mesh = std::make_shared<MeshData>(vertices, indices, subMeshes, pathInfo.name),
             .materials = std::move(materials)
         };
 
