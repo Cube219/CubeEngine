@@ -17,6 +17,7 @@ namespace cube
         Uint64 vertexOffset;
         Uint64 indexOffset;
         Uint64 numIndices;
+        int materialIndex;
 
         AnsiString debugName;
     };

@@ -24,7 +24,7 @@ namespace cube
     struct ModelResources
     {
         SharedPtr<MeshData> mesh = nullptr;
-        SharedPtr<Material> material = nullptr;
+        Vector<SharedPtr<Material>> materials;
     };
 
     class ModelLoaderSystem

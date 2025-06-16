@@ -47,11 +47,13 @@ namespace cube
 
         SetNormalVector(vertices, indices);
 
-        SubMesh subMesh;
+        SubMesh subMesh = {
+            .vertexOffset = 0,
+            .indexOffset = 0,
+            .numIndices = indices.size(),
+            .materialIndex = 0
+        };
         // subMesh.name = CUBE_T("Box");
-        subMesh.vertexOffset = 0;
-        subMesh.indexOffset = 0;
-        subMesh.numIndices = indices.size();
 
         return std::make_shared<MeshData>(vertices.size(), vertices.data(), indices.size(), indices.data(), 1, &subMesh, "BaseBoxMesh");
     }
@@ -134,11 +136,13 @@ namespace cube
 
         SetNormalVector(vertices, indices);
 
-        SubMesh subMesh;
+        SubMesh subMesh = {
+            .vertexOffset = 0,
+            .indexOffset = 0,
+            .numIndices = indices.size(),
+            .materialIndex = 0
+        };
         // subMesh.name = CUBE_T("Cylinder");
-        subMesh.vertexOffset = 0;
-        subMesh.indexOffset = 0;
-        subMesh.numIndices = indices.size();
 
         return std::make_shared<MeshData>(vertices.size(), vertices.data(), indices.size(), indices.data(), 1, &subMesh, "BaseCylinderMesh");
     }
@@ -216,11 +220,13 @@ namespace cube
 
         //SetNormalVector(meshPtr);
 
-        SubMesh subMesh;
+        SubMesh subMesh = {
+            .vertexOffset = 0,
+            .indexOffset = 0,
+            .numIndices = indices.size(),
+            .materialIndex = 0
+        };
         // subMesh.name = CUBE_T("Sphere");
-        subMesh.vertexOffset = 0;
-        subMesh.indexOffset = 0;
-        subMesh.numIndices = indices.size();
 
         return std::make_shared<MeshData>(vertices.size(), vertices.data(), indices.size(), indices.data(), 1, &subMesh, "BaseSphereMesh");
     }
@@ -247,11 +253,13 @@ namespace cube
 
         SetNormalVector(vertices, indices);
 
-        SubMesh subMesh;
+        SubMesh subMesh = {
+            .vertexOffset = 0,
+            .indexOffset = 0,
+            .numIndices = indices.size(),
+            .materialIndex = 0
+        };
         // subMesh.name = CUBE_T("Plane");
-        subMesh.vertexOffset = 0;
-        subMesh.indexOffset = 0;
-        subMesh.numIndices = indices.size();
 
         return std::make_shared<MeshData>(vertices.size(), vertices.data(), indices.size(), indices.data(), 1, &subMesh, "BasePlaneMesh");
     }

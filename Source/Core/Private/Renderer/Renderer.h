@@ -67,7 +67,7 @@ namespace cube
         float GetGPUTimeMS() const;
 
         void SetMesh(SharedPtr<MeshData> meshData);
-        void SetMaterial(SharedPtr<Material> material);
+        void SetMaterials(const Vector<SharedPtr<Material>>& materials);
 
     private:
         void SetGlobalConstantBuffers();
@@ -101,7 +101,7 @@ namespace cube
         bool mIsDirectionalLightDirty;
 
         SharedPtr<Mesh> mMesh;
-        SharedPtr<Material> mMaterial;
+        Vector<SharedPtr<Material>> mMaterials;
         SharedPtr<gapi::Shader> mVertexShader;
         SharedPtr<gapi::Shader> mPixelShader;
         SharedPtr<gapi::ShaderVariablesLayout> mShaderVariablesLayout;

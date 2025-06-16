@@ -36,7 +36,7 @@ namespace cube
         CUBE_CORE_EXPORT static const String& GetRootDirectoryPath() { return mRootDirectoryPath; }
 
         static void SetMesh(SharedPtr<MeshData> meshData);
-        static void SetMaterial(SharedPtr<Material> material);
+        static void SetMaterials(const Vector<SharedPtr<Material>>& materials);
 
     private:
         static void OnLoop();

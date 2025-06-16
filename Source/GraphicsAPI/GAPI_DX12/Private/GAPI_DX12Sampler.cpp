@@ -80,6 +80,7 @@ namespace cube
             mDescriptor = device.GetDescriptorManager().GetSamplerHeap().AllocateCPU();
 
             device.GetDevice()->CreateSampler(&samplerDesc, mDescriptor.handle);
+            mBindlessIndex = mDescriptor.index;
         }
 
         DX12Sampler::~DX12Sampler()

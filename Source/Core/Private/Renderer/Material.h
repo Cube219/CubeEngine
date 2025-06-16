@@ -32,11 +32,13 @@ namespace cube
 
         SharedPtr<gapi::Texture> mBaseColorTexture;
 
+        // TODO: Adjust padding when copy to gpu buffer
         struct alignas(256) BufferData
         {
             Vector4 baseColor = { 1.0f, 1.0f, 1.0f, 1.0f };
             int useBaseColorTexture = false;
             BindlessResource baseColorTexture;
+            int padding;
             BindlessResource sampler; 
         };
         BufferData mBufferData;

@@ -232,9 +232,9 @@ namespace cube
         }
     }
 
-    void Renderer::SetMaterial(SharedPtr<Material> material)
+    void Renderer::SetMaterials(const Vector<SharedPtr<Material>>& materials)
     {
-        mMaterial = material;
+        mMaterials = materials;
     }
 
     void Renderer::SetGlobalConstantBuffers()
@@ -296,17 +296,34 @@ namespace cube
                 mCommandList->BindIndexBuffer(mMesh->GetIndexBuffer(), 0);
 
                 mCommandList->SetShaderVariableConstantBuffer(1, mObjectBuffer);
-                if (mMaterial)
-                {
-                    mCommandList->SetShaderVariableConstantBuffer(2, mMaterial->GetMaterialBuffer());
-                }
-                else
-                {
-                    mCommandList->SetShaderVariableConstantBuffer(2, mDefaultMaterial->GetMaterialBuffer());
-                }
+
+                int currentMaterialIndex = -2;
                 const Vector<SubMesh>& subMeshes = mMesh->GetSubMeshes();
                 for (const SubMesh& subMesh : subMeshes)
                 {
+                    int lastMaterialIndex = currentMaterialIndex;
+                    if (subMesh.materialIndex < mMaterials.size())
+                    {
+                        currentMaterialIndex = subMesh.materialIndex;
+                    }
+                    else
+                    {
+                        // Use default material
+                        currentMaterialIndex = -1;
+                    }
+
+                    if (currentMaterialIndex != lastMaterialIndex)
+                    {
+                        if (currentMaterialIndex != -1)
+                        {
+                            mCommandList->SetShaderVariableConstantBuffer(2, mMaterials[currentMaterialIndex]->GetMaterialBuffer());
+                        }
+                        else
+                        {
+                            mCommandList->SetShaderVariableConstantBuffer(2, mDefaultMaterial->GetMaterialBuffer());
+                        }
+                    }
+
                     mCommandList->DrawIndexed(subMesh.numIndices, subMesh.indexOffset, subMesh.vertexOffset);
                 }
             }
@@ -510,7 +527,7 @@ namespace cube
         mPixelShader = nullptr;
         mVertexShader = nullptr;
 
-        mMaterial = nullptr;
+        mMaterials.clear();
         mMesh = nullptr;
         mBoxMesh = nullptr;
     }

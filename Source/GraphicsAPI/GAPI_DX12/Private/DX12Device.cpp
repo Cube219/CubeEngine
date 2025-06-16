@@ -61,14 +61,14 @@ namespace cube
         {
             int major = mFeatureSupport.HighestShaderModel() >> 4;
             int minor = mFeatureSupport.HighestShaderModel() & 0x0F;
-            CUBE_LOG(Warning, DX12, "Device {0} does not support Shader Model 6.6 (Maximum: {1}.{2}), which is required.", WindowsStringView(mAdapterDesc.Description), major, minor);
+            CUBE_LOG(Info, DX12, "Device {0} does not support Shader Model 6.6 (Maximum: {1}.{2}), which is required.", WindowsStringView(mAdapterDesc.Description), major, minor);
             res = false;
         }
 
         // Resource Binding Tier 3 (Required by bindless)
         if (mFeatureSupport.ResourceBindingTier() < D3D12_RESOURCE_BINDING_TIER_3)
         {
-            CUBE_LOG(Warning, DX12, "Device {0} does not support Resource Binding Tier 3 (Maximum: {1}), which is required.", WindowsStringView(mAdapterDesc.Description), (int)mFeatureSupport.ResourceBindingTier());
+            CUBE_LOG(Info, DX12, "Device {0} does not support Resource Binding Tier 3 (Maximum: {1}), which is required.", WindowsStringView(mAdapterDesc.Description), (int)mFeatureSupport.ResourceBindingTier());
             res = false;
         }
 

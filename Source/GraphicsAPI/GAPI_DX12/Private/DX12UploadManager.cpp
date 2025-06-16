@@ -107,10 +107,12 @@ namespace cube
         }
         else if (desc.type == gapi::ResourceType::Texture)
         {
+            D3D12_PLACED_SUBRESOURCE_FOOTPRINT srcFootprint = desc.dstTextureLayout;
+            srcFootprint.Offset = desc.offsetInPage;
             D3D12_TEXTURE_COPY_LOCATION src = {
                 .pResource = page.allocation.allocation->GetResource(),
                 .Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
-                .PlacedFootprint = desc.dstTextureLayout
+                .PlacedFootprint = srcFootprint
             };
             D3D12_TEXTURE_COPY_LOCATION dst = {
                 .pResource = desc.dstResource,

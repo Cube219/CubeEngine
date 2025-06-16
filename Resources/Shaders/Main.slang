@@ -15,7 +15,7 @@ ConstantBuffer<PerObjectData> perObjectCB;
 struct MaterialData
 {
     float4 baseColor;
-    bool useBaseColorTexture;
+    int useBaseColorTexture;
     DescriptorHandle<Texture2D> baseColorTexture;
     DescriptorHandle<SamplerState> sampler;
 };
@@ -59,7 +59,7 @@ PSOutput PSMain(PSInput input) : SV_TARGET
     float intensity = dot(input.normal, ligthDir);
 
     PSOutput output;
-    if (materialCB.useBaseColorTexture)
+    if (materialCB.useBaseColorTexture != 0)
     {
         output.color = materialCB.baseColorTexture.Sample(
             materialCB.sampler,

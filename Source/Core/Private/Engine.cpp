@@ -194,9 +194,9 @@ namespace cube
         mRenderer->SetMesh(mesh);
     }
 
-    void Engine::SetMaterial(SharedPtr<Material> material)
+    void Engine::SetMaterials(const Vector<SharedPtr<Material>>& materials)
     {
-        mRenderer->SetMaterial(material);
+        mRenderer->SetMaterials(materials);
     }
 
     void Engine::OnLoop()

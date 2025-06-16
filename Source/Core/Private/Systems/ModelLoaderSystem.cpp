@@ -164,7 +164,7 @@ namespace cube
 
         ModelResources resources = LoadModel(info);
         Engine::SetMesh(resources.mesh);
-        Engine::SetMaterial(resources.material);
+        Engine::SetMaterials(resources.materials);
     }
 
     ModelResources ModelLoaderSystem::LoadModel_glTF(const ModelPathInfo& pathInfo)
@@ -252,7 +252,8 @@ namespace cube
                 subMeshes.push_back({
                     .vertexOffset = vertexOffset,
                     .indexOffset = indexOffset,
-                    .numIndices = numIndices
+                    .numIndices = numIndices,
+                    .materialIndex = prim.material
                 });
 
                 vertices.insert(vertices.end(), numVertices, {});
@@ -442,7 +443,7 @@ namespace cube
         }
 
         // Load materials
-        SharedPtr<Material> material = std::make_shared<Material>();
+        Vector<SharedPtr<Material>> materials;
 
         for (const tinygltf::Material& gltfMaterial : model.materials)
         {
@@ -514,12 +515,13 @@ namespace cube
                 return texture;
             };
 
-            material->SetBaseColorTexture(LoadTexture(CUBE_T("baseColorTexture"), gltfMaterial.pbrMetallicRoughness.baseColorTexture.index));
+            materials.push_back(std::make_shared<Material>());
+            materials.back()->SetBaseColorTexture(LoadTexture(CUBE_T("baseColorTexture"), gltfMaterial.pbrMetallicRoughness.baseColorTexture.index));
         }
 
         ModelResources loadedResources = {
             .mesh = std::make_shared<MeshData>(vertices.size(), vertices.data(), indices.size(), indices.data(), static_cast<Uint32>(subMeshes.size()), subMeshes.data(), pathInfo.name),
-            .material = material
+            .materials = std::move(materials)
         };
 
         return loadedResources;
