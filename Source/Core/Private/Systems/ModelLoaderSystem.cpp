@@ -448,7 +448,7 @@ namespace cube
         {
             auto LoadTexture = [&model, &pathInfo](const Character* textureName, int textureIndex) -> SharedPtr<gapi::Texture>
             {
-                FrameAnsiString debugName = Format<FrameAnsiString>("{0} - {1}", textureName, pathInfo.name);
+                FrameAnsiString debugName = Format<FrameAnsiString>("{0}-{1}", pathInfo.name, textureName);
 
                 if (textureIndex == -1)
                 {
@@ -467,6 +467,8 @@ namespace cube
                     CUBE_LOG(Warning, ModelLoaderSystem, "Cannot load {0}: empty image data", debugName);
                     return nullptr;
                 }
+                // Append file name
+                debugName = Format<FrameAnsiString>("{0}({1})", debugName, image.uri);
 
                 gapi::ElementFormat format = gapi::ElementFormat::Unknown;
                 if (image.component == 4)
@@ -516,7 +518,7 @@ namespace cube
         }
 
         ModelResources loadedResources = {
-            .mesh = std::make_shared<MeshData>(vertices.size(), vertices.data(), indices.size(), indices.data(), static_cast<Uint32>(subMeshes.size()), subMeshes.data()),
+            .mesh = std::make_shared<MeshData>(vertices.size(), vertices.data(), indices.size(), indices.data(), static_cast<Uint32>(subMeshes.size()), subMeshes.data(), pathInfo.name),
             .material = material
         };
 

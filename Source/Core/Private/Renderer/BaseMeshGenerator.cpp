@@ -53,7 +53,7 @@ namespace cube
         subMesh.indexOffset = 0;
         subMesh.numIndices = indices.size();
 
-        return std::make_shared<MeshData>(vertices.size(), vertices.data(), indices.size(), indices.data(), 1, &subMesh);
+        return std::make_shared<MeshData>(vertices.size(), vertices.data(), indices.size(), indices.data(), 1, &subMesh, "BaseBoxMesh");
     }
 
     SharedPtr<MeshData> BaseMeshGenerator::GetCylinderMeshData()
@@ -140,7 +140,7 @@ namespace cube
         subMesh.indexOffset = 0;
         subMesh.numIndices = indices.size();
 
-        return std::make_shared<MeshData>(vertices.size(), vertices.data(), indices.size(), indices.data(), 1, &subMesh);
+        return std::make_shared<MeshData>(vertices.size(), vertices.data(), indices.size(), indices.data(), 1, &subMesh, "BaseCylinderMesh");
     }
 
     SharedPtr<MeshData> BaseMeshGenerator::GetCapsuleMeshData()
@@ -222,7 +222,7 @@ namespace cube
         subMesh.indexOffset = 0;
         subMesh.numIndices = indices.size();
 
-        return std::make_shared<MeshData>(vertices.size(), vertices.data(), indices.size(), indices.data(), 1, &subMesh);
+        return std::make_shared<MeshData>(vertices.size(), vertices.data(), indices.size(), indices.data(), 1, &subMesh, "BaseSphereMesh");
     }
 
     SharedPtr<MeshData> BaseMeshGenerator::GetPlaneMeshData()
@@ -253,7 +253,7 @@ namespace cube
         subMesh.indexOffset = 0;
         subMesh.numIndices = indices.size();
 
-        return std::make_shared<MeshData>(vertices.size(), vertices.data(), indices.size(), indices.data(), 1, &subMesh);
+        return std::make_shared<MeshData>(vertices.size(), vertices.data(), indices.size(), indices.data(), 1, &subMesh, "BasePlaneMesh");
     }
 
     void BaseMeshGenerator::SubDivide(FrameVector<Vertex>& vertices, FrameVector<Index>& indices)

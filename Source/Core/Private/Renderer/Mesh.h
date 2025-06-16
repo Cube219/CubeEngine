@@ -12,17 +12,19 @@ namespace cube
         class Buffer;
     } // namespace gapi
 
-	struct SubMesh
-	{
-	    Uint64 vertexOffset;
-		Uint64 indexOffset;
-		Uint64 numIndices;
-	};
+    struct SubMesh
+    {
+        Uint64 vertexOffset;
+        Uint64 indexOffset;
+        Uint64 numIndices;
 
-	class MeshData
+        AnsiString debugName;
+    };
+
+    class MeshData
     {
     public:
-        MeshData(Uint64 numVertices, Vertex* pVertices, Uint64 numIndices, Index* pIndices, Uint32 numSubMeshes, SubMesh* pSubMeshes);
+        MeshData(Uint64 numVertices, Vertex* pVertices, Uint64 numIndices, Index* pIndices, Uint32 numSubMeshes, SubMesh* pSubMeshes, AnsiStringView debugName);
         ~MeshData();
 
         MeshData(const MeshData& other) = delete;
@@ -38,7 +40,9 @@ namespace cube
         void* GetData() const { return mpData; }
         Uint64 GetDataSize() const { return mDataSize; }
 
-	    const Vector<SubMesh>& GetSubMeshes() const { return mSubMeshes; }
+        const Vector<SubMesh>& GetSubMeshes() const { return mSubMeshes; }
+
+        AnsiStringView GetDebugName() const { return mDebugName; }
 
     private:
         Uint64 mNumVertices;
@@ -47,6 +51,8 @@ namespace cube
         Uint64 mDataSize;
         Uint64 mIndexOffset;
         Vector<SubMesh> mSubMeshes;
+
+        AnsiString mDebugName;
     };
 
     class Mesh

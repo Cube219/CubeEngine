@@ -36,6 +36,7 @@ namespace cube
                 heapType = D3D12_HEAP_TYPE_UPLOAD; break;
             }
             mAllocation = device.GetMemoryAllocator().Allocate(heapType, desc);
+            SET_DEBUG_NAME(mAllocation.allocation->GetResource(), info.debugName);
 
             if (mType == BufferType::Constant)
             {

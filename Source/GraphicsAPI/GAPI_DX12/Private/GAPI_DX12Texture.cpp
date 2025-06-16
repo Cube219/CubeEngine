@@ -60,6 +60,7 @@ namespace cube
                 break;
             }
             mAllocation = device.GetMemoryAllocator().Allocate(heapType, desc);
+            SET_DEBUG_NAME(mAllocation.allocation->GetResource(), info.debugName);
 
             // TODO: Add SRV/UAV/RTV flags
             mSRVDescriptor = device.GetDescriptorManager().GetSRVHeap().AllocateCPU();

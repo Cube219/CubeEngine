@@ -1,16 +1,18 @@
 #include "Renderer/Mesh.h"
 
+
+#include "Allocator/FrameAllocator.h"
+#include "Engine.h"
 #include "GAPI_Buffer.h"
 #include "Platform.h"
-
-#include "Engine.h"
 #include "Renderer.h"
 
 namespace cube
 {
-    MeshData::MeshData(Uint64 numVertices, Vertex* pVertices, Uint64 numIndices, Index* pIndices, Uint32 numSubMeshes, SubMesh* pSubMeshes) :
+    MeshData::MeshData(Uint64 numVertices, Vertex* pVertices, Uint64 numIndices, Index* pIndices, Uint32 numSubMeshes, SubMesh* pSubMeshes, AnsiStringView debugName) :
         mNumVertices(numVertices),
-        mNumIndices(numIndices)
+        mNumIndices(numIndices),
+        mDebugName(debugName)
     {
         mDataSize = sizeof(Vertex) * mNumVertices + sizeof(Index) * mNumIndices;
         mIndexOffset = sizeof(Vertex) * mNumVertices;
@@ -40,19 +42,21 @@ namespace cube
         GAPI& gAPI = Engine::GetRenderer()->GetGAPI();
         {
             using namespace gapi;
+            FrameAnsiString vbDebugName = Format<FrameAnsiString>("{0}-Vertex buffer", meshData->GetDebugName());
             BufferCreateInfo vertexBufferCreateInfo = {
                 .type = BufferType::Vertex,
                 .usage = ResourceUsage::GPUOnly,
                 .size = sizeof(Vertex) * meshData->GetNumVertices(),
-                .debugName = "Vertex buffer"
+                .debugName = vbDebugName.c_str()
             };
             mVertexBuffer = gAPI.CreateBuffer(vertexBufferCreateInfo);
 
+            FrameAnsiString ibDebugName = Format<FrameAnsiString>("{0}-Index buffer", meshData->GetDebugName());
             BufferCreateInfo indexBufferCreateInfo = {
                 .type = BufferType::Index,
                 .usage = ResourceUsage::GPUOnly,
                 .size = sizeof(Index) * meshData->GetNumIndices(),
-                .debugName = "Index buffer"
+                .debugName = ibDebugName.c_str()
             };
             mIndexBuffer = gAPI.CreateBuffer(indexBufferCreateInfo);
 
