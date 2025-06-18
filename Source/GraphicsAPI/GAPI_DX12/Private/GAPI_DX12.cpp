@@ -155,6 +155,11 @@ namespace cube
         CUBE_LOG(Info, DX12, "Found {0} supported devices.", mDevices.size());
         CUBE_LOG(Info, DX12, "Use the first device: {0}", WindowsStringView(mMainDevice->GetAdapterDesc().Description));
 
+        if (initInfo.enableDebugLayer)
+        {
+            DX12Debug::InitializeD3DExceptionHandler(*mMainDevice);
+        }
+
         InitializeImGUI(initInfo.imGUI);
         DX12ShaderCompiler::Initialize();
 
@@ -168,6 +173,8 @@ namespace cube
         DX12ShaderCompiler::Shutdown();
 
         ShutdownImGUI(imGUIInfo);
+
+        DX12Debug::ShutdownD3DExceptionHandler();
 
         for (DX12Device* device : mDevices)
         {
@@ -243,8 +250,6 @@ namespace cube
             ImGui_ImplDX12_NewFrame();
             ImGui_ImplWin32_NewFrame();
         }
-
-        DX12Debug::CheckDebugMessages(*mMainDevice);
     }
 
     void GAPI_DX12::WaitForGPU()

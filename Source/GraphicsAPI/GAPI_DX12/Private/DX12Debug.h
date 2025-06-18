@@ -22,10 +22,16 @@ namespace cube
         static void Initialize(Uint32& outDxgiFactoryFlags);
         static void Shutdown();
 
-        static void CheckDebugMessages(DX12Device& device);
+        static void InitializeD3DExceptionHandler(DX12Device& device);
+        static void ShutdownD3DExceptionHandler();
 
     private:
+        static LONG D3DVectoredExceptionHandler(EXCEPTION_POINTERS* exceptionInfo);
+        static void CheckDebugMessages();
+
         static bool mIsInitizlied;
+        static DX12Device* mDevice;
+        static HANDLE mExceptionHandler;
 
         static SharedPtr<platform::DLib> mDXGIDebugDLib;
         static ComPtr<IDXGIDebug> mDXGIDebug;
