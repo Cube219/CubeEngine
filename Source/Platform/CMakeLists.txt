@@ -7,6 +7,11 @@ set(PUBLIC_FILES
     Public/PlatformDebug.h
     Public/PlatformHeader.h
 )
+
+set(PRECOMPILE_HEADER_FILES
+    Public/PlatformHeader.h
+)
+
 set(PRIVATE_FILES
 )
 
@@ -56,6 +61,10 @@ target_include_directories(CE-Platform
         Public
     PRIVATE
         Private
+)
+target_precompile_headers(CE-Platform
+    PRIVATE
+        ${PRECOMPILE_HEADER_FILES}
 )
 target_link_libraries(CE-Platform
     PRIVATE

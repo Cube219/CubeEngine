@@ -29,6 +29,24 @@ set(PRIVATE_FILES
     Private/CubeFormat.cpp
 )
 
+set(PRECOMPILE_HEADER_FILES
+    Public/Async.h
+    Public/Allocator.h
+    Public/Blob.h
+    Public/CubeMath.h
+    Public/CubeString.h
+    Public/Defines.h
+    Public/Event.h
+    Public/Flags.h
+    Public/Format.h
+    Public/KeyCode.h
+    Public/Matrix.h
+    Public/MatrixUtility.h
+    Public/Mouse.h
+    Public/Types.h
+    Public/Vector.h
+)
+
 if(PLATFORM_WINDOWS)
     set(PLATFORM_PUBLIC_FILES
         Public/Windows/WindowsDefines.h
@@ -55,6 +73,10 @@ target_include_directories(CE-Base
         Public
     PRIVATE
         Private
+)
+target_precompile_headers(CE-Base
+    PUBLIC
+        ${PRECOMPILE_HEADER_FILES}
 )
 
 # Third-party

@@ -15,6 +15,11 @@ set(PUBLIC_FILES
     Public/GAPI_DX12Texture.h
     Public/GAPI_DX12Viewport.h
 )
+
+set(PRECOMPILE_HEADER_FILES
+    Public/DX12Header.h
+)
+
 set(PRIVATE_FILES
     Private/DX12CommandListManager.cpp
     Private/DX12CommandListManager.h
@@ -64,6 +69,10 @@ target_include_directories(CE-GAPI_DX12
         Public
     PRIVATE
         Private
+)
+target_precompile_headers(CE-GAPI_DX12
+    PRIVATE
+        ${PRECOMPILE_HEADER_FILES}
 )
 target_link_libraries(CE-GAPI_DX12
     PRIVATE
