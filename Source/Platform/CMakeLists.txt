@@ -46,6 +46,11 @@ if(PLATFORM_MACOS)
         Private/MacOS/MacOSPlatform.mm
         Private/MacOS/MacOSString.mm
     )
+    # Objective-C does not support precompiled headers
+    set_source_files_properties(${PLATFORM_PRIVATE_FILES}
+        PROPERTIES
+            SKIP_PRECOMPILE_HEADERS ON
+    )
 endif()
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${PUBLIC_FILES} ${PRIVATE_FILES} ${PLATFORM_PUBLIC_FILES} ${PLATFORM_PRIVATE_FILES})

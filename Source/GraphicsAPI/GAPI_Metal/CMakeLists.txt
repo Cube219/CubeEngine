@@ -22,6 +22,11 @@ set(PRIVATE_FILES
     Private/MetalShaderCompiler.h
     Private/MetalShaderCompiler.mm
 )
+# Objective-C does not support precompiled headers
+set_source_files_properties(${PRIVATE_FILES}
+    PROPERTIES
+        SKIP_PRECOMPILE_HEADERS ON
+)
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${PUBLIC_FILES} ${PRIVATE_FILES})
 
