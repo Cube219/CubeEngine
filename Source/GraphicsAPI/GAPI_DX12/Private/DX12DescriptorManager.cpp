@@ -49,9 +49,10 @@ namespace cube
         mFreedIndicesGPU.push_back(index);
     }
 
-    void DX12DescriptorHeap::Initialize(DX12Device& device, const D3D12_DESCRIPTOR_HEAP_DESC& desc)
+    void DX12DescriptorHeap::Initialize(DX12Device& device, const D3D12_DESCRIPTOR_HEAP_DESC& desc, StringView debugName)
     {
         CHECK_HR(device.GetDevice()->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&mHeap)));
+        SET_DEBUG_NAME(mHeap, debugName);
 
         mType = desc.Type;
         mNumDescriptors = desc.NumDescriptors;
@@ -97,7 +98,7 @@ namespace cube
             .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
             .NodeMask = 0
         };
-        mRTVHeap.Initialize(mDevice, rtvHeapDesc);
+        mRTVHeap.Initialize(mDevice, rtvHeapDesc, CUBE_T("DescriptorHeap(RTV)"));
 
         D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {
             .Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
@@ -105,7 +106,7 @@ namespace cube
             .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
             .NodeMask = 0
         };
-        mSRVHeap.Initialize(mDevice, srvHeapDesc);
+        mSRVHeap.Initialize(mDevice, srvHeapDesc, CUBE_T("DescriptorHeap(CBV_SRV_UAV)"));
 
         D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {
             .Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV,
@@ -113,7 +114,7 @@ namespace cube
             .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
             .NodeMask = 0
         };
-        mDSVHeap.Initialize(mDevice, dsvHeapDesc);
+        mDSVHeap.Initialize(mDevice, dsvHeapDesc, CUBE_T("DescriptorHeap(DSV)"));
 
         D3D12_DESCRIPTOR_HEAP_DESC samplerHeapDesc = {
             .Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,
@@ -121,7 +122,7 @@ namespace cube
             .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
             .NodeMask = 0
         };
-        mSamplerHeap.Initialize(mDevice, samplerHeapDesc);
+        mSamplerHeap.Initialize(mDevice, samplerHeapDesc, CUBE_T("DescriptorHeap(Sampler)"));
 
         mD3D12ShaderVislbleHeaps[0] = mSRVHeap.Get();
         mD3D12ShaderVislbleHeaps[1] = mSamplerHeap.Get();

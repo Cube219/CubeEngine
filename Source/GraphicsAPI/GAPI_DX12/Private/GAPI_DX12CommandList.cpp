@@ -43,6 +43,7 @@ namespace cube
             mState(State::Closed)
         {
             device.GetDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, mCommandListManager.GetCurrentAllocator(), nullptr, IID_PPV_ARGS(&mCommandList));
+            SET_DEBUG_NAME(mCommandList, info.debugName);
             CHECK_HR(mCommandList->Close());
         }
 

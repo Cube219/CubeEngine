@@ -17,7 +17,7 @@ namespace cube
     {
         mMinPageSize = minPageSize;
         mPageNextId = 0;
-        mFence.Initialize();
+        mFence.Initialize(CUBE_T("UploadManagerFence"));
 
         int index = 0;
         for (CommandListAllocator& allocator : mCommandListAllocators)

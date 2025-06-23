@@ -194,6 +194,8 @@ namespace cube
             return {};
         }
 
+        FrameString pathInfoName = String_Convert<FrameString>(pathInfo.name);
+
         // Load meshes
         FrameVector<Vertex> vertices;
         FrameVector<Index> indices;
@@ -447,9 +449,9 @@ namespace cube
 
         for (const tinygltf::Material& gltfMaterial : model.materials)
         {
-            auto LoadTexture = [&model, &pathInfo](const Character* textureName, int textureIndex) -> SharedPtr<gapi::Texture>
+            auto LoadTexture = [&model, &pathInfoName](const Character* textureName, int textureIndex) -> SharedPtr<gapi::Texture>
             {
-                FrameAnsiString debugName = Format<FrameAnsiString>("{0}-{1}", pathInfo.name, textureName);
+                FrameString debugName = Format<FrameString>(CUBE_T("[{0}({1})] Texture"), pathInfoName, textureName);
 
                 if (textureIndex == -1)
                 {
@@ -469,7 +471,7 @@ namespace cube
                     return nullptr;
                 }
                 // Append file name
-                debugName = Format<FrameAnsiString>("{0}({1})", debugName, image.uri);
+                debugName = Format<FrameString>(CUBE_T("{0} ({1})"), debugName, image.uri);
 
                 gapi::ElementFormat format = gapi::ElementFormat::Unknown;
                 if (image.component == 4)
@@ -495,14 +497,14 @@ namespace cube
                     .type = gapi::TextureType::Texture2D,
                     .width = static_cast<Uint32>(image.width),
                     .height = static_cast<Uint32>(image.height),
-                    .debugName = debugName.c_str()
+                    .debugName = debugName
                 };
                 SharedPtr<gapi::Texture> texture = Engine::GetRenderer()->GetGAPI().CreateTexture(textureCreateInfo);
 
                 // Set texture data
                 Byte* pSrc = (Byte*)(image.image.data());
                 Uint64 rowSize = image.width * image.component * image.bits / 8;
-
+                    
                 Byte* pData = (Byte*)texture->Map();
                 Uint64 rowPitch = texture->GetRowPitch();
                 CHECK(rowSize <= rowPitch);
@@ -515,12 +517,14 @@ namespace cube
                 return texture;
             };
 
-            materials.push_back(std::make_shared<Material>());
+            FrameString materialName = Format<FrameString>(CUBE_T("{0}({1})"), pathInfoName, gltfMaterial.name);
+            materials.push_back(std::make_shared<Material>(materialName));
+            // TODO: Remove duplication - check the image is used first
             materials.back()->SetBaseColorTexture(LoadTexture(CUBE_T("baseColorTexture"), gltfMaterial.pbrMetallicRoughness.baseColorTexture.index));
         }
 
         ModelResources loadedResources = {
-            .mesh = std::make_shared<MeshData>(vertices, indices, subMeshes, pathInfo.name),
+            .mesh = std::make_shared<MeshData>(vertices, indices, subMeshes, pathInfoName),
             .materials = std::move(materials)
         };
 

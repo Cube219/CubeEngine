@@ -1,5 +1,6 @@
 #include "Material.h"
 
+#include "Allocator/FrameAllocator.h"
 #include "Engine.h"
 #include "GAPI_Buffer.h"
 #include "GAPI_Texture.h"
@@ -7,14 +8,15 @@
 
 namespace cube
 {
-    Material::Material() :
+    Material::Material(StringView debugName) :
         mBaseColorTexture(nullptr)
     {
+        FrameString bufferDebugName = Format<FrameString>(CUBE_T("[{0}] MaterialBuffer"), debugName);
         mBuffer = Engine::GetRenderer()->GetGAPI().CreateBuffer({
             .type = gapi::BufferType::Constant,
             .usage = gapi::ResourceUsage::CPUtoGPU,
             .size = sizeof(BufferData),
-            .debugName = "Material buffer data"
+            .debugName = bufferDebugName
         });
         mBufferDataPointer = (Byte*)mBuffer->Map();
 

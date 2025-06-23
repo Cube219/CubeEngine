@@ -19,9 +19,12 @@ namespace cube
             .Count = MAX_NUM_TIMESTAMP,
             .NodeMask = 0
         };
+        int index = 0;
         for (ComPtr<ID3D12QueryHeap>& heap : mTimestampHeaps)
         {
             CHECK_HR(mDevice.GetDevice()->CreateQueryHeap(&heapDesc, IID_PPV_ARGS(&heap)));
+            SET_DEBUG_NAME_FORMAT(heap, "QueryHeap[{0}]", index);
+            index++;
         }
         const D3D12_RESOURCE_DESC bufferDesc = {
             .Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
@@ -39,7 +42,7 @@ namespace cube
         };
         mTimestampGPUBuffer = mDevice.GetMemoryAllocator().Allocate(D3D12_HEAP_TYPE_READBACK, bufferDesc);
 
-        mFence.Initialize();
+        mFence.Initialize(CUBE_T("QueryManagerFence"));
         mFenceValues = {};
         mCurrentFrame = 1;
 

@@ -28,7 +28,7 @@ namespace cube
 
         DX12DescriptorHeap() = default;
 
-        void Initialize(DX12Device& device, const D3D12_DESCRIPTOR_HEAP_DESC& desc);
+        void Initialize(DX12Device& device, const D3D12_DESCRIPTOR_HEAP_DESC& desc, StringView debugName);
         void Shutdown();
 
         ComPtr<ID3D12DescriptorHeap> mHeap;

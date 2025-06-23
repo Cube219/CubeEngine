@@ -30,7 +30,7 @@ namespace cube
             Uint32 depth = 1;
             Uint32 arraySize = 0;
 
-            const char* debugName = "Unknown";
+            StringView debugName;
         };
 
         class Texture

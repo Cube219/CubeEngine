@@ -43,7 +43,7 @@ namespace cube
 
             float borderColor[4];
 
-            const char* debugName = "Unknown";
+            StringView debugName;
 
             Uint64 GetHashValue() const
             {

@@ -23,7 +23,7 @@ namespace cube
             ResourceUsage usage;
             Uint64 size;
 
-            const char* debugName = "Unknown";
+            StringView debugName;
         };
 
         class Buffer

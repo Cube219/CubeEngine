@@ -12,7 +12,7 @@ namespace cube
 
         struct ShaderVariableInfo
         {
-            const char* debugName = "Unknown";
+            AnsiStringView debugName;
         };
 
         struct ShaderVariableConstantBuffer
@@ -26,7 +26,7 @@ namespace cube
             Uint32 numShaderVariablesConstantBuffer;
             const ShaderVariableConstantBuffer* shaderVariablesConstantBuffer;
 
-            const char* debugName = "Unknown";
+            StringView debugName;
         };
 
         class ShaderVariablesLayout

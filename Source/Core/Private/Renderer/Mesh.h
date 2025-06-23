@@ -19,14 +19,12 @@ namespace cube
         Uint64 indexOffset;
         Uint64 numIndices;
         int materialIndex;
-
-        AnsiString debugName;
     };
 
     class MeshData
     {
     public:
-        MeshData(ArrayView<Vertex> vertices, ArrayView<Index> indices, ArrayView<SubMesh> subMeshes, AnsiStringView debugName);
+        MeshData(ArrayView<Vertex> vertices, ArrayView<Index> indices, ArrayView<SubMesh> subMeshes, StringView debugName);
         ~MeshData();
 
         MeshData(const MeshData& other) = delete;
@@ -41,7 +39,7 @@ namespace cube
 
         const Vector<SubMesh>& GetSubMeshes() const { return mSubMeshes; }
 
-        AnsiStringView GetDebugName() const { return mDebugName; }
+        StringView GetDebugName() const { return mDebugName; }
 
     private:
         Uint64 mNumVertices;
@@ -50,7 +48,7 @@ namespace cube
         Uint64 mIndexOffset;
         Vector<SubMesh> mSubMeshes;
 
-        AnsiString mDebugName;
+        String mDebugName;
     };
 
     class Mesh

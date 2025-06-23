@@ -37,7 +37,7 @@ namespace cube
 
         struct CommandListCreateInfo
         {
-            const char* debugName = "Unknown";
+            StringView debugName;
         };
 
         class CommandList

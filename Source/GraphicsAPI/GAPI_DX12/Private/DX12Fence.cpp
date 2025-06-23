@@ -14,9 +14,11 @@ namespace cube
     {
     }
 
-    void DX12Fence::Initialize()
+    void DX12Fence::Initialize(StringView debugName)
     {
         CHECK_HR(mDevice.GetDevice()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&mFence)));
+        SET_DEBUG_NAME(mFence, debugName);
+
         mFenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
         if (mFenceEvent == nullptr)
         {

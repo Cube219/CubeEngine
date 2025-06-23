@@ -14,7 +14,7 @@ namespace cube
 
             Uint32 backbufferCount;
 
-            const char* debugName = "Unknown";
+            StringView debugName;
         };
 
         class Viewport

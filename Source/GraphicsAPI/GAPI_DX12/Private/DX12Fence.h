@@ -14,7 +14,7 @@ namespace cube
         DX12Fence(DX12Device& device);
         ~DX12Fence();
 
-        void Initialize();
+        void Initialize(StringView debugName);
         void Shutdown(bool skipPendingSignal = false);
 
         void Signal(ID3D12CommandQueue* queue, Uint64 fenceValue);

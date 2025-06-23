@@ -29,7 +29,7 @@ namespace cube
         mDefaultLinearSamplerCreateInfo.minFilter = SamplerFilterType::Linear;
         mDefaultLinearSamplerCreateInfo.magFilter = SamplerFilterType::Linear;
         mDefaultLinearSamplerCreateInfo.mipFilter = SamplerFilterType::Linear;
-        mDefaultLinearSamplerCreateInfo.debugName = "DefaultLinearSampler";
+        mDefaultLinearSamplerCreateInfo.debugName = CUBE_T("DefaultLinearSampler");
     }
 
     void SamplerManager::Shutdown()

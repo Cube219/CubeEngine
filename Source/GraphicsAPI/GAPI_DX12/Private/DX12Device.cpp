@@ -26,8 +26,7 @@ namespace cube
 
 		CHECK_HR(mAdapter->GetDesc(&mAdapterDesc));
 
-        HRESULT res = D3D12CreateDevice(mAdapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&mDevice));
-        CHECK_HR(res);
+        CHECK_HR(D3D12CreateDevice(mAdapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&mDevice)));
 
         CHECK_HR(mFeatureSupport.Init(mDevice.Get()));
 

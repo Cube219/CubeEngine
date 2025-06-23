@@ -8,7 +8,7 @@ namespace cube
     {
         struct FenceCreateInfo
         {
-            const char* debugName = "Unknown";
+            StringView debugName;
         };
 
         class Fence

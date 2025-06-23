@@ -5,24 +5,33 @@
 #include "Allocator/FrameAllocator.h"
 #include "Checker.h"
 #include "Logger.h"
+#include "Windows/WindowsString.h"
 
 namespace cube
 {
 #define CHECK_HR(HR) \
-    if ((HR) != S_OK) \
     { \
-        cube::Checker::ProcessFailedCheckFormatting(__FILE__, __LINE__, CUBE_T(#HR)" == S_OK", CUBE_T("Failed to check HRESULT! (HRESULT: 0x{:0X})"), (unsigned long)(HR)); \
+        HRESULT res = HR; \
+        if (res != S_OK) \
+        { \
+            cube::Checker::ProcessFailedCheckFormatting(__FILE__, __LINE__, CUBE_T(#HR)" == S_OK", CUBE_T("Failed to check HRESULT! (HRESULT: 0x{:0X})"), (unsigned long)(res)); \
+        } \
     }
 
-#define SET_DEBUG_NAME(object, pName) \
+#define SET_DEBUG_NAME(object, name) \
     { \
-        AnsiStringView str(pName); \
-        object->SetPrivateData(WKPDID_D3DDebugObjectName, str.size(), str.data()); \
+        using FrameWindowsString = TFrameString<WindowsCharacter>; \
+        FrameWindowsString str = String_Convert<FrameWindowsString>(name); \
+        if (!str.empty()) \
+        { \
+            object->SetPrivateData(WKPDID_D3DDebugObjectNameW, str.size() * sizeof(WindowsCharacter), str.c_str()); \
+        } \
     }
 
 #define SET_DEBUG_NAME_FORMAT(object, format, ...) \
     { \
-        FrameAnsiString str = Format<FrameAnsiString>(format, ##__VA_ARGS__); \
-        object->SetPrivateData(WKPDID_D3DDebugObjectName, str.size(), str.c_str()); \
+        using FrameWindowsString = TFrameString<WindowsCharacter>; \
+        FrameWindowsString str = Format<FrameWindowsString>(WINDOWS_T(format), ##__VA_ARGS__); \
+        object->SetPrivateData(WKPDID_D3DDebugObjectNameW, str.size() * sizeof(WindowsCharacter), str.c_str()); \
     }
 } // namespace cube

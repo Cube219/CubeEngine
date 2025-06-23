@@ -9,7 +9,7 @@
 
 namespace cube
 {
-    MeshData::MeshData(ArrayView<Vertex> vertices, ArrayView<Index> indices, ArrayView<SubMesh> subMeshes, AnsiStringView debugName) :
+    MeshData::MeshData(ArrayView<Vertex> vertices, ArrayView<Index> indices, ArrayView<SubMesh> subMeshes, StringView debugName) :
         mNumVertices(vertices.size()),
         mNumIndices(indices.size()),
         mDebugName(debugName)
@@ -33,21 +33,21 @@ namespace cube
         GAPI& gAPI = Engine::GetRenderer()->GetGAPI();
         {
             using namespace gapi;
-            FrameAnsiString vbDebugName = Format<FrameAnsiString>("{0}-Vertex buffer", meshData->GetDebugName());
+            FrameString vbDebugName = Format<FrameString>(CUBE_T("[{0}] VertexBuffer"), meshData->GetDebugName());
             BufferCreateInfo vertexBufferCreateInfo = {
                 .type = BufferType::Vertex,
                 .usage = ResourceUsage::GPUOnly,
                 .size = sizeof(Vertex) * meshData->GetNumVertices(),
-                .debugName = vbDebugName.c_str()
+                .debugName = vbDebugName
             };
             mVertexBuffer = gAPI.CreateBuffer(vertexBufferCreateInfo);
 
-            FrameAnsiString ibDebugName = Format<FrameAnsiString>("{0}-Index buffer", meshData->GetDebugName());
+            FrameString ibDebugName = Format<FrameString>(CUBE_T("[{0}] IndexBuffer"), meshData->GetDebugName());
             BufferCreateInfo indexBufferCreateInfo = {
                 .type = BufferType::Index,
                 .usage = ResourceUsage::GPUOnly,
                 .size = sizeof(Index) * meshData->GetNumIndices(),
-                .debugName = ibDebugName.c_str()
+                .debugName = ibDebugName
             };
             mIndexBuffer = gAPI.CreateBuffer(indexBufferCreateInfo);
 

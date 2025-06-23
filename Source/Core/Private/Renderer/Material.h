@@ -17,7 +17,7 @@ namespace cube
     class Material
     {
     public:
-        Material();
+        Material(StringView debugName);
         ~Material();
 
         void SetBaseColor(Vector4 color);

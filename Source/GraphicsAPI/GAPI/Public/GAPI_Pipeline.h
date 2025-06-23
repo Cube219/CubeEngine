@@ -164,12 +164,12 @@ namespace cube
 
             SharedPtr<ShaderVariablesLayout> shaderVariablesLayout;
 
-            const char* debugName = "Unknown";
+            StringView debugName;
         };
 
         struct ComputePipelineCreateInfo
         {
-            const char* debugName = "Unknown";
+            StringView debugName;
         };
 
         class Pipeline

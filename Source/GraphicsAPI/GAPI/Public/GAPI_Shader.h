@@ -73,10 +73,10 @@ namespace cube
             StringView path;
 
             BlobView code;
-            const char* entryPoint;
+            AnsiStringView entryPoint;
 
             bool withDebugSymbol;
-            const char* debugName = "Unknown";
+            StringView debugName;
         };
 
         class Shader

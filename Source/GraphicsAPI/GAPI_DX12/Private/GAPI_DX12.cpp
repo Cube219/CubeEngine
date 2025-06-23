@@ -117,6 +117,7 @@ namespace cube
             // Check if the adapter support DX12
             if (SUCCEEDED(D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr)))
             {
+                // TODO: Move to after checking feature requirements
                 DX12Device* device = new DX12Device();
                 device->Initialize(adapter);
 
@@ -255,7 +256,7 @@ namespace cube
     void GAPI_DX12::WaitForGPU()
     {
         DX12Fence waitFence(*mMainDevice);
-        waitFence.Initialize();
+        waitFence.Initialize(CUBE_T("WaitForGPUFence"));
 
         waitFence.Signal(mMainDevice->GetQueueManager().GetMainQueue(), 1);
         waitFence.Wait(1);

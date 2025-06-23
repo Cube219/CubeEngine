@@ -61,7 +61,7 @@ namespace cube
             .type = gapi::BufferType::Constant,
             .usage = gapi::ResourceUsage::CPUtoGPU,
             .size = sizeof(GlobalConstantBufferData),
-            .debugName = "GlobalConstantBuffer"
+            .debugName = CUBE_T("GlobalConstantBuffer")
         });
         mGlobalConstantBufferDataPointer = static_cast<Uint8*>(mGlobalConstantBuffer->Map());
 
@@ -70,13 +70,13 @@ namespace cube
             .type = gapi::BufferType::Constant,
             .usage = gapi::ResourceUsage::CPUtoGPU,
             .size = sizeof(ObjectBufferData),
-            .debugName = "ObjectBuffer"
+            .debugName = CUBE_T("ObjectBuffer")
         });
         mObjectBufferDataPointer = static_cast<Uint8*>(mObjectBuffer->Map());
         memcpy(mObjectBufferDataPointer, &mObjectBufferData, sizeof(ObjectBufferData));
 
         mCommandList = mGAPI->CreateCommandList({
-            .debugName = "MainCommandList"
+            .debugName = CUBE_T("MainCommandList")
         });
 
         mViewportWidth = platform::Platform::GetWindowWidth();
@@ -86,7 +86,7 @@ namespace cube
             .height = mViewportHeight,
             .vsync = true,
             .backbufferCount = 2,
-            .debugName = "MainViewport"
+            .debugName = CUBE_T("MainViewport")
         });
 
         mDirectionalLightDirection = Vector3(1.0f, 1.0f, 1.0f).Normalized();
@@ -387,7 +387,7 @@ namespace cube
                 .code = shaderCode,
                 .entryPoint = "VSMain",
                 .withDebugSymbol = true, // TODO: Add option in render ui after implement shader recompilation
-                .debugName = "MainVS"
+                .debugName = CUBE_T("MainVS")
             });
             CHECK(mVertexShader);
         }
@@ -409,7 +409,7 @@ namespace cube
                 .code = shaderCode,
                 .entryPoint = "PSMain",
                 .withDebugSymbol = true, // TODO: Add option in render ui after implement shader recompilation
-                .debugName = "MainPS"
+                .debugName = CUBE_T("MainPS")
             });
             CHECK(mPixelShader);
         }
@@ -417,7 +417,7 @@ namespace cube
             mShaderVariablesLayout = mGAPI->CreateShaderVariablesLayout({
                 .numShaderVariablesConstantBuffer = 3,
                 .shaderVariablesConstantBuffer = nullptr,
-                .debugName = "ShaderVariablesLayout"
+                .debugName = CUBE_T("MainShaderVariablesLayout")
             });
         }
         {
@@ -465,11 +465,11 @@ namespace cube
                 .numRenderTargets = 1,
                 .renderTargetFormats = { gapi::ElementFormat::RGBA8_UNorm },
                 .shaderVariablesLayout = mShaderVariablesLayout,
-                .debugName = "MainPipeline"
+                .debugName = CUBE_T("MainPipeline")
             });
         }
 
-        mDefaultMaterial = std::make_shared<Material>();
+        mDefaultMaterial = std::make_shared<Material>(CUBE_T("DefaultMaterial"));
         mDefaultMaterial->SetBaseColor({ 1.0f, 0.0f, 0.80392f }); // Magenta
 
         {
@@ -478,11 +478,11 @@ namespace cube
                 .type = gapi::BufferType::Constant,
                 .usage = gapi::ResourceUsage::CPUtoGPU,
                 .size = sizeof(ObjectBufferData),
-                .debugName = "ObjectBuffer_X"
+                .debugName = CUBE_T("ObjectBuffer_X")
             });
             mXAxisObjectBufferDataPointer = static_cast<Uint8*>(mXAxisObjectBuffer->Map());
             memcpy(mXAxisObjectBufferDataPointer, &mXAxisObjectBufferData, sizeof(ObjectBufferData));
-            mXAxisMaterial = std::make_shared<Material>();
+            mXAxisMaterial = std::make_shared<Material>(CUBE_T("XAxisMaterial"));
             mXAxisMaterial->SetBaseColor({ 1.0f, 0.0f, 0.0f, 1.0f });
 
             mYAxisObjectBufferData.SetModelMatrix(MatrixUtility::GetScale(0.2f, 4.0f, 0.2f) + MatrixUtility::GetTranslation(0, 2, 0));
@@ -490,11 +490,11 @@ namespace cube
                 .type = gapi::BufferType::Constant,
                 .usage = gapi::ResourceUsage::CPUtoGPU,
                 .size = sizeof(ObjectBufferData),
-                .debugName = "ObjectBuffer_Y"
+                .debugName = CUBE_T("ObjectBuffer_Y")
             });
             mYAxisObjectBufferDataPointer = static_cast<Uint8*>(mYAxisObjectBuffer->Map());
             memcpy(mYAxisObjectBufferDataPointer, &mYAxisObjectBufferData, sizeof(ObjectBufferData));
-            mYAxisMaterial = std::make_shared<Material>();
+            mYAxisMaterial = std::make_shared<Material>(CUBE_T("YAxisMaterial"));
             mYAxisMaterial->SetBaseColor({ 0.0f, 1.0f, 0.0f, 1.0f });
             
             mZAxisObjectBufferData.SetModelMatrix(MatrixUtility::GetScale(0.2f, 0.2f, 4.0f) + MatrixUtility::GetTranslation(0, 0, 2));
@@ -502,11 +502,11 @@ namespace cube
                 .type = gapi::BufferType::Constant,
                 .usage = gapi::ResourceUsage::CPUtoGPU,
                 .size = sizeof(ObjectBufferData),
-                .debugName = "ObjectBuffer_Z"
+                .debugName = CUBE_T("ObjectBuffer_Z")
             });
             mZAxisObjectBufferDataPointer = static_cast<Uint8*>(mZAxisObjectBuffer->Map());
             memcpy(mZAxisObjectBufferDataPointer, &mZAxisObjectBufferData, sizeof(ObjectBufferData));
-            mZAxisMaterial = std::make_shared<Material>();
+            mZAxisMaterial = std::make_shared<Material>(CUBE_T("ZAxisMaterial"));
             mZAxisMaterial->SetBaseColor({ 0.0f, 0.0f, 1.0f, 1.0f });
         }
     }

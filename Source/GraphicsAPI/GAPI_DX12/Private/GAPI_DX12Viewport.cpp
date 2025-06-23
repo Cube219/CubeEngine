@@ -61,7 +61,7 @@ namespace cube
 
             GetBackbuffers();
 
-            mFence.Initialize();
+            mFence.Initialize(CUBE_T("ViewportFence"));
         }
 
         DX12Viewport::~DX12Viewport()

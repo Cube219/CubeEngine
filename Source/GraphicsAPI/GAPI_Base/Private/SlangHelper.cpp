@@ -171,7 +171,7 @@ namespace cube
 
         // Create entry point
         ComPtr<slang::IEntryPoint> entryPoint;
-        module->findEntryPointByName(info.entryPoint, entryPoint.writeRef());
+        module->findEntryPointByName(info.entryPoint.data(), entryPoint.writeRef());
         if (entryPoint == nullptr)
         {
             compileResult.AddError(Format<FrameString>(CUBE_T("Cannot find entry point: {0}"), info.entryPoint));
