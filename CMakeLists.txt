@@ -12,9 +12,7 @@ set (RESOURCES_DIR ${PROJECT_SOURCE_DIR}/Resources)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set (DEBUG_MODE TRUE)
 endif()
-set (GLOBAL_FILES
-    ${RESOURCES_DIR}/natvis/CubeEngine.natvis
-)
+set (GLOBAL_FILES )
 
 set(PLATFORM_WINDOWS FALSE)
 set(PLATFORM_MACOS FALSE)
@@ -40,6 +38,11 @@ if(PLATFORM_WINDOWS)
 
     add_definitions(-D_UNICODE -DUNICODE -DNOMINMAX)
     add_compile_options(/utf-8)
+
+    # Add natvis file
+    list(APPEND GLOBAL_FILES
+        ${RESOURCES_DIR}/natvis/CubeEngine.natvis
+    )
 endif()
 if(PLATFORM_MACOS)
     add_definitions(-DCUBE_PLATFORM_MACOS)
