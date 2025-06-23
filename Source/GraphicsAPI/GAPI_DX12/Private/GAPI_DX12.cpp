@@ -19,6 +19,8 @@
 #include "Logger.h"
 #include "Windows/WindowsPlatform.h"
 
+// D3D12 Agility SDK parameters are set in CE-Main/main.cpp.
+
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 namespace cube

@@ -76,8 +76,7 @@ target_precompile_headers(CE-GAPI_DX12
 )
 target_link_libraries(CE-GAPI_DX12
     PRIVATE
-        d3d12.lib
-        dxgi.lib
+        dxagility
         dxguid.lib
         D3D12MemoryAllocator
         Microsoft::DirectX-Headers
@@ -102,6 +101,18 @@ add_custom_command(
         $<TARGET_FILE:dxc_dxcompiler>
         $<TARGET_FILE:dxc_dxil>
         $<TARGET_FILE_DIR:CE-GAPI_DX12>
+    COMMAND_EXPAND_LISTS
+)
+add_custom_command(
+    TARGET CE-GAPI_DX12 POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+        $<TARGET_FILE_DIR:CE-GAPI_DX12>/D3D12
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:dxagility_d3d12core>
+        $<TARGET_FILE:dxagility_d3d12sdklayers>
+        $<TARGET_FILE_DIR:dxagility_d3d12core>/D3D12Core.pdb
+        $<TARGET_FILE_DIR:dxagility_d3d12sdklayers>/d3d12SDKLayers.pdb
+        $<TARGET_FILE_DIR:CE-GAPI_DX12>/D3D12
     COMMAND_EXPAND_LISTS
 )
 
