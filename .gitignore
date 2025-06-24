@@ -467,7 +467,10 @@ Binaries/
 
 # Model resources
 Resources/Models/*
+!Resources/Models/FetchDefaultModels.bat
+!Resources/Models/FetchDefaultModels.sh
 !Resources/Models/FetchglTFSampleAssets.bat
+!Resources/Models/FetchglTFSampleAssets.sh
 
 # VSCode
 .vscode/
