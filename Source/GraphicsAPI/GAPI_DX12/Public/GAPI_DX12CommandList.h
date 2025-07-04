@@ -16,7 +16,8 @@ namespace cube
     namespace gapi
     {
         class Buffer;
-        class Pipeline;
+        class ComputePipeline;
+        class GraphicsPipeline;
         class Sampler;
         class Texture;
         class Viewport;
@@ -35,23 +36,27 @@ namespace cube
             void SetScissors(ArrayView<ScissorRect> scissors) override;
             void SetPrimitiveTopology(PrimitiveTopology primitiveTopology) override;
 
-            void SetShaderVariablesLayout(SharedPtr<ShaderVariablesLayout> shaderVariablesLayout) override;
-            void SetGraphicsPipeline(SharedPtr<Pipeline> graphicsPipeline) override;
+            void SetGraphicsPipeline(SharedPtr<GraphicsPipeline> graphicsPipeline) override;
             void SetRenderTarget(SharedPtr<Viewport> viewport) override;
             void ClearRenderTargetView(SharedPtr<Viewport> viewport, Float4 color) override;
             void ClearDepthStencilView(SharedPtr<Viewport> viewport, float depth) override;
-            void SetShaderVariableConstantBuffer(Uint32 index, SharedPtr<Buffer> constantBuffer) override;
-            void BindTexture(SharedPtr<Texture> texture);
-            void BindSampler(SharedPtr<Sampler> sampler);
-
-            void ResourceTransition(SharedPtr<Buffer> buffer, ResourceStateFlags srcState, ResourceStateFlags dstState) override;
-            void ResourceTransition(SharedPtr<Viewport> viewport, ResourceStateFlags srcState, ResourceStateFlags dstState) override;
 
             void BindVertexBuffers(Uint32 startIndex, ArrayView<SharedPtr<Buffer>> buffers, ArrayView<Uint32> offsets) override;
             void BindIndexBuffer(SharedPtr<Buffer> buffer, Uint32 offset) override;
 
             void Draw(Uint32 numVertices, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance) override;
             void DrawIndexed(Uint32 numIndices, Uint32 baseIndex, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance) override;
+
+            void SetShaderVariablesLayout(SharedPtr<ShaderVariablesLayout> shaderVariablesLayout) override;
+            void SetShaderVariableConstantBuffer(Uint32 index, SharedPtr<Buffer> constantBuffer) override;
+            void BindTexture(SharedPtr<Texture> texture) override;
+            void BindSampler(SharedPtr<Sampler> sampler) override;
+
+            void ResourceTransition(SharedPtr<Buffer> buffer, ResourceStateFlags srcState, ResourceStateFlags dstState) override;
+            void ResourceTransition(SharedPtr<Viewport> viewport, ResourceStateFlags srcState, ResourceStateFlags dstState) override;
+
+            void SetComputePipeline(SharedPtr<ComputePipeline> computePipeline) override;
+            void Dispatch(Uint32 threadGroupX, Uint32 threadGroupY, Uint32 threadGroupZ) override;
 
             void InsertTimestamp(const String& name) override;
 

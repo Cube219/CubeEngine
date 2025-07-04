@@ -283,16 +283,14 @@ namespace cube
         // return std::make_shared<gapi::DX12Fence_old>(info);
     }
 
-    SharedPtr<gapi::Pipeline> GAPI_DX12::CreateGraphicsPipeline(const gapi::GraphicsPipelineCreateInfo& info)
+    SharedPtr<gapi::GraphicsPipeline> GAPI_DX12::CreateGraphicsPipeline(const gapi::GraphicsPipelineCreateInfo& info)
     {
-        return std::make_shared<gapi::DX12Pipeline>(*mMainDevice, info);
+        return std::make_shared<gapi::DX12GraphicsPipeline>(*mMainDevice, info);
     }
 
-    SharedPtr<gapi::Pipeline> GAPI_DX12::CreateComputePipeline(const gapi::ComputePipelineCreateInfo& info)
+    SharedPtr<gapi::ComputePipeline> GAPI_DX12::CreateComputePipeline(const gapi::ComputePipelineCreateInfo& info)
     {
-        NOT_IMPLEMENTED();
-        return nullptr;
-        // return std::make_shared<gapi::DX12Pipeline>(*mMainDevice, info);
+        return std::make_shared<gapi::DX12ComputePipeline>(*mMainDevice, info);
     }
 
     SharedPtr<gapi::Sampler> GAPI_DX12::CreateSampler(const gapi::SamplerCreateInfo& info)

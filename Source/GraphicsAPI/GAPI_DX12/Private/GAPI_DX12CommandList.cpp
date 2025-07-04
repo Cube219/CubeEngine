@@ -128,30 +128,11 @@ namespace cube
             mCommandList->IASetPrimitiveTopology(ConvertToDX12PrimitiveTopology(primitiveTopology));
         }
 
-        void DX12CommandList::SetShaderVariablesLayout(SharedPtr<ShaderVariablesLayout> shaderVariablesLayout)
+        void DX12CommandList::SetGraphicsPipeline(SharedPtr<GraphicsPipeline> graphicsPipeline)
         {
             CHECK(mState == State::Writing);
 
-            if (!mIsDescriptorHeapSet)
-            {
-                ArrayView<ID3D12DescriptorHeap*> heaps = mDescriptorManager.GetD3D12ShaderVisibleHeaps();
-                mCommandList->SetDescriptorHeaps(heaps.size(), heaps.data());
-                mIsDescriptorHeapSet = true;
-            }
-
-            const DX12ShaderVariablesLayout* dx12ShaderVariablesLayout = dynamic_cast<const DX12ShaderVariablesLayout*>(shaderVariablesLayout.get());
-            mCommandList->SetGraphicsRootSignature(dx12ShaderVariablesLayout->GetRootSignature());
-
-            CUBE_DX12_BOUND_OBJECT(shaderVariablesLayout);
-
-            mIsShaderVariableLayoutSet = true;
-        }
-
-        void DX12CommandList::SetGraphicsPipeline(SharedPtr<Pipeline> graphicsPipeline)
-        {
-            CHECK(mState == State::Writing);
-
-            mCommandList->SetPipelineState(dynamic_cast<DX12Pipeline*>(graphicsPipeline.get())->GetPipelineState());
+            mCommandList->SetPipelineState(dynamic_cast<DX12GraphicsPipeline*>(graphicsPipeline.get())->GetPipelineState());
 
             CUBE_DX12_BOUND_OBJECT(graphicsPipeline);
         }
@@ -189,6 +170,82 @@ namespace cube
             mCommandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, depth, 0, 0, nullptr);
 
             CUBE_DX12_BOUND_OBJECT(viewport);
+        }
+
+        void DX12CommandList::BindVertexBuffers(Uint32 startIndex, ArrayView<SharedPtr<Buffer>> buffers, ArrayView<Uint32> offsets)
+        {
+            CHECK(mState == State::Writing);
+            CHECK(buffers.size() == offsets.size());
+
+            FrameVector<D3D12_VERTEX_BUFFER_VIEW> d3d12VertexBufferViews(buffers.size());
+            for (Uint32 i = 0; i < buffers.size(); ++i)
+            {
+                CHECK(buffers[i]->GetType() == BufferType::Vertex);
+
+                const DX12Buffer* dx12Buffer = dynamic_cast<DX12Buffer*>(buffers[i].get());
+                D3D12_VERTEX_BUFFER_VIEW& vertexBufferView = d3d12VertexBufferViews[i];
+
+                vertexBufferView = {
+                    .BufferLocation = dx12Buffer->GetResource()->GetGPUVirtualAddress(),
+                    .SizeInBytes = static_cast<UINT>(dx12Buffer->GetSize()),
+                    .StrideInBytes = sizeof(Vertex)
+                };
+
+                CUBE_DX12_BOUND_OBJECT(buffers[i]);
+            }
+
+            mCommandList->IASetVertexBuffers(0, d3d12VertexBufferViews.size(), d3d12VertexBufferViews.data());
+        }
+
+        void DX12CommandList::BindIndexBuffer(SharedPtr<Buffer> buffer, Uint32 offset)
+        {
+            CHECK(mState == State::Writing);
+            CHECK(buffer->GetType() == BufferType::Index);
+
+            const DX12Buffer* dx12Buffer = dynamic_cast<DX12Buffer*>(buffer.get());
+
+            const D3D12_INDEX_BUFFER_VIEW indexBufferView = {
+                .BufferLocation = dx12Buffer->GetResource()->GetGPUVirtualAddress(),
+                .SizeInBytes = static_cast<UINT>(dx12Buffer->GetSize()),
+                .Format = (sizeof(Index) == 16 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT)
+            };
+
+            mCommandList->IASetIndexBuffer(&indexBufferView);
+
+            CUBE_DX12_BOUND_OBJECT(buffer);
+        }
+
+        void DX12CommandList::Draw(Uint32 numVertices, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance)
+        {
+            CHECK(mState == State::Writing);
+
+            mCommandList->DrawInstanced(numVertices, numInstances, baseVertex, baseInstance);
+        }
+
+        void DX12CommandList::DrawIndexed(Uint32 numIndices, Uint32 baseIndex, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance)
+        {
+            CHECK(mState == State::Writing);
+
+            mCommandList->DrawIndexedInstanced(numIndices, numInstances, baseIndex, baseVertex, baseInstance);
+        }
+
+        void DX12CommandList::SetShaderVariablesLayout(SharedPtr<ShaderVariablesLayout> shaderVariablesLayout)
+        {
+            CHECK(mState == State::Writing);
+
+            if (!mIsDescriptorHeapSet)
+            {
+                ArrayView<ID3D12DescriptorHeap*> heaps = mDescriptorManager.GetD3D12ShaderVisibleHeaps();
+                mCommandList->SetDescriptorHeaps(heaps.size(), heaps.data());
+                mIsDescriptorHeapSet = true;
+            }
+
+            const DX12ShaderVariablesLayout* dx12ShaderVariablesLayout = dynamic_cast<const DX12ShaderVariablesLayout*>(shaderVariablesLayout.get());
+            mCommandList->SetGraphicsRootSignature(dx12ShaderVariablesLayout->GetRootSignature());
+
+            CUBE_DX12_BOUND_OBJECT(shaderVariablesLayout);
+
+            mIsShaderVariableLayoutSet = true;
         }
 
         void DX12CommandList::SetShaderVariableConstantBuffer(Uint32 index, SharedPtr<Buffer> constantBuffer)
@@ -262,61 +319,20 @@ namespace cube
             CUBE_DX12_BOUND_OBJECT(viewport);
         }
 
-        void DX12CommandList::BindVertexBuffers(Uint32 startIndex, ArrayView<SharedPtr<Buffer>> buffers, ArrayView<Uint32> offsets)
+        void DX12CommandList::SetComputePipeline(SharedPtr<ComputePipeline> computePipeline)
         {
             CHECK(mState == State::Writing);
-            CHECK(buffers.size() == offsets.size());
 
-            FrameVector<D3D12_VERTEX_BUFFER_VIEW> d3d12VertexBufferViews(buffers.size());
-            for (Uint32 i = 0; i < buffers.size(); ++i)
-            {
-                CHECK(buffers[i]->GetType() == BufferType::Vertex);
+            mCommandList->SetPipelineState(dynamic_cast<DX12ComputePipeline*>(computePipeline.get())->GetPipelineState());
 
-                const DX12Buffer* dx12Buffer = dynamic_cast<DX12Buffer*>(buffers[i].get());
-                D3D12_VERTEX_BUFFER_VIEW& vertexBufferView = d3d12VertexBufferViews[i];
-
-                vertexBufferView = {
-                    .BufferLocation = dx12Buffer->GetResource()->GetGPUVirtualAddress(),
-                    .SizeInBytes = static_cast<UINT>(dx12Buffer->GetSize()),
-                    .StrideInBytes = sizeof(Vertex)
-                };
-
-                CUBE_DX12_BOUND_OBJECT(buffers[i]);
-            }
-
-            mCommandList->IASetVertexBuffers(0, d3d12VertexBufferViews.size(), d3d12VertexBufferViews.data());
+            CUBE_DX12_BOUND_OBJECT(computePipeline);
         }
 
-        void DX12CommandList::BindIndexBuffer(SharedPtr<Buffer> buffer, Uint32 offset)
-        {
-            CHECK(mState == State::Writing);
-            CHECK(buffer->GetType() == BufferType::Index);
-
-            const DX12Buffer* dx12Buffer = dynamic_cast<DX12Buffer*>(buffer.get());
-
-            const D3D12_INDEX_BUFFER_VIEW indexBufferView = {
-                .BufferLocation = dx12Buffer->GetResource()->GetGPUVirtualAddress(),
-                .SizeInBytes = static_cast<UINT>(dx12Buffer->GetSize()),
-                .Format = (sizeof(Index) == 16 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT)
-            };
-
-            mCommandList->IASetIndexBuffer(&indexBufferView);
-
-            CUBE_DX12_BOUND_OBJECT(buffer);
-        }
-
-        void DX12CommandList::Draw(Uint32 numVertices, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance)
+        void DX12CommandList::Dispatch(Uint32 threadGroupX, Uint32 threadGroupY, Uint32 threadGroupZ)
         {
             CHECK(mState == State::Writing);
 
-            mCommandList->DrawInstanced(numVertices, numInstances, baseVertex, baseInstance);
-        }
-
-        void DX12CommandList::DrawIndexed(Uint32 numIndices, Uint32 baseIndex, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance)
-        {
-            CHECK(mState == State::Writing);
-
-            mCommandList->DrawIndexedInstanced(numIndices, numInstances, baseIndex, baseVertex, baseInstance);
+            mCommandList->Dispatch(threadGroupX, threadGroupY, threadGroupZ);
         }
 
         void DX12CommandList::InsertTimestamp(const String& name)

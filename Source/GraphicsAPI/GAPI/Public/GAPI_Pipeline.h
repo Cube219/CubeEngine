@@ -167,16 +167,26 @@ namespace cube
             StringView debugName;
         };
 
+        class GraphicsPipeline
+        {
+        public:
+            GraphicsPipeline() = default;
+            virtual ~GraphicsPipeline() = default;
+        };
+
         struct ComputePipelineCreateInfo
         {
+            SharedPtr<Shader> shader;
+            SharedPtr<ShaderVariablesLayout> shaderVariablesLayout;
+
             StringView debugName;
         };
 
-        class Pipeline
+        class ComputePipeline
         {
         public:
-            Pipeline() = default;
-            virtual ~Pipeline() = default;
+            ComputePipeline() = default;
+            virtual ~ComputePipeline() = default;
         };
     } // namespace gapi
 } // namespace cube

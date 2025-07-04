@@ -12,11 +12,11 @@ namespace cube
 
     namespace gapi
     {
-        class DX12Pipeline : public Pipeline, public DX12APIObject
+        class DX12GraphicsPipeline : public GraphicsPipeline, public DX12APIObject
         {
         public:
-            DX12Pipeline(DX12Device& device, const GraphicsPipelineCreateInfo& info);
-            virtual ~DX12Pipeline();
+            DX12GraphicsPipeline(DX12Device& device, const GraphicsPipelineCreateInfo& info);
+            virtual ~DX12GraphicsPipeline();
 
             ID3D12PipelineState* GetPipelineState() const { return mPipelineState.Get(); }
 
@@ -24,6 +24,18 @@ namespace cube
             ComPtr<ID3D12PipelineState> mPipelineState;
 
             Vector<SharedPtr<DX12APIObject>> mBoundObjects;
+        };
+
+        class DX12ComputePipeline : public ComputePipeline, public DX12APIObject
+        {
+        public:
+            DX12ComputePipeline(DX12Device& device, const ComputePipelineCreateInfo& info);
+            virtual ~DX12ComputePipeline();
+
+            ID3D12PipelineState* GetPipelineState() const { return mPipelineState.Get(); }
+
+        private:
+            ComPtr<ID3D12PipelineState> mPipelineState;
         };
     } // namespace gapi
 } // namespace cube

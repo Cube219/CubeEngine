@@ -11,7 +11,8 @@ namespace cube
     namespace gapi
     {
         class Buffer;
-        class Pipeline;
+        class ComputePipeline;
+        class GraphicsPipeline;
         class Sampler;
         class ShaderVariables;
         class ShaderVariablesLayout;
@@ -54,11 +55,18 @@ namespace cube
             virtual void SetScissors(ArrayView<ScissorRect> scissors) = 0;
             virtual void SetPrimitiveTopology(PrimitiveTopology primitiveTopology) = 0;
 
-            virtual void SetShaderVariablesLayout(SharedPtr<ShaderVariablesLayout> shaderVariablesLayout) = 0;
-            virtual void SetGraphicsPipeline(SharedPtr<Pipeline> graphicsPipeline) = 0;
+            virtual void SetGraphicsPipeline(SharedPtr<GraphicsPipeline> graphicsPipeline) = 0;
             virtual void SetRenderTarget(SharedPtr<Viewport> viewport) = 0;
             virtual void ClearRenderTargetView(SharedPtr<Viewport> viewport, Float4 color) = 0;
             virtual void ClearDepthStencilView(SharedPtr<Viewport> viewport, float depth) = 0;
+
+            virtual void BindVertexBuffers(Uint32 startIndex, ArrayView<SharedPtr<Buffer>> buffers, ArrayView<Uint32> offsets) = 0;
+            virtual void BindIndexBuffer(SharedPtr<Buffer> buffer, Uint32 offset) = 0;
+
+            virtual void Draw(Uint32 numVertices, Uint32 baseVertex, Uint32 numInstances = 1, Uint32 baseInstance = 0) = 0;
+            virtual void DrawIndexed(Uint32 numIndices, Uint32 baseIndex, Uint32 baseVertex, Uint32 numInstances = 1, Uint32 baseInstance = 0) = 0;
+
+            virtual void SetShaderVariablesLayout(SharedPtr<ShaderVariablesLayout> shaderVariablesLayout) = 0;
             virtual void SetShaderVariableConstantBuffer(Uint32 index, SharedPtr<Buffer> constantBuffer) = 0;
             virtual void BindTexture(SharedPtr<Texture> texture) = 0;
             virtual void BindSampler(SharedPtr<Sampler> sampler) = 0;
@@ -66,11 +74,8 @@ namespace cube
             virtual void ResourceTransition(SharedPtr<Buffer> buffer, ResourceStateFlags srcState, ResourceStateFlags dstState) = 0;
             virtual void ResourceTransition(SharedPtr<Viewport> viewport, ResourceStateFlags srcState, ResourceStateFlags dstState) = 0;
 
-            virtual void BindVertexBuffers(Uint32 startIndex, ArrayView<SharedPtr<Buffer>> buffers, ArrayView<Uint32> offsets) = 0;
-            virtual void BindIndexBuffer(SharedPtr<Buffer> buffer, Uint32 offset) = 0;
-
-            virtual void Draw(Uint32 numVertices, Uint32 baseVertex, Uint32 numInstances = 1, Uint32 baseInstance = 0) = 0;
-            virtual void DrawIndexed(Uint32 numIndices, Uint32 baseIndex, Uint32 baseVertex, Uint32 numInstances = 1, Uint32 baseInstance = 0) = 0;
+            virtual void SetComputePipeline(SharedPtr<ComputePipeline> computePipeline) = 0;
+            virtual void Dispatch(Uint32 threadGroupX, Uint32 threadGroupY, Uint32 threadGroupZ) = 0;
 
             virtual void InsertTimestamp(const String& name) = 0;
 

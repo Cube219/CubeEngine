@@ -255,7 +255,7 @@ namespace cube
             return (D3D12_PRIMITIVE_TOPOLOGY_TYPE)0;
         }
 
-        DX12Pipeline::DX12Pipeline(DX12Device& device, const GraphicsPipelineCreateInfo& info)
+        DX12GraphicsPipeline::DX12GraphicsPipeline(DX12Device& device, const GraphicsPipelineCreateInfo& info)
         {
             FrameVector<D3D12_INPUT_ELEMENT_DESC> inputElements(info.numInputLayoutElements);
             for (int i = 0; i < info.numInputLayoutElements; ++i)
@@ -303,7 +303,26 @@ namespace cube
             SET_DEBUG_NAME(mPipelineState, info.debugName);
         }
 
-        DX12Pipeline::~DX12Pipeline()
+        DX12GraphicsPipeline::~DX12GraphicsPipeline()
+        {
+            mPipelineState = nullptr;
+        }
+
+        DX12ComputePipeline::DX12ComputePipeline(DX12Device& device, const ComputePipelineCreateInfo& info)
+        {
+            D3D12_COMPUTE_PIPELINE_STATE_DESC computePSODesc = {};
+            computePSODesc.pRootSignature = dynamic_cast<DX12ShaderVariablesLayout*>(info.shaderVariablesLayout.get())->GetRootSignature();
+
+            DX12Shader* dx12ComputeShader = dynamic_cast<DX12Shader*>(info.shader.get());
+            CHECK(dx12ComputeShader);
+            computePSODesc.CS.pShaderBytecode = dx12ComputeShader->GetShader().GetData();
+            computePSODesc.CS.BytecodeLength = dx12ComputeShader->GetShader().GetSize();
+
+            CHECK_HR(device.GetDevice()->CreateComputePipelineState(&computePSODesc, IID_PPV_ARGS(&mPipelineState)));
+            SET_DEBUG_NAME(mPipelineState, info.debugName);
+        }
+
+        DX12ComputePipeline::~DX12ComputePipeline()
         {
             mPipelineState = nullptr;
         }
