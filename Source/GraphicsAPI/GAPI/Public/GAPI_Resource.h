@@ -56,5 +56,14 @@ namespace cube
         };
         using ResourceStateFlags = Flags<ResourceStateFlag>;
         FLAGS_OPERATOR(ResourceStateFlag);
+
+        struct SubresourceRange
+        {
+            Uint32 firstMipLevel;
+            Uint32 mipLevels;
+
+            Uint32 firstArrayIndex;
+            Uint32 arraySize;
+        };
     } // namespace gapi
 } // namespace cube

@@ -5,6 +5,7 @@
 #include "GAPI.h"
 #include "Matrix.h"
 #include "SamplerManager.h"
+#include "TextureManager.h"
 #include "Vector.h"
 
 namespace cube
@@ -58,6 +59,7 @@ namespace cube
         void OnResize(Uint32 width, Uint32 height);
 
         GAPI& GetGAPI() const { return *mGAPI; }
+        TextureManager& GetTextureManager() { return mTextureManager; }
         SamplerManager& GetSamplerManager() { return mSamplerManager; }
 
         void SetObjectModelMatrix(const Vector3& position, const Vector3& rotation, const Vector3& scale);
@@ -79,6 +81,7 @@ namespace cube
         SharedPtr<platform::DLib> mGAPI_DLib;
         SharedPtr<GAPI> mGAPI;
 
+        TextureManager mTextureManager;
         SamplerManager mSamplerManager;
 
         bool mRenderImGUI;

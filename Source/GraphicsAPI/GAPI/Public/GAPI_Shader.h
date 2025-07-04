@@ -1,8 +1,10 @@
 #pragma once
 
-#include "Blob.h"
 #include "GAPIHeader.h"
 
+#include <source_location>
+
+#include "Blob.h"
 #include "CubeString.h"
 #include "Format.h"
 
@@ -108,11 +110,11 @@ namespace cube
                 error.clear();
             }
 
-            void AddWarning(StringView message, bool isBegin = true)
+            void AddWarning(StringView message, bool isBegin = true, const std::source_location location = std::source_location::current())
             {
                 if (isBegin)
                 {
-                    warning += Format(CUBE_T("Shader compile WARNING: {0}\n"), message);
+                    warning += Format(CUBE_T("Shader compile WARNING ({0}:{1}): {2}\n"), location.file_name(), location.line(), message);
                 }
                 else
                 {
@@ -120,11 +122,11 @@ namespace cube
                 }
             }
 
-            void AddError(StringView message, bool isBegin = true)
+            void AddError(StringView message, bool isBegin = true, const std::source_location location = std::source_location::current())
             {
                 if (isBegin)
                 {
-                    error += Format(CUBE_T("Shader compile ERROR: {0}\n"), message);
+                    error += Format(CUBE_T("Shader compile ERROR: ({0}:{1}): {2}\n"), location.file_name(), location.line(), message);
                 }
                 else
                 {

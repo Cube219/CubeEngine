@@ -7,7 +7,7 @@
 
 namespace cube
 {
-    class Texture;
+    class TextureResource;
 
     namespace gapi
     {
@@ -23,16 +23,16 @@ namespace cube
         ~Material();
 
         void SetBaseColor(Vector4 color);
-        void SetBaseColorTexture(SharedPtr<Texture> texture);
+        void SetBaseColorTexture(SharedPtr<TextureResource> texture);
 
         void SetSampler(int samplerIndex);
 
         SharedPtr<gapi::Buffer> GetMaterialBuffer() const { return mBuffer; }
 
-    private:
+    public:
         void UpdateBufferData();
 
-        SharedPtr<Texture> mBaseColorTexture;
+        SharedPtr<TextureResource> mBaseColorTexture;
 
         // TODO: Adjust padding when copy to gpu buffer
         struct alignas(256) BufferData

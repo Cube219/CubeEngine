@@ -25,6 +25,7 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace cube
 {
+    // TODO: merge srv heap
     struct ImGUISRVDescHeap
     {
         void Initialize(ID3D12Device* device)
@@ -195,8 +196,6 @@ namespace cube
     void GAPI_DX12::OnBeforeRender()
     {
         mCurrentRenderFrame++;
-        mMainDevice->GetCommandListManager().WaitCurrentAllocatorIsReady();
-        mMainDevice->GetCommandListManager().Reset();
 
         mMainDevice->GetQueryManager().WaitCurrentHeapIsReady();
         mMainDevice->GetQueryManager().UpdateLastTimestamp();
@@ -246,6 +245,9 @@ namespace cube
     void GAPI_DX12::OnAfterPresent()
     {
         mMainDevice->GetCommandListManager().MoveToNextAllocator();
+        mMainDevice->GetCommandListManager().WaitCurrentAllocatorIsReady();
+        mMainDevice->GetCommandListManager().Reset();
+
         mMainDevice->GetQueryManager().MoveToNextHeap();
 
         if (mImGUIContext.context)

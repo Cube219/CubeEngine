@@ -102,7 +102,7 @@ namespace cube
 
         D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {
             .Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
-            .NumDescriptors = 128,
+            .NumDescriptors = 4096,
             .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
             .NodeMask = 0
         };
@@ -118,7 +118,7 @@ namespace cube
 
         D3D12_DESCRIPTOR_HEAP_DESC samplerHeapDesc = {
             .Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,
-            .NumDescriptors = 16,
+            .NumDescriptors = 2048,
             .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
             .NodeMask = 0
         };

@@ -17,6 +17,8 @@ namespace cube
         class ShaderVariables;
         class ShaderVariablesLayout;
         class Texture;
+        class TextureSRV;
+        class TextureUAV;
         class Viewport;
 
         struct ScissorRect
@@ -34,6 +36,26 @@ namespace cube
             LineStrip,
             TriangleList,
             TriangleStrip
+        };
+
+        struct TransitionState
+        {
+            enum class ResourceType
+            {
+                Buffer,
+                SRV,
+                UAV,
+                ViewportBackBuffer
+            };
+            ResourceType resourceType;
+            
+            SharedPtr<Buffer> buffer = nullptr;
+            SharedPtr<TextureSRV> srv = nullptr;
+            SharedPtr<TextureUAV> uav = nullptr;
+            SharedPtr<Viewport> viewport = nullptr;
+
+            ResourceStateFlags src;
+            ResourceStateFlags dst;
         };
 
         struct CommandListCreateInfo
@@ -71,8 +93,8 @@ namespace cube
             virtual void BindTexture(SharedPtr<Texture> texture) = 0;
             virtual void BindSampler(SharedPtr<Sampler> sampler) = 0;
 
-            virtual void ResourceTransition(SharedPtr<Buffer> buffer, ResourceStateFlags srcState, ResourceStateFlags dstState) = 0;
-            virtual void ResourceTransition(SharedPtr<Viewport> viewport, ResourceStateFlags srcState, ResourceStateFlags dstState) = 0;
+            virtual void ResourceTransition(TransitionState state) = 0;
+            virtual void ResourceTransition(ArrayView<TransitionState> states) = 0;
 
             virtual void SetComputePipeline(SharedPtr<ComputePipeline> computePipeline) = 0;
             virtual void Dispatch(Uint32 threadGroupX, Uint32 threadGroupY, Uint32 threadGroupZ) = 0;

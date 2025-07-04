@@ -6,7 +6,7 @@
 
 namespace cube
 {
-    struct TextureCreateInfo
+    struct TextureResourceCreateInfo
     {
         gapi::TextureType type;
         gapi::ElementFormat format;
@@ -14,7 +14,7 @@ namespace cube
         Uint32 height;
         Uint32 depth = 1;
         Uint32 arraySize = 1;
-        Uint32 mipLevels = 0;
+        Uint32 mipLevels = 1;
 
         BlobView data;
         Uint32 bytesPerElement;
@@ -23,16 +23,18 @@ namespace cube
         StringView debugName;
     };
 
-    class Texture
+    class TextureResource
     {
     public:
-        Texture(const TextureCreateInfo& createInfo);
-        ~Texture();
+        TextureResource(const TextureResourceCreateInfo& createInfo);
+        ~TextureResource();
 
         SharedPtr<gapi::Texture> GetGAPITexture() const { return mGAPITexture; }
+        SharedPtr<gapi::TextureSRV> GetDefaultSRV() const { return mDefaultSRV; }
 
     private:
         SharedPtr<gapi::Texture> mGAPITexture;
+        SharedPtr<gapi::TextureSRV> mDefaultSRV;
 
         String mDebugName;
     };

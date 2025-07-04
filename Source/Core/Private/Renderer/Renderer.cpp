@@ -16,6 +16,7 @@
 #include "Material.h"
 #include "MatrixUtility.h"
 #include "Platform.h"
+#include "Texture.h"
 
 namespace cube
 {
@@ -52,6 +53,7 @@ namespace cube
             .imGUI = imGUIContext
         });
 
+        mTextureManager.Initialize(mGAPI.get());
         mSamplerManager.Initialize(mGAPI.get());
 
         mRenderImGUI = (imGUIContext.context != nullptr);
@@ -111,6 +113,7 @@ namespace cube
         mGlobalConstantBuffer = nullptr;
 
         mSamplerManager.Shutdown();
+        mTextureManager.Shutdown();
 
         mGAPI->Shutdown(imGUIContext);
         mGAPI = nullptr;
@@ -147,7 +150,10 @@ namespace cube
         mViewport->AcquireNextImage();
 
         mGAPI->OnBeforeRender();
+        mTextureManager.MoveNextFrame();
+
         RenderImpl();
+
         mGAPI->OnAfterRender();
 
         if (mRenderImGUI)
@@ -279,7 +285,12 @@ namespace cube
             mCommandList->SetScissors({ &scissor, 1 });
             mCommandList->SetPrimitiveTopology(gapi::PrimitiveTopology::TriangleList);
 
-            mCommandList->ResourceTransition(mViewport, gapi::ResourceStateFlag::Present, gapi::ResourceStateFlag::RenderTarget);
+            mCommandList->ResourceTransition({
+                .resourceType =  gapi::TransitionState::ResourceType::ViewportBackBuffer,
+                .viewport = mViewport,
+                .src = gapi::ResourceStateFlag::Present,
+                .dst = gapi::ResourceStateFlag::RenderTarget
+            });
 
             mCommandList->SetShaderVariablesLayout(mShaderVariablesLayout);
             mCommandList->SetRenderTarget(mViewport);
@@ -355,7 +366,12 @@ namespace cube
                 }
             }
 
-            mCommandList->ResourceTransition(mViewport, gapi::ResourceStateFlag::RenderTarget, gapi::ResourceStateFlag::Present);
+            mCommandList->ResourceTransition({
+                .resourceType =  gapi::TransitionState::ResourceType::ViewportBackBuffer,
+                .viewport = mViewport,
+                .src = gapi::ResourceStateFlag::RenderTarget,
+                .dst = gapi::ResourceStateFlag::Present
+            });
 
             mCommandList->InsertTimestamp(CUBE_T("End"));
 

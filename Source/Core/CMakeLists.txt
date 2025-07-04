@@ -25,6 +25,8 @@ set(PRIVATE_FILES
     Private/Renderer/Shader.h
     Private/Renderer/Texture.cpp
     Private/Renderer/Texture.h
+    Private/Renderer/TextureManager.cpp
+    Private/Renderer/TextureManager.h
     Private/Systems/CameraSystem.cpp
     Private/Systems/CameraSystem.h
     Private/Systems/ModelLoaderSystem.cpp

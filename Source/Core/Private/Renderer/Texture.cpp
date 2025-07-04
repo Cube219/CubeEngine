@@ -7,14 +7,36 @@
 
 namespace cube
 {
-    Texture::Texture(const TextureCreateInfo& createInfo)
+    TextureResource::TextureResource(const TextureResourceCreateInfo& createInfo)
     {
+        // TODO: Currently only 2d. Consider other dimensions?
+        if (createInfo.type != gapi::TextureType::Texture2D)
+        {
+            NOT_IMPLEMENTED();
+        }
+
+        Uint32 mipLevels = createInfo.mipLevels;
+        if (createInfo.generateMipMaps)
+        {
+            Uint32 width = createInfo.width;
+            Uint32 height = createInfo.height;
+            mipLevels = 0;
+            while (width > 0 && height > 0)
+            {
+                mipLevels++;
+                width >>= 1;
+                height >>= 1;
+            }
+        }
+
         mGAPITexture = Engine::GetRenderer()->GetGAPI().CreateTexture({
             .usage = gapi::ResourceUsage::GPUOnly,
             .format = createInfo.format,
             .type = createInfo.type,
+            .flags = createInfo.generateMipMaps ? gapi::TextureFlag::UAV : gapi::TextureFlag::None,
             .width = createInfo.width,
             .height = createInfo.height,
+            .mipLevels = mipLevels,
             .debugName = createInfo.debugName
         });
 
@@ -33,10 +55,18 @@ namespace cube
             memcpy(pDst + (y * dstRowPitch), pSrc + (y * srcRowSize), srcRowSize);
         }
         mGAPITexture->Unmap();
+
+        if (createInfo.generateMipMaps)
+        {
+            Engine::GetRenderer()->GetTextureManager().GenerateMipmaps(mGAPITexture);
+        }
+
+        mDefaultSRV = mGAPITexture->CreateSRV({});
     }
 
-    Texture::~Texture()
+    TextureResource::~TextureResource()
     {
+        mDefaultSRV = nullptr;
         mGAPITexture = nullptr;
     }
 } // namespace cube

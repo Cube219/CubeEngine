@@ -52,8 +52,8 @@ namespace cube
             void BindTexture(SharedPtr<Texture> texture) override;
             void BindSampler(SharedPtr<Sampler> sampler) override;
 
-            void ResourceTransition(SharedPtr<Buffer> buffer, ResourceStateFlags srcState, ResourceStateFlags dstState) override;
-            void ResourceTransition(SharedPtr<Viewport> viewport, ResourceStateFlags srcState, ResourceStateFlags dstState) override;
+            void ResourceTransition(TransitionState state) override;
+            void ResourceTransition(ArrayView<TransitionState> states) override;
 
             void SetComputePipeline(SharedPtr<ComputePipeline> computePipeline) override;
             void Dispatch(Uint32 threadGroupX, Uint32 threadGroupY, Uint32 threadGroupZ) override;

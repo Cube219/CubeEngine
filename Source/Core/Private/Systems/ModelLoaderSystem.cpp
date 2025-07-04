@@ -450,7 +450,7 @@ namespace cube
 
         for (const tinygltf::Material& gltfMaterial : model.materials)
         {
-            auto LoadTexture = [&model, &pathInfoName](const Character* textureName, int textureIndex) -> SharedPtr<Texture>
+            auto LoadTexture = [&model, &pathInfoName](const Character* textureName, int textureIndex) -> SharedPtr<TextureResource>
             {
                 FrameString debugName = Format<FrameString>(CUBE_T("[{0}({1})] Texture"), pathInfoName, textureName);
 
@@ -492,7 +492,7 @@ namespace cube
                     return nullptr;
                 }
 
-                TextureCreateInfo createInfo = {
+                TextureResourceCreateInfo createInfo = {
                     .type = gapi::TextureType::Texture2D,
                     .format = format,
                     .width = static_cast<Uint32>(image.width),
@@ -502,7 +502,7 @@ namespace cube
                     .generateMipMaps = true,
                     .debugName = debugName
                 };
-                SharedPtr<Texture> texture = std::make_shared<Texture>(createInfo);
+                SharedPtr<TextureResource> texture = std::make_shared<TextureResource>(createInfo);
 
                 return texture;
             };

@@ -38,13 +38,13 @@ namespace cube
         UpdateBufferData();
     }
 
-    void Material::SetBaseColorTexture(SharedPtr<Texture> texture)
+    void Material::SetBaseColorTexture(SharedPtr<TextureResource> texture)
     {
         if (texture != nullptr)
         {
             mBaseColorTexture = texture;
             mBufferData.useBaseColorTexture = true;
-            mBufferData.baseColorTexture.index = texture->GetGAPITexture()->GetBindlessIndex();
+            mBufferData.baseColorTexture.index = texture->GetDefaultSRV()->GetBindlessIndex();
         }
         else
         {

@@ -36,6 +36,8 @@ namespace cube
 
         private:
             ComPtr<ID3D12PipelineState> mPipelineState;
+
+            Vector<SharedPtr<DX12APIObject>> mBoundObjects;
         };
     } // namespace gapi
 } // namespace cube
