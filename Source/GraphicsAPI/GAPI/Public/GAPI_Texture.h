@@ -29,6 +29,7 @@ namespace cube
             Uint32 height;
             Uint32 depth = 1;
             Uint32 arraySize = 0;
+            Uint32 mipLevels = 1;
 
             StringView debugName;
         };
@@ -43,8 +44,9 @@ namespace cube
                 mHeight(info.height),
                 mDepth(info.depth),
                 mArraySize(info.arraySize),
-                mRowPitch(0),
-                mBindlessIndex(-1)
+                mMipLevels(info.mipLevels),
+                mRowPitch(0), // Set in child class
+                mBindlessIndex(-1) // Set in child class
             {}
             virtual ~Texture() = default;
 
@@ -57,6 +59,7 @@ namespace cube
             Uint32 GetHeight() const { return mHeight; }
             Uint32 GetDepth() const { return mDepth; }
             Uint32 GetArraySize() const { return mArraySize; }
+            Uint32 GetMipLevels() const { return mMipLevels; }
             Uint32 GetRowPitch() const { return mRowPitch; }
 
             int GetBindlessIndex() const { return mBindlessIndex; }
@@ -68,6 +71,7 @@ namespace cube
             Uint32 mHeight;
             Uint32 mDepth;
             Uint32 mArraySize;
+            Uint32 mMipLevels;
             Uint32 mRowPitch;
 
             int mBindlessIndex;

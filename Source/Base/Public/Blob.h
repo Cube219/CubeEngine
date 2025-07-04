@@ -13,6 +13,10 @@ namespace cube
             mSize(0),
             mData(nullptr)
         {}
+        BlobView(const void* pData, Uint64 size) :
+            mSize(size),
+            mData(pData)
+        {}
 
         Uint64 GetSize() const { return mSize; }
         const void* GetData() const { return mData; }
@@ -21,7 +25,7 @@ namespace cube
         friend class Blob;
 
         Uint64 mSize;
-        void* mData;
+        const void* mData;
     };
 
     class Blob
@@ -113,7 +117,7 @@ namespace cube
 
             BlobView res;
             res.mSize = size;
-            res.mData = (Byte*)mData + offset;
+            res.mData = (const Byte*)mData + offset;
 
             return res;
         }

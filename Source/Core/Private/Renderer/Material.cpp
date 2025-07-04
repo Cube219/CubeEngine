@@ -5,6 +5,7 @@
 #include "GAPI_Buffer.h"
 #include "GAPI_Texture.h"
 #include "Renderer.h"
+#include "Texture.h"
 
 namespace cube
 {
@@ -37,13 +38,13 @@ namespace cube
         UpdateBufferData();
     }
 
-    void Material::SetBaseColorTexture(SharedPtr<gapi::Texture> texture)
+    void Material::SetBaseColorTexture(SharedPtr<Texture> texture)
     {
         if (texture != nullptr)
         {
             mBaseColorTexture = texture;
             mBufferData.useBaseColorTexture = true;
-            mBufferData.baseColorTexture.index = texture->GetBindlessIndex();
+            mBufferData.baseColorTexture.index = texture->GetGAPITexture()->GetBindlessIndex();
         }
         else
         {

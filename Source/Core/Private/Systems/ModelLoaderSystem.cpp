@@ -17,6 +17,7 @@
 #include "Renderer/Material.h"
 #include "Renderer/Mesh.h"
 #include "Renderer/Renderer.h"
+#include "Renderer/Texture.h"
 
 namespace cube
 {
@@ -449,7 +450,7 @@ namespace cube
 
         for (const tinygltf::Material& gltfMaterial : model.materials)
         {
-            auto LoadTexture = [&model, &pathInfoName](const Character* textureName, int textureIndex) -> SharedPtr<gapi::Texture>
+            auto LoadTexture = [&model, &pathInfoName](const Character* textureName, int textureIndex) -> SharedPtr<Texture>
             {
                 FrameString debugName = Format<FrameString>(CUBE_T("[{0}({1})] Texture"), pathInfoName, textureName);
 
@@ -491,28 +492,17 @@ namespace cube
                     return nullptr;
                 }
 
-                gapi::TextureCreateInfo textureCreateInfo = {
-                    .usage = gapi::ResourceUsage::GPUOnly,
-                    .format = format,
+                TextureCreateInfo createInfo = {
                     .type = gapi::TextureType::Texture2D,
+                    .format = format,
                     .width = static_cast<Uint32>(image.width),
                     .height = static_cast<Uint32>(image.height),
+                    .data = BlobView(image.image.data(), image.image.size()),
+                    .bytesPerElement = static_cast<Uint32>(image.component * image.bits / 8),
+                    .generateMipMaps = true,
                     .debugName = debugName
                 };
-                SharedPtr<gapi::Texture> texture = Engine::GetRenderer()->GetGAPI().CreateTexture(textureCreateInfo);
-
-                // Set texture data
-                Byte* pSrc = (Byte*)(image.image.data());
-                Uint64 rowSize = image.width * image.component * image.bits / 8;
-                    
-                Byte* pData = (Byte*)texture->Map();
-                Uint64 rowPitch = texture->GetRowPitch();
-                CHECK(rowSize <= rowPitch);
-                for (int y = 0; y < image.height; ++y)
-                {
-                    memcpy(pData + (y * rowPitch), pSrc + (y * rowSize), rowSize);
-                }
-                texture->Unmap();
+                SharedPtr<Texture> texture = std::make_shared<Texture>(createInfo);
 
                 return texture;
             };
