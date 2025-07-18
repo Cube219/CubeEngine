@@ -112,7 +112,7 @@ namespace cube
         mFactory->QueryInterface(IID_PPV_ARGS(&mFactory6));
 
         ComPtr<IDXGIAdapter1> adapter;
-        auto CheckAndCreateDevice = [this](IDXGIAdapter1* adapter)
+        auto CheckAndCreateDevice = [this, &initInfo](IDXGIAdapter1* adapter)
         {
             DXGI_ADAPTER_DESC1 desc;
             adapter->GetDesc1(&desc);
@@ -122,7 +122,7 @@ namespace cube
             {
                 // TODO: Move to after checking feature requirements
                 DX12Device* device = new DX12Device();
-                device->Initialize(adapter);
+                device->Initialize(adapter, initInfo.numGPUSync);
 
                 CUBE_LOG(Info, DX12, "Found device: {0}", WindowsStringView(desc.Description));
 
@@ -167,7 +167,8 @@ namespace cube
         InitializeImGUI(initInfo.imGUI);
         DX12ShaderCompiler::Initialize();
 
-        mCurrentRenderFrame = 0;
+        mCurrentGPUFrame = 0;
+        SetNumGPUSync(initInfo.numGPUSync);
     }
 
     void GAPI_DX12::Shutdown(const ImGUIContext& imGUIInfo)
@@ -177,6 +178,8 @@ namespace cube
         DX12ShaderCompiler::Shutdown();
 
         ShutdownImGUI(imGUIInfo);
+
+        WaitAllGPUSync();
 
         DX12Debug::ShutdownD3DExceptionHandler();
 
@@ -193,13 +196,14 @@ namespace cube
         DX12Debug::Shutdown();
     }
 
+    void GAPI_DX12::SetNumGPUSync(Uint32 newNumGPUSync)
+    {
+        mMainDevice->SetNumGPUSync(newNumGPUSync);
+    }
+
     void GAPI_DX12::OnBeforeRender()
     {
-        mCurrentRenderFrame++;
-
-        mMainDevice->GetQueryManager().WaitCurrentHeapIsReady();
-        mMainDevice->GetQueryManager().UpdateLastTimestamp();
-        mMainDevice->GetQueryManager().ClearCurrentTimestampNames();
+        
     }
 
     void GAPI_DX12::OnAfterRender()
@@ -244,12 +248,6 @@ namespace cube
 
     void GAPI_DX12::OnAfterPresent()
     {
-        mMainDevice->GetCommandListManager().MoveToNextAllocator();
-        mMainDevice->GetCommandListManager().WaitCurrentAllocatorIsReady();
-        mMainDevice->GetCommandListManager().Reset();
-
-        mMainDevice->GetQueryManager().MoveToNextHeap();
-
         if (mImGUIContext.context)
         {
             ImGui_ImplDX12_NewFrame();
@@ -257,15 +255,20 @@ namespace cube
         }
     }
 
-    void GAPI_DX12::WaitForGPU()
+    void GAPI_DX12::BeginRenderingFrame()
     {
-        DX12Fence waitFence(*mMainDevice);
-        waitFence.Initialize(CUBE_T("WaitForGPUFence"));
+        mMainDevice->BeginGPUFrame(mCurrentGPUFrame);
+    }
 
-        waitFence.Signal(mMainDevice->GetQueueManager().GetMainQueue(), 1);
-        waitFence.Wait(1);
+    void GAPI_DX12::EndRenderingFrame()
+    {
+        mMainDevice->EndGPUFrame(mCurrentGPUFrame);
+        mCurrentGPUFrame++;
+    }
 
-        waitFence.Shutdown();
+    void GAPI_DX12::WaitAllGPUSync()
+    {
+        mMainDevice->WaitAllGPUSync();
     }
 
     SharedPtr<gapi::Buffer> GAPI_DX12::CreateBuffer(const gapi::BufferCreateInfo& info)

@@ -62,6 +62,7 @@ namespace cube
 
     struct GAPIInitInfo
     {
+        Uint32 numGPUSync;
         bool enableDebugLayer = false;
         ImGUIContext imGUI;
     };
@@ -81,12 +82,16 @@ namespace cube
         virtual void Initialize(const GAPIInitInfo& initInfo) = 0;
         virtual void Shutdown(const ImGUIContext& imGUIInfo) = 0;
 
+        virtual void SetNumGPUSync(Uint32 newNumGPUSync) = 0;
+
         virtual void OnBeforeRender() = 0;
         virtual void OnAfterRender() = 0;
         virtual void OnBeforePresent(gapi::Viewport* viewport) = 0;
         virtual void OnAfterPresent() = 0;
 
-        virtual void WaitForGPU() = 0;
+        virtual void BeginRenderingFrame() = 0;
+        virtual void EndRenderingFrame() = 0;
+        virtual void WaitAllGPUSync() = 0;
 
         const Info& GetInfo() const { return mInfo; }
 

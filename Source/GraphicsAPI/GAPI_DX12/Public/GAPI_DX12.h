@@ -24,12 +24,16 @@ namespace cube
         virtual void Initialize(const GAPIInitInfo& initInfo) override;
         virtual void Shutdown(const ImGUIContext& imGUIInfo) override;
 
+        virtual void SetNumGPUSync(Uint32 newNumGPUSync) override;
+
         virtual void OnBeforeRender() override;
         virtual void OnAfterRender() override;
         virtual void OnBeforePresent(gapi::Viewport* viewport) override;
         virtual void OnAfterPresent() override;
 
-        virtual void WaitForGPU() override;
+        virtual void BeginRenderingFrame() override;
+        virtual void EndRenderingFrame() override;
+        virtual void WaitAllGPUSync() override;
 
         virtual SharedPtr<gapi::Buffer> CreateBuffer(const gapi::BufferCreateInfo& info) override;
         virtual SharedPtr<gapi::CommandList> CreateCommandList(const gapi::CommandListCreateInfo& info) override;
@@ -57,6 +61,7 @@ namespace cube
         ImGUIContext mImGUIContext;
         ComPtr<ID3D12GraphicsCommandList> mImGUIRenderCommandList;
 
-        Uint64 mCurrentRenderFrame;
+        Uint64 mCurrentGPUFrame;
+        Uint32 mNumGPUSync;
     };
 } // namespace cube

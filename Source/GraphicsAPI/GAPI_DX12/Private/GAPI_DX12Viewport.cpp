@@ -181,7 +181,6 @@ namespace cube
             cmdList->Close();
             ID3D12CommandList* cmdLists[] = { cmdList.Get() };
             mDevice.GetQueueManager().GetMainQueue()->ExecuteCommandLists(1, cmdLists);
-            mDevice.GetCommandListManager().MoveToNextAllocator(); // NOTE: temporal code. Use more good way? (Use separate command list pool for stage/upload?)
         }
 
         void DX12Viewport::ClearBackbuffers()

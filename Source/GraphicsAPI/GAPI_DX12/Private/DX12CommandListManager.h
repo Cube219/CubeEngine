@@ -12,34 +12,27 @@ namespace cube
     class DX12CommandListManager
     {
     public:
-        static constexpr int MAX_ALLOCATOR_SIZE = 3;
-
-    public:
         DX12CommandListManager(DX12Device& device);
 
         DX12CommandListManager(const DX12CommandListManager& other) = delete;
         DX12CommandListManager& operator=(const DX12CommandListManager& rhs) = delete;
 
-        void Initialize();
+        void Initialize(Uint32 numGPUSync);
         void Shutdown();
 
-        void WaitCurrentAllocatorIsReady();
+        void SetNumGPUSync(Uint32 newNumGPUSync);
+        void MoveToNextIndex(Uint64 nextGPUFrame);
 
-        void Reset();
         void AddBoundObjects(ArrayView<SharedPtr<DX12APIObject>> objects);
-        ID3D12CommandAllocator* GetCurrentAllocator();
+        ID3D12CommandAllocator* GetCurrentAllocator() const { return mAllocators[mCurrentIndex].Get(); }
 
-        void MoveToNextAllocator();
 
     private:
         DX12Device& mDevice;
 
-        Array<ComPtr<ID3D12CommandAllocator>, MAX_ALLOCATOR_SIZE> mAllocators;
         Uint32 mCurrentIndex;
-        DX12Fence mFence;
-        Uint32 mLastFenceValue;
-        Array<Uint64, MAX_ALLOCATOR_SIZE> mFenceValues;
 
-        Array<Vector<SharedPtr<DX12APIObject>>, MAX_ALLOCATOR_SIZE> mBoundObjectsInCommand;
+        Vector<ComPtr<ID3D12CommandAllocator>> mAllocators;
+        Vector<Vector<SharedPtr<DX12APIObject>>> mBoundObjectsInCommand;
     };
 } // namespace cube

@@ -13,7 +13,6 @@ namespace cube
     class DX12QueryManager
     {
     public:
-        static constexpr int MAX_HEAP_SIZE = 5;
         static constexpr int MAX_NUM_TIMESTAMP = 256;
 
     public:
@@ -22,34 +21,31 @@ namespace cube
         DX12QueryManager(const DX12QueryManager& other) = delete;
         DX12QueryManager& operator=(const DX12QueryManager& rhs) = delete;
 
-        void Initialize();
+        void Initialize(Uint32 numGPUSync);
         void Shutdown();
 
-        void WaitCurrentHeapIsReady();
-        void ClearCurrentTimestampNames();
-        void MoveToNextHeap();
-        void UpdateLastTimestamp();
+        void SetNumGPUSync(Uint32 newNumGPUSync);
+        void MoveToNextIndex(Uint64 nextGPUFrame);
 
         gapi::TimestampList GetLastTimestampList() const { return mLastTimestampList; }
 
-        ID3D12QueryHeap* GetCurrentTimestampHeap() const { return mTimestampHeaps[mCurrentFrame % MAX_HEAP_SIZE].Get(); }
+        ID3D12QueryHeap* GetCurrentTimestampHeap() const { return mTimestampHeaps[mCurrentIndex].Get(); }
         int AddTimestamp(const String& name);
         void ResolveTimestampQueryData(ID3D12GraphicsCommandList* commandList);
 
     private:
+        void UpdateLastTimestamp(Uint64 gpuFrame);
+
         DX12Device& mDevice;
 
-        Uint32 mCurrentFrame;
-        DX12Fence mFence;
-        Array<Uint64, MAX_HEAP_SIZE> mFenceValues;
+        Uint32 mCurrentIndex;
 
-        Array<ComPtr<ID3D12QueryHeap>, MAX_HEAP_SIZE> mTimestampHeaps;
+        Vector<ComPtr<ID3D12QueryHeap>> mTimestampHeaps;
         DX12Allocation mTimestampGPUBuffer;
 
         Array<Uint64, MAX_NUM_TIMESTAMP> mLastTimestampCPUBuffer;
-        Uint64 mLastTimestampFrame;
         gapi::TimestampList mLastTimestampList;
 
-        Array<Vector<String>, MAX_HEAP_SIZE> mTimestampNames;
+        Vector<Vector<String>> mTimestampNames;
     };
 } // namespace cube

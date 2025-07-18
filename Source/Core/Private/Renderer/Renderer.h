@@ -50,7 +50,7 @@ namespace cube
         Renderer() = default;
         ~Renderer() = default;
 
-        void Initialize(GAPIName gAPIName, const ImGUIContext& imGUIContext);
+        void Initialize(GAPIName gAPIName, const ImGUIContext& imGUIContext, Uint32 numGPUSync = 3);
         void Shutdown(const ImGUIContext& imGUIContext);
 
         void OnLoopImGUI();
@@ -80,6 +80,9 @@ namespace cube
 
         SharedPtr<platform::DLib> mGAPI_DLib;
         SharedPtr<GAPI> mGAPI;
+
+        Uint32 mNumGPUSync;
+        Uint64 mCurrentRenderingFrame;
 
         TextureManager mTextureManager;
         SamplerManager mSamplerManager;

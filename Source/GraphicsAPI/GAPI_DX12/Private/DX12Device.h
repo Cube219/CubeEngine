@@ -20,7 +20,7 @@ namespace cube
         DX12Device(const DX12Device& other) = delete;
         DX12Device& operator=(const DX12Device& rhs) = delete;
 
-        void Initialize(const ComPtr<IDXGIAdapter1>& adapter);
+        void Initialize(const ComPtr<IDXGIAdapter1>& adapter, Uint32 numGPUSync);
         void Shutdown();
 
         bool CheckFeatureRequirements();
@@ -37,6 +37,11 @@ namespace cube
         DX12CommandListManager& GetCommandListManager() { return mCommandListManager; }
         DX12QueryManager& GetQueryManager() { return mQueryManager; }
 
+        void SetNumGPUSync(Uint32 newNumGPUSync);
+        void BeginGPUFrame(Uint64 gpuFrame);
+        void EndGPUFrame(Uint64 gpuFrame);
+        void WaitAllGPUSync();
+
     private:
         ComPtr<IDXGIAdapter1> mAdapter;
         ComPtr<IDXGIAdapter3> mAdapter3;
@@ -52,5 +57,7 @@ namespace cube
         DX12CommandListManager mCommandListManager;
         DX12QueryManager mQueryManager;
 
+        Uint32 mNumGPUSync;
+        DX12Fence mGPUSyncFence;
     };
 } // namespace cube

@@ -11,7 +11,8 @@ namespace cube
         mUploadManager(*this),
         mDescriptorManager(*this),
         mCommandListManager(*this),
-        mQueryManager(*this)
+        mQueryManager(*this),
+        mGPUSyncFence(*this)
     {
     }
 
@@ -19,7 +20,7 @@ namespace cube
     {
     }
 
-    void DX12Device::Initialize(const ComPtr<IDXGIAdapter1>& adapter)
+    void DX12Device::Initialize(const ComPtr<IDXGIAdapter1>& adapter, Uint32 numGPUSync)
     {
         mAdapter = adapter;
         mAdapter.As(&mAdapter3);
@@ -34,12 +35,20 @@ namespace cube
         mQueueManager.Initialize();
         mUploadManager.Initialize();
         mDescriptorManager.Initialize();
-        mCommandListManager.Initialize();
-        mQueryManager.Initialize();
+        mCommandListManager.Initialize(numGPUSync);
+        mQueryManager.Initialize(numGPUSync);
+
+        mGPUSyncFence.Initialize(CUBE_T("GPUSyncFence"));
+        mNumGPUSync = numGPUSync;
     }
 
     void DX12Device::Shutdown()
     {
+        // All GPU commands should be finished before deleting the device to delete GPU sync releated managers properly
+        // (CommandListManager, QueryManager...)
+        WaitAllGPUSync();
+        mGPUSyncFence.Shutdown();
+
         mQueryManager.Shutdown();
         mCommandListManager.Shutdown();
         mDescriptorManager.Shutdown();
@@ -72,5 +81,43 @@ namespace cube
         }
 
         return res;
+    }
+
+    void DX12Device::SetNumGPUSync(Uint32 newNumGPUSync)
+    {
+        // All GPU commands should be finished before resizing for GPU sync releated managers
+        // (CommandListManager, QueryManager...)
+        WaitAllGPUSync();
+
+        mNumGPUSync = newNumGPUSync;
+        GetCommandListManager().SetNumGPUSync(newNumGPUSync);
+        GetQueryManager().SetNumGPUSync(newNumGPUSync);
+    }
+
+    void DX12Device::BeginGPUFrame(Uint64 gpuFrame)
+    {
+        if (gpuFrame >= mNumGPUSync)
+        {
+            mGPUSyncFence.Wait(gpuFrame - mNumGPUSync);
+        }
+
+        GetCommandListManager().MoveToNextIndex(gpuFrame);
+        GetQueryManager().MoveToNextIndex(gpuFrame);
+    }
+
+    void DX12Device::EndGPUFrame(Uint64 gpuFrame)
+    {
+        mGPUSyncFence.Signal(GetQueueManager().GetMainQueue(), gpuFrame);
+    }
+
+    void DX12Device::WaitAllGPUSync()
+    {
+        DX12Fence waitFence(*this);
+        waitFence.Initialize(CUBE_T("WaitAllGPUSyncFence"));
+
+        waitFence.Signal(GetQueueManager().GetMainQueue(), 1);
+        waitFence.Wait(1);
+
+        waitFence.Shutdown();
     }
 } // namespace cube

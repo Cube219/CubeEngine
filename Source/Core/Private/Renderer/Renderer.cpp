@@ -20,9 +20,12 @@
 
 namespace cube
 {
-    void Renderer::Initialize(GAPIName gAPIName, const ImGUIContext& imGUIContext)
+    void Renderer::Initialize(GAPIName gAPIName, const ImGUIContext& imGUIContext, Uint32 numGPUSync)
     {
         CUBE_LOG(Info, Renderer, "Initialize renderer. (GAPI: {})", GAPINameToString(gAPIName));
+
+        mNumGPUSync = numGPUSync;
+        mCurrentRenderingFrame = 0;
 
         // GAPI init
         const Character* dLibName = CUBE_T("");
@@ -49,6 +52,7 @@ namespace cube
         mGAPI = SharedPtr<GAPI>(createGAPIFunc());
 
         mGAPI->Initialize({
+            .numGPUSync = numGPUSync,
             .enableDebugLayer = true,
             .imGUI = imGUIContext
         });
@@ -101,7 +105,7 @@ namespace cube
     {
         CUBE_LOG(Info, Renderer, "Shutdown renderer.");
 
-        mGAPI->WaitForGPU();
+        mGAPI->WaitAllGPUSync();
 
         ClearResources();
 
@@ -145,6 +149,9 @@ namespace cube
 
     void Renderer::Render()
     {
+        mCurrentRenderingFrame++;
+        mGAPI->BeginRenderingFrame();
+
         SetGlobalConstantBuffers();
 
         mViewport->AcquireNextImage();
@@ -164,6 +171,8 @@ namespace cube
         mGAPI->OnBeforePresent(mViewport.get());
         mViewport->Present();
         mGAPI->OnAfterPresent();
+
+        mGAPI->EndRenderingFrame();
     }
 
     void Renderer::OnResize(Uint32 width, Uint32 height)
@@ -173,7 +182,7 @@ namespace cube
 
         if (mViewport)
         {
-            mGAPI->WaitForGPU();
+            mGAPI->WaitAllGPUSync();
 
             mViewport->Resize(width, height);
         }

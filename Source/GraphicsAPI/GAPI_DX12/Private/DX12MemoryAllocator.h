@@ -21,7 +21,7 @@ namespace cube
         gapi::ResourceUsage usage;
         void *pMapPtr = nullptr;
 
-        D3D12MA::Allocation* allocation;
+        D3D12MA::Allocation* allocation = nullptr;
 
         // (readBegin > readEnd) -> read all range
         void Map(Uint64 readBegin = 1, Uint64 readEnd = 0)
