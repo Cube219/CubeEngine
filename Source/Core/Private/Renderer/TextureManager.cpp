@@ -13,9 +13,10 @@
 
 namespace cube
 {
-    void TextureManager::Initialize(GAPI* gapi)
+    void TextureManager::Initialize(GAPI* gapi, Uint32 numGPUSync)
     {
         mGAPI = gapi;
+        mGenerateMipmapsBufferList.resize(numGPUSync);
 
         {
             mGenerateMipmapsShaderVariablesLayout = mGAPI->CreateShaderVariablesLayout({
@@ -62,10 +63,7 @@ namespace cube
     {
         mCommandList = nullptr;
 
-        for (Vector<GenerateMipmapBuffer>& bufferList : mGenerateMipmapsBufferList)
-        {
-            bufferList.clear();
-        }
+        mGenerateMipmapsBufferList.clear();
 
         mGenerateMipmapsPipeline = nullptr;
         mGenerateMipmapsShader = nullptr;
@@ -73,7 +71,7 @@ namespace cube
     }
     void TextureManager::MoveNextFrame()
     {
-        mCurrentIndex = (mCurrentIndex + 1) % MAX_NUM_FRAMES;
+        mCurrentIndex = (mCurrentIndex + 1) % mGenerateMipmapsBufferList.size();
 
         mGenerateMipmapsBufferList[mCurrentIndex].clear();
     }

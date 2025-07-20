@@ -57,7 +57,7 @@ namespace cube
             .imGUI = imGUIContext
         });
 
-        mTextureManager.Initialize(mGAPI.get());
+        mTextureManager.Initialize(mGAPI.get(), mNumGPUSync);
         mSamplerManager.Initialize(mGAPI.get());
 
         mRenderImGUI = (imGUIContext.context != nullptr);
@@ -151,13 +151,13 @@ namespace cube
     {
         mCurrentRenderingFrame++;
         mGAPI->BeginRenderingFrame();
+        mTextureManager.MoveNextFrame();
 
         SetGlobalConstantBuffers();
 
         mViewport->AcquireNextImage();
 
         mGAPI->OnBeforeRender();
-        mTextureManager.MoveNextFrame();
 
         RenderImpl();
 

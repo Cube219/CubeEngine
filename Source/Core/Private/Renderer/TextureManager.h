@@ -24,7 +24,7 @@ namespace cube
         TextureManager() = default;
         ~TextureManager() = default;
 
-        void Initialize(GAPI* gapi);
+        void Initialize(GAPI* gapi, Uint32 numGPUSync);
         void Shutdown();
 
         void MoveNextFrame();
@@ -35,7 +35,6 @@ namespace cube
         GAPI* mGAPI;
 
         Uint32 mCurrentIndex;
-        static constexpr int MAX_NUM_FRAMES = 3;
 
         SharedPtr<gapi::ShaderVariablesLayout> mGenerateMipmapsShaderVariablesLayout;
         SharedPtr<gapi::Shader> mGenerateMipmapsShader;
@@ -53,7 +52,7 @@ namespace cube
             SharedPtr<gapi::Buffer> buffer;
             Byte* bufferPointer;
         };
-        Array<Vector<GenerateMipmapBuffer>, MAX_NUM_FRAMES> mGenerateMipmapsBufferList;
+        Vector<Vector<GenerateMipmapBuffer>> mGenerateMipmapsBufferList;
 
         SharedPtr<gapi::CommandList> mCommandList;
     };
