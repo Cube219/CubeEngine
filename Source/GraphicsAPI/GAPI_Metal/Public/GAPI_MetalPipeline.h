@@ -8,11 +8,18 @@ namespace cube
 {
     namespace gapi
     {
-        class MetalPipeline : public Pipeline
+        class MetalGraphicsPipeline : public GraphicsPipeline
         {
         public:
-            MetalPipeline(const GraphicsPipelineCreateInfo& info) {}
-            virtual ~MetalPipeline() {}
+            MetalGraphicsPipeline(const GraphicsPipelineCreateInfo& info) {}
+            virtual ~MetalGraphicsPipeline() {}
+        };
+
+        class MetalComputePipeline : public ComputePipeline
+        {
+        public:
+            MetalComputePipeline(const ComputePipelineCreateInfo& info) {}
+            virtual ~MetalComputePipeline() {}
         };
     } // namespace gapi
 } // namespace cube

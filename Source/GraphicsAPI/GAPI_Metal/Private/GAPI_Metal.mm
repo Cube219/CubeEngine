@@ -65,7 +65,7 @@ namespace cube
     {
         CUBE_LOG(Info, Metal, "Shutdown GAPI_Metal.");
 
-        WaitForGPU();
+        WaitAllGPUSync();
 
         MetalShaderCompiler::Shutdown();
         ShutdownImGUI(imGUIInfo);
@@ -76,6 +76,10 @@ namespace cube
             delete device;
         }
         mDevices.clear();
+    }
+
+    void GAPI_Metal::SetNumGPUSync(Uint32 newNumGPUSync)
+    {
     }
 
     void GAPI_Metal::OnBeforeRender()
@@ -126,7 +130,15 @@ namespace cube
         }
     }
 
-    void GAPI_Metal::WaitForGPU()
+    void GAPI_Metal::BeginRenderingFrame()
+    {
+    }
+
+    void GAPI_Metal::EndRenderingFrame()
+    {
+    }
+
+    void GAPI_Metal::WaitAllGPUSync()
     {
         // TODO: Use another way not using comand buffer?
         id<MTLCommandBuffer> commandBuffer = [mCommandQueue commandBuffer];
@@ -149,15 +161,14 @@ namespace cube
         return std::make_shared<gapi::MetalFence_old>(info);
     }
 
-    SharedPtr<gapi::Pipeline> GAPI_Metal::CreateGraphicsPipeline(const gapi::GraphicsPipelineCreateInfo& info)
+    SharedPtr<gapi::GraphicsPipeline> GAPI_Metal::CreateGraphicsPipeline(const gapi::GraphicsPipelineCreateInfo& info)
     {
-        return std::make_shared<gapi::MetalPipeline>(info);
+        return std::make_shared<gapi::MetalGraphicsPipeline>(info);
     }
 
-    SharedPtr<gapi::Pipeline> GAPI_Metal::CreateComputePipeline(const gapi::ComputePipelineCreateInfo& info)
+    SharedPtr<gapi::ComputePipeline> GAPI_Metal::CreateComputePipeline(const gapi::ComputePipelineCreateInfo& info)
     {
-        NOT_IMPLEMENTED();
-        return nullptr;
+        return std::make_shared<gapi::MetalComputePipeline>(info);
     }
 
     SharedPtr<gapi::Sampler> GAPI_Metal::CreateSampler(const gapi::SamplerCreateInfo& info)
