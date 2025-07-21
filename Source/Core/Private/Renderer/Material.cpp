@@ -13,58 +13,44 @@ namespace cube
         mBaseColorTexture(nullptr)
     {
         FrameString bufferDebugName = Format<FrameString>(CUBE_T("[{0}] MaterialBuffer"), debugName);
-        mBuffer = Engine::GetRenderer()->GetGAPI().CreateBuffer({
-            .type = gapi::BufferType::Constant,
-            .usage = gapi::ResourceUsage::CPUtoGPU,
-            .size = sizeof(BufferData),
-            .debugName = bufferDebugName
-        });
-        mBufferDataPointer = (Byte*)mBuffer->Map();
 
-        mBufferData.sampler.index = Engine::GetRenderer()->GetSamplerManager().GetDefaultLinearSamplerIndex();
-
-        UpdateBufferData();
+        mSamplerIndex = Engine::GetRenderer()->GetSamplerManager().GetDefaultLinearSamplerIndex();
     }
 
     Material::~Material()
     {
-        mBuffer = nullptr;
     }
 
     void Material::SetBaseColor(Vector4 color)
     {
-        mBufferData.baseColor = color;
-
-        UpdateBufferData();
+        mBaseColor = color;
     }
 
     void Material::SetBaseColorTexture(SharedPtr<TextureResource> texture)
     {
-        if (texture != nullptr)
-        {
-            mBaseColorTexture = texture;
-            mBufferData.useBaseColorTexture = true;
-            mBufferData.baseColorTexture.index = texture->GetDefaultSRV()->GetBindlessIndex();
-        }
-        else
-        {
-            mBaseColorTexture = nullptr;
-            mBufferData.useBaseColorTexture = false;
-            mBufferData.baseColorTexture = InvalidBindlessResource;
-        }
-
-        UpdateBufferData();
+        mBaseColorTexture = texture;
     }
 
     void Material::SetSampler(int samplerIndex)
     {
-        mBufferData.sampler.index = samplerIndex;
-
-        UpdateBufferData();
+        mSamplerIndex = samplerIndex;
     }
 
-    void Material::UpdateBufferData()
+    SharedPtr<MaterialShaderParameters> Material::GenerateShaderParameters() const
     {
-        memcpy(mBufferDataPointer, &mBufferData, sizeof(BufferData));
+        ShaderParametersManager& shaderParametersManager = Engine::GetRenderer()->GetShaderParametersManager();
+
+        SharedPtr<MaterialShaderParameters> parameters = shaderParametersManager.CreateShaderParameters<MaterialShaderParameters>();
+        parameters->baseColor = mBaseColor;
+        parameters->useBaseColorTexture = 0;
+        if (mBaseColorTexture)
+        {
+            parameters->useBaseColorTexture = 1;
+            parameters->baseColorTexture.index = mBaseColorTexture->GetDefaultSRV()->GetBindlessIndex();
+        }
+        parameters->sampler.index = mSamplerIndex;
+        parameters->WriteAllParametersToBuffer();
+
+        return parameters;
     }
 } // namespace cube

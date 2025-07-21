@@ -5,6 +5,7 @@
 #include "GAPI.h"
 #include "Matrix.h"
 #include "SamplerManager.h"
+#include "ShaderParameter.h"
 #include "TextureManager.h"
 #include "Vector.h"
 
@@ -24,24 +25,20 @@ namespace cube
         class DLib;
     } // namespace platform
 
-    // TODO: Using float version?
-    struct alignas(256) GlobalConstantBufferData
+    class GlobalShaderParameters : public ShaderParameters
     {
-        Matrix viewProjection;
-        Vector3 directionalLightDirection;
+        CUBE_BEGIN_SHADER_PARAMETERS(GlobalShaderParameters)
+            CUBE_SHADER_PARAMETER(Matrix, viewProjection)
+            CUBE_SHADER_PARAMETER(Vector3, directionalLightDirection)
+        CUBE_END_SHADER_PARAMETERS
     };
 
-    // TODO: Move to renderobject
-    struct alignas(256) ObjectBufferData
+    class ObjectShaderParameters : public ShaderParameters
     {
-        Matrix model;
-        Matrix modelInverse;
-
-        void SetModelMatrix(const Matrix& newModel)
-        {
-            model = newModel;
-            modelInverse = model.Inversed();
-        }
+        CUBE_BEGIN_SHADER_PARAMETERS(ObjectShaderParameters)
+            CUBE_SHADER_PARAMETER(Matrix, model)
+            CUBE_SHADER_PARAMETER(Matrix, modelInverse)
+        CUBE_END_SHADER_PARAMETERS
     };
 
     class Renderer
@@ -61,6 +58,7 @@ namespace cube
         GAPI& GetGAPI() const { return *mGAPI; }
         TextureManager& GetTextureManager() { return mTextureManager; }
         SamplerManager& GetSamplerManager() { return mSamplerManager; }
+        ShaderParametersManager& GetShaderParametersManager() { return mShaderParametersManager; }
 
         void SetObjectModelMatrix(const Vector3& position, const Vector3& rotation, const Vector3& scale);
         void SetViewMatrix(const Vector3& eye, const Vector3& target, const Vector3& upDir);
@@ -86,16 +84,14 @@ namespace cube
 
         TextureManager mTextureManager;
         SamplerManager mSamplerManager;
+        ShaderParametersManager mShaderParametersManager;
 
         bool mRenderImGUI;
 
         Matrix mViewMatrix;
         Matrix mPerspectiveMatrix;
+        Matrix mViewPerspectiveMatirx;
         bool mIsViewPerspectiveMatrixDirty;
-
-        GlobalConstantBufferData mGlobalConstantBufferData;
-        SharedPtr<gapi::Buffer> mGlobalConstantBuffer;
-        Uint8* mGlobalConstantBufferDataPointer;
 
         SharedPtr<gapi::CommandList> mCommandList;
 
@@ -106,6 +102,7 @@ namespace cube
         Vector3 mDirectionalLightDirection;
         bool mIsDirectionalLightDirty;
 
+        Matrix mModelMatrix;
         SharedPtr<Mesh> mMesh;
         Vector<SharedPtr<Material>> mMaterials;
         SharedPtr<gapi::Shader> mVertexShader;
@@ -113,26 +110,16 @@ namespace cube
         SharedPtr<gapi::ShaderVariablesLayout> mShaderVariablesLayout;
         SharedPtr<gapi::GraphicsPipeline> mMainPipeline;
 
-        ObjectBufferData mObjectBufferData;
-        SharedPtr<gapi::Buffer> mObjectBuffer;
-        Uint8* mObjectBufferDataPointer;
-
         SharedPtr<Material> mDefaultMaterial;
 
         SharedPtr<Mesh> mBoxMesh;
-        ObjectBufferData mXAxisObjectBufferData;
-        SharedPtr<gapi::Buffer> mXAxisObjectBuffer;
-        Uint8* mXAxisObjectBufferDataPointer;
+        Matrix mXAxisModelMatrix;
         SharedPtr<Material> mXAxisMaterial;
 
-        ObjectBufferData mYAxisObjectBufferData;
-        SharedPtr<gapi::Buffer> mYAxisObjectBuffer;
-        Uint8* mYAxisObjectBufferDataPointer;
+        Matrix mYAxisModelMatrix;
         SharedPtr<Material> mYAxisMaterial;
 
-        ObjectBufferData mZAxisObjectBufferData;
-        SharedPtr<gapi::Buffer> mZAxisObjectBuffer;
-        Uint8* mZAxisObjectBufferDataPointer;
+        Matrix mZAxisModelMatrix;
         SharedPtr<Material> mZAxisMaterial;
     };
 } // namespace cube

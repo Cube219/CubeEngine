@@ -10,6 +10,16 @@ namespace cube
             Buffer(info),
             mDevice(device)
         {
+            if (mType == BufferType::Constant)
+            {
+                if ((mSize & 255) != 0)
+                {
+                    Uint64 newSize = (mSize + 255) & ~255;
+                    CUBE_LOG(Warning, DX12, "CB size should be 256 byte aligned. Size will be changed. ({0} -> {1})", mSize, newSize);
+                    mSize = newSize;
+                }
+            }
+
             D3D12_RESOURCE_DESC desc = {
                 .Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
                 .Alignment = 0,
@@ -41,13 +51,6 @@ namespace cube
             if (mType == BufferType::Constant)
             {
                 CHECK_FORMAT(mUsage == ResourceUsage::CPUtoGPU, "Using other resource usage instaed of CPUtoGPU in constant buffer is not implemented.");
-
-                if ((mSize & 255) != 0)
-                {
-                    Uint64 newSize = (mSize + 255) & ~255;
-                    CUBE_LOG(Warning, DX12, "CB size should be 256 byte aligned. Size will be changed. ({} -> {})", mSize, newSize);
-                    mSize = newSize; // TODO: Apply before allocation
-                }
 
                 mCBVDescriptor = device.GetDescriptorManager().GetSRVHeap().AllocateCPU();
                 const D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {

@@ -3,6 +3,7 @@
 #include "CoreHeader.h"
 
 #include "Renderer/RenderTypes.h"
+#include "ShaderParameter.h"
 #include "Vector.h"
 
 namespace cube
@@ -16,6 +17,16 @@ namespace cube
         class Texture;
     } // namespace gapi
 
+    class MaterialShaderParameters : public ShaderParameters
+    {
+        CUBE_BEGIN_SHADER_PARAMETERS(MaterialShaderParameters)
+            CUBE_SHADER_PARAMETER(Vector4, baseColor)
+            CUBE_SHADER_PARAMETER(int, useBaseColorTexture)
+            CUBE_SHADER_PARAMETER(BindlessResource, baseColorTexture)
+            CUBE_SHADER_PARAMETER(BindlessResource, sampler)
+        CUBE_END_SHADER_PARAMETERS
+    };
+
     class Material
     {
     public:
@@ -27,24 +38,11 @@ namespace cube
 
         void SetSampler(int samplerIndex);
 
-        SharedPtr<gapi::Buffer> GetMaterialBuffer() const { return mBuffer; }
+        SharedPtr<MaterialShaderParameters> GenerateShaderParameters() const;
 
-    public:
-        void UpdateBufferData();
-
+    private:
+        Vector4 mBaseColor;
         SharedPtr<TextureResource> mBaseColorTexture;
-
-        // TODO: Adjust padding when copy to gpu buffer
-        struct alignas(256) BufferData
-        {
-            Vector4 baseColor = { 1.0f, 1.0f, 1.0f, 1.0f };
-            int useBaseColorTexture = false;
-            BindlessResource baseColorTexture;
-            int padding;
-            BindlessResource sampler; 
-        };
-        BufferData mBufferData;
-        SharedPtr<gapi::Buffer> mBuffer;
-        Byte* mBufferDataPointer;
+        int mSamplerIndex;
     };
 } // namespace cube

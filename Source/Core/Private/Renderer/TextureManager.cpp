@@ -8,6 +8,7 @@
 #include "GAPI_Pipeline.h"
 #include "GAPI_Shader.h"
 #include "GAPI_ShaderVariable.h"
+#include "Renderer.h"
 #include "Texture.h"
 #include "Allocator/FrameAllocator.h"
 
@@ -16,7 +17,6 @@ namespace cube
     void TextureManager::Initialize(GAPI* gapi, Uint32 numGPUSync)
     {
         mGAPI = gapi;
-        mGenerateMipmapsBufferList.resize(numGPUSync);
 
         {
             mGenerateMipmapsShaderVariablesLayout = mGAPI->CreateShaderVariablesLayout({
@@ -63,17 +63,9 @@ namespace cube
     {
         mCommandList = nullptr;
 
-        mGenerateMipmapsBufferList.clear();
-
         mGenerateMipmapsPipeline = nullptr;
         mGenerateMipmapsShader = nullptr;
         mGenerateMipmapsShaderVariablesLayout = nullptr;
-    }
-    void TextureManager::MoveNextFrame()
-    {
-        mCurrentIndex = (mCurrentIndex + 1) % mGenerateMipmapsBufferList.size();
-
-        mGenerateMipmapsBufferList[mCurrentIndex].clear();
     }
 
     void TextureManager::GenerateMipmaps(SharedPtr<gapi::Texture> texture)
@@ -107,26 +99,19 @@ namespace cube
                 .mipLevel = i
             });
         }
+
+        ShaderParametersManager& shaderParametersManager = Engine::GetRenderer()->GetShaderParametersManager();
         for (Uint32 mipIndex = 1; mipIndex < texture->GetMipLevels(); ++mipIndex)
         {
             width = std::max(1u, width >> 1);
             height = std::max(1u, height >> 1);
 
-            GenerateMipmapBuffer newBuffer;
-            newBuffer.buffer = mGAPI->CreateBuffer({
-                .type = gapi::BufferType::Constant,
-                .usage = gapi::ResourceUsage::CPUtoGPU,
-                .size = sizeof(GenerateMipmapsBufferData),
-                .debugName = CUBE_T("GenerateMipmapsBuffer")
-            });
-            newBuffer.bufferPointer = (Byte*)newBuffer.buffer->Map();
-            mGenerateMipmapsBufferList[mCurrentIndex].push_back(std::move(newBuffer));
+            SharedPtr<GenerateMipmapsShaderParameters> parameters = shaderParametersManager.CreateShaderParameters<GenerateMipmapsShaderParameters>();
 
-            GenerateMipmapBuffer& buffer = mGenerateMipmapsBufferList[mCurrentIndex].back();
-            buffer.data.srcTexture.index = srvs[mipIndex - 1]->GetBindlessIndex();
-            buffer.data.dstTexture.index = uavs[mipIndex]->GetBindlessIndex();
-            memcpy(buffer.bufferPointer, &buffer.data, sizeof(GenerateMipmapsBufferData));
-            mCommandList->SetShaderVariableConstantBuffer(0, buffer.buffer);
+            parameters->srcTexture.index = srvs[mipIndex - 1]->GetBindlessIndex();
+            parameters->dstTexture.index = uavs[mipIndex]->GetBindlessIndex();
+            parameters->WriteAllParametersToBuffer();
+            mCommandList->SetShaderVariableConstantBuffer(0, parameters->GetBuffer());
 
             Array<gapi::TransitionState, 2> transitions;
             transitions[0].resourceType = gapi::TransitionState::ResourceType::SRV;

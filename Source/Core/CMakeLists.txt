@@ -23,6 +23,8 @@ set(PRIVATE_FILES
     Private/Renderer/SamplerManager.h
     Private/Renderer/Shader.cpp
     Private/Renderer/Shader.h
+    Private/Renderer/ShaderParameter.cpp
+    Private/Renderer/ShaderParameter.h
     Private/Renderer/Texture.cpp
     Private/Renderer/Texture.h
     Private/Renderer/TextureManager.cpp

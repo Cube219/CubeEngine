@@ -1,8 +1,10 @@
 #pragma once
 
 #include "CoreHeader.h"
+
 #include "GAPI_Buffer.h"
 #include "Renderer/RenderTypes.h"
+#include "ShaderParameter.h"
 
 namespace cube
 {
@@ -27,8 +29,6 @@ namespace cube
         void Initialize(GAPI* gapi, Uint32 numGPUSync);
         void Shutdown();
 
-        void MoveNextFrame();
-
         void GenerateMipmaps(SharedPtr<gapi::Texture> texture);
 
     private:
@@ -40,19 +40,13 @@ namespace cube
         SharedPtr<gapi::Shader> mGenerateMipmapsShader;
         SharedPtr<gapi::ComputePipeline> mGenerateMipmapsPipeline;
 
-        // TODO: Adjust padding when copy to gpu buffer
-        struct alignas(256) GenerateMipmapsBufferData
+        class GenerateMipmapsShaderParameters : public ShaderParameters
         {
-            BindlessResource srcTexture;
-            BindlessResource dstTexture;
+            CUBE_BEGIN_SHADER_PARAMETERS(GenerateMipmapsShaderParameters)
+                CUBE_SHADER_PARAMETER(BindlessResource, srcTexture)
+                CUBE_SHADER_PARAMETER(BindlessResource, dstTexture)
+            CUBE_END_SHADER_PARAMETERS
         };
-        struct GenerateMipmapBuffer
-        {
-            GenerateMipmapsBufferData data;
-            SharedPtr<gapi::Buffer> buffer;
-            Byte* bufferPointer;
-        };
-        Vector<Vector<GenerateMipmapBuffer>> mGenerateMipmapsBufferList;
 
         SharedPtr<gapi::CommandList> mCommandList;
     };
