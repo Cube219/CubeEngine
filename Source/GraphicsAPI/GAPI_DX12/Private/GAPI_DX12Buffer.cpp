@@ -109,5 +109,10 @@ namespace cube
                 break;
             }
         }
+
+        void DX12Buffer::SetDebugName(StringView debugName)
+        {
+            SET_DEBUG_NAME(mAllocation.allocation->GetResource(), debugName);
+        }
     } // namespace gapi
 } // namespace cube

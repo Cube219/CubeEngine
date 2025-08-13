@@ -39,6 +39,8 @@ namespace cube
             virtual void* Map() = 0;
             virtual void Unmap() = 0;
 
+            virtual void SetDebugName(StringView debugName) {}
+
             BufferType GetType() const { return mType; }
             ResourceUsage GetUsage() const { return mUsage; }
             Uint64 GetSize() const { return mSize; }

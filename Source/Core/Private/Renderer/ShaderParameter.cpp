@@ -59,11 +59,11 @@ namespace cube
 
         if (auto it = pool.pooledBufferIndices.lower_bound(size); it != pool.pooledBufferIndices.end())
         {
-            // TODO: Change debugName in pooled buffer
             Uint32 index = it->second;
             SharedPtr<gapi::Buffer> buffer = pool.buffers[index];
             pool.pooledBufferIndices.erase(it);
 
+            buffer->SetDebugName(debugName);
             return { .buffer = buffer, .poolIndex = index };
         }
 
@@ -71,7 +71,7 @@ namespace cube
             .type = gapi::BufferType::Constant,
             .usage = gapi::ResourceUsage::CPUtoGPU,
             .size = size,
-            .debugName = CUBE_T("ShaderParameter")
+            .debugName = debugName
         });
         pool.buffers.push_back(buffer);
 
@@ -88,6 +88,7 @@ namespace cube
         ShaderParametersBufferPool& pool = mBufferPools[parameters.mGPUSyncIndex];
         CHECK(parameters.mPooledBuffer.buffer);
         CHECK(parameters.mPooledBuffer.buffer == pool.buffers[parameters.mPooledBuffer.poolIndex]);
+        parameters.mPooledBuffer.buffer->SetDebugName(CUBE_T("PooledShaderParameter")); 
         pool.freedBufferIndices.push_back(parameters.mPooledBuffer.poolIndex);
 
         parameters.mBufferPointer = nullptr;
