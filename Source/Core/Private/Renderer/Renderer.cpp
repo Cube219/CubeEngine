@@ -16,6 +16,7 @@
 #include "Material.h"
 #include "MatrixUtility.h"
 #include "Platform.h"
+#include "Shader.h"
 #include "Texture.h"
 
 namespace cube
@@ -57,7 +58,8 @@ namespace cube
             .imGUI = imGUIContext
         });
 
-        mTextureManager.Initialize(mGAPI.get(), mNumGPUSync);
+        mShaderManager.Initialize(mGAPI.get());
+        mTextureManager.Initialize(mGAPI.get(), mNumGPUSync, mShaderManager);
         mSamplerManager.Initialize(mGAPI.get());
         mShaderParametersManager.Initialize(mGAPI.get(), mNumGPUSync);
 
@@ -100,6 +102,7 @@ namespace cube
         mShaderParametersManager.Shutdown();
         mSamplerManager.Shutdown();
         mTextureManager.Shutdown();
+        mShaderManager.Shutdown();
 
         mGAPI->Shutdown(imGUIContext);
         mGAPI = nullptr;
@@ -390,47 +393,23 @@ namespace cube
 
         {
             FrameString vertexShaderFilePath = FrameString(Engine::GetRootDirectoryPath()) + CUBE_T("/Resources/Shaders/Main.slang");
-            SharedPtr<platform::File> vertexShaderFile = platform::FileSystem::OpenFile(vertexShaderFilePath, platform::FileAccessModeFlag::Read);
-            CHECK(vertexShaderFile);
-            Uint64 vertexShaderFileSize = vertexShaderFile->GetFileSize();
-
-            Blob shaderCode(vertexShaderFileSize);
-            Uint64 readSize = vertexShaderFile->Read(shaderCode.GetData(), vertexShaderFileSize);
-            CHECK(readSize <= vertexShaderFileSize);
-
-            mVertexShader = mGAPI->CreateShader({
+            mVertexShader = mShaderManager.CreateShader({
                 .type = gapi::ShaderType::Vertex,
                 .language = gapi::ShaderLanguage::Slang,
-                .fileName = StringView(CUBE_T("Main.slang")),
-                .path = vertexShaderFilePath,
-                .code = shaderCode,
+                .filePath = vertexShaderFilePath,
                 .entryPoint = "VSMain",
-                .withDebugSymbol = true, // TODO: Add option in render ui after implement shader recompilation
                 .debugName = CUBE_T("MainVS")
             });
-            CHECK(mVertexShader);
         }
         {
             FrameString pixelShaderFilePath = FrameString(Engine::GetRootDirectoryPath()) + CUBE_T("/Resources/Shaders/Main.slang");
-            SharedPtr<platform::File> pixelShaderFile = platform::FileSystem::OpenFile(pixelShaderFilePath, platform::FileAccessModeFlag::Read);
-            CHECK(pixelShaderFile);
-            Uint64 pixelShaderFileSize = pixelShaderFile->GetFileSize();
-
-            Blob shaderCode(pixelShaderFileSize);
-            Uint64 readSize = pixelShaderFile->Read(shaderCode.GetData(), pixelShaderFileSize);
-            CHECK(readSize <= pixelShaderFileSize);
-
-            mPixelShader = mGAPI->CreateShader({
+            mPixelShader = mShaderManager.CreateShader({
                 .type = gapi::ShaderType::Pixel,
                 .language = gapi::ShaderLanguage::Slang,
-                .fileName = StringView(CUBE_T("Main.slang")),
-                .path = pixelShaderFilePath,
-                .code = shaderCode,
+                .filePath = pixelShaderFilePath,
                 .entryPoint = "PSMain",
-                .withDebugSymbol = true, // TODO: Add option in render ui after implement shader recompilation
                 .debugName = CUBE_T("MainPS")
             });
-            CHECK(mPixelShader);
         }
         {
             mShaderVariablesLayout = mGAPI->CreateShaderVariablesLayout({
@@ -473,8 +452,8 @@ namespace cube
             };
 
             mMainPipeline = mGAPI->CreateGraphicsPipeline({
-                .vertexShader = mVertexShader,
-                .pixelShader = mPixelShader,
+                .vertexShader = mVertexShader->GetGAPIShader(),
+                .pixelShader = mPixelShader->GetGAPIShader(),
                 .inputLayout = inputLayout,
                 .numInputLayoutElements = std::size(inputLayout),
                 .depthStencilState = {

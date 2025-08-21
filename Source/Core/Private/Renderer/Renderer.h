@@ -5,6 +5,7 @@
 #include "GAPI.h"
 #include "Matrix.h"
 #include "SamplerManager.h"
+#include "ShaderManager.h"
 #include "ShaderParameter.h"
 #include "TextureManager.h"
 #include "Vector.h"
@@ -13,12 +14,12 @@ namespace cube
 {
     namespace gapi {
         class GraphicsPipeline;
-        class Shader;
     } // namespace gapi
 
     class Material;
     class Mesh;
     class MeshData;
+    class Shader;
 
     namespace platform
     {
@@ -56,6 +57,7 @@ namespace cube
         void OnResize(Uint32 width, Uint32 height);
 
         GAPI& GetGAPI() const { return *mGAPI; }
+        ShaderManager& GetShaderManager() { return mShaderManager; }
         TextureManager& GetTextureManager() { return mTextureManager; }
         SamplerManager& GetSamplerManager() { return mSamplerManager; }
         ShaderParametersManager& GetShaderParametersManager() { return mShaderParametersManager; }
@@ -82,6 +84,7 @@ namespace cube
         Uint32 mNumGPUSync;
         Uint64 mCurrentRenderingFrame;
 
+        ShaderManager mShaderManager;
         TextureManager mTextureManager;
         SamplerManager mSamplerManager;
         ShaderParametersManager mShaderParametersManager;
@@ -105,8 +108,8 @@ namespace cube
         Matrix mModelMatrix;
         SharedPtr<Mesh> mMesh;
         Vector<SharedPtr<Material>> mMaterials;
-        SharedPtr<gapi::Shader> mVertexShader;
-        SharedPtr<gapi::Shader> mPixelShader;
+        SharedPtr<Shader> mVertexShader;
+        SharedPtr<Shader> mPixelShader;
         SharedPtr<gapi::ShaderVariablesLayout> mShaderVariablesLayout;
         SharedPtr<gapi::GraphicsPipeline> mMainPipeline;
 

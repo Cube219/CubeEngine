@@ -6,15 +6,15 @@
 #include "GAPI.h"
 #include "GAPI_CommandList.h"
 #include "GAPI_Pipeline.h"
-#include "GAPI_Shader.h"
 #include "GAPI_ShaderVariable.h"
 #include "Renderer.h"
+#include "Shader.h"
 #include "Texture.h"
 #include "Allocator/FrameAllocator.h"
 
 namespace cube
 {
-    void TextureManager::Initialize(GAPI* gapi, Uint32 numGPUSync)
+    void TextureManager::Initialize(GAPI* gapi, Uint32 numGPUSync, ShaderManager& shaderManager)
     {
         mGAPI = gapi;
 
@@ -27,28 +27,18 @@ namespace cube
         
             FrameString shaderFileName = CUBE_T("GenerateMipmaps.slang");
             FrameString shaderFilePath = Format<FrameString>(CUBE_T("{0}/Resources/Shaders/{1}"), Engine::GetRootDirectoryPath(), shaderFileName);
-            SharedPtr<platform::File> shaderFile = platform::FileSystem::OpenFile(shaderFilePath, platform::FileAccessModeFlag::Read);
-            CHECK(shaderFile);
-            Uint64 shaderFileSize = shaderFile->GetFileSize();
         
-            Blob shaderCode(shaderFileSize);
-            Uint64 readSize = shaderFile->Read(shaderCode.GetData(), shaderFileSize);
-            CHECK(readSize <= shaderFileSize);
-        
-            mGenerateMipmapsShader = mGAPI->CreateShader({
+            mGenerateMipmapsShader = shaderManager.CreateShader({
                 .type = gapi::ShaderType::Compute,
                 .language = gapi::ShaderLanguage::Slang,
-                .fileName = shaderFileName,
-                .path = shaderFilePath,
-                .code = shaderCode,
+                .filePath = shaderFilePath,
                 .entryPoint = "CSMain",
-                .withDebugSymbol = true, // TODO: Add option in render ui after implement shader recompilation,
                 .debugName = CUBE_T("GenerateMipmapsShaderCS")
             });
             CHECK(mGenerateMipmapsShader);
         
             mGenerateMipmapsPipeline = mGAPI->CreateComputePipeline({
-                .shader = mGenerateMipmapsShader,
+                .shader = mGenerateMipmapsShader->GetGAPIShader(),
                 .shaderVariablesLayout = mGenerateMipmapsShaderVariablesLayout,
                 .debugName = CUBE_T("GenerateMipmapsComputePipeline")
             });

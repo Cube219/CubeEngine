@@ -9,13 +9,14 @@
 namespace cube
 {
     class GAPI;
+    class Shader;
+    class ShaderManager;
     class TextureResource;
 
     namespace gapi
     {
         class CommandList;
         class ComputePipeline;
-        class Shader;
         class ShaderVariablesLayout;
         class Texture;
     } // namespace gapi
@@ -26,7 +27,7 @@ namespace cube
         TextureManager() = default;
         ~TextureManager() = default;
 
-        void Initialize(GAPI* gapi, Uint32 numGPUSync);
+        void Initialize(GAPI* gapi, Uint32 numGPUSync, ShaderManager& shaderManager);
         void Shutdown();
 
         void GenerateMipmaps(SharedPtr<gapi::Texture> texture);
@@ -34,10 +35,8 @@ namespace cube
     private:
         GAPI* mGAPI;
 
-        Uint32 mCurrentIndex;
-
         SharedPtr<gapi::ShaderVariablesLayout> mGenerateMipmapsShaderVariablesLayout;
-        SharedPtr<gapi::Shader> mGenerateMipmapsShader;
+        SharedPtr<Shader> mGenerateMipmapsShader;
         SharedPtr<gapi::ComputePipeline> mGenerateMipmapsPipeline;
 
         class GenerateMipmapsShaderParameters : public ShaderParameters

@@ -8,6 +8,7 @@
 #include "Checker.h"
 #include "FileSystem.h"
 #include "Logger.h"
+#include "PathHelper.h"
 #include "Platform.h"
 #include "PlatformDebug.h"
 #include "Renderer/Renderer.h"
@@ -107,6 +108,8 @@ namespace cube
 
         CUBE_LOG(Info, Engine, "Initialize CubeEngine.");
 
+        PathHelper::Initialize();
+
         SearchAndSetRootDirectory();
 
         platform::Platform::InitWindow(CUBE_T("CubeEngine"), 1400, 900, 100, 100);
@@ -183,6 +186,8 @@ namespace cube
         platform::Platform::GetResizeEvent().RemoveListener(mOnResizeEventFunc);
         platform::Platform::GetClosingEvent().RemoveListener(mOnClosingEventFunc);
         platform::Platform::GetLoopEvent().RemoveListener(mOnLoopEventFunc);
+
+        PathHelper::Shutdown();
 
         GetMyThreadFrameAllocator().Shutdown();
 
