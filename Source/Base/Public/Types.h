@@ -68,4 +68,8 @@ namespace cube
 
     template <typename Key, typename Value>
     using HashMap = std::unordered_map<Key, Value>;
+
+    // Currently just copy OS-specific time data because it is used for comparison only.
+    // Modify it if detail time data is needed.
+    using Time = Uint64;
 } // namespace cube

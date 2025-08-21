@@ -308,23 +308,8 @@ namespace cube
         gapi::ShaderCompileResult compileResult;
 
         Blob shader = DX12ShaderCompiler::Compile(info, compileResult);
-        if (!compileResult.warning.empty())
-        {
-            CUBE_LOG(Warning, DX12, "{0}", compileResult.warning);
-        }
 
-        if (!compileResult.error.empty())
-        {
-            CUBE_LOG(Error, DX12, "{0}", compileResult.error);
-        }
-
-        if (shader.GetSize() == 0)
-        {
-            CUBE_LOG(Error, DX12, "Failed to create shader!");
-            return nullptr;
-        }
-
-        return std::make_shared<gapi::DX12Shader>(std::move(shader));
+        return std::make_shared<gapi::DX12Shader>(std::move(shader), compileResult.warning, compileResult.error);
     }
 
     SharedPtr<gapi::ShaderVariablesLayout> GAPI_DX12::CreateShaderVariablesLayout(const gapi::ShaderVariablesLayoutCreateInfo& info)

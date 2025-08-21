@@ -29,11 +29,13 @@ namespace cube
         SharedPtr<ComputePipeline> CreateComputePipeline(const ComputePipelineCreateInfo& createInfo);
         void FreeComputePipeline(ComputePipeline* computePipeline);
 
+        void RecompileShaders(bool forceAll = false);
+
     private:
         GAPI* mGAPI;
 
         Set<Shader*> mCreatedShaders;
-        Set<GraphicsPipeline*> mCreatedGraphicsPipeline;
-        Set<ComputePipeline*> mCreatedComputePipeline;
+        Set<GraphicsPipeline*> mCreatedGraphicsPipelines;
+        Set<ComputePipeline*> mCreatedComputePipelines;
     };
 } // namespace cube

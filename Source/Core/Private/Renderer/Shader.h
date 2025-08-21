@@ -31,12 +31,46 @@ namespace cube
 
         SharedPtr<gapi::Shader> GetGAPIShader() const { return mGAPIShader; }
 
+        StringView GetFilePath() const { return mMetaData.filePath; }
+        AnsiStringView GetEntryPoint() const { return mMetaData.entryPoint; }
+        StringView GetDebugName() const { return mMetaData.debugName; }
+
+        bool HasRecompiledShader() const { return mRecompiledGAPIShader != nullptr; }
+
     private:
         friend class ShaderManager;
+
+        enum class RecompileResult
+        {
+            Success,
+            Failed,
+            Unmodified
+        };
+        RecompileResult TryRecompileShader(String& outErrorMessage, bool force = false);
+        void ApplyRecompiledShader();
+        void DiscardRecompiledShader();
 
         ShaderManager& mManager;
 
         SharedPtr<gapi::Shader> mGAPIShader;
+
+        struct MetaData
+        {
+            gapi::ShaderType type;
+            gapi::ShaderLanguage language;
+
+            String filePath;
+            Time lastModifiedTime;
+
+            AnsiString entryPoint;
+
+            String debugName;
+        };
+        MetaData mMetaData;
+
+        SharedPtr<gapi::Shader> mRecompiledGAPIShader;
+        Time mLastModifiedTimeInRecompiled;
+        int mRecompileCount;
     };
 
     // ===== GraphicsPipeline =====
@@ -73,10 +107,66 @@ namespace cube
 
         SharedPtr<gapi::GraphicsPipeline> GetGAPIGraphicsPipeline() const { return mGAPIGraphicsPipeline; }
 
+        bool HasRecompiledShadersInPipeline() const;
+
     private:
+        friend class ShaderManager;
+
+        void RecreateGraphicsPipeline();
+
         ShaderManager& mManager;
 
         SharedPtr<gapi::GraphicsPipeline> mGAPIGraphicsPipeline;
+
+        struct RecreateInfo
+        {
+            SharedPtr<Shader> vertexShader = nullptr;
+            SharedPtr<Shader> pixelShader = nullptr;
+
+            Vector<gapi::InputElement> inputLayouts;
+
+            gapi::RasterizerState rasterizerState;
+
+            Array<gapi::BlendState, gapi::MAX_NUM_RENDER_TARGETS> blendStates;
+
+            gapi::DepthStencilState depthStencilState;
+
+            gapi::PrimitiveTopologyType primitiveTopologyType = gapi::PrimitiveTopologyType::Triangle;
+
+            Uint32 numRenderTargets;
+            Array<gapi::ElementFormat, gapi::MAX_NUM_RENDER_TARGETS> renderTargetFormats;
+            gapi::ElementFormat depthStencilFormat = gapi::ElementFormat::D32_Float;
+
+            SharedPtr<gapi::ShaderVariablesLayout> shaderVariablesLayout;
+
+            String debugName;
+
+            void CopyFromCreateInfo(const GraphisPipelineCreateInfo& createInfo)
+            {
+                vertexShader = createInfo.vertexShader;
+                pixelShader = createInfo.pixelShader;
+
+                inputLayouts = Vector<gapi::InputElement>(createInfo.inputLayouts.begin(), createInfo.inputLayouts.end());
+
+                rasterizerState = createInfo.rasterizerState;
+
+                std::copy(createInfo.blendStates.begin(), createInfo.blendStates.end(), blendStates.begin());
+
+                depthStencilState = createInfo.depthStencilState;
+
+                primitiveTopologyType = createInfo.primitiveTopologyType;
+
+                numRenderTargets = createInfo.numRenderTargets;
+                std::copy(createInfo.renderTargetFormats.begin(), createInfo.renderTargetFormats.end(), renderTargetFormats.begin());
+                depthStencilFormat = createInfo.depthStencilFormat;
+
+                shaderVariablesLayout = createInfo.shaderVariablesLayout;
+
+                debugName = createInfo.debugName;
+            }
+        };
+        RecreateInfo mRecreateInfo;
+        int mRecreateCount;
     };
 
     // ===== ComputePipeline =====
@@ -97,9 +187,33 @@ namespace cube
 
         SharedPtr<gapi::ComputePipeline> GetGAPIComputePipeline() const { return mGAPIComputePipeline; }
 
+        bool HasRecompiledShaderInPipeline() const;
+
     private:
+        friend class ShaderManager;
+
+        void RecreateComputePipeline();
+
         ShaderManager& mManager;
 
         SharedPtr<gapi::ComputePipeline> mGAPIComputePipeline;
+
+        struct RecreateInfo
+        {
+            SharedPtr<Shader> shader;
+            SharedPtr<gapi::ShaderVariablesLayout> shaderVariablesLayout;
+
+            StringView debugName;
+
+            void CopyFromCreateInfo(const ComputePipelineCreateInfo& createInfo)
+            {
+                shader = createInfo.shader;
+                shaderVariablesLayout = createInfo.shaderVariablesLayout;
+
+                debugName = createInfo.debugName;
+            }
+        };
+        RecreateInfo mRecreateInfo;
+        int mRecreateCount;
     };
 } // namespace cube

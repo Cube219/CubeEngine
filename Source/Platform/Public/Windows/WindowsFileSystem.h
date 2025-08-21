@@ -18,6 +18,7 @@ namespace cube
             ~WindowsFile();
 
             Uint64 GetFileSizeImpl() const;
+            Time GetWriteTimeImpl() const;
 
             void SetFilePointerImpl(Uint64 offset);
             void MoveFilePointerImpl(Int64 distance);

@@ -31,6 +31,18 @@ namespace cube
             return size_LI.QuadPart;
         }
 
+        Time WindowsFile::GetWriteTimeImpl() const
+        {
+            FILETIME writeTime;
+
+            BOOL res = GetFileTime(mFileHandle, NULL, NULL, &writeTime);
+            CHECK_FORMAT(res, "Failed to get file write time. (ErrorCode: {0})", GetLastError());
+
+            Uint64 low = writeTime.dwLowDateTime;
+            Uint64 high = writeTime.dwHighDateTime;
+            return (high << (sizeof(DWORD) * 8)) | low;
+        }
+
         void WindowsFile::SetFilePointerImpl(Uint64 offset)
         {
             LARGE_INTEGER distance_LI;

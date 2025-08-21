@@ -129,6 +129,11 @@ namespace cube
             }
         }
 
+        if (ImGui::Button("RecompileShader"))
+        {
+            mShaderManager.RecompileShaders();
+        }
+
         ImGui::End();
     }
 

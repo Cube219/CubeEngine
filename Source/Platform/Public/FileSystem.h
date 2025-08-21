@@ -23,6 +23,7 @@ namespace cube
             ~File() = default;
 
             Uint64 GetFileSize() const;
+            Time GetWriteTime() const;
 
             void SetFilePointer(Uint64 offset);
             void MoveFilePointer(Int64 distance);
@@ -36,6 +37,7 @@ namespace cube
 
 #define FILE_CLASS_DEFINITIONS(ChildClass) \
         Uint64 File::GetFileSize() const { return reinterpret_cast<const ChildClass*>(this)->GetFileSizeImpl(); } \
+        Time File::GetWriteTime() const { return reinterpret_cast<const ChildClass*>(this)->GetWriteTimeImpl(); } \
         \
         void File::SetFilePointer(Uint64 offset) { reinterpret_cast<ChildClass*>(this)->SetFilePointerImpl(offset); } \
         void File::MoveFilePointer(Int64 distance) { reinterpret_cast<ChildClass*>(this)->MoveFilePointerImpl(distance); } \

@@ -88,13 +88,13 @@ namespace cube
             virtual ~Shader() = default;
 
             bool IsValid() const { return mCreated; }
-            StringView GetWarningMessage() const { return warningMessage; }
-            StringView GetErrorMessage() const { return errorMessage; }
+            StringView GetWarningMessage() const { return mWarningMessage; }
+            StringView GetErrorMessage() const { return mErrorMessage; }
 
         protected:
             bool mCreated;
-            String warningMessage;
-            String errorMessage;
+            String mWarningMessage;
+            String mErrorMessage;
         };
 
         struct ShaderCompileResult
