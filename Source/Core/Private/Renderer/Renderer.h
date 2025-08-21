@@ -12,10 +12,7 @@
 
 namespace cube
 {
-    namespace gapi {
-        class GraphicsPipeline;
-    } // namespace gapi
-
+    class GraphicsPipeline;
     class Material;
     class Mesh;
     class MeshData;
@@ -111,7 +108,7 @@ namespace cube
         SharedPtr<Shader> mVertexShader;
         SharedPtr<Shader> mPixelShader;
         SharedPtr<gapi::ShaderVariablesLayout> mShaderVariablesLayout;
-        SharedPtr<gapi::GraphicsPipeline> mMainPipeline;
+        SharedPtr<GraphicsPipeline> mMainPipeline;
 
         SharedPtr<Material> mDefaultMaterial;
 

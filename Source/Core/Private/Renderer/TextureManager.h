@@ -8,6 +8,7 @@
 
 namespace cube
 {
+    class ComputePipeline;
     class GAPI;
     class Shader;
     class ShaderManager;
@@ -16,7 +17,6 @@ namespace cube
     namespace gapi
     {
         class CommandList;
-        class ComputePipeline;
         class ShaderVariablesLayout;
         class Texture;
     } // namespace gapi
@@ -37,7 +37,7 @@ namespace cube
 
         SharedPtr<gapi::ShaderVariablesLayout> mGenerateMipmapsShaderVariablesLayout;
         SharedPtr<Shader> mGenerateMipmapsShader;
-        SharedPtr<gapi::ComputePipeline> mGenerateMipmapsPipeline;
+        SharedPtr<ComputePipeline> mGenerateMipmapsPipeline;
 
         class GenerateMipmapsShaderParameters : public ShaderParameters
         {

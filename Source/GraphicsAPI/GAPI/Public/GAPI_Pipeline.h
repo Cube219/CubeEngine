@@ -147,19 +147,18 @@ namespace cube
             SharedPtr<Shader> vertexShader = nullptr;
             SharedPtr<Shader> pixelShader = nullptr;
 
-            const InputElement* inputLayout;
-            Uint32 numInputLayoutElements;
+            ArrayView<InputElement> inputLayouts;
 
             RasterizerState rasterizerState;
 
-            BlendState blendStates[MAX_NUM_RENDER_TARGETS];
+            Array<BlendState, MAX_NUM_RENDER_TARGETS> blendStates;
 
             DepthStencilState depthStencilState;
 
             PrimitiveTopologyType primitiveTopologyType = PrimitiveTopologyType::Triangle;
 
             Uint32 numRenderTargets;
-            ElementFormat renderTargetFormats[MAX_NUM_RENDER_TARGETS];
+            Array<ElementFormat, MAX_NUM_RENDER_TARGETS> renderTargetFormats;
             ElementFormat depthStencilFormat = ElementFormat::D32_Float;
 
             SharedPtr<ShaderVariablesLayout> shaderVariablesLayout;

@@ -37,8 +37,8 @@ namespace cube
             });
             CHECK(mGenerateMipmapsShader);
         
-            mGenerateMipmapsPipeline = mGAPI->CreateComputePipeline({
-                .shader = mGenerateMipmapsShader->GetGAPIShader(),
+            mGenerateMipmapsPipeline = shaderManager.CreateComputePipeline({
+                .shader = mGenerateMipmapsShader,
                 .shaderVariablesLayout = mGenerateMipmapsShaderVariablesLayout,
                 .debugName = CUBE_T("GenerateMipmapsComputePipeline")
             });
@@ -71,7 +71,7 @@ namespace cube
         mCommandList->Begin();
         
         mCommandList->SetShaderVariablesLayout(mGenerateMipmapsShaderVariablesLayout);
-        mCommandList->SetComputePipeline(mGenerateMipmapsPipeline);
+        mCommandList->SetComputePipeline(mGenerateMipmapsPipeline->GetGAPIComputePipeline());
 
         Uint32 width = texture->GetWidth();
         Uint32 height = texture->GetHeight();

@@ -69,7 +69,7 @@ namespace cube
             };
         }
 
-        D3D12_BLEND_DESC ConvertToDX12BlendDesc(const BlendState blendStates[MAX_NUM_RENDER_TARGETS])
+        D3D12_BLEND_DESC ConvertToDX12BlendDesc(const Array<BlendState, MAX_NUM_RENDER_TARGETS>& blendStates)
         {
             D3D12_BLEND_DESC desc;
             desc.AlphaToCoverageEnable = FALSE;
@@ -257,10 +257,10 @@ namespace cube
 
         DX12GraphicsPipeline::DX12GraphicsPipeline(DX12Device& device, const GraphicsPipelineCreateInfo& info)
         {
-            FrameVector<D3D12_INPUT_ELEMENT_DESC> inputElements(info.numInputLayoutElements);
-            for (int i = 0; i < info.numInputLayoutElements; ++i)
+            FrameVector<D3D12_INPUT_ELEMENT_DESC> inputElements(info.inputLayouts.size());
+            for (int i = 0; i < inputElements.size(); ++i)
             {
-                inputElements[i] = ConvertToDX12InputElementDesc(info.inputLayout[i]);
+                inputElements[i] = ConvertToDX12InputElementDesc(info.inputLayouts[i]);
             }
             
             D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsPSODesc = {};

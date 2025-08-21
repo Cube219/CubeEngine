@@ -38,4 +38,47 @@ namespace cube
 
         mManager.FreeShader(this);
     }
+
+    GraphicsPipeline::GraphicsPipeline(ShaderManager& manager, const GraphisPipelineCreateInfo& createInfo) :
+        mManager(manager)
+    {
+        mGAPIGraphicsPipeline = Engine::GetRenderer()->GetGAPI().CreateGraphicsPipeline({
+            .vertexShader = createInfo.vertexShader ? createInfo.vertexShader->GetGAPIShader() : nullptr,
+            .pixelShader = createInfo.pixelShader ? createInfo.pixelShader->GetGAPIShader() : nullptr,
+            .inputLayouts = createInfo.inputLayouts,
+            .rasterizerState = createInfo.rasterizerState,
+            .blendStates = createInfo.blendStates,
+            .depthStencilState = createInfo.depthStencilState,
+            .primitiveTopologyType = createInfo.primitiveTopologyType,
+            .numRenderTargets = createInfo.numRenderTargets,
+            .renderTargetFormats = createInfo.renderTargetFormats,
+            .depthStencilFormat = createInfo.depthStencilFormat,
+            .shaderVariablesLayout = createInfo.shaderVariablesLayout,
+            .debugName = createInfo.debugName
+        });
+    }
+
+    GraphicsPipeline::~GraphicsPipeline()
+    {
+        mGAPIGraphicsPipeline = nullptr;
+
+        mManager.FreeGraphicsPipeline(this);
+    }
+
+    ComputePipeline::ComputePipeline(ShaderManager& manager, const ComputePipelineCreateInfo& createInfo) :
+        mManager(manager)
+    {
+        mGAPIComputePipeline = Engine::GetRenderer()->GetGAPI().CreateComputePipeline({
+            .shader = createInfo.shader ? createInfo.shader->GetGAPIShader() : nullptr,
+            .shaderVariablesLayout = createInfo.shaderVariablesLayout,
+            .debugName = createInfo.debugName
+        });
+    }
+
+    ComputePipeline::~ComputePipeline()
+    {
+        mGAPIComputePipeline = nullptr;
+
+        mManager.FreeComputePipeline(this);
+    }
 } // namespace cube

@@ -276,7 +276,7 @@ namespace cube
             mCommandList->SetRenderTarget(mViewport);
             mCommandList->ClearRenderTargetView(mViewport, { 0.2f, 0.2f, 0.2f, 1.0f });
             mCommandList->ClearDepthStencilView(mViewport, 0);
-            mCommandList->SetGraphicsPipeline(mMainPipeline);
+            mCommandList->SetGraphicsPipeline(mMainPipeline->GetGAPIGraphicsPipeline());
 
             SharedPtr<GlobalShaderParameters> globalShaderParameters = mShaderParametersManager.CreateShaderParameters<GlobalShaderParameters>();
             globalShaderParameters->viewProjection = mViewPerspectiveMatirx;
@@ -451,11 +451,10 @@ namespace cube
                 }
             };
 
-            mMainPipeline = mGAPI->CreateGraphicsPipeline({
-                .vertexShader = mVertexShader->GetGAPIShader(),
-                .pixelShader = mPixelShader->GetGAPIShader(),
-                .inputLayout = inputLayout,
-                .numInputLayoutElements = std::size(inputLayout),
+            mMainPipeline = mShaderManager.CreateGraphicsPipeline({
+                .vertexShader = mVertexShader,
+                .pixelShader = mPixelShader,
+                .inputLayouts = inputLayout,
                 .depthStencilState = {
                     .enableDepth = true,
                     .depthFunction = gapi::CompareFunction::Greater
