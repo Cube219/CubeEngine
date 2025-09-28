@@ -27,6 +27,43 @@ namespace cube
     {
     }
 
+    ArrayView<gapi::InputElement> Mesh::GetInputElements()
+    {
+        constexpr int positionOffset = 0;
+        constexpr int colorOffset = positionOffset + sizeof(Vertex::position);
+        constexpr int normalOffset = colorOffset + sizeof(Vertex::color);
+        constexpr int uvOffset = normalOffset + sizeof(Vertex::normal);
+
+        static gapi::InputElement inputLayout[] = {
+            {
+                .name = "POSITION",
+                .index = 0,
+                .format = gapi::ElementFormat::RGB32_Float,
+                .offset = positionOffset,
+            },
+            {
+                .name = "COLOR",
+                .index = 0,
+                .format = gapi::ElementFormat::RGBA32_Float,
+                .offset = colorOffset,
+            },
+            {
+                .name = "NORMAL",
+                .index = 0,
+                .format = gapi::ElementFormat::RGB32_Float,
+                .offset = normalOffset
+            },
+            {
+                .name = "TEXCOORD",
+                .index = 0,
+                .format = gapi::ElementFormat::RG32_Float,
+                .offset = uvOffset
+            }
+        };
+
+        return inputLayout;
+    }
+
     Mesh::Mesh(const SharedPtr<MeshData>& meshData) :
         mMeshData(meshData)
     {

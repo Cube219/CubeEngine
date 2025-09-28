@@ -82,8 +82,8 @@ namespace cube
         }
 
         DxcBuffer sourceBuffer = {
-            .Ptr = createInfo.code.GetData(),
-            .Size = createInfo.code.GetSize(),
+            .Ptr = createInfo.shaderCodeInfos[0].code.GetData(),
+            .Size = createInfo.shaderCodeInfos[0].code.GetSize(),
             .Encoding = DXC_CP_ACP
         };
 
@@ -120,7 +120,7 @@ namespace cube
     Blob DX12ShaderCompiler::CompileFromDXIL(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult)
     {
         ComPtr<IDxcBlobEncoding> shader;
-        mUtils->CreateBlob(createInfo.code.GetData(), createInfo.code.GetSize(), DXC_CP_ACP, &shader);
+        mUtils->CreateBlob(createInfo.shaderCodeInfos[0].code.GetData(), createInfo.shaderCodeInfos[0].code.GetSize(), DXC_CP_ACP, &shader);
 
         compileResult.isSuccess = true;
         return Blob(shader->GetBufferPointer(), shader->GetBufferSize());
@@ -154,7 +154,7 @@ namespace cube
             {
                 gapi::ShaderCreateInfo hlslCreateInfo = createInfo;
                 hlslCreateInfo.language = gapi::ShaderLanguage::HLSL;
-                hlslCreateInfo.code = shader;
+                hlslCreateInfo.shaderCodeInfos[0].code = shader;
 
                 return CompileFromHLSL(hlslCreateInfo, compileResult);
             }
@@ -162,7 +162,7 @@ namespace cube
             {
                 gapi::ShaderCreateInfo dxilCreateInfo = createInfo;
                 dxilCreateInfo.language = gapi::ShaderLanguage::DXIL;
-                dxilCreateInfo.code = shader;
+                dxilCreateInfo.shaderCodeInfos[0].code = shader;
 
                 return CompileFromDXIL(dxilCreateInfo, compileResult);
             }

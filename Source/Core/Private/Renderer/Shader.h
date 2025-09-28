@@ -14,14 +14,20 @@ namespace cube
         gapi::ShaderType type;
         gapi::ShaderLanguage language;
 
-        StringView filePath;
-
+        // Only slang can support multiple shader code.
+        ArrayView<String> filePaths;
         AnsiStringView entryPoint;
 
         StringView debugName;
     };
 
     class ShaderManager;
+
+    struct ShaderFileInfo
+    {
+        String path;
+        Time lastModifiedTimes;
+    };
 
     class Shader
     {
@@ -31,7 +37,7 @@ namespace cube
 
         SharedPtr<gapi::Shader> GetGAPIShader() const { return mGAPIShader; }
 
-        StringView GetFilePath() const { return mMetaData.filePath; }
+        String GetFilePathsString() const;
         AnsiStringView GetEntryPoint() const { return mMetaData.entryPoint; }
         StringView GetDebugName() const { return mMetaData.debugName; }
 
@@ -59,9 +65,7 @@ namespace cube
             gapi::ShaderType type;
             gapi::ShaderLanguage language;
 
-            String filePath;
-            Time lastModifiedTime;
-
+            Vector<ShaderFileInfo> fileInfos;
             AnsiString entryPoint;
 
             String debugName;
@@ -69,7 +73,7 @@ namespace cube
         MetaData mMetaData;
 
         SharedPtr<gapi::Shader> mRecompiledGAPIShader;
-        Time mLastModifiedTimeInRecompiled;
+        Vector<ShaderFileInfo> mRecompiledShaderFileInfos;
         int mRecompileCount;
     };
 

@@ -509,8 +509,19 @@ namespace cube
 
             FrameString materialName = Format<FrameString>(CUBE_T("{0}({1})"), pathInfoName, gltfMaterial.name);
             materials.push_back(std::make_shared<Material>(materialName));
+
             // TODO: Remove duplication - check the image is used first
-            materials.back()->SetBaseColorTexture(LoadTexture(CUBE_T("baseColorTexture"), gltfMaterial.pbrMetallicRoughness.baseColorTexture.index));
+            SharedPtr<Material> material = materials.back();
+            material->SetImplType(MaterialImplType::PBR_glTF);
+
+            if (gltfMaterial.pbrMetallicRoughness.baseColorTexture.index != -1)
+            {
+                material->SetTexture(0, LoadTexture(CUBE_T("baseColorTexture"), gltfMaterial.pbrMetallicRoughness.baseColorTexture.index));
+            }
+            if (gltfMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index != -1)
+            {
+                materials.back()->SetTexture(1, LoadTexture(CUBE_T("metallicRoughnessTexture"), gltfMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index));
+            }
         }
 
         ModelResources loadedResources = {

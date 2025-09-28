@@ -25,13 +25,12 @@ namespace cube
                 .debugName = CUBE_T("GenerateMipmapsShaderVariablesLayout")
             });
         
-            FrameString shaderFileName = CUBE_T("GenerateMipmaps.slang");
-            FrameString shaderFilePath = Format<FrameString>(CUBE_T("{0}/Resources/Shaders/{1}"), Engine::GetRootDirectoryPath(), shaderFileName);
+            String shaderFilePath = Format<String>(CUBE_T("{0}/Resources/Shaders/{1}"), Engine::GetRootDirectoryPath(), CUBE_T("GenerateMipmaps.slang"));
         
             mGenerateMipmapsShader = shaderManager.CreateShader({
                 .type = gapi::ShaderType::Compute,
                 .language = gapi::ShaderLanguage::Slang,
-                .filePath = shaderFilePath,
+                .filePaths = { &shaderFilePath, 1 },
                 .entryPoint = "CSMain",
                 .debugName = CUBE_T("GenerateMipmapsShaderCS")
             });

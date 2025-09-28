@@ -2,6 +2,8 @@
 
 #include "CoreHeader.h"
 
+#include "Material.h"
+
 namespace cube
 {
     struct ComputePipelineCreateInfo;
@@ -15,7 +17,7 @@ namespace cube
     class ShaderManager
     {
     public:
-        ShaderManager() = default;
+        ShaderManager();
         ~ShaderManager() = default;
 
         void Initialize(GAPI* gapi);
@@ -31,11 +33,15 @@ namespace cube
 
         void RecompileShaders(bool forceAll = false);
 
+        MaterialShaderManager& GetMaterialShaderManager() { return mMaterialShaderManager; }
+
     private:
         GAPI* mGAPI;
 
         Set<Shader*> mCreatedShaders;
         Set<GraphicsPipeline*> mCreatedGraphicsPipelines;
         Set<ComputePipeline*> mCreatedComputePipelines;
+
+        MaterialShaderManager mMaterialShaderManager;
     };
 } // namespace cube

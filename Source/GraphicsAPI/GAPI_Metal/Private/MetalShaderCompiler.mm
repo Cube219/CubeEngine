@@ -49,8 +49,10 @@ namespace cube
     { @autoreleasepool {
         FrameAnsiString source;
         {
-            source.resize(createInfo.code.GetSize() + 1);
-            memcpy(source.data(), createInfo.code.GetData(), createInfo.code.GetSize());
+            BlobView code = createInfo.shaderCodeInfos[0].code;
+
+            source.resize(code.GetSize() + 1);
+            memcpy(source.data(), code.GetData(), code.GetSize());
             source.back() = '\0';
         }
 
@@ -76,7 +78,9 @@ namespace cube
         MetalShaderCompileResult result;
         NSError* error = nil;
 
-        dispatch_data_t data = dispatch_data_create(createInfo.code.GetData(), createInfo.code.GetSize(), nil, nil);
+        BlobView code = createInfo.shaderCodeInfos[0].code;
+
+        dispatch_data_t data = dispatch_data_create(code.GetData(), code.GetSize(), nil, nil);
         result.library = [mDevice->GetDevice() newLibraryWithData:data error:&error];
         if (error)
         {
@@ -109,13 +113,13 @@ namespace cube
 #if CUBE_METAL_SLANG_TARGET_METAL_CODE
             gapi::ShaderCreateInfo metalCreateInfo = createInfo;
             metalCreateInfo.language = gapi::ShaderLanguage::Metal;
-            metalCreateInfo.code = shader;
+            metalCreateInfo.shaderCodeInfos[0].code = shader;
 
             return CompileFromMetal(metalCreateInfo, compileResult);
 #else
             gapi::ShaderCreateInfo metalLibCreateInfo = createInfo;
             metalLibCreateInfo.language = gapi::ShaderLanguage::MetalLib;
-            metalLibCreateInfo.code = shader;
+            metalLibCreateInfo.shaderCodeInfos[0].code = shader;
 
             return CompileFromMetalLib(metalLibCreateInfo, compileResult);
 #endif

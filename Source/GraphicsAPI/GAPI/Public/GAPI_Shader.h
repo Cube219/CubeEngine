@@ -71,10 +71,12 @@ namespace cube
             ShaderType type;
             ShaderLanguage language;
 
-            StringView fileName;
-            StringView path;
-
-            BlobView code;
+            struct ShaderCodeInfo
+            {
+                StringView path;
+                BlobView code;
+            };
+            ArrayView<ShaderCodeInfo> shaderCodeInfos;
             AnsiStringView entryPoint;
 
             bool withDebugSymbol;

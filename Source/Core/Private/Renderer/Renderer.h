@@ -105,11 +105,6 @@ namespace cube
         Matrix mModelMatrix;
         SharedPtr<Mesh> mMesh;
         Vector<SharedPtr<Material>> mMaterials;
-        SharedPtr<Shader> mVertexShader;
-        SharedPtr<Shader> mPixelShader;
-        SharedPtr<gapi::ShaderVariablesLayout> mShaderVariablesLayout;
-        SharedPtr<GraphicsPipeline> mMainPipeline;
-
         SharedPtr<Material> mDefaultMaterial;
 
         SharedPtr<Mesh> mBoxMesh;

@@ -1,25 +1,20 @@
-struct GlobalData
+import Material;
+
+struct GlobalData_CB
 {
     float4x4 viewProjection;
     float3 directionalLightDirection;
 };
-ConstantBuffer<GlobalData> globalCB;
+ConstantBuffer<GlobalData_CB> globalCB;
 
-struct PerObjectData
+struct PerObjectData_CB
 {
     float4x4 model;
     float4x4 modelInverse;
 };
-ConstantBuffer<PerObjectData> perObjectCB;
+ConstantBuffer<PerObjectData_CB> perObjectCB;
 
-struct MaterialData
-{
-    float4 baseColor;
-    int useBaseColorTexture;
-    DescriptorHandle<Texture2D> baseColorTexture;
-    DescriptorHandle<SamplerState> sampler;
-};
-ConstantBuffer<MaterialData> materialCB;
+ConstantBuffer<MaterialData_CB> materialCB;
 
 struct VSInput
 {
@@ -58,18 +53,10 @@ PSOutput PSMain(PSInput input) : SV_TARGET
     float3 ligthDir = normalize(mul(globalCB.directionalLightDirection, (float3x3)perObjectCB.modelInverse));
     float intensity = dot(input.normal, ligthDir);
 
+    MaterialValue materialValue = GetMaterialValue(materialCB, input.uv);
+
     PSOutput output;
-    if (materialCB.useBaseColorTexture != 0)
-    {
-        output.color = materialCB.baseColorTexture.Sample(
-            materialCB.sampler,
-            input.uv
-        );
-    }
-    else
-    {
-        output.color = materialCB.baseColor;
-    }
+    output.color = float4(materialValue.albedo, 1);
     output.color *= intensity;
 
     return output;

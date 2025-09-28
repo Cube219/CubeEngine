@@ -13,7 +13,7 @@ namespace cube
         static void Initialize();
         static void Shutdown();
 
-        static StringView GetFileNameFromPath(StringView path);
+        static CUBE_CORE_EXPORT StringView GetFileNameFromPath(StringView path);
 
     private:
         static Character mPathSeperator;

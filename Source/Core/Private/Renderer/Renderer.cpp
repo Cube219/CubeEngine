@@ -254,6 +254,16 @@ namespace cube
 
     void Renderer::RenderImpl()
     {
+        GraphicsPipeline* currentGraphicsPipeline = nullptr;
+        auto SetGraphicsPipeline = [this, &currentGraphicsPipeline](SharedPtr<GraphicsPipeline> graphicsPipeline)
+        {
+            if (currentGraphicsPipeline != graphicsPipeline.get())
+            {
+                mCommandList->SetGraphicsPipeline(graphicsPipeline->GetGAPIGraphicsPipeline());
+                currentGraphicsPipeline = graphicsPipeline.get();
+            }
+        };
+
         mCommandList->Reset();
         {
             mCommandList->Begin();
@@ -277,11 +287,10 @@ namespace cube
                 .dst = gapi::ResourceStateFlag::RenderTarget
             });
 
-            mCommandList->SetShaderVariablesLayout(mShaderVariablesLayout);
+            mCommandList->SetShaderVariablesLayout(mShaderManager.GetMaterialShaderManager().GetShaderVariablesLayout());
             mCommandList->SetRenderTarget(mViewport);
             mCommandList->ClearRenderTargetView(mViewport, { 0.2f, 0.2f, 0.2f, 1.0f });
             mCommandList->ClearDepthStencilView(mViewport, 0);
-            mCommandList->SetGraphicsPipeline(mMainPipeline->GetGAPIGraphicsPipeline());
 
             SharedPtr<GlobalShaderParameters> globalShaderParameters = mShaderParametersManager.CreateShaderParameters<GlobalShaderParameters>();
             globalShaderParameters->viewProjection = mViewPerspectiveMatirx;
@@ -302,33 +311,25 @@ namespace cube
                 objectShaderParameters->WriteAllParametersToBuffer();
                 mCommandList->SetShaderVariableConstantBuffer(1, objectShaderParameters->GetBuffer());
 
-                int currentMaterialIndex = -2;
+                SharedPtr<Material> currentMaterial = nullptr;
                 const Vector<SubMesh>& subMeshes = mMesh->GetSubMeshes();
                 for (const SubMesh& subMesh : subMeshes)
                 {
-                    int lastMaterialIndex = currentMaterialIndex;
+                    SharedPtr<Material> lastMaterial = currentMaterial;
                     if (subMesh.materialIndex < mMaterials.size())
                     {
-                        currentMaterialIndex = subMesh.materialIndex;
+                        currentMaterial = mMaterials[subMesh.materialIndex];
                     }
                     else
                     {
-                        // Use default material
-                        currentMaterialIndex = -1;
+                        currentMaterial = mDefaultMaterial;
                     }
 
-                    if (currentMaterialIndex != lastMaterialIndex)
+                    if (currentMaterial != lastMaterial)
                     {
-                        if (currentMaterialIndex != -1)
-                        {
-                            SharedPtr<MaterialShaderParameters> materialShaderParameters = mMaterials[currentMaterialIndex]->GenerateShaderParameters();
-                            mCommandList->SetShaderVariableConstantBuffer(2, materialShaderParameters->GetBuffer());
-                        }
-                        else
-                        {
-                            SharedPtr<MaterialShaderParameters> materialShaderParameters = mDefaultMaterial->GenerateShaderParameters();
-                            mCommandList->SetShaderVariableConstantBuffer(2, materialShaderParameters->GetBuffer());
-                        }
+                        SetGraphicsPipeline(mShaderManager.GetMaterialShaderManager().GetOrCreateMaterialPipeline(currentMaterial));
+                        SharedPtr<MaterialShaderParameters> materialShaderParameters = currentMaterial->GenerateShaderParameters();
+                        mCommandList->SetShaderVariableConstantBuffer(2, materialShaderParameters->GetBuffer());
                     }
 
                     mCommandList->DrawIndexed(subMesh.numIndices, subMesh.indexOffset, subMesh.vertexOffset);
@@ -337,6 +338,8 @@ namespace cube
 
             {
                 // Axis
+                SetGraphicsPipeline(mShaderManager.GetMaterialShaderManager().GetOrCreateMaterialPipeline(mDefaultMaterial));
+
                 SharedPtr<gapi::Buffer> boxVertexBuffer = mBoxMesh->GetVertexBuffer();
                 mCommandList->BindVertexBuffers(0, { &boxVertexBuffer, 1 }, { &vertexBufferOffset, 1 });
                 mCommandList->BindIndexBuffer(mBoxMesh->GetIndexBuffer(), 0);
@@ -396,96 +399,21 @@ namespace cube
         mBoxMesh = std::make_shared<Mesh>(BaseMeshGenerator::GetBoxMeshData());
         SetMesh(nullptr); // Load default mesh
 
-        {
-            FrameString vertexShaderFilePath = FrameString(Engine::GetRootDirectoryPath()) + CUBE_T("/Resources/Shaders/Main.slang");
-            mVertexShader = mShaderManager.CreateShader({
-                .type = gapi::ShaderType::Vertex,
-                .language = gapi::ShaderLanguage::Slang,
-                .filePath = vertexShaderFilePath,
-                .entryPoint = "VSMain",
-                .debugName = CUBE_T("MainVS")
-            });
-        }
-        {
-            FrameString pixelShaderFilePath = FrameString(Engine::GetRootDirectoryPath()) + CUBE_T("/Resources/Shaders/Main.slang");
-            mPixelShader = mShaderManager.CreateShader({
-                .type = gapi::ShaderType::Pixel,
-                .language = gapi::ShaderLanguage::Slang,
-                .filePath = pixelShaderFilePath,
-                .entryPoint = "PSMain",
-                .debugName = CUBE_T("MainPS")
-            });
-        }
-        {
-            mShaderVariablesLayout = mGAPI->CreateShaderVariablesLayout({
-                .numShaderVariablesConstantBuffer = 3,
-                .shaderVariablesConstantBuffer = nullptr,
-                .debugName = CUBE_T("MainShaderVariablesLayout")
-            });
-        }
-        {
-            constexpr int positionOffset = 0;
-            constexpr int colorOffset = positionOffset + sizeof(Vertex::position);
-            constexpr int normalOffset = colorOffset + sizeof(Vertex::color);
-            constexpr int uvOffset = normalOffset + sizeof(Vertex::normal); 
-
-            gapi::InputElement inputLayout[] = {
-                {
-                    .name = "POSITION",
-                    .index = 0,
-                    .format = gapi::ElementFormat::RGB32_Float,
-                    .offset = positionOffset,
-                },
-                {
-                    .name = "COLOR",
-                    .index = 0,
-                    .format = gapi::ElementFormat::RGBA32_Float,
-                    .offset = colorOffset,
-                },
-                {
-                    .name = "NORMAL",
-                    .index = 0,
-                    .format = gapi::ElementFormat::RGB32_Float,
-                    .offset = normalOffset
-                },
-                {
-                    .name = "TEXCOORD",
-                    .index = 0,
-                    .format = gapi::ElementFormat::RG32_Float,
-                    .offset = uvOffset
-                }
-            };
-
-            mMainPipeline = mShaderManager.CreateGraphicsPipeline({
-                .vertexShader = mVertexShader,
-                .pixelShader = mPixelShader,
-                .inputLayouts = inputLayout,
-                .depthStencilState = {
-                    .enableDepth = true,
-                    .depthFunction = gapi::CompareFunction::Greater
-                },
-                .numRenderTargets = 1,
-                .renderTargetFormats = { gapi::ElementFormat::RGBA8_UNorm },
-                .shaderVariablesLayout = mShaderVariablesLayout,
-                .debugName = CUBE_T("MainPipeline")
-            });
-        }
-
         mDefaultMaterial = std::make_shared<Material>(CUBE_T("DefaultMaterial"));
-        mDefaultMaterial->SetBaseColor({ 1.0f, 0.0f, 0.80392f }); // Magenta
+        mDefaultMaterial->SetConstantBaseColor(true, { 1.0f, 0.0f, 0.80392f }); // Magenta
 
         {
             mXAxisModelMatrix = MatrixUtility::GetScale(4.0f, 0.2f, 0.2f) + MatrixUtility::GetTranslation(2, 0, 0);
             mXAxisMaterial = std::make_shared<Material>(CUBE_T("XAxisMaterial"));
-            mXAxisMaterial->SetBaseColor({ 1.0f, 0.0f, 0.0f, 1.0f });
+            mXAxisMaterial->SetConstantBaseColor(true, { 1.0f, 0.0f, 0.0f, 1.0f });
 
             mYAxisModelMatrix = MatrixUtility::GetScale(0.2f, 4.0f, 0.2f) + MatrixUtility::GetTranslation(0, 2, 0);
             mYAxisMaterial = std::make_shared<Material>(CUBE_T("YAxisMaterial"));
-            mYAxisMaterial->SetBaseColor({ 0.0f, 1.0f, 0.0f, 1.0f });
+            mYAxisMaterial->SetConstantBaseColor(true, { 0.0f, 1.0f, 0.0f, 1.0f });
             
             mZAxisModelMatrix = MatrixUtility::GetScale(0.2f, 0.2f, 4.0f) + MatrixUtility::GetTranslation(0, 0, 2);
             mZAxisMaterial = std::make_shared<Material>(CUBE_T("ZAxisMaterial"));
-            mZAxisMaterial->SetBaseColor({ 0.0f, 0.0f, 1.0f, 1.0f });
+            mZAxisMaterial->SetConstantBaseColor(true, { 0.0f, 0.0f, 1.0f, 1.0f });
         }
     }
 
@@ -496,11 +424,6 @@ namespace cube
         mXAxisMaterial = nullptr;
 
         mDefaultMaterial = nullptr;
-
-        mMainPipeline = nullptr;
-        mShaderVariablesLayout = nullptr;
-        mPixelShader = nullptr;
-        mVertexShader = nullptr;
 
         mMaterials.clear();
         mMesh = nullptr;

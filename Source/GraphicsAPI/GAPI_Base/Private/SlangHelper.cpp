@@ -7,6 +7,7 @@
 #include "Checker.h"
 #include "Engine.h"
 #include "GAPI_Shader.h"
+#include "PathHelper.h"
 
 using Slang::ComPtr;
 
@@ -149,38 +150,51 @@ namespace cube
         ComPtr<slang::ISession> session;
         CUBE_SLANG_CHECK(mGlobalSession->createSession(sessionDesc, session.writeRef()));
 
-        // Load module
-        FrameAnsiString name = String_Convert<FrameAnsiString>(info.fileName);
-        FrameAnsiString path = String_Convert<FrameAnsiString>(info.path);
-        FrameAnsiString source;
-        {
-            source.resize(info.code.GetSize() + 1);
-            memcpy(source.data(), info.code.GetData(), info.code.GetSize());
-            source.back() = '\0';
-        }
-        slang::IModule* module = session->loadModuleFromSourceString(name.c_str(), path.c_str(), source.c_str(), diagnosticBlob.writeRef());
-        if (diagnosticBlob)
-        {
-            // TODO: It also contains warning messages?
-            compileResult.AddError(Format<FrameString>(CUBE_T("Failed to compile Slang shader!\n\n{0}\n"), (const char*)diagnosticBlob->getBufferPointer()));
-        }
-        if (!module)
-        {
-            return {};
-        }
-
-        // Create entry point
-        ComPtr<slang::IEntryPoint> entryPoint;
-        module->findEntryPointByName(info.entryPoint.data(), entryPoint.writeRef());
-        if (entryPoint == nullptr)
-        {
-            compileResult.AddError(Format<FrameString>(CUBE_T("Cannot find entry point: {0}"), info.entryPoint));
-            return {};
-        }
-
         FrameVector<slang::IComponentType*> componentTypes;
-        componentTypes.push_back(module);
-        componentTypes.push_back(entryPoint);
+
+        // Load modules
+        for (const auto& shaderCodeInfo : info.shaderCodeInfos)
+        {
+            FrameAnsiString name = String_Convert<FrameAnsiString>(PathHelper::GetFileNameFromPath(shaderCodeInfo.path));
+            FrameAnsiString path = String_Convert<FrameAnsiString>(shaderCodeInfo.path);
+            FrameAnsiString source;
+            {
+                source.resize(shaderCodeInfo.code.GetSize() + 1);
+                memcpy(source.data(), shaderCodeInfo.code.GetData(), shaderCodeInfo.code.GetSize());
+                source.back() = '\0';
+            }
+
+            slang::IModule* module = session->loadModuleFromSourceString(name.c_str(), path.c_str(), source.c_str(), diagnosticBlob.writeRef());
+            if (module)
+            {
+                if (diagnosticBlob)
+                {
+                    compileResult.AddWarning(Format<FrameString>(CUBE_T("Warning about compiling Slang shader.\n\n{0}\n"), (const char*)diagnosticBlob->getBufferPointer()));
+                }
+
+                componentTypes.push_back(module);
+
+                // Create entry point
+                ComPtr<slang::IEntryPoint> entryPoint;
+                module->findEntryPointByName(info.entryPoint.data(), entryPoint.writeRef());
+                if (entryPoint)
+                {
+                    componentTypes.push_back(entryPoint);
+                }
+            }
+            else
+            {
+                if (diagnosticBlob)
+                {
+                    compileResult.AddError(Format<FrameString>(CUBE_T("Failed to compile Slang shader!\n\n{0}\n"), (const char*)diagnosticBlob->getBufferPointer()));
+                }
+            }
+        }
+
+        if (!compileResult.error.empty())
+        {
+            return {};
+        }
 
         // Check the composition
         ComPtr<slang::IComponentType> composedProgram;

@@ -6,13 +6,22 @@
 
 namespace cube
 {
+    ShaderManager::ShaderManager()
+        : mMaterialShaderManager(*this)
+    {
+    }
+
     void ShaderManager::Initialize(GAPI* gapi)
     {
         mGAPI = gapi;
+
+        mMaterialShaderManager.Initialize(gapi);
     }
 
     void ShaderManager::Shutdown()
     {
+        mMaterialShaderManager.Shutdown();
+
         CHECK_FORMAT(mCreatedShaders.size() == 0, "Not all shaders are freeed!");
         CHECK_FORMAT(mCreatedGraphicsPipelines.size() == 0, "Not all graphics pipelines are freeed!");
         CHECK_FORMAT(mCreatedComputePipelines.size() == 0, "Not all compute pipelines are freeed!");
@@ -131,7 +140,7 @@ namespace cube
                 shader->ApplyRecompiledShader();
 
                 CUBE_LOG(Info, Shader, "\nDebugName: {0}\nPath: {1}\nEntryPoint: {2}\n",
-                    shader->GetDebugName(), shader->GetFilePath(), shader->GetEntryPoint());
+                    shader->GetDebugName(), shader->GetFilePathsString(), shader->GetEntryPoint());
             }
 
             for (GraphicsPipeline* graphicsPipeline : graphicsPipelinesToRecreate)
@@ -150,7 +159,7 @@ namespace cube
             for (const FailedShader& failedShader : failedShaders)
             {
                 CUBE_LOG(Info, Shader, "\nDebugName: {0}\nPath: {1}\nEntryPoint: {2}\nMessages: {3}",
-                    failedShader.shader->GetDebugName(), failedShader.shader->GetFilePath(), failedShader.shader->GetEntryPoint(),
+                    failedShader.shader->GetDebugName(), failedShader.shader->GetFilePathsString(), failedShader.shader->GetEntryPoint(),
                     failedShader.message);
 
                 failedShader.shader->DiscardRecompiledShader();
