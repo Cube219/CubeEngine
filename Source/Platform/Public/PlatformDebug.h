@@ -27,7 +27,6 @@ namespace cube
             static String DumpStackTrace(bool removeBeforeProjectFolderPath = true);
 
             static bool IsDebuggerAttached();
-            static void BreakDebug();
         };
 
 #define PLATFORM_DEBUG_CLASS_DEFINITIONS(ChildClass) \
@@ -51,10 +50,6 @@ namespace cube
         bool PlatformDebug::IsDebuggerAttached() \
         { \
             return ChildClass::IsDebuggerAttachedImpl(); \
-        } \
-        void PlatformDebug::BreakDebug() \
-        { \
-            ChildClass::BreakDebugImpl(); \
         }
     } // namespace platform
 } // namespace cube

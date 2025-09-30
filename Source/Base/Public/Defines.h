@@ -26,3 +26,7 @@
 #ifndef CUBE_DLL_IMPORT
 #define CUBE_DLL_IMPORT
 #endif
+
+#ifndef CUBE_DEBUG_BREAK
+#define CUBE_DEBUG_BREAK
+#endif

@@ -65,9 +65,10 @@ namespace cube
             String stackTrace = platform::PlatformDebug::DumpStackTrace();
             const char* fileName = platform::FileSystem::SplitFileNameFromFullPath(fullFileName);
 
-            String formattedMsg = Format(CUBE_T("Check failed!\n    In {}:{}\n    {}\n\n{}"), fileName, lineNum, exprAndMsg, stackTrace);
+            String formattedMsg = Format(CUBE_T("Check failed!\n\n{0}\n    In {1}:{2}\n    {3}"), stackTrace, fileName, lineNum, exprAndMsg);
             Logger::WriteLogFormatting(LogType::Error, fullFileName, lineNum, CUBE_T("Checker"), formattedMsg);
 
+            Checker::SetIsDebuggerAttached(platform::PlatformDebug::IsDebuggerAttached());
             platform::PlatformDebug::ProcessFailedCheck(fileName, lineNum, formattedMsg);
         }
     };

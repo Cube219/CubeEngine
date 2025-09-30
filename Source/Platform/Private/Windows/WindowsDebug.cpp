@@ -8,7 +8,6 @@
 #include <csignal>
 #include <fcntl.h>
 #include <iostream>
-
 #include <DbgHelp.h> // Must be included after Windows.h
 
 #include "FileSystem.h"
@@ -34,22 +33,13 @@ namespace cube
 
         void WindowsDebug::ProcessFatalErrorImpl(StringView msg)
         {
-            if (PlatformDebug::IsDebuggerAttached())
-            {
-                PlatformDebug::BreakDebug();
-            }
-
             // TODO: Use custom allocator (logger allocator?)
             ShowDebugMessageBox(WINDOWS_T("Fatal error"), String_Convert<WindowsString>(msg));
         }
 
         void WindowsDebug::ProcessFailedCheckImpl(const char* fileName, int lineNum, StringView formattedMsg)
         {
-            if (PlatformDebug::IsDebuggerAttached())
-            {
-                PlatformDebug::BreakDebug();
-            }
-            else
+            if (!PlatformDebug::IsDebuggerAttached())
             {
                 // TODO: Use custom allocator (logger allocator?)
                 ShowDebugMessageBox(WINDOWS_T("Check failed"), String_Convert<WindowsString>(formattedMsg));
@@ -154,6 +144,11 @@ namespace cube
                 }
 
                 str += Format<AnsiString>("{}!{}() - {}:{}\n", moduleName, functionName, fileName, lineNum);
+
+                if (functionName == "WinMain")
+                {
+                    break;
+                }
             }
 
             return String_Convert<String>(str);
@@ -162,11 +157,6 @@ namespace cube
         bool WindowsDebug::IsDebuggerAttachedImpl()
         {
             return IsDebuggerPresent();
-        }
-
-        void WindowsDebug::BreakDebugImpl()
-        {
-            DebugBreak();
         }
 
         void WindowsDebug::CreateAndShowLoggerWindow()

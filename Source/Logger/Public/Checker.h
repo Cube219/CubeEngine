@@ -43,32 +43,60 @@ namespace cube
 
         CUBE_LOGGER_EXPORT static void ProcessFailedCheck(const char* fullFileName, int lineNum, StringView exprAndMsg);
 
+        static void SetIsDebuggerAttached(bool isAttached)
+        {
+            mIsDebuggerAttached = isAttached;
+        }
+
+        static bool IsDebuggerAttached()
+        {
+            return mIsDebuggerAttached;
+        }
+
     private:
         Checker() = default;
 
         CUBE_LOGGER_EXPORT static Vector<UniquePtr<ICheckerExtension>> mExtensions;
+
+        CUBE_LOGGER_EXPORT static bool mIsDebuggerAttached;
     };
 
 #define CHECK(expr) \
 	if (!(expr)) \
 	{ \
 		cube::Checker::ProcessFailedCheck(__FILE__, __LINE__, CUBE_T(#expr)); \
+        if (cube::Checker::IsDebuggerAttached()) \
+        { \
+            CUBE_DEBUG_BREAK \
+        } \
 	}
 
 #define CHECK_FORMAT(expr, format, ...) \
 	if (!(expr)) \
 	{ \
 		cube::Checker::ProcessFailedCheckFormatting(__FILE__, __LINE__, CUBE_T(#expr), CUBE_T(format), ##__VA_ARGS__); \
+        if (cube::Checker::IsDebuggerAttached()) \
+        { \
+            CUBE_DEBUG_BREAK \
+        } \
 	}
 
 #define NOT_IMPLEMENTED() \
     { \
         cube::Checker::ProcessFailedCheck(__FILE__, __LINE__, CUBE_T("Not implemented")); \
+        if (cube::Checker::IsDebuggerAttached()) \
+        { \
+            CUBE_DEBUG_BREAK \
+        } \
     }
 
 #define NO_ENTRY() \
     { \
         cube::Checker::ProcessFailedCheck(__FILE__, __LINE__, CUBE_T("No entry")); \
+        if (cube::Checker::IsDebuggerAttached()) \
+        { \
+            CUBE_DEBUG_BREAK \
+        } \
     }
 
 #else // CUBE_USE_CHECK

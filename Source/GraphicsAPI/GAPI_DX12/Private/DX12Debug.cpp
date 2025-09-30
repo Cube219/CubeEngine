@@ -140,7 +140,7 @@ namespace cube
 
                         if (platform::PlatformDebug::IsDebuggerAttached())
                         {
-                            platform::PlatformDebug::BreakDebug();
+                            CUBE_DEBUG_BREAK
                         }
 
                         break;
