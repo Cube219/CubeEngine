@@ -181,23 +181,8 @@ namespace cube
         gapi::ShaderCompileResult compileResult;
 
         MetalShaderCompileResult shaderResult = MetalShaderCompiler::Compile(info, compileResult);
-        if (!compileResult.warning.empty())
-        {
-            CUBE_LOG(Warning, Metal, "{0}", compileResult.warning);
-        }
 
-        if (!compileResult.error.empty())
-        {
-            CUBE_LOG(Error, Metal, "{0}", compileResult.error);
-        }
-
-        if (shaderResult.function == nil)
-        {
-            CUBE_LOG(Error, Metal, "Failed to create the shader!");
-            return nullptr;
-        }
-
-        return std::make_shared<gapi::MetalShader>(shaderResult);
+        return std::make_shared<gapi::MetalShader>(shaderResult, compileResult.warning, compileResult.error);
     }
 
     SharedPtr<gapi::ShaderVariablesLayout> GAPI_Metal::CreateShaderVariablesLayout(const gapi::ShaderVariablesLayoutCreateInfo& info)

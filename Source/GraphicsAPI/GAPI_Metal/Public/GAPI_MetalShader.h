@@ -14,7 +14,7 @@ namespace cube
         class MetalShader : public Shader
         {
         public:
-            MetalShader(MetalShaderCompileResult result);
+            MetalShader(MetalShaderCompileResult result, StringView warningMessage, StringView errorMessage);
             virtual ~MetalShader();
 
         private:

@@ -14,10 +14,11 @@ namespace cube
         class MacOSFile : public File
         {
         public:
-            MacOSFile(NSFileHandle* fileHandle);
+            MacOSFile(NSString* filePath, NSFileHandle* fileHandle);
             ~MacOSFile();
 
             Uint64 GetFileSizeImpl() const;
+            Time GetWriteTimeImpl() const;
 
             void SetFilePointerImpl(Uint64 offset);
             void MoveFilePointerImpl(Int64 distance);
@@ -26,6 +27,7 @@ namespace cube
             void WriteImpl(void* pWriteBuffer, Uint64 bufferSize);
 
         private:
+            NSString* mFilePath;
             NSFileHandle* mFileHandle;
             Uint64 mCurrentOffset;
             Uint64 mSize;

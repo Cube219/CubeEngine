@@ -15,9 +15,10 @@ namespace cube
     {
         FILE_CLASS_DEFINITIONS(MacOSFile)
 
-        MacOSFile::MacOSFile(NSFileHandle* fileHandle) :
-            mFileHandle(fileHandle),
-            mCurrentOffset(0)
+        MacOSFile::MacOSFile(NSString* filePath, NSFileHandle* fileHandle)
+            : mFilePath(filePath)
+            , mFileHandle(fileHandle)
+            , mCurrentOffset(0)
         { @autoreleasepool {
             NSError* error;
 
@@ -41,6 +42,25 @@ namespace cube
         {
             return mSize;
         }
+
+        Time MacOSFile::GetWriteTimeImpl() const
+        { @autoreleasepool {
+            NSError* error;
+
+            NSDictionary* attributes = [[NSFileManager defaultManager] attributesOfItemAtPath:mFilePath error:&error];
+            if (attributes == nil)
+            {
+                CUBE_LOG(Warning, MacOSFile, "Failed to get the write time. ({0})", [[error localizedDescription] UTF8String]);
+                return Time();
+            }
+
+            NSDate* modificationDate = [attributes fileModificationDate];
+            if (modificationDate != nil)
+            {
+                return (Uint64)[modificationDate timeIntervalSince1970];
+            }
+            return Time();
+        }}
 
         void MacOSFile::SetFilePointerImpl(Uint64 offset)
         { @autoreleasepool {
@@ -188,7 +208,7 @@ namespace cube
 
             if (fileHandle != nil)
             {
-                return std::make_shared<MacOSFile>(fileHandle);
+                return std::make_shared<MacOSFile>(nsPath, fileHandle);
             }
             else
             {

@@ -19,6 +19,8 @@ namespace cube
         class Buffer;
     } // namespace gapi
 
+    class ShaderParametersManager;
+
     // ===== ParameterTypeInfo =====
 
     template <typename T>
@@ -165,7 +167,7 @@ namespace cube
     \
 public: \
     friend class ShaderParametersManager; \
-    parametersType##(ShaderParametersManager& manager) : ShaderParameters(manager) {} \
+    parametersType(ShaderParametersManager& manager) : ShaderParameters(manager) {} \
     \
 private: \
     static const Character* GetDebugName() \

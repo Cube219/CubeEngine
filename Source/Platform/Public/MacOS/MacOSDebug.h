@@ -37,7 +37,6 @@ namespace cube
             static String DumpStackTraceImpl(bool removeBeforeProjectFolderPath);
 
             static bool IsDebuggerAttachedImpl();
-            static void BreakDebugImpl();
 
             static bool IsLoggerWindowCreated() { return mIsLoggerWindowCreated; }
             static void CreateAndShowLoggerWindow();

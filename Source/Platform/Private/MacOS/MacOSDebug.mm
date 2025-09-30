@@ -81,11 +81,6 @@ namespace cube
 
         void MacOSDebug::ProcessFatalErrorImpl(StringView msg)
         {
-            if (PlatformDebug::IsDebuggerAttached())
-            {
-                PlatformDebug::BreakDebug();
-            }
-
             MacOSUtility::DispatchToMainThreadAndWait([msg]() {
                 ShowDebugMessageAlert(CUBE_T("Fatal error"), msg);
             });
@@ -93,15 +88,16 @@ namespace cube
 
         void MacOSDebug::ProcessFailedCheckImpl(const char* fileName, int lineNum, StringView formattedMsg)
         {
-            if (PlatformDebug::IsDebuggerAttached())
-            {
-                PlatformDebug::BreakDebug();
-            }
-            else
+            if (!PlatformDebug::IsDebuggerAttached())
             {
                 MacOSUtility::DispatchToMainThreadAndWait([formattedMsg]() {
                     ShowDebugMessageAlert(CUBE_T("Check failed"), formattedMsg);
                 });
+            }
+            else
+            {
+                // Sync to main thread to print messages in debug console.
+                MacOSUtility::DispatchToMainThreadAndWait([formattedMsg]() {});
             }
         }
 
@@ -219,10 +215,17 @@ namespace cube
                 }
             }
 
+            // Skip two stack frame
+            //     - MacOSDebug::DumpStackTraceImpl()
+            //     - PlatformDebug::DumpStackTrace()
             String res;
-            for (const StackFrameInfo stackFrame : stackFrames)
+            for (int i = 2; i < numFrames; ++i)
             {
-                res += Format(CUBE_T("{}\n"), stackFrame.str);
+                res += Format(CUBE_T("{}\n"), stackFrames[i].str);
+                if (stackFrames[i].str.empty())
+                {
+                    stackFrames[i].str = CUBE_U8_T("Unknown");
+                }
             }
 
             return res;
@@ -249,11 +252,6 @@ namespace cube
 
             // Check for the P_TRACED flag, which indicates the process is being debugged
             return ((info.kp_proc.p_flag & P_TRACED) != 0);
-        }
-
-        void MacOSDebug::BreakDebugImpl()
-        {
-            __builtin_debugtrap();
         }
 
         void MacOSDebug::CreateAndShowLoggerWindow()
