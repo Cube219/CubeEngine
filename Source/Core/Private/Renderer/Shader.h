@@ -14,8 +14,9 @@ namespace cube
         gapi::ShaderType type;
         gapi::ShaderLanguage language;
 
-        // Only slang can support multiple shader code.
+        // Only slang can support multiple shader code and material shader code.
         ArrayView<String> filePaths;
+        StringView materialShaderCode;
         AnsiStringView entryPoint;
 
         StringView debugName;
@@ -66,6 +67,7 @@ namespace cube
             gapi::ShaderLanguage language;
 
             Vector<ShaderFileInfo> fileInfos;
+            String materialShaderCode;
             AnsiString entryPoint;
 
             String debugName;

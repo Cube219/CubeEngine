@@ -512,16 +512,22 @@ namespace cube
 
             // TODO: Remove duplication - check the image is used first
             SharedPtr<Material> material = materials.back();
-            material->SetImplType(MaterialImplType::PBR_glTF);
 
+            FrameString channelMappingCode;
             if (gltfMaterial.pbrMetallicRoughness.baseColorTexture.index != -1)
             {
                 material->SetTexture(0, LoadTexture(CUBE_T("baseColorTexture"), gltfMaterial.pbrMetallicRoughness.baseColorTexture.index));
+                channelMappingCode += CUBE_T("value.albedo = materialData.textureSlot0.Sample(uv).rgb;\n");
             }
             if (gltfMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index != -1)
             {
                 materials.back()->SetTexture(1, LoadTexture(CUBE_T("metallicRoughnessTexture"), gltfMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index));
+                channelMappingCode += CUBE_T("float3 t1 = materialData.textureSlot1.Sample(uv).rgb;\n");
+                channelMappingCode += CUBE_T("value.metallic = t1.g;\n");
+                channelMappingCode += CUBE_T("value.roughness = t1.b;\n");
             }
+
+            material->SetChannelMappingCode(channelMappingCode);
         }
 
         ModelResources loadedResources = {

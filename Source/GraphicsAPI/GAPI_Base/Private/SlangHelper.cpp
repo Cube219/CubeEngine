@@ -213,9 +213,26 @@ namespace cube
             compileResult.AddWarning(Format<FrameString>(CUBE_T("Warning about compositing the components.\n\n{0}\n"), (const char*)diagnosticBlob->getBufferPointer()));
         }
 
+        // Link
+        ComPtr<slang::IComponentType> linkedProgram;
+        slangRes = composedProgram->link(linkedProgram.writeRef(), diagnosticBlob.writeRef());
+        if (slangRes != SLANG_OK)
+        {
+            compileResult.AddError(Format<FrameString>(CUBE_T("Failed to link the program! ({0})"), GetErrorCodeString(slangRes)));
+            if (diagnosticBlob)
+            {
+                compileResult.AddError(Format<FrameString>(CUBE_T("\n{0}\n"), (const char*)diagnosticBlob->getBufferPointer()), false);
+            }
+            return {};
+        }
+        else if (diagnosticBlob)
+        {
+            compileResult.AddWarning(Format<FrameString>(CUBE_T("Warning about linking the program.\n\n{0}\n"), (const char*)diagnosticBlob->getBufferPointer()));
+        }
+
         // Compile the code
         ComPtr<slang::IBlob> code;
-        slangRes = composedProgram->getEntryPointCode(0, 0, code.writeRef(), diagnosticBlob.writeRef());
+        slangRes = linkedProgram->getEntryPointCode(0, 0, code.writeRef(), diagnosticBlob.writeRef());
         if (slangRes != SLANG_OK)
         {
             compileResult.AddError(Format<FrameString>(CUBE_T("Failed to get the code! ({0})"), GetErrorCodeString(slangRes)));

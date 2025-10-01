@@ -3,7 +3,6 @@ module Material;
 // Shader variables
 public struct MaterialData_CB
 {
-    public int useConstantBaseColor;
     public float4 baseColor;
 
     public Sampler2D.Handle textureSlot0;
@@ -13,12 +12,12 @@ public struct MaterialData_CB
     public Sampler2D.Handle textureSlot4;
 };
 
-public struct MaterialValue
+export public struct MaterialValue
 {
-    public float3 albedo;
-    public float metallic;
-    public float roughness;
-    public float3 normal;
+    public float3 albedo = float3(1.0f, 1.0f, 1.0f);
+    public float metallic = 0.0f;
+    public float roughness = 1.0f;
+    public float3 normal = float3(0.0f, 0.0f, 1.0f);
 };
 
 extern public MaterialValue GetMaterialValue(MaterialData_CB materialData, float2 uv);

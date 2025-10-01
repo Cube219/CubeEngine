@@ -400,20 +400,19 @@ namespace cube
         SetMesh(nullptr); // Load default mesh
 
         mDefaultMaterial = std::make_shared<Material>(CUBE_T("DefaultMaterial"));
-        mDefaultMaterial->SetConstantBaseColor(true, { 1.0f, 0.0f, 0.80392f }); // Magenta
 
         {
             mXAxisModelMatrix = MatrixUtility::GetScale(4.0f, 0.2f, 0.2f) + MatrixUtility::GetTranslation(2, 0, 0);
             mXAxisMaterial = std::make_shared<Material>(CUBE_T("XAxisMaterial"));
-            mXAxisMaterial->SetConstantBaseColor(true, { 1.0f, 0.0f, 0.0f, 1.0f });
+            mXAxisMaterial->SetBaseColor({ 1.0f, 0.0f, 0.0f, 1.0f });
 
             mYAxisModelMatrix = MatrixUtility::GetScale(0.2f, 4.0f, 0.2f) + MatrixUtility::GetTranslation(0, 2, 0);
             mYAxisMaterial = std::make_shared<Material>(CUBE_T("YAxisMaterial"));
-            mYAxisMaterial->SetConstantBaseColor(true, { 0.0f, 1.0f, 0.0f, 1.0f });
+            mYAxisMaterial->SetBaseColor({ 0.0f, 1.0f, 0.0f, 1.0f });
             
             mZAxisModelMatrix = MatrixUtility::GetScale(0.2f, 0.2f, 4.0f) + MatrixUtility::GetTranslation(0, 0, 2);
             mZAxisMaterial = std::make_shared<Material>(CUBE_T("ZAxisMaterial"));
-            mZAxisMaterial->SetConstantBaseColor(true, { 0.0f, 0.0f, 1.0f, 1.0f });
+            mZAxisMaterial->SetBaseColor({ 0.0f, 0.0f, 1.0f, 1.0f });
         }
     }
 

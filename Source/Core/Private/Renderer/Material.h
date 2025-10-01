@@ -24,7 +24,6 @@ namespace cube
     class MaterialShaderParameters : public ShaderParameters
     {
         CUBE_BEGIN_SHADER_PARAMETERS(MaterialShaderParameters)
-            CUBE_SHADER_PARAMETER(int, useConstantBaseColor)
             CUBE_SHADER_PARAMETER(Vector4, baseColor)
 
             CUBE_SHADER_PARAMETER(BindlessResource, textureSlot0)
@@ -32,16 +31,7 @@ namespace cube
             CUBE_SHADER_PARAMETER(BindlessResource, textureSlot2)
             CUBE_SHADER_PARAMETER(BindlessResource, textureSlot3)
             CUBE_SHADER_PARAMETER(BindlessResource, textureSlot4)
-            CUBE_SHADER_PARAMETER(BindlessResource, sampler)
         CUBE_END_SHADER_PARAMETERS
-    };
-
-    enum class MaterialImplType
-    {
-        None,
-        PBR_glTF,
-
-        Num
     };
 
     class Material
@@ -50,9 +40,9 @@ namespace cube
         Material(StringView debugName);
         ~Material();
 
-        void SetImplType(MaterialImplType implType);
+        void SetChannelMappingCode(StringView channelMappingCode);
 
-        void SetConstantBaseColor(bool use, Vector4 color);
+        void SetBaseColor(Vector4 color);
 
         void SetTexture(int slotIndex, SharedPtr<TextureResource> texture);
 
@@ -63,12 +53,14 @@ namespace cube
     private:
         friend class MaterialShaderManager;
 
-        bool mUseConstantBaseColor;
+        void CalculateMaterialHash();
+
+        Uint64 mMaterialHash;
+        String mChannelMappingCode;
+
         Vector4 mConstantBaseColor;
         Array<SharedPtr<TextureResource>, 5> mTextures;
         int mSamplerIndex;
-
-        MaterialImplType mImplType;
     };
 
     class MaterialShaderManager
@@ -92,9 +84,9 @@ namespace cube
 
         SharedPtr<gapi::ShaderVariablesLayout> mShaderVariablesLayout;
 
-        Array<SharedPtr<Shader>, (int)MaterialImplType::Num> mMaterialVertexShadersPerTypes;
-        Array<SharedPtr<Shader>, (int)MaterialImplType::Num> mMaterialPixelShadersPerTypes;
-        Array<SharedPtr<GraphicsPipeline>, (int)MaterialImplType::Num> mMaterialPipelinesPerTypes;
+        HashMap<Uint64, SharedPtr<Shader>> mMaterialVertexShaders;
+        HashMap<Uint64, SharedPtr<Shader>> mMaterialPixelShaders;
+        HashMap<Uint64, SharedPtr<GraphicsPipeline>> mMaterialPipelines;
 
     };
 } // namespace cube

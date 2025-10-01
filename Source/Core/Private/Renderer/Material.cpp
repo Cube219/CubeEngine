@@ -2,7 +2,6 @@
 
 #include "Allocator/FrameAllocator.h"
 #include "Engine.h"
-#include "GAPI_Buffer.h"
 #include "GAPI_Shader.h"
 #include "GAPI_ShaderVariable.h"
 #include "GAPI_Texture.h"
@@ -14,29 +13,34 @@
 namespace cube
 {
     Material::Material(StringView debugName)
-        : mUseConstantBaseColor(false)
-        , mConstantBaseColor(1.0f, 1.0f, 1.0f, 1.0f)
-        , mImplType(MaterialImplType::None)
+        : mConstantBaseColor(1.0f, 0.0f, 0.80392f) // Magenta
     {
         FrameString bufferDebugName = Format<FrameString>(CUBE_T("[{0}] MaterialBuffer"), debugName);
 
         mTextures.fill(nullptr);
 
         mSamplerIndex = Engine::GetRenderer()->GetSamplerManager().GetDefaultLinearSamplerIndex();
+
+        static const Character* defaultChannelMappingCode = 
+            CUBE_T("value.albedo = materialData.baseColor.rgb;\n")
+        ;
+
+        SetChannelMappingCode(defaultChannelMappingCode);
     }
 
     Material::~Material()
     {
     }
 
-    void Material::SetImplType(MaterialImplType implType)
+    void Material::SetChannelMappingCode(StringView channelMappingCode)
     {
-        mImplType = implType;
+        mChannelMappingCode = channelMappingCode;
+
+        CalculateMaterialHash();
     }
 
-    void Material::SetConstantBaseColor(bool use, Vector4 color)
+    void Material::SetBaseColor(Vector4 color)
     {
-        mUseConstantBaseColor = use;
         mConstantBaseColor = color;
     }
 
@@ -58,7 +62,6 @@ namespace cube
 
         SharedPtr<MaterialShaderParameters> parameters = shaderParametersManager.CreateShaderParameters<MaterialShaderParameters>();
 
-        parameters->useConstantBaseColor = mUseConstantBaseColor ? 1 : 0;
         parameters->baseColor = mConstantBaseColor;
         if (mTextures[0])
         {
@@ -85,11 +88,15 @@ namespace cube
             parameters->textureSlot4.index = mTextures[4]->GetDefaultSRV()->GetBindlessIndex();
             parameters->textureSlot4.samplerIndex = mSamplerIndex;
         }
-        parameters->sampler.index = mSamplerIndex;
 
         parameters->WriteAllParametersToBuffer();
 
         return parameters;
+    }
+
+    void Material::CalculateMaterialHash()
+    {
+        mMaterialHash = std::hash<String>{}(mChannelMappingCode);
     }
 
     MaterialShaderManager::MaterialShaderManager(ShaderManager& shaderManager)
@@ -99,66 +106,56 @@ namespace cube
 
     SharedPtr<GraphicsPipeline> MaterialShaderManager::GetOrCreateMaterialPipeline(SharedPtr<Material> material)
     {
-        MaterialImplType type = material->mImplType;
-        int typeIndex = static_cast<int>(type);
-        StringView typeStr;
-        switch (type)
-        {
-        case MaterialImplType::None:
-            typeStr = CUBE_T("None");
-            break;
-        case MaterialImplType::PBR_glTF:
-            typeStr = CUBE_T("PBR_glTF");
-            break;
-        default:
-            typeStr = CUBE_T("Unknown");
-        }
+        const Uint64 materialHash = material->mMaterialHash;
          
-        if (mMaterialPipelinesPerTypes[typeIndex] != nullptr)
+        if (const auto it = mMaterialPipelines.find(materialHash); it != mMaterialPipelines.end())
         {
-            return mMaterialPipelinesPerTypes[typeIndex];
+            return it->second;
         }
+
+        // Generate material shader code
+        FrameString materialShaderCode = Format<FrameString>(
+            CUBE_T("import Material;\n")
+            CUBE_T("\n")
+            CUBE_T("export public MaterialValue GetMaterialValue(MaterialData_CB materialData, float2 uv)\n")
+            CUBE_T("{{\n")
+            CUBE_T("    MaterialValue value = {{}};\n")
+            CUBE_T("    \n")
+            CUBE_T("    {0}\n")
+            CUBE_T("    \n")
+            CUBE_T("    return value;\n")
+            CUBE_T("}}\n"),
+            material->mChannelMappingCode
+        );
 
         // Create shaders
-        FrameVector<String> additionalShaderPaths;
-        switch (type)
+        SharedPtr<Shader>& vertexShader = mMaterialVertexShaders[materialHash];
         {
-        case MaterialImplType::None:
-            additionalShaderPaths.push_back(String(Engine::GetRootDirectoryPath()) + CUBE_T("/Resources/Shaders/Material/Material_none.slang"));
-            break;
-        case MaterialImplType::PBR_glTF:
-            additionalShaderPaths.push_back(String(Engine::GetRootDirectoryPath()) + CUBE_T("/Resources/Shaders/Material/Material_glTF.slang"));
-            break;
-        default: ;
-        }
-
-        SharedPtr<Shader>& vertexShader = mMaterialVertexShadersPerTypes[typeIndex];
-        {
-            String vertexShaderFilePath = String(Engine::GetRootDirectoryPath()) + CUBE_T("/Resources/Shaders/Main.slang");
+            String vertexShaderFilePath = String(Engine::GetShaderDirectoryPath()) + CUBE_T("/Main.slang");
             vertexShader = mShaderManager.CreateShader({
                 .type = gapi::ShaderType::Vertex,
                 .language = gapi::ShaderLanguage::Slang,
                 .filePaths = { &vertexShaderFilePath, 1 },
                 .entryPoint = "VSMain",
-                .debugName = Format<FrameString>(CUBE_T("MaterialVS ({0})"), typeStr)
+                .debugName = Format<FrameString>(CUBE_T("MaterialVS ({0})"), materialHash)
             });
         }
-        SharedPtr<Shader>& pixelShader = mMaterialPixelShadersPerTypes[typeIndex];
+        SharedPtr<Shader>& pixelShader = mMaterialPixelShaders[materialHash];
         {
             // Currently dynamic linkage are used in pixel shader only
-            FrameVector<String> pixelShaderFilePaths = additionalShaderPaths;
-            pixelShaderFilePaths.push_back(String(Engine::GetRootDirectoryPath()) + CUBE_T("/Resources/Shaders/Main.slang"));
+            String pixelShaderFilePath = String(Engine::GetShaderDirectoryPath()) + CUBE_T("/Main.slang");
 
             pixelShader = mShaderManager.CreateShader({
                 .type = gapi::ShaderType::Pixel,
                 .language = gapi::ShaderLanguage::Slang,
-                .filePaths = pixelShaderFilePaths,
+                .filePaths = { &pixelShaderFilePath, 1 },
+                .materialShaderCode = materialShaderCode,
                 .entryPoint = "PSMain",
-                .debugName = Format<FrameString>(CUBE_T("MaterialPS ({0})"), typeStr)
+                .debugName = Format<FrameString>(CUBE_T("MaterialPS ({0})"), materialHash)
             });
         }
 
-        SharedPtr<GraphicsPipeline>& pipeline = mMaterialPipelinesPerTypes[typeIndex];
+        SharedPtr<GraphicsPipeline>& pipeline = mMaterialPipelines[materialHash];
         {
             pipeline = mShaderManager.CreateGraphicsPipeline({
                 .vertexShader = vertexShader,
@@ -171,7 +168,7 @@ namespace cube
                 .numRenderTargets = 1,
                 .renderTargetFormats = { gapi::ElementFormat::RGBA8_UNorm },
                 .shaderVariablesLayout = mShaderVariablesLayout,
-                .debugName = Format<FrameString>(CUBE_T("MaterialPipeline ({0})"), typeStr)
+                .debugName = Format<FrameString>(CUBE_T("MaterialPipeline ({0})"), materialHash)
             });
         }
 
@@ -185,17 +182,13 @@ namespace cube
             .shaderVariablesConstantBuffer = nullptr,
             .debugName = CUBE_T("MaterialShaderVariablesLayout")
         });
-
-        mMaterialVertexShadersPerTypes.fill(nullptr);
-        mMaterialPixelShadersPerTypes.fill(nullptr);
-        mMaterialPipelinesPerTypes.fill(nullptr);
     }
 
     void MaterialShaderManager::Shutdown()
     {
-        mMaterialPipelinesPerTypes.fill(nullptr);
-        mMaterialPixelShadersPerTypes.fill(nullptr);
-        mMaterialVertexShadersPerTypes.fill(nullptr);
+        mMaterialPipelines.clear();
+        mMaterialPixelShaders.clear();
+        mMaterialVertexShaders.clear();
 
         mShaderVariablesLayout = nullptr;
     }

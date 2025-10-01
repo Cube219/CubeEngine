@@ -8,7 +8,7 @@
 
 namespace cube
 {
-    static void GetShaderFileInfosAndCodes(ArrayView<String> filePaths, FrameVector<ShaderFileInfo>& outFileInfos, FrameVector<Blob>& outCodes)
+    static void GetShaderFileInfosAndCodes(ArrayView<String> filePaths, StringView materialShaderCode, FrameVector<ShaderFileInfo>& outFileInfos, FrameVector<Blob>& outCodes)
     {
         outFileInfos.clear();
         outCodes.clear();
@@ -33,6 +33,17 @@ namespace cube
                 code = std::move(shaderCode);
             }
         }
+
+        if (!materialShaderCode.empty())
+        {
+            outFileInfos.push_back({});
+            ShaderFileInfo& fileInfo = outFileInfos.back();
+            fileInfo.path = Engine::GetShaderDirectoryPath() + CUBE_T("/MaterialShaderCode_gen.slang");
+            fileInfo.lastModifiedTimes = 0;
+
+            FrameAnsiString ansiCode = String_Convert<FrameAnsiString>(materialShaderCode);
+            outCodes.push_back(Blob(ansiCode.data(), ansiCode.size()));
+        }
     }
 
     String Shader::GetFilePathsString() const
@@ -55,7 +66,7 @@ namespace cube
     {
         FrameVector<Blob> shaderCodes;
         FrameVector<ShaderFileInfo> shaderFileInfos;
-        GetShaderFileInfosAndCodes(createInfo.filePaths, shaderFileInfos, shaderCodes);
+        GetShaderFileInfosAndCodes(createInfo.filePaths, createInfo.materialShaderCode, shaderFileInfos, shaderCodes);
 
         FrameVector<gapi::ShaderCreateInfo::ShaderCodeInfo> shaderCodeInfos;
         for (int i = 0; i < shaderFileInfos.size(); ++i)
@@ -89,6 +100,7 @@ namespace cube
         mMetaData.type = createInfo.type;
         mMetaData.language = createInfo.language;
         mMetaData.fileInfos = Vector<ShaderFileInfo>(shaderFileInfos.begin(), shaderFileInfos.end());
+        mMetaData.materialShaderCode = createInfo.materialShaderCode;
         mMetaData.entryPoint = createInfo.entryPoint;
         mMetaData.debugName = createInfo.debugName;
 
@@ -118,7 +130,7 @@ namespace cube
         }
         FrameVector<Blob> shaderCodes;
         FrameVector<ShaderFileInfo> shaderFileInfos;
-        GetShaderFileInfosAndCodes(shaderFilePaths, shaderFileInfos, shaderCodes);
+        GetShaderFileInfosAndCodes(shaderFilePaths, mMetaData.materialShaderCode, shaderFileInfos, shaderCodes);
 
         bool hasNotOpen = false;
         for (const Blob& shaderCode : shaderCodes)

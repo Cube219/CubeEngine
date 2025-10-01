@@ -84,6 +84,7 @@ namespace cube
     bool Engine::mImGUIShowDemoWindow = true;
 
     String Engine::mRootDirectoryPath;
+    String Engine::mShaderDirectoryPath;
 
     Uint64 Engine::mStartTime;
     Uint64 Engine::mLastTime;
@@ -112,6 +113,7 @@ namespace cube
         PathHelper::Initialize();
 
         SearchAndSetRootDirectory();
+        SetOtherDirectories();
 
         platform::Platform::InitWindow(CUBE_T("CubeEngine"), 1400, 900, 100, 100);
         platform::Platform::ShowWindow();
@@ -294,5 +296,10 @@ namespace cube
                 break;
             }
         }
+    }
+
+    void Engine::SetOtherDirectories()
+    {
+        mShaderDirectoryPath = mRootDirectoryPath + CUBE_T("/Resources/Shaders");
     }
 } // namespace cube

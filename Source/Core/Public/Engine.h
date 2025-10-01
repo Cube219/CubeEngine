@@ -34,6 +34,7 @@ namespace cube
         static Renderer* GetRenderer() { return mRenderer.get(); }
 
         CUBE_CORE_EXPORT static const String& GetRootDirectoryPath() { return mRootDirectoryPath; }
+        CUBE_CORE_EXPORT static const String& GetShaderDirectoryPath() { return mShaderDirectoryPath; }
 
         static void SetMesh(SharedPtr<MeshData> meshData);
         static void SetMaterials(const Vector<SharedPtr<Material>>& materials);
@@ -48,6 +49,7 @@ namespace cube
         static Uint64 GetNow();
 
         static void SearchAndSetRootDirectory();
+        static void SetOtherDirectories();
 
         static EventFunction<void()> mOnLoopEventFunc;
         static EventFunction<void()> mOnClosingEventFunc;
@@ -60,6 +62,7 @@ namespace cube
         static bool mImGUIShowDemoWindow;
 
         static String mRootDirectoryPath;
+        static String mShaderDirectoryPath;
 
         static Uint64 mStartTime;
         static Uint64 mLastTime;
