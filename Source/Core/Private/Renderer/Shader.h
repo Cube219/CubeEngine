@@ -26,6 +26,7 @@ namespace cube
 
     struct ShaderFileInfo
     {
+        bool isGeneratedShader = false;
         String path;
         Time lastModifiedTimes;
     };

@@ -38,6 +38,7 @@ namespace cube
         {
             outFileInfos.push_back({});
             ShaderFileInfo& fileInfo = outFileInfos.back();
+            fileInfo.isGeneratedShader = true;
             fileInfo.path = Engine::GetShaderDirectoryPath() + CUBE_T("/MaterialShaderCode_gen.slang");
             fileInfo.lastModifiedTimes = 0;
 
@@ -123,10 +124,13 @@ namespace cube
             CUBE_LOG(Error, Shader, "Try to recompile shader but not applied recompiled shader exist. Overwrite it.");
         }
 
-        FrameVector<String> shaderFilePaths(mMetaData.fileInfos.size());
-        for (int i = 0; i < shaderFilePaths.size(); ++i)
+        FrameVector<String> shaderFilePaths;
+        for (const ShaderFileInfo& shaderFileInfo : mMetaData.fileInfos)
         {
-            shaderFilePaths[i] = mMetaData.fileInfos[i].path;
+            if (!shaderFileInfo.isGeneratedShader)
+            {
+                shaderFilePaths.push_back(shaderFileInfo.path);
+            }
         }
         FrameVector<Blob> shaderCodes;
         FrameVector<ShaderFileInfo> shaderFileInfos;
@@ -161,9 +165,9 @@ namespace cube
 
             return RecompileResult::Unmodified;
         }
+        CHECK(shaderFileInfos.size() == mMetaData.fileInfos.size());
 
         bool hasModified = force ? true : false;
-        CHECK(shaderFileInfos.size() == mMetaData.fileInfos.size());
         for (int i = 0; i < shaderFileInfos.size(); ++i)
         {
             const ShaderFileInfo& shaderFileInfo = shaderFileInfos[i];
