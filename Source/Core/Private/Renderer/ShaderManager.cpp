@@ -11,9 +11,10 @@ namespace cube
     {
     }
 
-    void ShaderManager::Initialize(GAPI* gapi)
+    void ShaderManager::Initialize(GAPI* gapi, bool useDebugMode)
     {
         mGAPI = gapi;
+        mUseDebugMode = useDebugMode;
 
         mMaterialShaderManager.Initialize(gapi);
     }

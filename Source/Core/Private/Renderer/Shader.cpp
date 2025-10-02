@@ -85,7 +85,7 @@ namespace cube
             .language = createInfo.language,
             .shaderCodeInfos = shaderCodeInfos,
             .entryPoint = createInfo.entryPoint,
-            .withDebugSymbol = true, // TODO: Add option in render ui after implement shader recompilation
+            .withDebugSymbol = manager.IsUsingDebugMode(),
             .debugName = createInfo.debugName
         });
         if (StringView warningMessage = mGAPIShader->GetWarningMessage(); !warningMessage.empty())
@@ -203,7 +203,7 @@ namespace cube
             .language = mMetaData.language,
             .shaderCodeInfos = shaderCodeInfos,
             .entryPoint = mMetaData.entryPoint,
-            .withDebugSymbol = true, // TODO: Add option in render ui after implement shader recompilation
+            .withDebugSymbol = mManager.IsUsingDebugMode(),
             .debugName = Format<String>(CUBE_T("{0}:{1}"), mMetaData.debugName, mRecompileCount + 1)
         });
 

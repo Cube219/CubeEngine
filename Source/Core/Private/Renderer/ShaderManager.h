@@ -20,8 +20,10 @@ namespace cube
         ShaderManager();
         ~ShaderManager() = default;
 
-        void Initialize(GAPI* gapi);
+        void Initialize(GAPI* gapi, bool useDebugMode);
         void Shutdown();
+
+        bool IsUsingDebugMode() const { return mUseDebugMode; }
 
         SharedPtr<Shader> CreateShader(const ShaderCreateInfo& createInfo);
         void FreeShader(Shader* shader);
@@ -36,7 +38,11 @@ namespace cube
         MaterialShaderManager& GetMaterialShaderManager() { return mMaterialShaderManager; }
 
     private:
+        friend class Renderer;
+
         GAPI* mGAPI;
+
+        bool mUseDebugMode; // Modified in Renderer directly
 
         Set<Shader*> mCreatedShaders;
         Set<GraphicsPipeline*> mCreatedGraphicsPipelines;

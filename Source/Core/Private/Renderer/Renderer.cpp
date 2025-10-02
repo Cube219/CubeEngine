@@ -58,7 +58,7 @@ namespace cube
             .imGUI = imGUIContext
         });
 
-        mShaderManager.Initialize(mGAPI.get());
+        mShaderManager.Initialize(mGAPI.get(), false);
         mTextureManager.Initialize(mGAPI.get(), mNumGPUSync, mShaderManager);
         mSamplerManager.Initialize(mGAPI.get());
         mShaderParametersManager.Initialize(mGAPI.get(), mNumGPUSync);
@@ -127,6 +127,13 @@ namespace cube
                 mDirectionalLightDirection = Vector3(directionVec3.x, directionVec3.y, directionVec3.z);
                 mIsDirectionalLightDirty = true;
             }
+        }
+
+        ImGui::SeparatorText("Shader");
+
+        if (ImGui::Checkbox("Shader Debug Mode", &mShaderManager.mUseDebugMode))
+        {
+            mShaderManager.RecompileShaders(true);
         }
 
         if (ImGui::Button("RecompileShader"))
