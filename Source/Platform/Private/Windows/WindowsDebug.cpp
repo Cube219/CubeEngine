@@ -175,6 +175,11 @@ namespace cube
                 freopen_s(&acStreamIn, "CONIN$", "rb", stdin);
                 freopen_s(&acStreamOut, "CONOUT$", "wb", stdout);
                 freopen_s(&acStreamErr, "CONOUT$", "wb", stderr);
+
+                HWND consoleWindow = GetConsoleWindow();
+                RECT consoleWindowRect;
+                GetWindowRect(consoleWindow, &consoleWindowRect);
+                MoveWindow(consoleWindow, consoleWindowRect.left, consoleWindowRect.top, 1280, 720, TRUE);
             }
         }
 

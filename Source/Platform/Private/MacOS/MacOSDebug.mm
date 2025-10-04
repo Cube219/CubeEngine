@@ -262,7 +262,7 @@ namespace cube
             NSUInteger style = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable;
             
             mLoggerWindow = [[CubeLoggerWindow alloc]
-                initWithContentRect:NSMakeRect(0, 0, 800, 400)
+                initWithContentRect:NSMakeRect(0, 0, 1280, 720)
                 styleMask:style
                 backing:NSBackingStoreBuffered
                 defer:NO
