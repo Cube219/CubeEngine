@@ -32,7 +32,8 @@ namespace cube
         constexpr int positionOffset = 0;
         constexpr int colorOffset = positionOffset + sizeof(Vertex::position);
         constexpr int normalOffset = colorOffset + sizeof(Vertex::color);
-        constexpr int uvOffset = normalOffset + sizeof(Vertex::normal);
+        constexpr int tangentOffset = normalOffset + sizeof(Vertex::normal);
+        constexpr int uvOffset = tangentOffset + sizeof(Vertex::tangent);
 
         static gapi::InputElement inputLayout[] = {
             {
@@ -52,6 +53,12 @@ namespace cube
                 .index = 0,
                 .format = gapi::ElementFormat::RGB32_Float,
                 .offset = normalOffset
+            },
+            {
+                .name = "TANGENT",
+                .index = 0,
+                .format = gapi::ElementFormat::RGBA32_Float,
+                .offset = tangentOffset
             },
             {
                 .name = "TEXCOORD",

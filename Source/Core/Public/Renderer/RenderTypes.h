@@ -11,6 +11,7 @@ namespace cube
         Vector3 position;
         Vector4 color;
         Vector3 normal;
+        Vector4 tangent;
         Vector2 uv;
     };
     using Index = Uint32;

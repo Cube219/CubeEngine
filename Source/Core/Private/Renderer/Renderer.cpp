@@ -3,7 +3,6 @@
 #include "imguizmo_quat/imGuIZMOquat.h"
 #include "imgui.h"
 
-#include "BaseMeshGenerator.h"
 #include "Checker.h"
 #include "Engine.h"
 #include "FileSystem.h"
@@ -15,6 +14,7 @@
 #include "GAPI_Viewport.h"
 #include "Material.h"
 #include "MatrixUtility.h"
+#include "MeshHelper.h"
 #include "Platform.h"
 #include "Shader.h"
 #include "Texture.h"
@@ -239,7 +239,7 @@ namespace cube
         }
         else
         {
-            mMesh = std::make_shared<Mesh>(BaseMeshGenerator::GetBoxMeshData());
+            mMesh = std::make_shared<Mesh>(MeshHelper::GenerateBoxMeshData());
         }
     }
 
@@ -315,6 +315,7 @@ namespace cube
                 SharedPtr<ObjectShaderParameters> objectShaderParameters = mShaderParametersManager.CreateShaderParameters<ObjectShaderParameters>();
                 objectShaderParameters->model = mModelMatrix;
                 objectShaderParameters->modelInverse = mModelMatrix.Inversed();
+                objectShaderParameters->modelInverseTranspose = mModelMatrix.Inversed().Transposed();
                 objectShaderParameters->WriteAllParametersToBuffer();
                 mCommandList->SetShaderVariableConstantBuffer(1, objectShaderParameters->GetBuffer());
 
@@ -355,6 +356,7 @@ namespace cube
                 SharedPtr<ObjectShaderParameters> xAxisObjectShaderParameters = mShaderParametersManager.CreateShaderParameters<ObjectShaderParameters>();
                 xAxisObjectShaderParameters->model = mXAxisModelMatrix;
                 xAxisObjectShaderParameters->modelInverse = mXAxisModelMatrix.Inversed();
+                xAxisObjectShaderParameters->modelInverseTranspose = mXAxisModelMatrix.Inversed().Transposed();
                 xAxisObjectShaderParameters->WriteAllParametersToBuffer();
                 mCommandList->SetShaderVariableConstantBuffer(1, xAxisObjectShaderParameters->GetBuffer());
                 SharedPtr<MaterialShaderParameters> xAxisMaterialShaderParameters = mXAxisMaterial->GenerateShaderParameters();
@@ -366,6 +368,7 @@ namespace cube
                 SharedPtr<ObjectShaderParameters> yAxisObjectShaderParameters = mShaderParametersManager.CreateShaderParameters<ObjectShaderParameters>();
                 yAxisObjectShaderParameters->model = mYAxisModelMatrix;
                 yAxisObjectShaderParameters->modelInverse = mYAxisModelMatrix.Inversed();
+                yAxisObjectShaderParameters->modelInverseTranspose = mYAxisModelMatrix.Inversed().Transposed();
                 yAxisObjectShaderParameters->WriteAllParametersToBuffer();
                 mCommandList->SetShaderVariableConstantBuffer(1, yAxisObjectShaderParameters->GetBuffer());
                 SharedPtr<MaterialShaderParameters> yAxisMaterialShaderParameters = mYAxisMaterial->GenerateShaderParameters();
@@ -377,6 +380,7 @@ namespace cube
                 SharedPtr<ObjectShaderParameters> zAxisObjectShaderParameters = mShaderParametersManager.CreateShaderParameters<ObjectShaderParameters>();
                 zAxisObjectShaderParameters->model = mZAxisModelMatrix;
                 zAxisObjectShaderParameters->modelInverse = mZAxisModelMatrix.Inversed();
+                zAxisObjectShaderParameters->modelInverseTranspose = mZAxisModelMatrix.Inversed().Transposed();
                 zAxisObjectShaderParameters->WriteAllParametersToBuffer();
                 mCommandList->SetShaderVariableConstantBuffer(1, zAxisObjectShaderParameters->GetBuffer());
                 SharedPtr<MaterialShaderParameters> zAxisMaterialShaderParameters = mZAxisMaterial->GenerateShaderParameters();
@@ -403,7 +407,7 @@ namespace cube
 
     void Renderer::LoadResources()
     {
-        mBoxMesh = std::make_shared<Mesh>(BaseMeshGenerator::GetBoxMeshData());
+        mBoxMesh = std::make_shared<Mesh>(MeshHelper::GenerateBoxMeshData());
         SetMesh(nullptr); // Load default mesh
 
         mDefaultMaterial = std::make_shared<Material>(CUBE_T("DefaultMaterial"));

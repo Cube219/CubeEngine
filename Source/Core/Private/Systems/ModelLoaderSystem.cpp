@@ -16,6 +16,7 @@
 #include "GAPI_Texture.h"
 #include "Renderer/Material.h"
 #include "Renderer/Mesh.h"
+#include "Renderer/MeshHelper.h"
 #include "Renderer/Renderer.h"
 #include "Renderer/Texture.h"
 
@@ -210,6 +211,7 @@ namespace cube
             {
                 int positionAccessor = NONE;
                 int normalAccessor = NONE;
+                int tangentAccessor = NONE;
                 int colorAccessor = NONE;
                 int texCoordAccessor = NONE;
 
@@ -220,6 +222,10 @@ namespace cube
                 if (auto normalIt = prim.attributes.find("NORMAL"); normalIt != prim.attributes.end())
                 {
                     normalAccessor = normalIt->second;
+                }
+                if (auto tangentIt = prim.attributes.find("TANGENT"); tangentIt != prim.attributes.end())
+                {
+                    tangentAccessor = tangentIt->second;
                 }
                 if (auto colorIt = prim.attributes.find("COLOR_0"); colorIt != prim.attributes.end())
                 {
@@ -245,6 +251,7 @@ namespace cube
                 };
                 UpdateNumVertices(positionAccessor);
                 UpdateNumVertices(normalAccessor);
+                UpdateNumVertices(tangentAccessor);
                 UpdateNumVertices(colorAccessor);
                 UpdateNumVertices(texCoordAccessor);
 
@@ -313,6 +320,34 @@ namespace cube
                             vertices[vertexOffset + index].normal = { xyz[0], xyz[1], xyz[2] };
                         }
                     );
+                }
+                else
+                {
+                    CUBE_LOG(Info, ModelLoaderSystem, "No normal data found in the model. Calculate normal from position and index.");
+                    MeshHelper::SetNormalVector(ArrayView(vertices.begin() + vertexOffset, numVertices), ArrayView(indices.begin() + indexOffset, numIndices));
+                }
+                // TANGENT
+                if (tangentAccessor != NONE)
+                {
+                    ProcessData(tangentAccessor,
+                        [](const tinygltf::Accessor& accessor)
+                        {
+                            CHECK(accessor.type == TINYGLTF_TYPE_VEC4);
+                            CHECK(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
+                        },
+                        [&vertices, vertexOffset](Uint64 index, const void* pData, int type, int componentType)
+                        {
+                            float xyzw[4];
+                            memcpy(xyzw, pData, sizeof(xyzw));
+
+                            vertices[vertexOffset + index].tangent = { xyzw[0], xyzw[1], xyzw[2], xyzw[3] };
+                        }
+                    );
+                }
+                else
+                {
+                    CUBE_LOG(Info, ModelLoaderSystem, "No tangent data found in the model. Calculate approximate tangent from normal.");
+                    MeshHelper::SetApproxTangentVector(ArrayView(vertices.begin() + vertexOffset, numVertices));
                 }
                 // TEXCOORD
                 if (texCoordAccessor != NONE)
@@ -517,14 +552,20 @@ namespace cube
             if (gltfMaterial.pbrMetallicRoughness.baseColorTexture.index != -1)
             {
                 material->SetTexture(0, LoadTexture(CUBE_T("baseColorTexture"), gltfMaterial.pbrMetallicRoughness.baseColorTexture.index));
-                channelMappingCode += CUBE_T("value.albedo = materialData.textureSlot0.Sample(uv).rgb;\n");
+                channelMappingCode += CUBE_T("value.albedo = materialData.textureSlot0.Sample(input.uv).rgb;\n");
             }
             if (gltfMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index != -1)
             {
-                materials.back()->SetTexture(1, LoadTexture(CUBE_T("metallicRoughnessTexture"), gltfMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index));
-                channelMappingCode += CUBE_T("float3 t1 = materialData.textureSlot1.Sample(uv).rgb;\n");
+                material->SetTexture(1, LoadTexture(CUBE_T("metallicRoughnessTexture"), gltfMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index));
+                channelMappingCode += CUBE_T("float3 t1 = materialData.textureSlot1.Sample(input.uv).rgb;\n");
                 channelMappingCode += CUBE_T("value.metallic = t1.g;\n");
                 channelMappingCode += CUBE_T("value.roughness = t1.b;\n");
+            }
+            if (gltfMaterial.normalTexture.index != -1)
+            {
+                material->SetTexture(2, LoadTexture(CUBE_T("metallicRoughnessTexture"), gltfMaterial.normalTexture.index));
+                channelMappingCode += CUBE_T("float3 t2 = normalize(materialData.textureSlot2.Sample(input.uv).rgb * 2.0f - 1.0f);\n");
+                channelMappingCode += CUBE_T("value.normal = t2;\n");
             }
 
             material->SetChannelMappingCode(channelMappingCode);

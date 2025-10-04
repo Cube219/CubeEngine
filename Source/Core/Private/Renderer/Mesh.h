@@ -65,7 +65,7 @@ namespace cube
         const Vector<SubMesh>& GetSubMeshes() const { return mMeshData->GetSubMeshes(); }
 
     private:
-        friend class BaseMeshGenerator;
+        friend class MeshHelper;
 
         SharedPtr<MeshData> mMeshData;
 

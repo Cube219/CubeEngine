@@ -1,36 +1,11 @@
+import MainInterface;
 import Material;
 
-struct GlobalData_CB
-{
-    float4x4 viewProjection;
-    float3 directionalLightDirection;
-};
 ConstantBuffer<GlobalData_CB> globalCB;
-
-struct PerObjectData_CB
-{
-    float4x4 model;
-    float4x4 modelInverse;
-};
 ConstantBuffer<PerObjectData_CB> perObjectCB;
-
 ConstantBuffer<MaterialData_CB> materialCB;
 
 extern struct Material : IMaterial;
-
-struct VSInput
-{
-    float3 position : POSITION;
-    float3 normal : NORMAL;
-    float2 uv : TEXCOORD0;
-};
-
-struct PSInput
-{
-    float4 position : SV_POSITION;
-    float3 normal : NORMAL;
-    float2 uv : TEXCOORD0;
-};
 
 struct PSOutput
 {
@@ -43,7 +18,9 @@ PSInput VSMain(VSInput input)
     PSInput output;
 
     output.position = mul(mul(float4(input.position, 1), perObjectCB.model), globalCB.viewProjection);
-    output.normal = input.normal;
+    output.normal = normalize(mul(input.normal, (float3x3)perObjectCB.modelInverseTranspose));
+    output.tangent.xyz = normalize(mul(input.tangent.xyz, (float3x3)perObjectCB.model));
+    output.tangent.w = input.tangent.w;
     output.uv = input.uv;
 
     return output;
@@ -52,11 +29,18 @@ PSInput VSMain(VSInput input)
 [shader("pixel")]
 PSOutput PSMain(PSInput input) : SV_TARGET
 {
-    float3 ligthDir = normalize(mul(globalCB.directionalLightDirection, (float3x3)perObjectCB.modelInverse));
-    float intensity = dot(input.normal, ligthDir);
-
     Material material;
-    MaterialValue materialValue = material.GetMaterialValue(materialCB, input.uv);
+    MaterialValue materialValue = material.GetMaterialValue(materialCB, input);
+
+    float3 normal = input.normal;
+    float3 tangent = input.tangent.xyz;
+    float3 bitangent = cross(normal, tangent) * input.tangent.w;
+
+    float3x3 TBN = float3x3(tangent, bitangent, normal);
+    normal = mul(materialValue.normal, TBN);
+
+    float3 ligthDir = normalize(globalCB.directionalLightDirection);
+    float intensity = dot(normal, ligthDir);
 
     PSOutput output;
     output.color = float4(materialValue.albedo, 1);

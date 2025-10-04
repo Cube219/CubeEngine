@@ -10,12 +10,12 @@ set(PUBLIC_FILES
 )
 set(PRIVATE_FILES
     Private/Allocator/FrameAllocator.cpp
-    Private/Renderer/BaseMeshGenerator.cpp
-    Private/Renderer/BaseMeshGenerator.h
     Private/Renderer/Material.cpp
     Private/Renderer/Material.h
     Private/Renderer/Mesh.cpp
     Private/Renderer/Mesh.h
+    Private/Renderer/MeshHelper.cpp
+    Private/Renderer/MeshHelper.h
     Private/Renderer/Renderer.cpp
     Private/Renderer/Renderer.h
     Private/Renderer/RenderObject.cpp

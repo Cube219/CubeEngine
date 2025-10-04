@@ -115,7 +115,7 @@ namespace cube
 
         // Generate material shader codes
         FrameString getMaterialShaderCode = Format<FrameString>(
-            CUBE_T("MaterialValue GetMaterialValue(MaterialData_CB materialData, float2 uv)\n")
+            CUBE_T("MaterialValue GetMaterialValue(MaterialData_CB materialData, PSInput input)\n")
             CUBE_T("{{\n")
             CUBE_T("    MaterialValue value = {{}};\n")
             CUBE_T("\n")
@@ -127,6 +127,7 @@ namespace cube
         );
 
         FrameString materialShaderCode = Format<FrameString>(
+            CUBE_T("import MainInterface;\n")
             CUBE_T("import Material;\n")
             CUBE_T("\n")
             CUBE_T("export struct Material : IMaterial\n")

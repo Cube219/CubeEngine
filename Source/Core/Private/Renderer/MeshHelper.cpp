@@ -1,10 +1,10 @@
-#include "BaseMeshGenerator.h"
+#include "MeshHelper.h"
 
 #include "CubeMath.h"
 
 namespace cube
 {
-    SharedPtr<MeshData> BaseMeshGenerator::GetBoxMeshData()
+    SharedPtr<MeshData> MeshHelper::GenerateBoxMeshData()
     {
         FrameVector<Vertex> vertices;
         Vertex v;
@@ -46,6 +46,7 @@ namespace cube
         };
 
         SetNormalVector(vertices, indices);
+        SetApproxTangentVector(vertices);
 
         SubMesh subMeshes[] = {
             {
@@ -59,7 +60,7 @@ namespace cube
         return std::make_shared<MeshData>(vertices, indices, subMeshes, CUBE_T("BaseBoxMesh"));
     }
 
-    SharedPtr<MeshData> BaseMeshGenerator::GetCylinderMeshData()
+    SharedPtr<MeshData> MeshHelper::GenerateCylinderMeshData()
     {
         constexpr int sliceCount = 20;
 
@@ -136,6 +137,7 @@ namespace cube
         indices.push_back((sliceCount - 1) * 2 + 1);
 
         SetNormalVector(vertices, indices);
+        SetApproxTangentVector(vertices);
 
         SubMesh subMeshes[] = {
             {
@@ -149,12 +151,12 @@ namespace cube
         return std::make_shared<MeshData>(vertices, indices, subMeshes, CUBE_T("BaseCylinderMesh"));
     }
 
-    SharedPtr<MeshData> BaseMeshGenerator::GetCapsuleMeshData()
+    SharedPtr<MeshData> MeshHelper::GenerateCapsuleMeshData()
     {
         return nullptr;
     }
 
-    SharedPtr<MeshData> BaseMeshGenerator::GetSphereMeshData()
+    SharedPtr<MeshData> MeshHelper::GenerateSphereMeshData()
     {
         constexpr int divisionNum = 3;
 
@@ -220,7 +222,7 @@ namespace cube
             vertex.normal.Normalize();
         }
 
-        //SetNormalVector(meshPtr);
+        SetApproxTangentVector(vertices);
 
         SubMesh subMeshes[] = {
             {
@@ -234,7 +236,7 @@ namespace cube
         return std::make_shared<MeshData>(vertices, indices, subMeshes, CUBE_T("BaseSphereMesh"));
     }
 
-    SharedPtr<MeshData> BaseMeshGenerator::GetPlaneMeshData()
+    SharedPtr<MeshData> MeshHelper::GeneratePlaneMeshData()
     {
         FrameVector<Vertex> vertices;
         Vertex v;
@@ -255,6 +257,7 @@ namespace cube
         };
 
         SetNormalVector(vertices, indices);
+        SetApproxTangentVector(vertices);
 
         SubMesh subMeshes[] = {
             {
@@ -268,10 +271,64 @@ namespace cube
         return std::make_shared<MeshData>(vertices, indices, subMeshes, CUBE_T("BasePlaneMesh"));
     }
 
-    void BaseMeshGenerator::SubDivide(FrameVector<Vertex>& vertices, FrameVector<Index>& indices)
+    void MeshHelper::SetNormalVector(ArrayView<Vertex> inOutVertices, ArrayView<Index> inOutIndices)
     {
-        FrameVector<Vertex>& oldVertices = vertices;
-        FrameVector<Index>& oldIndices = indices;
+        for (Vertex& v : inOutVertices)
+        {
+            v.normal = { 0.0f, 0.0f, 0.0f, 1.0f };
+        }
+
+        int numTriangles = (int)inOutIndices.size() / 3;
+        for (int i = 0; i < numTriangles; i++)
+        {
+            Index i0 = inOutIndices[i * 3];
+            Index i1 = inOutIndices[i * 3 + 1];
+            Index i2 = inOutIndices[i * 3 + 2];
+            Vertex v0 = inOutVertices[i0];
+            Vertex v1 = inOutVertices[i1];
+            Vertex v2 = inOutVertices[i2];
+
+            Vector3 t0;
+            t0 = v1.position - v0.position;
+            Vector3 t1;
+            t1 = v2.position - v0.position;
+
+            Vector3 n = Vector3::Cross(t0, t1);
+
+            inOutVertices[i0].normal += n;
+            inOutVertices[i1].normal += n;
+            inOutVertices[i2].normal += n;
+        }
+
+        for (Vertex& v : inOutVertices)
+        {
+            v.normal.Normalize();
+        }
+    }
+
+    void MeshHelper::SetApproxTangentVector(ArrayView<Vertex> inOutVertices)
+    {
+        for (Vertex& vertex : inOutVertices)
+        {
+            Vector3 c1 = Vector3::Cross(vertex.normal, Vector3(0.0f, 0.0f, 1.0f));
+            Vector3 c2 = Vector3::Cross(vertex.normal, Vector3(0.0f, 1.0f, 0.0f));
+
+            if (c1.SquareLength() > c2.SquareLength())
+            {
+                vertex.tangent = c1.Normalized();
+            }
+            else
+            {
+                vertex.tangent = c2.Normalized();
+            }
+            vertex.tangent += Vector4(0.0f, 0.0f, 0.0f, 1.0f);
+        }
+    }
+
+    void MeshHelper::SubDivide(ArrayView<Vertex> inOutVertices, ArrayView<Index> inOutIndices)
+    {
+        ArrayView<Vertex> oldVertices = inOutVertices;
+        ArrayView<Index> oldIndices = inOutIndices;
         FrameVector<Vertex> newVertices;
         FrameVector<Index> newIndices;
 
@@ -323,42 +380,13 @@ namespace cube
             newIndices.push_back(i * 6 + 4);
         }
 
-        vertices = newVertices;
-        indices = newIndices;
-    }
-
-    void BaseMeshGenerator::SetNormalVector(FrameVector<Vertex>& vertices, FrameVector<Index>& indices)
-    {
-        for (Vertex& v : vertices)
+        for (int i = 0; i < newVertices.size(); ++i)
         {
-            v.normal = { 0.0f, 0.0f, 0.0f, 1.0f };
+            inOutVertices[i] = newVertices[i];
         }
-
-        int numTriangles = (int)indices.size() / 3;
-        for (int i = 0; i < numTriangles; i++)
+        for (int i = 0; i < newIndices.size(); ++i)
         {
-            Index i0 = indices[i * 3];
-            Index i1 = indices[i * 3 + 1];
-            Index i2 = indices[i * 3 + 2];
-            Vertex v0 = vertices[i0];
-            Vertex v1 = vertices[i1];
-            Vertex v2 = vertices[i2];
-
-            Vector3 t0;
-            t0 = v1.position - v0.position;
-            Vector3 t1;
-            t1 = v2.position - v0.position;
-
-            Vector3 n = Vector3::Cross(t0, t1);
-
-            vertices[i0].normal += n;
-            vertices[i1].normal += n;
-            vertices[i2].normal += n;
-        }
-
-        for (Vertex& v : vertices)
-        {
-            v.normal.Normalize();
+            inOutIndices[i] = newIndices[i];
         }
     }
 } // namespace cube

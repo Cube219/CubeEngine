@@ -1,6 +1,7 @@
 module Material;
 
-// Shader variables
+import MainInterface;
+
 public struct MaterialData_CB
 {
     public float4 baseColor;
@@ -22,5 +23,5 @@ public struct MaterialValue
 
 public interface IMaterial
 {
-    MaterialValue GetMaterialValue(MaterialData_CB materialData, float2 uv);
+    MaterialValue GetMaterialValue(MaterialData_CB materialData, PSInput input);
 }
