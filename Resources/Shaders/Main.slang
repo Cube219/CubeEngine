@@ -16,6 +16,8 @@ ConstantBuffer<PerObjectData_CB> perObjectCB;
 
 ConstantBuffer<MaterialData_CB> materialCB;
 
+extern struct Material : IMaterial;
+
 struct VSInput
 {
     float3 position : POSITION;
@@ -53,7 +55,8 @@ PSOutput PSMain(PSInput input) : SV_TARGET
     float3 ligthDir = normalize(mul(globalCB.directionalLightDirection, (float3x3)perObjectCB.modelInverse));
     float intensity = dot(input.normal, ligthDir);
 
-    MaterialValue materialValue = GetMaterialValue(materialCB, input.uv);
+    Material material;
+    MaterialValue materialValue = material.GetMaterialValue(materialCB, input.uv);
 
     PSOutput output;
     output.color = float4(materialValue.albedo, 1);

@@ -12,7 +12,7 @@ public struct MaterialData_CB
     public Sampler2D.Handle textureSlot4;
 };
 
-export public struct MaterialValue
+public struct MaterialValue
 {
     public float3 albedo = float3(1.0f, 1.0f, 1.0f);
     public float metallic = 0.0f;
@@ -20,4 +20,7 @@ export public struct MaterialValue
     public float3 normal = float3(0.0f, 0.0f, 1.0f);
 };
 
-extern public MaterialValue GetMaterialValue(MaterialData_CB materialData, float2 uv);
+public interface IMaterial
+{
+    MaterialValue GetMaterialValue(MaterialData_CB materialData, float2 uv);
+}

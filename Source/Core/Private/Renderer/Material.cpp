@@ -113,19 +113,30 @@ namespace cube
             return it->second;
         }
 
-        // Generate material shader code
-        FrameString materialShaderCode = Format<FrameString>(
-            CUBE_T("import Material;\n")
-            CUBE_T("\n")
-            CUBE_T("export public MaterialValue GetMaterialValue(MaterialData_CB materialData, float2 uv)\n")
+        // Generate material shader codes
+        FrameString getMaterialShaderCode = Format<FrameString>(
+            CUBE_T("MaterialValue GetMaterialValue(MaterialData_CB materialData, float2 uv)\n")
             CUBE_T("{{\n")
             CUBE_T("    MaterialValue value = {{}};\n")
-            CUBE_T("    \n")
-            CUBE_T("    {0}\n")
-            CUBE_T("    \n")
+            CUBE_T("\n")
+            CUBE_T("    {0}")
+            CUBE_T("\n")
             CUBE_T("    return value;\n")
             CUBE_T("}}\n"),
             material->mChannelMappingCode
+        );
+
+        FrameString materialShaderCode = Format<FrameString>(
+            CUBE_T("import Material;\n")
+            CUBE_T("\n")
+            CUBE_T("export struct Material : IMaterial\n")
+            CUBE_T("{{\n")
+            CUBE_T("\n")
+            CUBE_T("{0}\n")
+            CUBE_T("\n")
+            CUBE_T("}}\n"),
+
+            getMaterialShaderCode
         );
 
         // Create shaders
