@@ -2,6 +2,7 @@ module MainInterface;
 
 public struct GlobalData_CB
 {
+    public float3 cameraPosition;
     public float4x4 viewProjection;
     public float3 directionalLightDirection;
 };

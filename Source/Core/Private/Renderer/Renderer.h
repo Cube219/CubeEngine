@@ -26,6 +26,7 @@ namespace cube
     class GlobalShaderParameters : public ShaderParameters
     {
         CUBE_BEGIN_SHADER_PARAMETERS(GlobalShaderParameters)
+            CUBE_SHADER_PARAMETER(Vector3, viewPosition)
             CUBE_SHADER_PARAMETER(Matrix, viewProjection)
             CUBE_SHADER_PARAMETER(Vector3, directionalLightDirection)
         CUBE_END_SHADER_PARAMETERS
@@ -89,6 +90,7 @@ namespace cube
 
         bool mRenderImGUI;
 
+        Vector3 mViewPosition;
         Matrix mViewMatrix;
         Matrix mPerspectiveMatrix;
         Matrix mViewPerspectiveMatirx;

@@ -1,3 +1,4 @@
+import Light;
 import MainInterface;
 import Material;
 
@@ -39,12 +40,13 @@ PSOutput PSMain(PSInput input) : SV_TARGET
     float3x3 TBN = float3x3(tangent, bitangent, normal);
     normal = mul(materialValue.normal, TBN);
 
-    float3 ligthDir = normalize(globalCB.directionalLightDirection);
-    float intensity = dot(normal, ligthDir);
+    float3 view = normalize(globalCB.cameraPosition - input.position.xyz);
+
+    ILight directionalLight = DirectionalLight(normalize(globalCB.directionalLightDirection));
+    float3 color = directionalLight.CalculateLight(view, normal, materialValue);
 
     PSOutput output;
-    output.color = float4(materialValue.albedo, 1);
-    output.color *= intensity;
+    output.color = float4(color, 1);
 
     return output;
 }

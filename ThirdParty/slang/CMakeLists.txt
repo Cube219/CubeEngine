@@ -10,7 +10,7 @@ if(PLATFORM_WINDOWS)
     FetchContent_Declare(
         slang
         DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-        URL https://github.com/shader-slang/slang/releases/download/v2025.8.1/slang-2025.8.1-windows-x86_64.zip
+        URL https://github.com/shader-slang/slang/releases/download/v2025.18.2/slang-2025.18.2-windows-x86_64.zip
     )
 endif()
 if(PLATFORM_MACOS)
@@ -18,7 +18,7 @@ if(PLATFORM_MACOS)
     FetchContent_Declare(
         slang
         DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-        URL https://github.com/shader-slang/slang/releases/download/v2025.8.1/slang-2025.8.1-macos-aarch64.zip
+        URL https://github.com/shader-slang/slang/releases/download/v2025.18.2/slang-2025.18.2-macos-aarch64.zip
     )
 endif()
 FetchContent_MakeAvailable(slang)

@@ -18,7 +18,7 @@ namespace cube
     StringView PathHelper::GetFileNameFromPath(StringView path)
     {
         int separatorIndex = path.size() - 1;
-        while (separatorIndex >= 0 && path[separatorIndex] != mPathSeperator)
+        while (separatorIndex >= 0 && path[separatorIndex] != mPathSeperator && path[separatorIndex] != CUBE_T('/'))
         {
             separatorIndex--;
         }

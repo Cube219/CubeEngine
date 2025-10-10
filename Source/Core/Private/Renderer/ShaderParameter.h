@@ -100,7 +100,7 @@ namespace cube
         }
 
         static constexpr Uint32 size = sizeof(Matrix);
-        static constexpr Uint32 alignment = sizeof(Matrix);
+        static constexpr Uint32 alignment = sizeof(Vector4);
     };
 
     template <>

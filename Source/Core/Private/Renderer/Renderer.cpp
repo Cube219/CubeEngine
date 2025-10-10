@@ -192,6 +192,7 @@ namespace cube
 
     void Renderer::SetViewMatrix(const Vector3& eye, const Vector3& target, const Vector3& upDir)
     {
+        mViewPosition = eye;
         if (mGAPI->GetInfo().useLeftHanded)
         {
             // Flip z axis
@@ -300,6 +301,7 @@ namespace cube
             mCommandList->ClearDepthStencilView(mViewport, 0);
 
             SharedPtr<GlobalShaderParameters> globalShaderParameters = mShaderParametersManager.CreateShaderParameters<GlobalShaderParameters>();
+            globalShaderParameters->viewPosition = mViewPosition;
             globalShaderParameters->viewProjection = mViewPerspectiveMatirx;
             globalShaderParameters->directionalLightDirection = mDirectionalLightDirection;
             globalShaderParameters->WriteAllParametersToBuffer();
