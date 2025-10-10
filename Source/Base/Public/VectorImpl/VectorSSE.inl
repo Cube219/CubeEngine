@@ -10,42 +10,40 @@ namespace cube
         namespace internal
         {
             template <int N>
-            inline VectorData<N> GetSum(VectorData<N> data)
+            inline __m128 GetSum(__m128 data)
             {
                 if constexpr (N == 2)
                 {
                     // data = x / y / ? / ?
 
-                    // tmp = y / y / y / y
-                    VectorData<N> tmp = _mm_shuffle_ps(data, data, _MM_SHUFFLE(1, 1, 1, 1));
-                    // x+y / ? / ? / ?
-                    return _mm_add_ss(tmp, data);
+                    // tmp = y / x / y / y
+                    __m128 tmp = _mm_shuffle_ps(data, data, _MM_SHUFFLE(1, 1, 0, 1));
+                    // x+y / x+y / ? / ?
+                    return _mm_add_ps(tmp, data);
                 }
                 if constexpr (N == 3)
                 {
                     // data = x / y / z / ?
 
-                    // tmp = y / y / y / y
-                    VectorData<N> tmp = _mm_shuffle_ps(data, data, _MM_SHUFFLE(1, 1, 1, 1));
-                    // tmp = x+y / ? / ? / ?
-                    tmp = _mm_add_ss(tmp, data);
-                    // tmp2 = z / z / z / z
-                    VectorData<N> tmp2 = _mm_shuffle_ps(data, data, _MM_SHUFFLE(2, 2, 2, 2));
-                    // x+y+z / ? / ? / ?
-                    return _mm_add_ss(tmp, tmp2);
+                    // tmp = y / z / x / ?
+                    __m128 tmp = _mm_shuffle_ps(data, data, _MM_SHUFFLE(0, 0, 2, 1));
+                    // tmp2 = z / x / y / ?
+                    __m128 tmp2 = _mm_shuffle_ps(data, data, _MM_SHUFFLE(0, 1, 0, 2));
+                    // x+y+z / x+y+z / x+y+z / ?
+                    return _mm_add_ps(_mm_add_ps(data, tmp), tmp2);
                 }
                 if constexpr (N == 4)
                 {
                     // data = x / y / z / w
 
-                    // tmp = y / y / w / w
-                    VectorData<N> tmp = _mm_shuffle_ps(data, data, _MM_SHUFFLE(3, 3, 1, 1));
-                    // tmp = x+y / ? / z+w / ?
+                    // tmp = y / x / w / z
+                    __m128 tmp = _mm_shuffle_ps(data, data, _MM_SHUFFLE(2, 3, 0, 1));
+                    // tmp = x+y / x+y / z+w / z+w
                     tmp = _mm_add_ps(tmp, data);
-                    // tmp2 = z+w / z+w / z+w / z+w
-                    VectorData<N> tmp2 = _mm_shuffle_ps(tmp, tmp, _MM_SHUFFLE(2, 2, 2, 2));
-                    // x+y+z+w / ? / ? / ?
-                    return _mm_add_ss(tmp, tmp2);
+                    // tmp2 = z+w / z+w / x+y / x+y
+                    __m128 tmp2 = _mm_shuffle_ps(tmp, tmp, _MM_SHUFFLE(0, 0, 2, 2));
+                    // x+y+z+w / x+y+z+w / x+y+z+w / x+y+z+w
+                    return _mm_add_ps(tmp, tmp2);
                 }
                 return {};
             }
@@ -102,7 +100,7 @@ namespace cube
         else
         {
             // N > M
-            VectorData<N> zero = _mm_setzero_ps();
+            __m128 zero = _mm_setzero_ps();
 
             if constexpr (M == 2)
             {
@@ -112,7 +110,7 @@ namespace cube
             if constexpr (M == 3)
             {
                 // 3->4
-                VectorData<N> tmp;
+                __m128 tmp;
                 // tmp = z / z / 0 / 0
                 tmp = _mm_shuffle_ps(other.mData, zero, _MM_SHUFFLE(0, 0, 2, 2));
                 // mData = x / y / z / 0
@@ -130,38 +128,6 @@ namespace cube
     }
 
     template <int N>
-    template <int M>
-    inline VectorBase<N>& VectorBase<N>::operator=(const VectorBase<M>& rhs)
-    {
-        if constexpr (N <= M)
-        {
-            mData = rhs.mData;
-        }
-        else
-        {
-            // N > M
-            VectorData<N> zero = _mm_setzero_ps();
-
-            if constexpr (M == 2)
-            {
-                // 2->3, 2->4
-                mData = _mm_shuffle_ps(rhs.mData, zero, _MM_SHUFFLE(0, 0, 1, 0));
-            }
-            if constexpr (M == 3)
-            {
-                // 3->4
-                VectorData<N> tmp;
-                // tmp = z / z / 0 / 0
-                tmp = _mm_shuffle_ps(rhs.mData, zero, _MM_SHUFFLE(0, 0, 2, 2));
-                // mData = x / y / z / 0
-                mData = _mm_shuffle_ps(rhs.mData, tmp, _MM_SHUFFLE(2, 0, 1, 0));
-            }
-        }
-
-        return *this;
-    }
-
-    template <int N>
     inline VectorBase<N>& VectorBase<N>::operator=(float rhs)
     {
         mData = _mm_set1_ps(rhs);
@@ -172,7 +138,7 @@ namespace cube
     template <int N>
     inline bool VectorBase<N>::operator==(const VectorBase& rhs) const
     {
-        VectorData<N> res = _mm_cmpeq_ps(mData, rhs.mData);
+        __m128 res = _mm_cmpeq_ps(mData, rhs.mData);
         if constexpr (N == 2)
         {
             return (_mm_movemask_ps(res) & 0b0011) == 0b0011;
@@ -196,20 +162,18 @@ namespace cube
     }
 
     template <int N>
-    template <int M>
-    inline VectorBase<std::max(N, M)> VectorBase<N>::operator+(const VectorBase<M>& rhs) const
+    inline VectorBase<N> VectorBase<N>::operator+(const VectorBase& rhs) const
     {
-        VectorBase<std::max(N, M)> res(*this);
+        VectorBase res(*this);
         res += rhs;
 
         return res;
     }
 
     template <int N>
-    template <int M>
-    inline VectorBase<std::max(N, M)> VectorBase<N>::operator-(const VectorBase<M>& rhs) const
+    inline VectorBase<N> VectorBase<N>::operator-(const VectorBase& rhs) const
     {
-        VectorBase<std::max(N, M)> res(*this);
+        VectorBase<N> res(*this);
         res -= rhs;
 
         return res;
@@ -225,10 +189,9 @@ namespace cube
     }
 
     template <int N>
-    template <int M>
-    inline VectorBase<std::max(N, M)> VectorBase<N>::operator*(const VectorBase<M>& rhs) const
+    inline VectorBase<N> VectorBase<N>::operator*(const VectorBase& rhs) const
     {
-        VectorBase<std::max(N, M)> res(*this);
+        VectorBase<N> res(*this);
         res *= rhs;
 
         return res;
@@ -238,16 +201,15 @@ namespace cube
     inline VectorBase<N> VectorBase<N>::operator/(float rhs) const
     {
         VectorBase res(*this);
-        res *= rhs;
+        res /= rhs;
 
         return res;
     }
 
     template <int N>
-    template <int M>
-    inline VectorBase<std::max(N, M)> VectorBase<N>::operator/(const VectorBase<M>& rhs) const
+    inline VectorBase<N> VectorBase<N>::operator/(const VectorBase& rhs) const
     {
-        VectorBase<std::max(N, M)> res(*this);
+        VectorBase<N> res(*this);
         res /= rhs;
 
         return res;
@@ -269,33 +231,17 @@ namespace cube
     }
 
     template <int N>
-    template <int M>
-    inline VectorBase<N>& VectorBase<N>::operator+=(const VectorBase<M>& rhs)
+    inline VectorBase<N>& VectorBase<N>::operator+=(const VectorBase& rhs)
     {
-        if constexpr (N <= M)
-        {
-            mData = _mm_add_ps(mData, rhs.mData);
-        }
-        else
-        {
-            *this += VectorBase<N>(rhs);
-        }
+        mData = _mm_add_ps(mData, rhs.mData);
 
         return *this;
     }
 
     template <int N>
-    template <int M>
-    inline VectorBase<N>& VectorBase<N>::operator-=(const VectorBase<M>& rhs)
+    inline VectorBase<N>& VectorBase<N>::operator-=(const VectorBase& rhs)
     {
-        if constexpr (N <= M)
-        {
-            mData = _mm_sub_ps(mData, rhs.mData);
-        }
-        else
-        {
-            *this -= VectorBase<N>(rhs);
-        }
+        mData = _mm_sub_ps(mData, rhs.mData);
 
         return *this;
     }
@@ -309,17 +255,9 @@ namespace cube
     }
 
     template <int N>
-    template <int M>
-    inline VectorBase<N>& VectorBase<N>::operator*=(const VectorBase<M>& rhs)
+    inline VectorBase<N>& VectorBase<N>::operator*=(const VectorBase& rhs)
     {
-        if constexpr (N <= M)
-        {
-            mData = _mm_mul_ps(mData, rhs.mData);
-        }
-        else
-        {
-            *this *= VectorBase<N>(rhs);
-        }
+        mData = _mm_mul_ps(mData, rhs.mData);
 
         return *this;
     }
@@ -333,17 +271,9 @@ namespace cube
     }
 
     template <int N>
-    template <int M>
-    inline VectorBase<N>& VectorBase<N>::operator/=(const VectorBase<M>& rhs)
+    inline VectorBase<N>& VectorBase<N>::operator/=(const VectorBase& rhs)
     {
-        if constexpr (N <= M)
-        {
-            mData = _mm_div_ps(mData, rhs.mData);
-        }
-        else
-        {
-            *this /= VectorBase<N>(rhs);
-        }
+        mData = _mm_div_ps(mData, rhs.mData);
 
         return *this;
     }
@@ -432,11 +362,11 @@ namespace cube
     template <int N>
     inline float VectorBase<N>::SquareLength() const
     {
-        VectorData<N> res = SSE::internal::GetSum<N>(_mm_mul_ps(mData, mData));
-        float f[4];
-        _mm_store_ps(f, res);
+        __m128 res = SSE::internal::GetSum<N>(_mm_mul_ps(mData, mData));
+        float f;
+        _mm_store_ss(&f, res);
 
-        return f[0];
+        return f;
     }
 
     template <int N>
@@ -448,7 +378,7 @@ namespace cube
     template <int N>
     inline VectorBase<N> VectorBase<N>::SquareLengthV() const
     {
-        VectorData<N> res = SSE::internal::GetSum<N>(_mm_mul_ps(mData, mData));
+        __m128 res = SSE::internal::GetSum<N>(_mm_mul_ps(mData, mData));
 
         VectorBase r;
         r.mData = _mm_shuffle_ps(res, res, _MM_SHUFFLE(0, 0, 0, 0));
@@ -458,9 +388,8 @@ namespace cube
     template <int N>
     inline void VectorBase<N>::Normalize()
     {
-        VectorData<N> squareLen = SSE::internal::GetSum<N>(_mm_mul_ps(mData, mData));
-        // sqLen / ? / ? / ? -> len / len / len / len
-        VectorData<N> len = _mm_sqrt_ps(_mm_shuffle_ps(squareLen, squareLen, _MM_SHUFFLE(0, 0, 0, 0)));
+        __m128 squareLen = SSE::internal::GetSum<N>(_mm_mul_ps(mData, mData));
+        __m128 len = _mm_sqrt_ps(squareLen);
 
         mData = _mm_div_ps(mData, len);
     }
@@ -477,11 +406,11 @@ namespace cube
     template <int N>
     inline float VectorBase<N>::Dot(const VectorBase& rhs) const
     {
-        VectorData<N> res = SSE::internal::GetSum<N>(_mm_mul_ps(mData, rhs.mData));
-        float f[4];
-        _mm_store_ps(f, res);
+        __m128 res = SSE::internal::GetSum<N>(_mm_mul_ps(mData, rhs.mData));
+        float f;
+        _mm_store_ss(&f, res);
 
-        return f[0];
+        return f;
     }
 
     template <int N>
@@ -493,7 +422,7 @@ namespace cube
     template <int N>
     inline VectorBase<N> VectorBase<N>::DotV(const VectorBase& rhs) const
     {
-        VectorData<N> res = SSE::internal::GetSum<N>(_mm_mul_ps(mData, rhs.mData));
+        __m128 res = SSE::internal::GetSum<N>(_mm_mul_ps(mData, rhs.mData));
 
         VectorBase r;
         r.mData = _mm_shuffle_ps(res, res, _MM_SHUFFLE(0, 0, 0, 0));
@@ -514,9 +443,9 @@ namespace cube
         VectorBase res;
 
         // y1 / z1 / x1 / ??
-        VectorData<N> leftMul = _mm_shuffle_ps(mData, mData, _MM_SHUFFLE(0, 0, 2, 1));
+        __m128 leftMul = _mm_shuffle_ps(mData, mData, _MM_SHUFFLE(0, 0, 2, 1));
         // z2 / x2 / y2 / ??
-        VectorData<N> rightMul = _mm_shuffle_ps(rhs.mData, rhs.mData, _MM_SHUFFLE(0, 1, 0, 2));
+        __m128 rightMul = _mm_shuffle_ps(rhs.mData, rhs.mData, _MM_SHUFFLE(0, 1, 0, 2));
 
         res.mData = _mm_mul_ps(leftMul, rightMul);
 

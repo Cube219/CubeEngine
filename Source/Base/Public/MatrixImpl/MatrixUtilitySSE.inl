@@ -153,12 +153,12 @@ namespace cube
         float cA = Math::Cos(angle);
         Vector4 revCosA(1 - cA, 1 - cA, 1 - cA, 0.0f);
 
-        VectorData<4> r0 = _mm_mul_ps(axis.mData, revCosA.mData);
-        VectorData<4> r1 = r0;
-        VectorData<4> r2 = r0;
+        __m128 r0 = _mm_mul_ps(axis.mData, revCosA.mData);
+        __m128 r1 = r0;
+        __m128 r2 = r0;
 
         // x / x / x / x
-        VectorData<4> t = _mm_shuffle_ps(axis.mData, axis.mData, _MM_SHUFFLE(0, 0, 0, 0));
+        __m128 t = _mm_shuffle_ps(axis.mData, axis.mData, _MM_SHUFFLE(0, 0, 0, 0));
         r0 = _mm_mul_ps(r0, t);
 
         // y / y / y / y
@@ -207,7 +207,7 @@ namespace cube
 
         Vector4 one = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
         // z / z / 1 / 1
-        VectorData<4> temp = _mm_shuffle_ps(vec.mData, one.mData, _MM_SHUFFLE(0, 0, 2, 2));
+        __m128 temp = _mm_shuffle_ps(vec.mData, one.mData, _MM_SHUFFLE(0, 0, 2, 2));
         // x / y / z / 1
         m[3].mData = _mm_shuffle_ps(vec.mData, temp, _MM_SHUFFLE(2, 0, 1, 0));
 
@@ -232,18 +232,18 @@ namespace cube
         u.Normalize();
         Vector3 v = Vector3::Cross(w, u);
 
-        m[0] = u;
-        m[1] = v;
-        m[2] = w;
+        m[0] = Vector4(u);
+        m[1] = Vector4(v);
+        m[2] = Vector4(w);
         m[3] = Vector4(0, 0, 0, 1);
         m.Transpose();
 
-        VectorData<4> d0 = Vector3::DotV(eyePos, u).mData;
-        VectorData<4> d1 = Vector3::DotV(eyePos, v).mData;
-        VectorData<4> d2 = Vector3::DotV(eyePos, w).mData;
+        __m128 d0 = Vector3::DotV(eyePos, u).mData;
+        __m128 d1 = Vector3::DotV(eyePos, v).mData;
+        __m128 d2 = Vector3::DotV(eyePos, w).mData;
 
         // d1 / d1 / d2 / d2
-        VectorData<4> t = _mm_shuffle_ps(d1, d2, _MM_SHUFFLE(0, 0, 0, 0));
+        __m128 t = _mm_shuffle_ps(d1, d2, _MM_SHUFFLE(0, 0, 0, 0));
         // 0 / d1 / d2 / 0
         t = _mm_and_ps(t, vectorMaskYZ);
 

@@ -45,8 +45,8 @@ namespace cube
         void Transpose();
         Matrix Transposed() const;
 
-        void Inverse(); // TODO: Implement
-        Matrix Inversed() const; // TODO: Implement
+        void Inverse();
+        Matrix Inversed() const;
 
     private:
         Vector4 mRows[4];

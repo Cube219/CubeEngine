@@ -96,7 +96,19 @@ namespace cube
     {
         static void WriteToBuffer(Byte* pBufferData, const Matrix& data)
         {
-            memcpy(pBufferData, &data, sizeof(Matrix));
+            struct
+            {
+                Float4 r0;
+                Float4 r1;
+                Float4 r2;
+                Float4 r3;
+            } floatMatrix;
+            floatMatrix.r0 = data.GetRow(0).GetFloat4();
+            floatMatrix.r1 = data.GetRow(1).GetFloat4();
+            floatMatrix.r2 = data.GetRow(2).GetFloat4();
+            floatMatrix.r3 = data.GetRow(3).GetFloat4();
+
+            memcpy(pBufferData, &floatMatrix, sizeof(floatMatrix));
         }
 
         static constexpr Uint32 size = sizeof(Matrix);

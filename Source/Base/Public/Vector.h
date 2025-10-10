@@ -5,7 +5,7 @@
 #include "Format.h"
 
 #ifndef CUBE_VECTOR_USE_SSE
-#define CUBE_VECTOR_USE_SSE 0
+#define CUBE_VECTOR_USE_SSE 1
 #endif
 
 #if CUBE_VECTOR_USE_SSE
@@ -69,37 +69,27 @@ namespace cube
         explicit VectorBase(const VectorBase<M>& other);
 
         VectorBase& operator=(const VectorBase& rhs);
-        template <int M>
-        VectorBase& operator= (const VectorBase<M>& rhs);
         VectorBase& operator= (float rhs);
     
         bool operator== (const VectorBase& rhs) const;
         bool operator!= (const VectorBase& rhs) const;
     
-        template <int M>
-        VectorBase<std::max(N, M)> operator+(const VectorBase<M>& rhs) const;
-        template <int M>
-        VectorBase<std::max(N, M)> operator-(const VectorBase<M>& rhs) const;
+        VectorBase operator+(const VectorBase& rhs) const;
+        VectorBase operator-(const VectorBase& rhs) const;
         VectorBase operator* (float rhs) const;
-        template <int M>
-        VectorBase<std::max(N, M)> operator*(const VectorBase<M>& rhs) const;
+        VectorBase operator*(const VectorBase& rhs) const;
         VectorBase operator/ (float rhs) const;
-        template <int M>
-        VectorBase<std::max(N, M)> operator/(const VectorBase<M>& rhs) const;
+        VectorBase operator/(const VectorBase& rhs) const;
     
         const VectorBase& operator+() const;
         VectorBase operator-() const;
     
-        template <int M>
-        VectorBase& operator+=(const VectorBase<M>& rhs);
-        template <int M>
-        VectorBase& operator-=(const VectorBase<M>& rhs);
+        VectorBase& operator+=(const VectorBase& rhs);
+        VectorBase& operator-=(const VectorBase& rhs);
         VectorBase& operator*= (float rhs);
-        template <int M>
-        VectorBase& operator*=(const VectorBase<M>& rhs);
+        VectorBase& operator*=(const VectorBase& rhs);
         VectorBase& operator/= (float rhs);
-        template <int M>
-        VectorBase& operator/=(const VectorBase<M>& rhs);
+        VectorBase& operator/=(const VectorBase& rhs);
 
         void Swap(VectorBase& other);
         static void Swap(VectorBase& lhs, VectorBase& rhs);

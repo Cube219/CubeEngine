@@ -311,7 +311,7 @@ namespace cube
     void CameraSystem::UpdateDirection()
     {
         mRotation = MatrixUtility::GetRotationX(Math::Deg2Rad(mAxisXAngle)) * MatrixUtility::GetRotationY(Math::Deg2Rad(mAxisYAngle));
-        mDirection = Vector4(0.0f, 0.0f, -1.0f, 0.0f) * mRotation;
+        mDirection = Vector3(Vector4(0.0f, 0.0f, -1.0f, 0.0f) * mRotation);
     }
 
     void CameraSystem::Reset()
