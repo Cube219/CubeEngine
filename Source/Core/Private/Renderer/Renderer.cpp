@@ -120,11 +120,17 @@ namespace cube
                 vec3 directionVec3 = { mDirectionalLightDirection.GetFloat3().x, mDirectionalLightDirection.GetFloat3().y, mDirectionalLightDirection.GetFloat3().z };
                 ImGui::Text("Direction: %.3f %.3f %.3f", directionVec3.x, directionVec3.y, directionVec3.z);
 
+                Vector4 directionInView = Vector4(mDirectionalLightDirection) * mViewMatrix;
+                vec3 directionInViewVec3 = { directionInView.GetFloat3().x, directionInView.GetFloat3().y, directionInView.GetFloat3().z };
+
                 imguiGizmo::resizeAxesOf({ 0.7f, 0.8f, 0.8f });
-                ImGui::gizmo3D("##Directional Light - Direction", directionVec3);
+                ImGui::gizmo3D("##Directional Light - Direction", directionInViewVec3);
                 imguiGizmo::restoreAxesSize();
 
-                mDirectionalLightDirection = Vector3(directionVec3.x, directionVec3.y, directionVec3.z);
+                directionInView = Vector4(directionInViewVec3.x, directionInViewVec3.y, directionInViewVec3.z, 0);
+                Vector4 afterDirection = directionInView * mViewMatrix.Inversed();
+
+                mDirectionalLightDirection = Vector3(afterDirection);
                 mIsDirectionalLightDirty = true;
             }
         }
