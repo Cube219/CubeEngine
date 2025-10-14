@@ -32,6 +32,7 @@ namespace cube
         static MetalShaderCompileResult CompileFromMetal(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult);
         static MetalShaderCompileResult CompileFromMetalLib(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult);
         static MetalShaderCompileResult CompileFromSlang(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult);
+        static MetalShaderCompileResult CompileFromSlangDirectly(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult);
 
         static MetalDevice* mDevice;
     };

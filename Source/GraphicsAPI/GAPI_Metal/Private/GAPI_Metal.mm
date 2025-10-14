@@ -54,6 +54,7 @@ namespace cube
         mDevices[0] = new MetalDevice();
         mDevices[0]->Initialize(MTLCreateSystemDefaultDevice());
         mMainDevice = mDevices[0];
+        CHECK(mMainDevice->CheckFeatureRequirements());
 
         mCommandQueue = [mMainDevice->GetDevice() newCommandQueue];
 

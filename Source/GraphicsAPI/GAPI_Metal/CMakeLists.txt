@@ -47,6 +47,7 @@ target_link_libraries(CE-GAPI_Metal
         "-framework Metal"
         "-framework MetalKit"
         imgui
+        spirv-cross-msl
         CE-Base
         CE-Logger
         CE-Platform

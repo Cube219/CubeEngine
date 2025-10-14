@@ -38,7 +38,7 @@ namespace cube
             HLSL,
             GLSL,
             DXIL,
-            SPIR_V,
+            SPIRV,
             Metal,
             MetalLib,
             Slang
@@ -53,8 +53,8 @@ namespace cube
                 return CUBE_T("GLSL");
             case ShaderLanguage::DXIL:
                 return CUBE_T("DXIL");
-            case ShaderLanguage::SPIR_V:
-                return CUBE_T("SPIR_V");
+            case ShaderLanguage::SPIRV:
+                return CUBE_T("SPIRV");
             case ShaderLanguage::Metal:
                 return CUBE_T("Metal");
             case ShaderLanguage::MetalLib:

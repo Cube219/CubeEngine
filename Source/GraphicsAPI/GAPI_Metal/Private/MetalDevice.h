@@ -16,6 +16,8 @@ namespace cube
         void Initialize(id<MTLDevice> device);
         void Shutdown();
 
+        bool CheckFeatureRequirements();
+
         id<MTLDevice> GetDevice() const { return mDevice; }
 
     private:

@@ -92,7 +92,6 @@ namespace cube
         ComPtr<slang::IBlob> diagnosticBlob;
 
         slang::TargetDesc targetDesc = {
-            .format = SLANG_HLSL,
             .profile = mGlobalSession->findProfile(options.profile)
         };
         switch (options.target)
@@ -106,7 +105,7 @@ namespace cube
         case gapi::ShaderLanguage::DXIL:
             targetDesc.format = SLANG_DXIL;
             break;
-        case gapi::ShaderLanguage::SPIR_V:
+        case gapi::ShaderLanguage::SPIRV:
             targetDesc.format = SLANG_SPIRV;
             break;
         case gapi::ShaderLanguage::Metal:
@@ -136,6 +135,12 @@ namespace cube
                 },
             });
         }
+        compilerOptions.push_back({
+            .name = slang::CompilerOptionName::VulkanUseEntryPointName,
+            .value = {
+                .intValue0 = 1
+            },
+        });
 
         const char* shaderRootDirPath_CStr = mShaderSearchPath.c_str();
         const slang::SessionDesc sessionDesc = {
