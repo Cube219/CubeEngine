@@ -201,7 +201,10 @@ namespace cube
             }
             for (auto& [libAddress, mappedInfo] : mapLibAddress)
             {
-                [mappedInfo.task waitUntilExit];
+                // It calls UIKit functions (I don't know why).
+                MacOSUtility::DispatchToMainThreadAndWait([task = mappedInfo.task]{
+                    [task waitUntilExit];
+                });
 
                 NSData* data = [[mappedInfo.pipe fileHandleForReading] readDataToEndOfFile];
                 NSArray* outputArray = [
