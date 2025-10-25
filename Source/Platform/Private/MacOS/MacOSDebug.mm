@@ -64,6 +64,9 @@ namespace cube
 
         bool MacOSDebug::mIsLoggerWindowCreated = false;
 
+        bool MacOSDebug::mIsDebugBreakSetInDebugMessageAlert = false;
+        bool MacOSDebug::mIsForceTerminationSetInDebugMessageAlert = false;
+
         void MacOSDebug::PrintToDebugConsoleImpl(StringView str, PrintColorCategory colorCategory)
         {
             MacOSString osStr = String_Convert<MacOSString>(str);
@@ -81,23 +84,19 @@ namespace cube
 
         void MacOSDebug::ProcessFatalErrorImpl(StringView msg)
         {
-            MacOSUtility::DispatchToMainThreadAndWait([msg]() {
-                ShowDebugMessageAlert(CUBE_T("Fatal error"), msg);
-            });
+            ShowDebugMessageAlert(CUBE_T("Fatal error!"), msg);
         }
 
         void MacOSDebug::ProcessFailedCheckImpl(const char* fileName, int lineNum, StringView formattedMsg)
         {
             if (!PlatformDebug::IsDebuggerAttached())
             {
-                MacOSUtility::DispatchToMainThreadAndWait([formattedMsg]() {
-                    ShowDebugMessageAlert(CUBE_T("Check failed"), formattedMsg);
-                });
+                ShowDebugMessageAlert(CUBE_T("Check failed!"), formattedMsg);
             }
             else
             {
                 // Sync to main thread to print messages in debug console.
-                MacOSUtility::DispatchToMainThreadAndWait([formattedMsg]() {});
+                MacOSUtility::DispatchToMainThreadAndWait([]() {});
             }
         }
 
@@ -224,10 +223,10 @@ namespace cube
             String res;
             for (int i = 2; i < numFrames; ++i)
             {
-                res += Format(CUBE_T("{}\n"), stackFrames[i].str);
+                res += Format(CUBE_T("    {}\n"), stackFrames[i].str);
                 if (stackFrames[i].str.empty())
                 {
-                    stackFrames[i].str = CUBE_U8_T("Unknown");
+                    stackFrames[i].str = CUBE_U8_T("    Unknown");
                 }
             }
 
@@ -356,28 +355,70 @@ namespace cube
 
         void MacOSDebug::ShowDebugMessageAlert(StringView title, StringView msg)
         {
+            MacOSUtility::DispatchToMainThreadAndWait([title, msg]() {
+                ShowDebugMessageAlert_MainThread(title, msg);
+            });
+            // Dispatch and wait to ensure the alert modal is closed.
+            MacOSUtility::DispatchToMainThreadAndWait([]() {});
+
+            if (mIsDebugBreakSetInDebugMessageAlert)
+            {
+                mIsDebugBreakSetInDebugMessageAlert = false;
+                CUBE_DEBUG_BREAK
+            }
+
+            if (mIsForceTerminationSetInDebugMessageAlert)
+            {
+                platform::MacOSPlatform::ForceTerminateMainLoopThread();
+                exit(3);
+            }
+        }
+
+        void MacOSDebug::ShowDebugMessageAlert_MainThread(StringView title, StringView msg)
+        {
             CHECK_MAIN_THREAD()
 
             @autoreleasepool {
+                NSTextView* textView = [[NSTextView alloc] initWithFrame:NSMakeRect(0, 0, 400, 600)];
+                [textView setEditable:NO];
+                [textView setSelectable:YES];
+
+                NSAttributedString* attrText = [[NSAttributedString alloc]
+                    initWithString:String_Convert<NSString*>(msg)
+                    attributes:@{
+                        NSForegroundColorAttributeName: [NSColor textColor],
+                        NSBackgroundColorAttributeName: [NSColor textBackgroundColor],
+                        NSFontAttributeName: [NSFont fontWithName:@"Menlo" size:12]
+                    }
+                ];
+                [textView.textStorage setAttributedString: attrText];
+
+                NSScrollView* scrollView = [[NSScrollView alloc] initWithFrame:NSMakeRect(0, 0, 400, 600)];
+                [scrollView setDocumentView:textView];
+                [scrollView setHasVerticalScroller:YES];
+                [scrollView setHasHorizontalScroller:YES];
+                // Scroll to bottom
+                [textView scrollRangeToVisible:NSMakeRange(msg.size(), 0)];
+
                 NSAlert* alert = [[NSAlert alloc] init];
                 [alert setMessageText:String_Convert<NSString*>(title)];
-                [alert setInformativeText:String_Convert<NSString*>(msg)];
+                [alert setAccessoryView:scrollView];
                 [alert setAlertStyle:NSAlertStyleCritical];
                 [alert addButtonWithTitle:@"Exit"];
                 [alert addButtonWithTitle:@"Ignore"];
                 [alert addButtonWithTitle:@"Debug"];
 
                 NSModalResponse response = [alert runModal];
+                // Defer the logics to close the alert modal first.
                 switch (response)
                 {
                 case NSAlertFirstButtonReturn: // Exit
-                    platform::MacOSPlatform::ForceTerminateMainLoopThread();
-                    exit(3);
+                    mIsForceTerminationSetInDebugMessageAlert = true;
                     break;
                 case NSAlertSecondButtonReturn: // Ignore
                     break;
                 case NSAlertThirdButtonReturn: // Debug
-                    __builtin_trap();
+                    mIsDebugBreakSetInDebugMessageAlert = true;
                     break;
                 default:
                     break;
