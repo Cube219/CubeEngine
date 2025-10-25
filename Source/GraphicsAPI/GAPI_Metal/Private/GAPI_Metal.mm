@@ -1,7 +1,6 @@
 #include "GAPI_Metal.h"
 
 #include <memory>
-#include <Metal/Metal.h>
 #include "imgui.h"
 #include "imgui_impl_metal.h"
 #include "imgui_impl_osx.h"
@@ -21,6 +20,7 @@
 #include "MacOS/MacOSUtility.h"
 #include "MetalDevice.h"
 #include "MetalShaderCompiler.h"
+#include "MetalTypes.h"
 
 @implementation CubeImGUIMTKView
 
@@ -49,6 +49,8 @@ namespace cube
             .apiName = GAPIName::Metal,
             .useLeftHanded = false
         };
+
+        InitializeTypes();
 
         mDevices.resize(1);
         mDevices[0] = new MetalDevice();
@@ -149,7 +151,7 @@ namespace cube
 
     SharedPtr<gapi::Buffer> GAPI_Metal::CreateBuffer(const gapi::BufferCreateInfo& info)
     {
-        return std::make_shared<gapi::MetalBuffer>(info);
+        return std::make_shared<gapi::MetalBuffer>(info, *mMainDevice);
     }
 
     SharedPtr<gapi::CommandList> GAPI_Metal::CreateCommandList(const gapi::CommandListCreateInfo& info)
@@ -193,7 +195,7 @@ namespace cube
 
     SharedPtr<gapi::Texture> GAPI_Metal::CreateTexture(const gapi::TextureCreateInfo& info)
     {
-        return std::make_shared<gapi::MetalTexture>(info);
+        return std::make_shared<gapi::MetalTexture>(info, *mMainDevice);
     }
 
     SharedPtr<gapi::Viewport> GAPI_Metal::CreateViewport(const gapi::ViewportCreateInfo& info)

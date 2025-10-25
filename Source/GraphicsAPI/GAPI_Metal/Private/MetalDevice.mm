@@ -1,13 +1,13 @@
 #include "MetalDevice.h"
 
-#include <Metal/Metal.h>
-
 #include "Logger.h"
 #include "MacOS/MacOSString.h"
+#include "MetalArgumentBufferManager.h"
 
 namespace cube
 {
     MetalDevice::MetalDevice()
+        : mArgumentBufferManager(*this)
     {
     }
 
@@ -18,10 +18,15 @@ namespace cube
     void MetalDevice::Initialize(id<MTLDevice> device)
     {
         mDevice = device;
+
+        mArgumentBufferManager.Initialize();
     }
 
     void MetalDevice::Shutdown()
     {
+        mArgumentBufferManager.Shutdown();
+
+        [mDevice release];
     }
 
     bool MetalDevice::CheckFeatureRequirements()

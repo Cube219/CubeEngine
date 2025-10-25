@@ -15,12 +15,18 @@ set(PUBLIC_FILES
 )
 set(PRIVATE_FILES
     Private/GAPI_Metal.mm
+    Private/GAPI_MetalBuffer.mm
     Private/GAPI_MetalShader.mm
+    Private/GAPI_MetalTexture.mm
     Private/GAPI_MetalViewport.mm
+    Private/MetalArgumentBufferManager.h
+    Private/MetalArgumentBufferManager.mm
     Private/MetalDevice.h
     Private/MetalDevice.mm
     Private/MetalShaderCompiler.h
     Private/MetalShaderCompiler.mm
+    Private/MetalTypes.h
+    Private/MetalTypes.mm
 )
 # Objective-C does not support precompiled headers
 set_source_files_properties(${PRIVATE_FILES}

@@ -94,9 +94,11 @@ namespace cube
 
         struct TextureSRVCreateInfo
         {
+            // [firstMipLevel, firstMipLevel + mipLevels - 1)]
             Uint32 firstMipLevel = 0;
             Int32 mipLevels = -1;
 
+            // [firstArrayIndex, firstArrayIndex + arraySize - 1)]
             Uint32 firstArrayIndex = 0;
             Int32 arraySize = -1;
         };
@@ -145,9 +147,11 @@ namespace cube
         {
             Uint32 mipLevel = 0;
 
+            // [firstArrayIndex, firstArrayIndex + arraySize - 1)]
             Uint32 firstArrayIndex = 0;
             Int32 arraySize = -1;
 
+            // [firstDepthIndex, firstDepthIndex + DepthSize - 1)]
             Uint32 firstDepthIndex = 0;
             Int32 DepthSize = -1;
         };

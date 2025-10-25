@@ -2,6 +2,8 @@
 
 #include "MetalHeader.h"
 
+#include "MetalArgumentBufferManager.h"
+
 namespace cube
 {
     class MetalDevice
@@ -20,7 +22,11 @@ namespace cube
 
         id<MTLDevice> GetDevice() const { return mDevice; }
 
+        MetalArgumentBufferManager& GetArgumentBufferManager() { return mArgumentBufferManager; }
+
     private:
         id<MTLDevice> mDevice;
+
+        MetalArgumentBufferManager mArgumentBufferManager;
     };
 } // namespace cube
