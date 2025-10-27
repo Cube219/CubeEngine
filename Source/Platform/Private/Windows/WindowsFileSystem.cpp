@@ -119,6 +119,7 @@ namespace cube
                     res.emplace_back(String_Convert<String>(WindowsStringView(data.cFileName)));
                 } while (FindNextFile(handle, &data));
             }
+            FindClose(handle);
 
             return res;
         }
