@@ -11,20 +11,44 @@ namespace cube
 
     enum class ModelType
     {
-        glTF
+        glTF,
+        obj
+    };
+
+    enum class ModelPathType
+    {
+        glTFSampleAsset,
+        DefaultModels
     };
 
     struct ModelPathInfo
     {
-        ModelType type;
+        ModelPathType pathType;
+        ModelType modelType;
         AnsiString name;
-        String path;
+        Vector<String> pathList;
     };
 
     struct ModelResources
     {
         SharedPtr<MeshData> mesh = nullptr;
         Vector<SharedPtr<Material>> materials;
+    };
+
+    class ModelLoaderSubsystem
+    {
+    public:
+        ModelLoaderSubsystem(const char* name)
+            : mName(name)
+        {}
+        virtual ~ModelLoaderSubsystem() = default;
+
+        virtual ModelResources LoadModel(const ModelPathInfo& pathInfo) = 0;
+
+        const char* GetName() const { return mName; }
+
+    private:
+        const char* mName;
     };
 
     class ModelLoaderSystem
@@ -41,15 +65,15 @@ namespace cube
         static ModelResources LoadModel(const ModelPathInfo& pathInfo);
 
     private:
-        static void LoadModelList();
+        static void UpdateModelPathList();
         static void LoadCurrentModelAndSet();
-
-        static ModelResources LoadModel_glTF(const ModelPathInfo& pathInfo);
 
         static void UpdateModelMatrix();
         static void ResetModelScale();
 
-        static Vector<ModelPathInfo> mModelPathList;
+        static Map<ModelType, UniquePtr<ModelLoaderSubsystem>> mSubsystems;
+
+        static Vector<ModelPathInfo> mModelPathInfoList;
         static int mCurrentSelectModelIndex;
 
         static float mModelScale;

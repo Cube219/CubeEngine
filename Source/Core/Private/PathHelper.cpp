@@ -25,4 +25,17 @@ namespace cube
 
         return path.substr(separatorIndex + 1);
     }
+
+    StringView PathHelper::GetExtension(StringView path)
+    {
+        for (int i = (int)path.size() - 1; i >= 0; --i)
+        {
+            if (path[i] == CUBE_T('.'))
+            {
+                return path.substr(i + 1);
+            }
+        }
+
+        return StringView();
+    }
 } // namespace cube

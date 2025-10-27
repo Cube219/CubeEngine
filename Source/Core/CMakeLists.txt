@@ -34,6 +34,10 @@ set(PRIVATE_FILES
     Private/Renderer/TextureManager.h
     Private/Systems/CameraSystem.cpp
     Private/Systems/CameraSystem.h
+    Private/Systems/ModelLoaderSubsystem_glTF.cpp
+    Private/Systems/ModelLoaderSubsystem_glTF.h
+    Private/Systems/ModelLoaderSubsystem_obj.cpp
+    Private/Systems/ModelLoaderSubsystem_obj.h
     Private/Systems/ModelLoaderSystem.cpp
     Private/Systems/ModelLoaderSystem.h
     Private/Systems/StatsSystem.cpp

@@ -2,8 +2,6 @@
 
 # Models downloaded from Morgan McGuire's Computer Graphics Archive https://casual-effects.com/data
 
-# TODO: https://casual-effects.com/data/
-
 echo "Fetching/Updating $DST_DIR..."
 
 if [ -d "$DST_DIR/.git" ]; then
