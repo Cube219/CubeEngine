@@ -16,7 +16,7 @@ namespace cube
 
         enum class SamplerAddressMode
         {
-            Warp,
+            Wrap,
             Mirror,
             Clamp,
             Border,

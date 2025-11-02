@@ -6,17 +6,18 @@
 
 namespace cube
 {
+    class MetalDevice;
+
     namespace gapi
     {
         class MetalSampler : public Sampler
         {
         public:
-            MetalSampler(const SamplerCreateInfo& info)
-            {
-            }
-            virtual ~MetalSampler()
-            {
-            }
+            MetalSampler(const SamplerCreateInfo& info, MetalDevice& device);
+            virtual ~MetalSampler();
+
+        private:
+            id<MTLSamplerState> mSamplerState;
         };
     } // namespace gapi
 } // namespace cube

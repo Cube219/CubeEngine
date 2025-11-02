@@ -85,7 +85,7 @@ namespace cube
             desc.allowGPUOptimizedContents = (info.usage != ResourceUsage::GPUtoCPU);
 
             mRowPitch = info.width * formatInfo.bytes;
-            mTexture = [device.GetDevice() newTextureWithDescriptor:desc];
+            mTexture = [device.GetMTLDevice() newTextureWithDescriptor:desc];
             CHECK(mTexture);
             mTexture.label = String_Convert<NSString*>(info.debugName);
 

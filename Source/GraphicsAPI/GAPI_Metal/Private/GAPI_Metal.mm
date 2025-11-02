@@ -58,7 +58,7 @@ namespace cube
         mMainDevice = mDevices[0];
         CHECK(mMainDevice->CheckFeatureRequirements());
 
-        mCommandQueue = [mMainDevice->GetDevice() newCommandQueue];
+        mCommandQueue = [mMainDevice->GetMTLDevice() newCommandQueue];
 
         InitializeImGUI(initInfo.imGUI);
         MetalShaderCompiler::Initialize(mMainDevice);
@@ -176,7 +176,7 @@ namespace cube
 
     SharedPtr<gapi::Sampler> GAPI_Metal::CreateSampler(const gapi::SamplerCreateInfo& info)
     {
-        return std::make_shared<gapi::MetalSampler>(info);
+        return std::make_shared<gapi::MetalSampler>(info, *mMainDevice);
     }
 
     SharedPtr<gapi::Shader> GAPI_Metal::CreateShader(const gapi::ShaderCreateInfo& info)
@@ -200,7 +200,7 @@ namespace cube
 
     SharedPtr<gapi::Viewport> GAPI_Metal::CreateViewport(const gapi::ViewportCreateInfo& info)
     {
-        return std::make_shared<gapi::MetalViewport>(mMainDevice->GetDevice(), mImGUIView, info);
+        return std::make_shared<gapi::MetalViewport>(mMainDevice->GetMTLDevice(), mImGUIView, info);
     }
 
     gapi::TimestampList GAPI_Metal::GetLastTimestampList()
@@ -215,7 +215,7 @@ namespace cube
             .logicalCurrentUsage = 0, .logicalMaximumUsage = 0
         };
 
-        res.logicalCurrentUsage = mMainDevice->GetDevice().currentAllocatedSize;
+        res.logicalCurrentUsage = mMainDevice->GetMTLDevice().currentAllocatedSize;
         return res;
     }
 
@@ -242,7 +242,7 @@ namespace cube
             NSRect windowFrame = window.contentView.bounds;
             mImGUIView = [[CubeImGUIMTKView alloc]
                 initWithFrame:windowFrame
-                device:mMainDevice->GetDevice()
+                device:mMainDevice->GetMTLDevice()
             ];
             mImGUIView.delegate = mImGUIView;
             mImGUIView.paused = YES;
@@ -253,7 +253,7 @@ namespace cube
         });
 
         ImGui_ImplOSX_Init(mImGUIView);
-        ImGui_ImplMetal_Init(mMainDevice->GetDevice());
+        ImGui_ImplMetal_Init(mMainDevice->GetMTLDevice());
 
         // Start new frame before starting ImGUI loop in Engine class
         mRenderPassDescriptor = mImGUIView.currentRenderPassDescriptor;

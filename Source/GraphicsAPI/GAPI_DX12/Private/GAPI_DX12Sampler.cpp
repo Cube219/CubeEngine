@@ -25,7 +25,7 @@ namespace cube
         {
             switch (mode)
             {
-            case SamplerAddressMode::Warp:
+            case SamplerAddressMode::Wrap:
                 return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
             case SamplerAddressMode::Mirror:
                 return D3D12_TEXTURE_ADDRESS_MODE_MIRROR;

@@ -16,6 +16,7 @@ set(PUBLIC_FILES
 set(PRIVATE_FILES
     Private/GAPI_Metal.mm
     Private/GAPI_MetalBuffer.mm
+    Private/GAPI_MetalSampler.mm
     Private/GAPI_MetalShader.mm
     Private/GAPI_MetalTexture.mm
     Private/GAPI_MetalViewport.mm

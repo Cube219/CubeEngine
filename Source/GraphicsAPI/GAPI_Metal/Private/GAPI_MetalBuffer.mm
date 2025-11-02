@@ -23,7 +23,7 @@ namespace cube
                 break;
             }
 
-            mBuffer = [device.GetDevice() newBufferWithLength:info.size options:resourceOptions];
+            mBuffer = [device.GetMTLDevice() newBufferWithLength:info.size options:resourceOptions];
             CHECK(mBuffer);
             mBuffer.label = String_Convert<NSString*>(info.debugName);
         }

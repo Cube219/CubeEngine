@@ -20,7 +20,7 @@ namespace cube
 
         bool CheckFeatureRequirements();
 
-        id<MTLDevice> GetDevice() const { return mDevice; }
+        id<MTLDevice> GetMTLDevice() const { return mDevice; }
 
         MetalArgumentBufferManager& GetArgumentBufferManager() { return mArgumentBufferManager; }
 
