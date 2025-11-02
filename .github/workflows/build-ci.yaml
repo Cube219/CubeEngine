@@ -1,0 +1,27 @@
+name: Build CI
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4.2.2
+
+    - name: Build Project
+      uses: threeal/cmake-action@v2.1.0
+
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4.2.2
+
+    - name: Build Project
+      uses: threeal/cmake-action@v2.1.0
