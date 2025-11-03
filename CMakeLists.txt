@@ -63,6 +63,7 @@ if(PLATFORM_WINDOWS)
     add_subdirectory("ThirdParty/directx-headers")
     add_subdirectory("ThirdParty/DirectXAgilitySDK")
     add_subdirectory("ThirdParty/dxc")
+    add_subdirectory("ThirdParty/WinPixEventRuntime")
 endif()
 
 add_subdirectory("Source/Base")

@@ -18,6 +18,9 @@ namespace cube
             void End() override {}
             void Reset() override {}
 
+            virtual void BeginEvent(StringView name) override {}
+            virtual void EndEvent() override {}
+
             void SetViewports(ArrayView<Viewport> viewports) override {}
             void SetScissors(ArrayView<ScissorRect> scissors) override {}
             void SetPrimitiveTopology(PrimitiveTopology primitiveTopology) override {}

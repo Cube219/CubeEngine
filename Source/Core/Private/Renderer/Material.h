@@ -50,6 +50,8 @@ namespace cube
 
         SharedPtr<MaterialShaderParameters> GenerateShaderParameters() const;
 
+        StringView GetDebugName() const { return mDebugName; }
+
     private:
         friend class MaterialShaderManager;
 
@@ -61,6 +63,8 @@ namespace cube
         Vector4 mConstantBaseColor;
         Array<SharedPtr<TextureResource>, 5> mTextures;
         int mSamplerIndex;
+
+        String mDebugName;
     };
 
     class MaterialShaderManager

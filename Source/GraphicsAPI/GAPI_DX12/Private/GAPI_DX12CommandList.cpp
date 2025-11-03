@@ -1,5 +1,7 @@
 #include "GAPI_DX12CommandList.h"
 
+#include <WinPixEventRuntime/pix3.h>
+
 #include "Allocator/FrameAllocator.h"
 #include "DX12Device.h"
 #include "GAPI_DX12Buffer.h"
@@ -61,7 +63,9 @@ namespace cube
 
         void DX12CommandList::End()
         {
-            CHECK(mState == State::Writing);
+            CHECK(IsWriting());
+
+            CHECK_FORMAT(mCurrentEventNameList.empty(), "Not all events are ended.");
 
             if (mHasTimestampQuery)
             {
@@ -88,9 +92,28 @@ namespace cube
             mState = State::Initial;
         }
 
+        void DX12CommandList::BeginEvent(StringView name)
+        {
+            CHECK(IsWriting());
+
+            AnsiString nameAnsi = String_Convert<AnsiString>(name);
+            mCurrentEventNameList.push_back(std::move(nameAnsi));
+
+            PIXBeginEvent(mCommandList.Get(), PIX_COLOR(0xff, 0xff, 0xff), mCurrentEventNameList.back().c_str());
+        }
+
+        void DX12CommandList::EndEvent()
+        {
+            CHECK(IsWriting());
+            CHECK_FORMAT(mCurrentEventNameList.size() > 0, "Try to end event but none of events are set currently.");
+
+            PIXEndEvent(mCommandList.Get());
+            mCurrentEventNameList.pop_back();
+        }
+
         void DX12CommandList::SetViewports(ArrayView<Viewport> viewports)
         {
-            CHECK(mState == State::Writing);
+            CHECK(IsWriting());
 
             FrameVector<D3D12_VIEWPORT> d3d12Viewports(viewports.size());
             for (int i = 0; i < viewports.size(); ++i)
@@ -111,7 +134,7 @@ namespace cube
 
         void DX12CommandList::SetScissors(ArrayView<ScissorRect> scissors)
         {
-            CHECK(mState == State::Writing);
+            CHECK(IsWriting());
 
             FrameVector<D3D12_RECT> d3d12Rects(scissors.size());
             for (int i = 0; i < scissors.size(); ++i)
@@ -128,21 +151,21 @@ namespace cube
 
         void DX12CommandList::SetPrimitiveTopology(PrimitiveTopology primitiveTopology)
         {
-            CHECK(mState == State::Writing);
+            CHECK(IsWriting());
 
             mCommandList->IASetPrimitiveTopology(ConvertToDX12PrimitiveTopology(primitiveTopology));
         }
 
         void DX12CommandList::SetGraphicsPipeline(SharedPtr<GraphicsPipeline> graphicsPipeline)
         {
-            CHECK(mState == State::Writing);
+            CHECK(IsWriting());
 
             mCommandList->SetPipelineState(dynamic_cast<DX12GraphicsPipeline*>(graphicsPipeline.get())->GetPipelineState());
         }
 
         void DX12CommandList::SetRenderTargets(ArrayView<ColorAttachment> colors, DepthStencilAttachment depthStencil)
         {
-            CHECK(mState == State::Writing);
+            CHECK(IsWriting());
 
             FrameVector<D3D12_CPU_DESCRIPTOR_HANDLE> rtvHandles(colors.size());
             for (int i = 0; i < colors.size(); ++i)
@@ -186,7 +209,7 @@ namespace cube
 
         void DX12CommandList::BindVertexBuffers(Uint32 startIndex, ArrayView<SharedPtr<Buffer>> buffers, ArrayView<Uint32> offsets)
         {
-            CHECK(mState == State::Writing);
+            CHECK(IsWriting());
             CHECK(buffers.size() == offsets.size());
 
             FrameVector<D3D12_VERTEX_BUFFER_VIEW> d3d12VertexBufferViews(buffers.size());
@@ -209,7 +232,7 @@ namespace cube
 
         void DX12CommandList::BindIndexBuffer(SharedPtr<Buffer> buffer, Uint32 offset)
         {
-            CHECK(mState == State::Writing);
+            CHECK(IsWriting());
             CHECK(buffer->GetType() == BufferType::Index);
 
             const DX12Buffer* dx12Buffer = dynamic_cast<DX12Buffer*>(buffer.get());
@@ -225,21 +248,21 @@ namespace cube
 
         void DX12CommandList::Draw(Uint32 numVertices, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance)
         {
-            CHECK(mState == State::Writing);
+            CHECK(IsWriting());
 
             mCommandList->DrawInstanced(numVertices, numInstances, baseVertex, baseInstance);
         }
 
         void DX12CommandList::DrawIndexed(Uint32 numIndices, Uint32 baseIndex, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance)
         {
-            CHECK(mState == State::Writing);
+            CHECK(IsWriting());
 
             mCommandList->DrawIndexedInstanced(numIndices, numInstances, baseIndex, baseVertex, baseInstance);
         }
 
         void DX12CommandList::SetShaderVariablesLayout(SharedPtr<ShaderVariablesLayout> shaderVariablesLayout)
         {
-            CHECK(mState == State::Writing);
+            CHECK(IsWriting());
 
             if (!mIsDescriptorHeapSet)
             {
@@ -257,7 +280,7 @@ namespace cube
 
         void DX12CommandList::SetShaderVariableConstantBuffer(Uint32 index, SharedPtr<Buffer> constantBuffer)
         {
-            CHECK(mState == State::Writing);
+            CHECK(IsWriting());
             CHECK(mIsShaderVariableLayoutSet);
             CHECK(constantBuffer->GetType() == BufferType::Constant);
 
@@ -269,14 +292,14 @@ namespace cube
 
         void DX12CommandList::BindTexture(SharedPtr<Texture> texture)
         {
-            CHECK(mState == State::Writing);
+            CHECK(IsWriting());
 
             // Just bind the object
         }
 
         void DX12CommandList::BindSampler(SharedPtr<Sampler> sampler)
         {
-            CHECK(mState == State::Writing);
+            CHECK(IsWriting());
 
             // Just bind the object
         }
@@ -288,7 +311,7 @@ namespace cube
 
         void DX12CommandList::ResourceTransition(ArrayView<TransitionState> states)
         {
-            CHECK(mState == State::Writing);
+            CHECK(IsWriting());
 
             FrameVector<D3D12_RESOURCE_BARRIER> barriers;
             barriers.reserve(states.size());
@@ -370,21 +393,21 @@ namespace cube
 
         void DX12CommandList::SetComputePipeline(SharedPtr<ComputePipeline> computePipeline)
         {
-            CHECK(mState == State::Writing);
+            CHECK(IsWriting());
 
             mCommandList->SetPipelineState(dynamic_cast<DX12ComputePipeline*>(computePipeline.get())->GetPipelineState());
         }
 
         void DX12CommandList::Dispatch(Uint32 threadGroupX, Uint32 threadGroupY, Uint32 threadGroupZ)
         {
-            CHECK(mState == State::Writing);
+            CHECK(IsWriting());
 
             mCommandList->Dispatch(threadGroupX, threadGroupY, threadGroupZ);
         }
 
         void DX12CommandList::InsertTimestamp(const String& name)
         {
-            CHECK(mState == State::Writing);
+            CHECK(IsWriting());
 
             int index = mQueryManager.AddTimestamp(name);
             mCommandList->EndQuery(mQueryManager.GetCurrentTimestampHeap(), D3D12_QUERY_TYPE_TIMESTAMP, index);

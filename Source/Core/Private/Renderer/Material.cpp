@@ -14,8 +14,9 @@ namespace cube
 {
     Material::Material(StringView debugName)
         : mConstantBaseColor(1.0f, 0.0f, 0.80392f) // Magenta
+        , mDebugName(std::move(debugName))
     {
-        FrameString bufferDebugName = Format<FrameString>(CUBE_T("[{0}] MaterialBuffer"), debugName);
+        FrameString bufferDebugName = Format<FrameString>(CUBE_T("[{0}] MaterialBuffer"), mDebugName);
 
         mTextures.fill(nullptr);
 

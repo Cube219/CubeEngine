@@ -82,6 +82,7 @@ target_link_libraries(CE-GAPI_DX12
         Microsoft::DirectX-Headers
         dxc
         imgui
+        winpixeventruntime
         CE-Base
         CE-Logger
         CE-Platform
@@ -100,6 +101,7 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         $<TARGET_FILE:dxc_dxcompiler>
         $<TARGET_FILE:dxc_dxil>
+        $<TARGET_FILE:winpixeventruntime>
         $<TARGET_FILE_DIR:CE-GAPI_DX12>
     COMMAND_EXPAND_LISTS
 )

@@ -89,7 +89,7 @@ namespace cube
                 DSV
             };
             ResourceType resourceType;
-            
+
             SharedPtr<Buffer> buffer = nullptr;
             SharedPtr<TextureSRV> srv = nullptr;
             SharedPtr<TextureUAV> uav = nullptr;
@@ -114,6 +114,9 @@ namespace cube
             virtual void Begin() = 0;
             virtual void End() = 0;
             virtual void Reset() = 0;
+
+            virtual void BeginEvent(StringView name) = 0;
+            virtual void EndEvent() = 0;
 
             virtual void SetViewports(ArrayView<Viewport> viewports) = 0;
             virtual void SetScissors(ArrayView<ScissorRect> scissors) = 0;
