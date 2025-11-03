@@ -263,7 +263,8 @@ namespace cube
                     .vertexOffset = vertexOffset,
                     .indexOffset = indexOffset,
                     .numIndices = numIndices,
-                    .materialIndex = prim.material
+                    .materialIndex = prim.material,
+                    .debugName = String_Convert<String>(mesh.name)
                 });
 
                 vertices.insert(vertices.end(), numVertices, {});

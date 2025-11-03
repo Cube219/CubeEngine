@@ -20,6 +20,8 @@ set(PRIVATE_FILES
     Private/Renderer/Renderer.h
     Private/Renderer/RenderObject.cpp
     Private/Renderer/RenderObject.h
+    Private/Renderer/RenderProfiling.cpp
+    Private/Renderer/RenderProfiling.h
     Private/Renderer/SamplerManager.cpp
     Private/Renderer/SamplerManager.h
     Private/Renderer/Shader.cpp

@@ -32,6 +32,9 @@ namespace cube
             void End() override;
             void Reset() override;
 
+            virtual void BeginEvent(StringView name) override;
+            virtual void EndEvent() override;
+
             void SetViewports(ArrayView<SharedPtr<Viewport>> viewports) override;
             void SetScissors(ArrayView<ScissorRect> scissors) override;
             void SetPrimitiveTopology(PrimitiveTopology primitiveTopology) override;
@@ -62,6 +65,8 @@ namespace cube
 
             void Submit() override;
 
+            bool IsWriting() const { return mState == State::Writing; }
+
         private:
             enum class State
             {
@@ -83,6 +88,7 @@ namespace cube
             bool mHasTimestampQuery = false;
 
             Vector<SharedPtr<DX12APIObject>> mBoundObjects;
+            Vector<AnsiString> mCurrentEventNameList;
         };
     } // namespace gapi
 } // namespace cube

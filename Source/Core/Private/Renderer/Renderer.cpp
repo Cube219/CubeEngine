@@ -9,15 +9,13 @@
 #include "GAPI_Buffer.h"
 #include "GAPI_CommandList.h"
 #include "GAPI_Shader.h"
-#include "GAPI_ShaderVariable.h"
-#include "GAPI_Pipeline.h"
 #include "GAPI_Viewport.h"
 #include "Material.h"
 #include "MatrixUtility.h"
 #include "MeshHelper.h"
 #include "Platform.h"
+#include "RenderProfiling.h"
 #include "Shader.h"
-#include "Texture.h"
 
 namespace cube
 {
@@ -279,10 +277,12 @@ namespace cube
         };
 
         mCommandList->Reset();
+        mCommandList->Begin();
         {
-            mCommandList->Begin();
 
             mCommandList->InsertTimestamp(CUBE_T("Begin"));
+
+            GPU_EVENT_SCOPE(mCommandList, CUBE_T("Frame"));
 
             mCommandList->SetViewports({ &mViewport, 1 });
             gapi::ScissorRect scissor = {
@@ -315,6 +315,8 @@ namespace cube
 
             Uint32 vertexBufferOffset = 0;
             {
+                GPU_EVENT_SCOPE(mCommandList, CUBE_T("Draw Center Object"));
+
                 // Center object
                 SharedPtr<gapi::Buffer> vertexBuffer = mMesh->GetVertexBuffer();
                 mCommandList->BindVertexBuffers(0, { &vertexBuffer, 1 }, { &vertexBufferOffset, 1 });
@@ -341,6 +343,8 @@ namespace cube
                         currentMaterial = mDefaultMaterial;
                     }
 
+                    GPU_EVENT_SCOPE(mCommandList, Format<FrameString>(CUBE_T("Mesh: {0}, Material: {1}"), subMesh.debugName, currentMaterial->GetDebugName()));
+
                     if (currentMaterial != lastMaterial)
                     {
                         SetGraphicsPipeline(mShaderManager.GetMaterialShaderManager().GetOrCreateMaterialPipeline(currentMaterial));
@@ -353,6 +357,7 @@ namespace cube
             }
 
             {
+                GPU_EVENT_SCOPE(mCommandList, CUBE_T("Draw Axis"));
                 // Axis
                 SetGraphicsPipeline(mShaderManager.GetMaterialShaderManager().GetOrCreateMaterialPipeline(mDefaultMaterial));
 
@@ -408,8 +413,8 @@ namespace cube
 
             mCommandList->InsertTimestamp(CUBE_T("End"));
 
-            mCommandList->End();
         }
+        mCommandList->End();
         mCommandList->Submit();
     }
 
