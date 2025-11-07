@@ -2,6 +2,7 @@
 
 #include "CoreHeader.h"
 
+#include <functional>
 #include <memory>
 
 #include "Allocator/AllocatorUtility.h"
@@ -22,6 +23,17 @@ namespace cube
     class ShaderParametersManager;
 
     // ===== ParameterTypeInfo =====
+    enum class ShaderParmeterType
+    {
+        Bool,
+        Int,
+        Float,
+        Float2,
+        Float3,
+        Float4,
+        Matrix,
+        Bindless
+    };
 
     template <typename T>
     struct ParameterTypeInfo
@@ -31,12 +43,11 @@ namespace cube
             memcpy(pBufferData, &data, sizeof(T));
         }
 
+        static constexpr bool writtenInBuffer = true;
         static constexpr Uint32 size = sizeof(T);
-        static constexpr Uint32 alignment = std::max((Uint32)sizeof(T), 4u);
     };
 
     // Boolean is treated as 4 bytes in HLSL
-    // TODO: Check the other shader languages
     template <>
     struct ParameterTypeInfo<bool>
     {
@@ -46,12 +57,10 @@ namespace cube
             memcpy(pBufferData, &v, sizeof(Uint32));
         }
 
+        static constexpr bool writtenInBuffer = true;
         static constexpr Uint32 size = sizeof(Uint32);
-        static constexpr Uint32 alignment = sizeof(Uint32);
     };
 
-    // Vector's alignment is the same as its element's alignment;
-    // TODO: Check the other shader languages
     template <>
     struct ParameterTypeInfo<Vector2>
     {
@@ -61,8 +70,8 @@ namespace cube
             memcpy(pBufferData, &f, sizeof(Float2));
         }
 
+        static constexpr bool writtenInBuffer = true;
         static constexpr Uint32 size = sizeof(Float2);
-        static constexpr Uint32 alignment = sizeof(float);
     };
 
     template <>
@@ -74,8 +83,8 @@ namespace cube
             memcpy(pBufferData, &f, sizeof(Float3));
         }
 
+        static constexpr bool writtenInBuffer = true;
         static constexpr Uint32 size = sizeof(Float3);
-        static constexpr Uint32 alignment = sizeof(float);
     };
 
     template <>
@@ -87,8 +96,8 @@ namespace cube
             memcpy(pBufferData, &f, sizeof(Float4));
         }
 
+        static constexpr bool writtenInBuffer = true;
         static constexpr Uint32 size = sizeof(Float4);
-        static constexpr Uint32 alignment = sizeof(float);
     };
     
     template <>
@@ -111,8 +120,8 @@ namespace cube
             memcpy(pBufferData, &floatMatrix, sizeof(floatMatrix));
         }
 
+        static constexpr bool writtenInBuffer = true;
         static constexpr Uint32 size = sizeof(Matrix);
-        static constexpr Uint32 alignment = sizeof(Vector4);
     };
 
     template <>
@@ -123,11 +132,30 @@ namespace cube
             memcpy(pBufferData, &data, sizeof(BindlessResource));
         }
 
+        static constexpr bool writtenInBuffer = true;
         static constexpr Uint32 size = sizeof(BindlessResource);
-        static constexpr Uint32 alignment = sizeof(int);
     };
 
     // ===== ShaderParameters =====
+    class ShaderParameters;
+
+    struct ShaderParameterInfo
+    {
+        const char* name;
+        int offset;
+        int size;
+        bool writtenInBuffer;
+    };
+
+    template <typename TShaderParameters>
+        requires std::is_base_of_v<ShaderParameters, TShaderParameters>
+    struct ShaderParametersInfo
+    {
+        static inline bool isInitialized = true;
+
+        static inline Vector<ShaderParameterInfo> parameterInfos;
+        static inline Uint32 totalBufferSize;
+    };
 
     struct ShaderParametersPooledBuffer
     {
@@ -143,21 +171,21 @@ namespace cube
 
         SharedPtr<gapi::Buffer> GetBuffer() const { return mPooledBuffer.buffer; }
 
-    protected:
-        template <typename T>
-        static Uint32 CalculateOffset(Uint32 currentOffset)
-        {
-            using TTypeInfo = ParameterTypeInfo<T>;
-
-            Uint32 alignedOffset = Align(currentOffset, TTypeInfo::alignment);
-            // If the data cross the 16 bytes boundary, it should be aligned to 16.
-            if (alignedOffset / 16 != (alignedOffset + TTypeInfo::size - 1) / 16)
-            {
-                alignedOffset = Align(alignedOffset, 16u);
-            }
-
-            return alignedOffset;
-        }
+    // protected:
+    //     template <typename T>
+    //     static Uint32 CalculateOffset(Uint32 currentOffset)
+    //     {
+    //         using TTypeInfo = ParameterTypeInfo<T>;
+    //
+    //         Uint32 alignedOffset = Align(currentOffset, TTypeInfo::alignment);
+    //         // If the data cross the 16 bytes boundary, it should be aligned to 16.
+    //         if (alignedOffset / 16 != (alignedOffset + TTypeInfo::size - 1) / 16)
+    //         {
+    //             alignedOffset = Align(alignedOffset, 16u);
+    //         }
+    //
+    //         return alignedOffset;
+    //     }
 
     protected:
         // Only manager can create shader parameters
@@ -187,62 +215,88 @@ private: \
         return CUBE_T(#parametersType); \
     } \
     \
-    struct ParameterInfoBegin \
+    struct ParameterIterHelperBegin \
     { \
-        static Uint32 WriteToBuffer(const ParametersType& params, Byte* pBufferData) { return 0; } \
-        static Uint32 GetTotalSize(const ParametersType& params) { return 0; } \
+        /* Return next index */ \
+        static int WriteToBuffer(const ParametersType& params, Byte* pBufferData) { return 0; } \
+        static int InitializeParameterInfo(ParametersType& params, std::function<void(ShaderParameterInfo&)>& func) { return 0; } \
     }; \
-    typedef ParameterInfoBegin
+    typedef ParameterIterHelperBegin
 
-#define CUBE_SHADER_PARAMETER(type, name) \
-    ParameterInfo_##name##_Prev; \
+#define CUBE_SHADER_PARAMETER(type, varName) \
+    ParameterIterHelper_##varName##_Prev; \
     \
-    struct ParameterInfo_##name \
+    struct ParameterIterHelper_##varName \
     { \
-        static Uint32 WriteToBuffer(const ParametersType& params, Byte* pBufferData) \
+        static int WriteToBuffer(const ParametersType& params, Byte* pBufferData) \
         { \
-            Uint32 offset = ParameterInfo_##name##_Prev::WriteToBuffer(params, pBufferData); \
+            int index = ParameterIterHelper_##varName##_Prev::WriteToBuffer(params, pBufferData); \
             \
-            Uint32 alignedOffset = ShaderParameters::CalculateOffset<type>(offset); \
-            if constexpr (CUBE_LOG_PARAMETER_WRITING) \
+            const ShaderParameterInfo& paramInfo = ShaderParametersInfo<ParametersType>::parameterInfos[index]; \
+            CHECK_FORMAT(strcmp(paramInfo.name, #varName) == 0, "Mismatch shader parameter name! (Info: {0} / Variable: {1})", paramInfo.name, #varName); \
+            CHECK_FORMAT(paramInfo.writtenInBuffer == ParameterTypeInfo<type>::writtenInBuffer, "Mismatch writtenInBuffer! (Info: {0} / Variable: {1})", paramInfo.writtenInBuffer, ParameterTypeInfo<type>::writtenInBuffer); \
+            if (paramInfo.writtenInBuffer) \
             { \
-                CUBE_LOG(Info, Renderer, "Parameter {0} - offset: {1} / align: {2} / size: {3}", CUBE_T(#name), offset, alignedOffset, ParameterTypeInfo<type>::size); \
+                if constexpr (CUBE_LOG_PARAMETER_WRITING) \
+                { \
+                    CUBE_LOG(Info, Renderer, "Parameter {0} - offset: {1} / size: {2}", CUBE_T(#varName), paramInfo.offset, paramInfo.size); \
+                } \
+                /* TODO: Override write to buffer in GAPI? */ \
+                CHECK_FORMAT(paramInfo.size == ParameterTypeInfo<type>::size, "Mismatch size! (Info: {0} / Variable: {1})", paramInfo.size, ParameterTypeInfo<type>::size); \
+                \
+                ParameterTypeInfo<type>::WriteToBuffer(pBufferData + paramInfo.offset, params.varName); \
             } \
-            ParameterTypeInfo<type>::WriteToBuffer(pBufferData + alignedOffset, params.name); \
             \
-            return alignedOffset + ParameterTypeInfo<type>::size; \
+            return index + 1; \
         } \
-        static Uint32 GetTotalSize(const ParametersType& params) \
+        static int InitializeParameterInfo(ParametersType& params, std::function<void(ShaderParameterInfo&)>& func) \
         { \
-            Uint32 offset = ParameterInfo_##name##_Prev::GetTotalSize(params); \
-            return offset + ParameterTypeInfo<type>::size; \
+            int index = ParameterIterHelper_##varName##_Prev::InitializeParameterInfo(params, func); \
+            \
+            ShaderParametersInfo<ParametersType>::parameterInfos.emplace_back(); \
+            auto& paramInfo = ShaderParametersInfo<ParametersType>::parameterInfos.back(); \
+            \
+            paramInfo.name = #varName; \
+            paramInfo.writtenInBuffer = ParameterTypeInfo<type>::writtenInBuffer; \
+            func(paramInfo); \
+            \
+            ShaderParametersInfo<ParametersType>::totalBufferSize = std::max(ShaderParametersInfo<ParametersType>::totalBufferSize, (Uint32)paramInfo.offset + paramInfo.size); \
+            \
+            return index + 1; \
         } \
     }; \
-    public: \
-    type name; \
-    private: \
-    typedef ParameterInfo_##name
+    \
+public: \
+    type varName; \
+    \
+private: \
+    typedef ParameterIterHelper_##varName
 
 #define CUBE_END_SHADER_PARAMETERS \
-    ParameterInfoEnd_Prev; \
+    ParameterIterHelperEnd_Prev; \
     \
-    struct ParameterInfoEnd \
+    struct ParameterIterHelperEnd \
     { \
         static Uint32 WriteToBuffer(const ParametersType& params, Byte* pBufferData) \
         { \
-            return ParameterInfoEnd_Prev::WriteToBuffer(params, pBufferData); \
+            return ParameterIterHelperEnd_Prev::WriteToBuffer(params, pBufferData); \
         } \
-        static Uint32 GetTotalSize(const ParametersType& params) \
+        static void InitializeParameterInfo(ParametersType& params, std::function<void(ShaderParameterInfo&)>& func) \
         { \
-            return ParameterInfoEnd_Prev::GetTotalSize(params); \
+            ParameterIterHelperEnd_Prev::InitializeParameterInfo(params, func); \
+            \
+            ShaderParametersInfo<ParametersType>::isInitialized = true; \
         } \
     }; \
     \
-    public: \
+public: \
     void WriteAllParametersToBuffer() \
     { \
-        Uint32 endOffset = ParameterInfoEnd::WriteToBuffer(*this, mBufferPointer); \
-        CHECK(endOffset <= mPooledBuffer.buffer->GetSize()); \
+        ParameterIterHelperEnd::WriteToBuffer(*this, mBufferPointer); \
+    } \
+    void InitializeParameterInfo(ParametersType& params, std::function<void(ShaderParameterInfo&)>& func) \
+    { \
+        ParameterIterHelperEnd::InitializeParameterInfo(params, func); \
     }
 
     // ===== ShaderParametersManager =====
@@ -263,7 +317,7 @@ private: \
         SharedPtr<T> CreateShaderParameters()
         {
             SharedPtr<T> parameters = std::make_shared<T>(*this);
-            InitializeShaderParameters(parameters.get(), sizeof(T), T::GetDebugName());
+            InitializeShaderParameters(parameters.get(), ShaderParametersInfo<T>::totalBufferSize, T::GetDebugName());
 
             return parameters;
         }
