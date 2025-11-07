@@ -8,6 +8,7 @@ set(PUBLIC_FILES
     Public/GAPI_Pipeline.h
     Public/GAPI_Resource.h
     Public/GAPI_Shader.h
+    Public/GAPI_ShaderParameter.h
     Public/GAPI_ShaderVariable.h
     Public/GAPI_SwapChain.h
     Public/GAPI_Texture.h

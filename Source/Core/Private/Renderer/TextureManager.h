@@ -4,7 +4,7 @@
 
 #include "GAPI_Buffer.h"
 #include "Renderer/RenderTypes.h"
-#include "ShaderParameter.h"
+#include "Renderer/ShaderParameter.h"
 
 namespace cube
 {

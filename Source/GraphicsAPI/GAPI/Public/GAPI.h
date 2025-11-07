@@ -20,6 +20,7 @@ namespace cube
         class Shader;
         struct ShaderCreateInfo;
         struct ShaderCompileResult;
+        class ShaderParameterHelper;
         class Buffer;
         struct BufferCreateInfo;
         class Texture;
@@ -96,6 +97,7 @@ namespace cube
         virtual void WaitAllGPUSync() = 0;
 
         const Info& GetInfo() const { return mInfo; }
+        virtual const gapi::ShaderParameterHelper& GetShaderParameterHelper() const = 0;
 
         virtual SharedPtr<gapi::Buffer> CreateBuffer(const gapi::BufferCreateInfo& info) = 0;
         virtual SharedPtr<gapi::CommandList> CreateCommandList(const gapi::CommandListCreateInfo& info) = 0;

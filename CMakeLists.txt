@@ -46,6 +46,7 @@ if(PLATFORM_WINDOWS)
 endif()
 if(PLATFORM_MACOS)
     add_definitions(-DCUBE_PLATFORM_MACOS)
+    add_compile_options(-Wno-invalid-offsetof)
 endif()
 
 # Output directory

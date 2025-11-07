@@ -35,6 +35,8 @@ namespace cube
         virtual void EndRenderingFrame() override;
         virtual void WaitAllGPUSync() override;
 
+        virtual const gapi::ShaderParameterHelper& GetShaderParameterHelper() const override { return *mShaderParameterHelper.get(); }
+
         virtual SharedPtr<gapi::Buffer> CreateBuffer(const gapi::BufferCreateInfo& info) override;
         virtual SharedPtr<gapi::CommandList> CreateCommandList(const gapi::CommandListCreateInfo& info) override;
         virtual SharedPtr<gapi::Fence> CreateFence(const gapi::FenceCreateInfo& info) override;
@@ -63,5 +65,7 @@ namespace cube
 
         Uint64 mCurrentGPUFrame;
         Uint32 mNumGPUSync;
+
+        UniquePtr<gapi::ShaderParameterHelper> mShaderParameterHelper;
     };
 } // namespace cube

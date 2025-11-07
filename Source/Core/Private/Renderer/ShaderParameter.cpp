@@ -1,4 +1,4 @@
-#include "ShaderParameter.h"
+#include "Renderer/ShaderParameter.h"
 
 #include "GAPI.h"
 
@@ -18,6 +18,7 @@ namespace cube
     void ShaderParametersManager::Initialize(GAPI* gapi, Uint32 numGPUSync)
     {
         mGAPI = gapi;
+        mShaderParameterHelper = &mGAPI->GetShaderParameterHelper();
         mBufferPools.resize(numGPUSync);
 
         mCurrentIndex = 0;
@@ -46,11 +47,16 @@ namespace cube
         pool.freedBufferIndices.clear();
     }
 
-    void ShaderParametersManager::InitializeShaderParameters(ShaderParameters* parameters, Uint32 bufferSize, StringView debugName)
+    void ShaderParametersManager::AllocateShaderParameters(ShaderParameters* parameters, const Vector<ShaderParameterInfo>& paramInfos, Uint32 bufferSize, StringView debugName)
     {
+        // Constant buffer size must be 256 byte aligned in HLSL.
+        if ((bufferSize & 255) != 0)
+        {
+            bufferSize = (bufferSize + 255) & ~255;
+        }
+
         parameters->mGPUSyncIndex = mCurrentIndex;
         parameters->mPooledBuffer = AllocateBuffer(bufferSize, debugName);
-        parameters->mBufferPointer = (Byte*)parameters->mPooledBuffer.buffer->Map();
     }
 
     ShaderParametersPooledBuffer ShaderParametersManager::AllocateBuffer(Uint32 size, StringView debugName)
@@ -91,7 +97,6 @@ namespace cube
         parameters.mPooledBuffer.buffer->SetDebugName(CUBE_T("PooledShaderParameter")); 
         pool.freedBufferIndices.push_back(parameters.mPooledBuffer.poolIndex);
 
-        parameters.mBufferPointer = nullptr;
         parameters.mPooledBuffer = { .buffer = nullptr, .poolIndex = 0 };
     }
 

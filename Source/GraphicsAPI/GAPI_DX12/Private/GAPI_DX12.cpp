@@ -13,6 +13,7 @@
 #include "GAPI_DX12Pipeline.h"
 #include "GAPI_DX12Sampler.h"
 #include "GAPI_DX12Shader.h"
+#include "GAPI_DX12ShaderParameter.h"
 #include "GAPI_DX12ShaderVariable.h"
 #include "GAPI_DX12SwapChain.h"
 #include "GAPI_DX12Texture.h"
@@ -169,11 +170,15 @@ namespace cube
 
         mCurrentGPUFrame = 0;
         SetNumGPUSync(initInfo.numGPUSync);
+
+        mShaderParameterHelper = std::make_unique<gapi::DX12ShaderParameterHelper>(*mMainDevice);
     }
 
     void GAPI_DX12::Shutdown(const ImGUIContext& imGUIInfo)
     {
         CUBE_LOG(Info, DX12, "Shutdown GAPI_DX12.");
+
+        mShaderParameterHelper = nullptr;
 
         DX12ShaderCompiler::Shutdown();
 

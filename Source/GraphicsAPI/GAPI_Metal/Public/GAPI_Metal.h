@@ -4,7 +4,6 @@
 
 #include "GAPI.h"
 
-#include "MetalDevice.h"
 #include "Platform.h"
 
 @interface CubeImGUIMTKView : MTKView <MTKViewDelegate>
@@ -13,6 +12,13 @@
 
 namespace cube
 {
+    class MetalDevice;
+
+    namespace gapi
+    {
+        class MetalShaderParameterHelper;
+    } // namespace gapi
+
     extern "C" CUBE_METAL_EXPORT GAPI* CreateGAPI();
 
     class CUBE_METAL_EXPORT GAPI_Metal : public GAPI
@@ -34,6 +40,8 @@ namespace cube
         virtual void BeginRenderingFrame() override;
         virtual void EndRenderingFrame() override;
         virtual void WaitAllGPUSync() override;
+
+        virtual const gapi::ShaderParameterHelper& GetShaderParameterHelper() const override;
 
         virtual SharedPtr<gapi::Buffer> CreateBuffer(const gapi::BufferCreateInfo& info) override;
         virtual SharedPtr<gapi::CommandList> CreateCommandList(const gapi::CommandListCreateInfo& info) override;
@@ -60,5 +68,7 @@ namespace cube
 
         ImGUIContext mImGUIContext;
         CubeImGUIMTKView* mImGUIView;
+
+        UniquePtr<gapi::MetalShaderParameterHelper> mShaderParameterHelper;
     };
 } // namespace cube

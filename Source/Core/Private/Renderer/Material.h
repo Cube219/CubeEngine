@@ -3,7 +3,7 @@
 #include "CoreHeader.h"
 
 #include "Renderer/RenderTypes.h"
-#include "ShaderParameter.h"
+#include "Renderer/ShaderParameter.h"
 #include "Vector.h"
 
 namespace cube
