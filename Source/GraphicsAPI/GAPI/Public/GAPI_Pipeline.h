@@ -2,6 +2,7 @@
 
 #include "GAPIHeader.h"
 
+#include "CubeString.h"
 #include "Flags.h"
 
 namespace cube

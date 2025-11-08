@@ -139,6 +139,7 @@ namespace cube
                 res |= (colorMaskFlags.IsSet(ColorMaskFlag::Red) ? D3D12_COLOR_WRITE_ENABLE_RED : 0);
                 res |= (colorMaskFlags.IsSet(ColorMaskFlag::Green) ? D3D12_COLOR_WRITE_ENABLE_GREEN : 0);
                 res |= (colorMaskFlags.IsSet(ColorMaskFlag::Blue) ? D3D12_COLOR_WRITE_ENABLE_BLUE : 0);
+                res |= (colorMaskFlags.IsSet(ColorMaskFlag::Alpha) ? D3D12_COLOR_WRITE_ENABLE_ALPHA : 0);
                 return res;
             };
 

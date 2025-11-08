@@ -166,12 +166,12 @@ namespace cube
 
     SharedPtr<gapi::GraphicsPipeline> GAPI_Metal::CreateGraphicsPipeline(const gapi::GraphicsPipelineCreateInfo& info)
     {
-        return std::make_shared<gapi::MetalGraphicsPipeline>(info);
+        return std::make_shared<gapi::MetalGraphicsPipeline>(info, *mMainDevice);
     }
 
     SharedPtr<gapi::ComputePipeline> GAPI_Metal::CreateComputePipeline(const gapi::ComputePipelineCreateInfo& info)
     {
-        return std::make_shared<gapi::MetalComputePipeline>(info);
+        return std::make_shared<gapi::MetalComputePipeline>(info, *mMainDevice);
     }
 
     SharedPtr<gapi::Sampler> GAPI_Metal::CreateSampler(const gapi::SamplerCreateInfo& info)

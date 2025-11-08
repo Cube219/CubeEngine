@@ -17,6 +17,8 @@ namespace cube
             MetalShader(MetalShaderCompileResult result, StringView warningMessage, StringView errorMessage);
             virtual ~MetalShader();
 
+            id<MTLFunction> GetMTLFunction() const { return mFunction; }
+
         private:
             id<MTLLibrary> mLibrary;
             id<MTLFunction> mFunction;
