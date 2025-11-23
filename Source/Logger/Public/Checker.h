@@ -99,12 +99,22 @@ namespace cube
         } \
     }
 
+#define NO_ENTRY_FORMAT(format, ...) \
+    { \
+        cube::Checker::ProcessFailedCheckFormatting(__FILE__, __LINE__, CUBE_T("No entry"), CUBE_T(format), ##__VA_ARGS__); \
+        if (cube::Checker::IsDebuggerAttached()) \
+        { \
+            CUBE_DEBUG_BREAK \
+        } \
+    }
+
 #else // CUBE_USE_CHECK
 
 #define CHECK(expr)
 #define CHECK_FORMAT(expr, format, ...)
 #define NOT_IMPLEMENTED()
 #define NO_ENTRY()
+#define NO_ENTRY_FORMAT(format, ...)
 
 #endif // CUBE_USE_CHECK
 } // namespace cube

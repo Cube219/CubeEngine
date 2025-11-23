@@ -10,8 +10,8 @@
 #include "GAPI_CommandList.h"
 #include "GAPI_Shader.h"
 #include "GAPI_ShaderVariable.h"
+#include "GAPI_SwapChain.h"
 #include "GAPI_Pipeline.h"
-#include "GAPI_Viewport.h"
 #include "Material.h"
 #include "MatrixUtility.h"
 #include "MeshHelper.h"
@@ -73,13 +73,37 @@ namespace cube
 
         mViewportWidth = platform::Platform::GetWindowWidth();
         mViewportHeight = platform::Platform::GetWindowHeight();
-        mViewport = mGAPI->CreateViewport({
+        mSwapChain = mGAPI->CreateSwapChain({
             .width = mViewportWidth,
             .height = mViewportHeight,
             .vsync = true,
             .backbufferCount = 2,
-            .debugName = CUBE_T("MainViewport")
+            .debugName = CUBE_T("MainSwapChain")
         });
+        mDepthStencilTexture = mGAPI->CreateTexture({
+            .usage = gapi::ResourceUsage::GPUOnly,
+            .format = gapi::ElementFormat::D32_Float,
+            .type = gapi::TextureType::Texture2D,
+            .flags = gapi::TextureFlag::DepthStencil,
+            .width = mViewportWidth,
+            .height = mViewportHeight,
+            .debugName = CUBE_T("MainDepthStencilTexture")
+        });
+        mDSV = mDepthStencilTexture->CreateDSV({});
+        mCommandList->Reset();
+        {
+            mCommandList->Begin();
+
+            mCommandList->ResourceTransition({
+                .resourceType =  gapi::TransitionState::ResourceType::DSV,
+                .dsv = mDSV,
+                .src = gapi::ResourceStateFlag::Common,
+                .dst = gapi::ResourceStateFlag::DepthWrite
+            });
+
+            mCommandList->End();
+            mCommandList->Submit();
+        }
 
         mDirectionalLightDirection = Vector3(1.0f, 1.0f, 1.0f).Normalized();
         mIsDirectionalLightDirty = true;
@@ -95,7 +119,10 @@ namespace cube
 
         ClearResources();
 
-        mViewport = nullptr;
+        mDSV = nullptr;
+        mDepthStencilTexture = nullptr;
+        mCurrentBackbufferRTV = nullptr;
+        mSwapChain = nullptr;
 
         mCommandList = nullptr;
 
@@ -150,7 +177,7 @@ namespace cube
         ImGui::End();
     }
 
-    void Renderer::Render()
+    void Renderer::RenderAndPresent()
     {
         mCurrentRenderingFrame++;
         mGAPI->BeginRenderingFrame();
@@ -158,7 +185,22 @@ namespace cube
 
         SetGlobalConstantBuffers();
 
-        mViewport->AcquireNextImage();
+        mSwapChain->AcquireNextImage();
+        mCurrentBackbufferRTV = mSwapChain->GetCurrentBackbufferRTV();
+        mCommandList->Reset();
+        {
+            mCommandList->Begin();
+            
+            mCommandList->ResourceTransition({
+                .resourceType =  gapi::TransitionState::ResourceType::RTV,
+                .rtv = mCurrentBackbufferRTV,
+                .src = gapi::ResourceStateFlag::Present,
+                .dst = gapi::ResourceStateFlag::RenderTarget
+            });
+
+            mCommandList->End();
+            mCommandList->Submit();
+        }
 
         mGAPI->OnBeforeRender();
 
@@ -171,9 +213,25 @@ namespace cube
             ImGui::Render();
         }
 
-        mGAPI->OnBeforePresent(mViewport.get());
-        mViewport->Present();
+        mGAPI->OnBeforePresent(mCurrentBackbufferRTV.get());
+        mCommandList->Reset();
+        {
+            mCommandList->Begin();
+
+            mCommandList->ResourceTransition({
+                .resourceType =  gapi::TransitionState::ResourceType::RTV,
+                .rtv = mCurrentBackbufferRTV,
+                .src = gapi::ResourceStateFlag::RenderTarget,
+                .dst = gapi::ResourceStateFlag::Present
+            });
+
+            mCommandList->End();
+            mCommandList->Submit();
+        }
+        mSwapChain->Present();
         mGAPI->OnAfterPresent();
+
+        mCurrentBackbufferRTV = nullptr;
 
         mGAPI->EndRenderingFrame();
     }
@@ -183,11 +241,12 @@ namespace cube
         mViewportWidth = width;
         mViewportHeight = height;
 
-        if (mViewport)
+        if (mSwapChain)
         {
             mGAPI->WaitAllGPUSync();
 
-            mViewport->Resize(width, height);
+            mCurrentBackbufferRTV = nullptr;
+            mSwapChain->Resize(width, height);
         }
     }
 
@@ -284,7 +343,13 @@ namespace cube
 
             mCommandList->InsertTimestamp(CUBE_T("Begin"));
 
-            mCommandList->SetViewports({ &mViewport, 1 });
+            gapi::Viewport viewport = {
+                .x = 0.0f,
+                .y = 0.0f,
+                .width = static_cast<float>(mViewportWidth),
+                .height = static_cast<float>(mViewportHeight)
+            };
+            mCommandList->SetViewports({ &viewport, 1 });
             gapi::ScissorRect scissor = {
                 .x = 0,
                 .y = 0,
@@ -294,17 +359,10 @@ namespace cube
             mCommandList->SetScissors({ &scissor, 1 });
             mCommandList->SetPrimitiveTopology(gapi::PrimitiveTopology::TriangleList);
 
-            mCommandList->ResourceTransition({
-                .resourceType =  gapi::TransitionState::ResourceType::ViewportBackBuffer,
-                .viewport = mViewport,
-                .src = gapi::ResourceStateFlag::Present,
-                .dst = gapi::ResourceStateFlag::RenderTarget
-            });
-
             mCommandList->SetShaderVariablesLayout(mShaderManager.GetMaterialShaderManager().GetShaderVariablesLayout());
-            mCommandList->SetRenderTarget(mViewport);
-            mCommandList->ClearRenderTargetView(mViewport, { 0.2f, 0.2f, 0.2f, 1.0f });
-            mCommandList->ClearDepthStencilView(mViewport, 0);
+            mCommandList->SetRenderTargets({ &mCurrentBackbufferRTV, 1 }, mDSV);
+            mCommandList->ClearRenderTargetView(mCurrentBackbufferRTV, { 0.2f, 0.2f, 0.2f, 1.0f });
+            mCommandList->ClearDepthStencilView(mDSV, 0);
 
             SharedPtr<GlobalShaderParameters> globalShaderParameters = mShaderParametersManager.CreateShaderParameters<GlobalShaderParameters>();
             globalShaderParameters->viewPosition = mViewPosition;
@@ -398,13 +456,6 @@ namespace cube
                     mCommandList->DrawIndexed(subMesh.numIndices, subMesh.indexOffset, subMesh.vertexOffset);
                 }
             }
-
-            mCommandList->ResourceTransition({
-                .resourceType =  gapi::TransitionState::ResourceType::ViewportBackBuffer,
-                .viewport = mViewport,
-                .src = gapi::ResourceStateFlag::RenderTarget,
-                .dst = gapi::ResourceStateFlag::Present
-            });
 
             mCommandList->InsertTimestamp(CUBE_T("End"));
 

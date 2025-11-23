@@ -14,8 +14,8 @@
 #include "GAPI_MetalSampler.h"
 #include "GAPI_MetalShader.h"
 #include "GAPI_MetalShaderVariable.h"
+#include "GAPI_MetalSwapChain.h"
 #include "GAPI_MetalTexture.h"
-#include "GAPI_MetalViewport.h"
 #include "Logger.h"
 #include "MacOS/MacOSPlatform.h"
 #include "MacOS/MacOSUtility.h"
@@ -90,7 +90,7 @@ namespace cube
     {
     }
 
-    void GAPI_Metal::OnBeforePresent(gapi::Viewport* viewport)
+    void GAPI_Metal::OnBeforePresent(gapi::TextureRTV* backbufferRTV)
     {
         if (mImGUIContext.context)
         {
@@ -195,9 +195,9 @@ namespace cube
         return std::make_shared<gapi::MetalTexture>(info);
     }
 
-    SharedPtr<gapi::Viewport> GAPI_Metal::CreateViewport(const gapi::ViewportCreateInfo& info)
+    SharedPtr<gapi::SwapChain> GAPI_Metal::CreateSwapChain(const gapi::SwapChainCreateInfo& info)
     {
-        return std::make_shared<gapi::MetalViewport>(mMainDevice->GetDevice(), mImGUIView, info);
+        return std::make_shared<gapi::MetalSwapChain>(mMainDevice->GetDevice(), mImGUIView, info);
     }
 
     gapi::TimestampList GAPI_Metal::GetLastTimestampList()

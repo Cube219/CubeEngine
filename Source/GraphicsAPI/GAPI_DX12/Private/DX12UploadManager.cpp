@@ -148,6 +148,27 @@ namespace cube
         return mLastFenceValue;
     }
 
+    void DX12UploadManager::Discard(DX12UploadDesc& desc)
+    {
+        // Just add fence to identify the allocation was released in UpdateStates.
+        UpdateStates();
+
+        CommandListAllocator& allocator = mCommandListAllocators[mCurrentAllocatorIndex];
+        auto pageIt = mPages.find(desc.pageId);
+        CHECK(pageIt != mPages.end());
+        Page& page = pageIt->second;
+
+        ID3D12CommandQueue* copyQueue = mDevice.GetQueueManager().GetCopyQueue();
+
+        mLastFenceValue++;
+        mFence.Signal(copyQueue, mLastFenceValue);
+        allocator.lastFenceValue = mLastFenceValue;
+        mFenceValueAndPageIdPairQueue.push({ mLastFenceValue, desc.pageId });
+
+        desc.pData = nullptr;
+        desc.dstAPIObject = nullptr;
+    }
+
     bool DX12UploadManager::IsUploadFinished(DX12FenceValue submitFenceValue)
     {
         return submitFenceValue <= mFence.GetCompletedValue();

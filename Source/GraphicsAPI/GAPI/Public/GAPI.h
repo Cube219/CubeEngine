@@ -28,8 +28,10 @@ namespace cube
         struct CommandListCreateInfo;
         class Fence;
         struct FenceCreateInfo;
-        class Viewport;
-        struct ViewportCreateInfo;
+        class SwapChain;
+        struct SwapChainCreateInfo;
+
+        class TextureRTV;
     } // namespace gapi
 
     enum class GAPIName
@@ -86,7 +88,7 @@ namespace cube
 
         virtual void OnBeforeRender() = 0;
         virtual void OnAfterRender() = 0;
-        virtual void OnBeforePresent(gapi::Viewport* viewport) = 0;
+        virtual void OnBeforePresent(gapi::TextureRTV* backbufferRTV) = 0;
         virtual void OnAfterPresent() = 0;
 
         virtual void BeginRenderingFrame() = 0;
@@ -104,7 +106,7 @@ namespace cube
         virtual SharedPtr<gapi::Shader> CreateShader(const gapi::ShaderCreateInfo& info) = 0;
         virtual SharedPtr<gapi::ShaderVariablesLayout> CreateShaderVariablesLayout(const gapi::ShaderVariablesLayoutCreateInfo& info) = 0;
         virtual SharedPtr<gapi::Texture> CreateTexture(const gapi::TextureCreateInfo& info) = 0;
-        virtual SharedPtr<gapi::Viewport> CreateViewport(const gapi::ViewportCreateInfo& info) = 0;
+        virtual SharedPtr<gapi::SwapChain> CreateSwapChain(const gapi::SwapChainCreateInfo& info) = 0;
 
         virtual gapi::TimestampList GetLastTimestampList() = 0;
         virtual gapi::VRAMStatus GetVRAMUsage() = 0;

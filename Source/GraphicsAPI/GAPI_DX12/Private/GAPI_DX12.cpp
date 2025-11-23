@@ -14,8 +14,8 @@
 #include "GAPI_DX12Sampler.h"
 #include "GAPI_DX12Shader.h"
 #include "GAPI_DX12ShaderVariable.h"
+#include "GAPI_DX12SwapChain.h"
 #include "GAPI_DX12Texture.h"
-#include "GAPI_DX12Viewport.h"
 #include "Logger.h"
 #include "Windows/WindowsPlatform.h"
 
@@ -210,24 +210,15 @@ namespace cube
     {
     }
 
-    void GAPI_DX12::OnBeforePresent(gapi::Viewport* viewport)
+    void GAPI_DX12::OnBeforePresent(gapi::TextureRTV* backbufferRTV)
     {
         if (mImGUIContext.context)
         {
             mImGUIRenderCommandList->Reset(mMainDevice->GetCommandListManager().GetCurrentAllocator(), nullptr);
 
-            gapi::DX12Viewport* dx12Viewport = dynamic_cast<gapi::DX12Viewport*>(viewport);
-            ID3D12Resource* currentBackbuffer = dx12Viewport->GetCurrentBackbuffer();
-            D3D12_CPU_DESCRIPTOR_HANDLE currentRTVDescriptor = dx12Viewport->GetCurrentRTVDescriptor();
-            
-            D3D12_RESOURCE_BARRIER barrier = {};
-            barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-            barrier.Flags                  = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-            barrier.Transition.pResource   = currentBackbuffer;
-            barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-            barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-            barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_RENDER_TARGET;
-            mImGUIRenderCommandList->ResourceBarrier(1, &barrier);
+            gapi::DX12TextureRTV* dx12BackbufferRTV = dynamic_cast<gapi::DX12TextureRTV*>(backbufferRTV);
+            CHECK(dx12BackbufferRTV);
+            D3D12_CPU_DESCRIPTOR_HANDLE currentRTVDescriptor = dx12BackbufferRTV->GetDescriptorHandle();
             
             // Render Dear ImGui graphics
             // const float clear_color_with_alpha[4] = { 0.2f, 0.2f, 0.2f, 1.0f };
@@ -236,9 +227,6 @@ namespace cube
             ID3D12DescriptorHeap* heap = gImGUISRVHeap.mHeap.Get();
             mImGUIRenderCommandList->SetDescriptorHeaps(1, &heap);
             ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), mImGUIRenderCommandList.Get());
-            barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-            barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_PRESENT;
-            mImGUIRenderCommandList->ResourceBarrier(1, &barrier);
             mImGUIRenderCommandList->Close();
 
             ID3D12CommandList* ppCommandLists[] = { mImGUIRenderCommandList.Get() };
@@ -322,9 +310,9 @@ namespace cube
         return std::make_shared<gapi::DX12Texture>(info, *mMainDevice);
     }
 
-    SharedPtr<gapi::Viewport> GAPI_DX12::CreateViewport(const gapi::ViewportCreateInfo& info)
+    SharedPtr<gapi::SwapChain> GAPI_DX12::CreateSwapChain(const gapi::SwapChainCreateInfo& info)
     {
-        return std::make_shared<gapi::DX12Viewport>(mFactory.Get(), *mMainDevice, info);
+        return std::make_shared<gapi::DX12SwapChain>(mFactory.Get(), *mMainDevice, info);
     }
 
     gapi::TimestampList GAPI_DX12::GetLastTimestampList()

@@ -23,6 +23,8 @@ namespace cube
 
         D3D12MA::Allocation* allocation = nullptr;
 
+        bool IsValid() const { return allocation != nullptr; }
+
         // (readBegin > readEnd) -> read all range
         void Map(Uint64 readBegin = 1, Uint64 readEnd = 0)
         {

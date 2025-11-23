@@ -6,7 +6,9 @@ namespace cube
 {
     namespace gapi
     {
-        struct ViewportCreateInfo
+        class TextureRTV;
+
+        struct SwapChainCreateInfo
         {
             Uint32 width;
             Uint32 height;
@@ -17,17 +19,19 @@ namespace cube
             StringView debugName;
         };
 
-        class Viewport
+        class SwapChain
         {
         public:
-            Viewport() = default;
-            virtual ~Viewport() = default;
+            SwapChain() = default;
+            virtual ~SwapChain() = default;
 
             virtual void AcquireNextImage() = 0;
             virtual void Present() = 0;
 
             virtual void Resize(Uint32 width, Uint32 height) = 0;
             virtual void SetVsync(bool vsync) = 0;
+
+            virtual SharedPtr<TextureRTV> GetCurrentBackbufferRTV() const = 0;
         };
     } // namespace gapi
 } // namespace cube

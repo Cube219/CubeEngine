@@ -6,8 +6,8 @@
 
 namespace cube
 {
-    DX12CommandListManager::DX12CommandListManager(DX12Device& device) :
-        mDevice(device)
+    DX12CommandListManager::DX12CommandListManager(DX12Device& device)
+        : mDevice(device)
     {
         mCurrentIndex = 0;
     }

@@ -29,9 +29,20 @@ namespace cube
             {
                 return std::make_shared<TextureSRV>(createInfo, shared_from_this());
             }
+
             virtual SharedPtr<TextureUAV> CreateUAV(const TextureUAVCreateInfo& createInfo) override
             {
                 return std::make_shared<TextureUAV>(createInfo, shared_from_this());
+            }
+
+            virtual SharedPtr<TextureRTV> CreateRTV(const TextureRTVCreateInfo& createInfo) override
+            {
+                return std::make_shared<TextureRTV>(createInfo, shared_from_this());
+            }
+
+            virtual SharedPtr<TextureDSV> CreateDSV(const TextureDSVCreateInfo& createInfo) override
+            {
+                return std::make_shared<TextureDSV>(createInfo, shared_from_this());
             }
 
         private:
