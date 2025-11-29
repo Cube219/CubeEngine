@@ -3,6 +3,7 @@
 #include "CoreHeader.h"
 
 #include "GAPI.h"
+#include "GAPI_Texture.h"
 #include "Matrix.h"
 #include "SamplerManager.h"
 #include "ShaderManager.h"
@@ -51,7 +52,7 @@ namespace cube
         void Shutdown(const ImGUIContext& imGUIContext);
 
         void OnLoopImGUI();
-        void Render();
+        void RenderAndPresent();
 
         void OnResize(Uint32 width, Uint32 height);
 
@@ -100,7 +101,10 @@ namespace cube
 
         Uint32 mViewportWidth;
         Uint32 mViewportHeight;
-        SharedPtr<gapi::Viewport> mViewport;
+        SharedPtr<gapi::SwapChain> mSwapChain;
+        SharedPtr<gapi::TextureRTV> mCurrentBackbufferRTV;
+        SharedPtr<gapi::Texture> mDepthStencilTexture;
+        SharedPtr<gapi::TextureDSV> mDSV;
 
         Vector3 mDirectionalLightDirection;
         bool mIsDirectionalLightDirty;

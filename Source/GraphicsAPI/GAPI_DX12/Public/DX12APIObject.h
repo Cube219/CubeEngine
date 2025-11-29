@@ -10,6 +10,4 @@ namespace cube
         DX12APIObject() {}
         virtual ~DX12APIObject() {}
     };
-
-#define CUBE_DX12_BOUND_OBJECT(object) mBoundObjects.push_back(std::dynamic_pointer_cast<DX12APIObject>(object))
 } // namespace cube

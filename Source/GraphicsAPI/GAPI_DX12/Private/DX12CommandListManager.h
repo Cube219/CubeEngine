@@ -23,7 +23,6 @@ namespace cube
         void SetNumGPUSync(Uint32 newNumGPUSync);
         void MoveToNextIndex(Uint64 nextGPUFrame);
 
-        void AddBoundObjects(ArrayView<SharedPtr<DX12APIObject>> objects);
         ID3D12CommandAllocator* GetCurrentAllocator() const { return mAllocators[mCurrentIndex].Get(); }
 
 
@@ -33,6 +32,5 @@ namespace cube
         Uint32 mCurrentIndex;
 
         Vector<ComPtr<ID3D12CommandAllocator>> mAllocators;
-        Vector<Vector<SharedPtr<DX12APIObject>>> mBoundObjectsInCommand;
     };
 } // namespace cube

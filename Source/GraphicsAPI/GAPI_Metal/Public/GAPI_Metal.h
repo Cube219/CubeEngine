@@ -28,7 +28,7 @@ namespace cube
 
         virtual void OnBeforeRender() override;
         virtual void OnAfterRender() override;
-        virtual void OnBeforePresent(gapi::Viewport* viewport) override;
+        virtual void OnBeforePresent(gapi::TextureRTV* backbufferRTV) override;
         virtual void OnAfterPresent() override;
 
         virtual void BeginRenderingFrame() override;
@@ -44,7 +44,7 @@ namespace cube
         virtual SharedPtr<gapi::Shader> CreateShader(const gapi::ShaderCreateInfo& info) override;
         virtual SharedPtr<gapi::ShaderVariablesLayout> CreateShaderVariablesLayout(const gapi::ShaderVariablesLayoutCreateInfo& info) override;
         virtual SharedPtr<gapi::Texture> CreateTexture(const gapi::TextureCreateInfo& info) override;
-        virtual SharedPtr<gapi::Viewport> CreateViewport(const gapi::ViewportCreateInfo& info) override;
+        virtual SharedPtr<gapi::SwapChain> CreateSwapChain(const gapi::SwapChainCreateInfo& info) override;
 
         virtual gapi::TimestampList GetLastTimestampList() override;
         virtual gapi::VRAMStatus GetVRAMUsage() override;

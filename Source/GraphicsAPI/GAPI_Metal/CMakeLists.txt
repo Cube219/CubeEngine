@@ -9,8 +9,8 @@ set(PUBLIC_FILES
     Public/GAPI_MetalResource.h
     Public/GAPI_MetalShader.h
     Public/GAPI_MetalShaderVariable.h
+    Public/GAPI_MetalSwapChain.h
     Public/GAPI_MetalTexture.h
-    Public/GAPI_MetalViewport.h
     Public/MetalHeader.h
 )
 set(PRIVATE_FILES
@@ -20,7 +20,7 @@ set(PRIVATE_FILES
     Private/GAPI_MetalSampler.mm
     Private/GAPI_MetalShader.mm
     Private/GAPI_MetalTexture.mm
-    Private/GAPI_MetalViewport.mm
+    Private/GAPI_MetalSwapChain.mm
     Private/MetalArgumentBufferManager.h
     Private/MetalArgumentBufferManager.mm
     Private/MetalDevice.h

@@ -10,6 +10,8 @@ namespace cube
     {
         int index = -1;
         D3D12_CPU_DESCRIPTOR_HANDLE handle;
+
+        bool IsValid() const { return index >= 0; }
     };
 
     class DX12DescriptorHeap
@@ -18,7 +20,7 @@ namespace cube
         ID3D12DescriptorHeap* Get() const { return mHeap.Get(); }
 
         DX12DescriptorHandle AllocateCPU();
-        void FreeCPU(DX12DescriptorHandle descriptor);
+        void FreeCPU(DX12DescriptorHandle& descriptor);
 
         D3D12_GPU_DESCRIPTOR_HANDLE AllocateGPU();
         void FreeGPU(D3D12_GPU_DESCRIPTOR_HANDLE descriptor);

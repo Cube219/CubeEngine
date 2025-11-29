@@ -133,38 +133,6 @@ namespace cube
     }
 
     template <int N>
-    template <int M>
-    inline VectorBase<N>& VectorBase<N>::operator=(const VectorBase<M>& rhs)
-    {
-        mData[0] = rhs.mData[0];
-        mData[1] = rhs.mData[1];
-        if constexpr (N >= 3)
-        {
-            if constexpr (M >= 3)
-            {
-                mData[2] = rhs.mData[2];
-            }
-            else
-            {
-                mData[2] = 0.0f;
-            }
-        }
-        if constexpr (N >= 4)
-        {
-            if constexpr (M >= 4)
-            {
-                mData[3] = rhs.mData[3];
-            }
-            else
-            {
-                mData[3] = 0.0f;
-            }
-        }
-
-        return *this;
-    }
-
-    template <int N>
     inline VectorBase<N>& VectorBase<N>::operator=(float rhs)
     {
         mData[0] = rhs;
@@ -206,20 +174,18 @@ namespace cube
     }
 
     template <int N>
-    template <int M>
-    inline VectorBase<std::max(N, M)> VectorBase<N>::operator+(const VectorBase<M>& rhs) const
+    inline VectorBase<N> VectorBase<N>::operator+(const VectorBase& rhs) const
     {
-        VectorBase<std::max(N, M)> res(*this);
+        VectorBase res(*this);
         res += rhs;
 
         return res;
     }
 
     template <int N>
-    template <int M>
-    inline VectorBase<std::max(N, M)> VectorBase<N>::operator-(const VectorBase<M>& rhs) const
+    inline VectorBase<N> VectorBase<N>::operator-(const VectorBase& rhs) const
     {
-        VectorBase<std::max(N, M)> res(*this);
+        VectorBase<N> res(*this);
         res -= rhs;
 
         return res;
@@ -235,10 +201,9 @@ namespace cube
     }
 
     template <int N>
-    template <int M>
-    inline VectorBase<std::max(N, M)> VectorBase<N>::operator*(const VectorBase<M>& rhs) const
+    inline VectorBase<N> VectorBase<N>::operator*(const VectorBase& rhs) const
     {
-        VectorBase<std::max(N, M)> res(*this);
+        VectorBase<N> res(*this);
         res *= rhs;
 
         return res;
@@ -254,10 +219,9 @@ namespace cube
     }
 
     template <int N>
-    template <int M>
-    inline VectorBase<std::max(N, M)> VectorBase<N>::operator/(const VectorBase<M>& rhs) const
+    inline VectorBase<N> VectorBase<N>::operator/(const VectorBase& rhs) const
     {
-        VectorBase<std::max(N, M)> res(*this);
+        VectorBase<N> res(*this);
         res /= rhs;
 
         return res;
@@ -279,16 +243,15 @@ namespace cube
     }
 
     template <int N>
-    template <int M>
-    inline VectorBase<N>& VectorBase<N>::operator+=(const VectorBase<M>& rhs)
+    inline VectorBase<N>& VectorBase<N>::operator+=(const VectorBase& rhs)
     {
         mData[0] += rhs.mData[0];
         mData[1] += rhs.mData[1];
-        if constexpr (N >= 3 && M >= 3)
+        if constexpr (N >= 3)
         {
             mData[2] += rhs.mData[2];
         }
-        if constexpr (N >= 4 && M >= 4)
+        if constexpr (N >= 4)
         {
             mData[3] += rhs.mData[3];
         }
@@ -297,16 +260,15 @@ namespace cube
     }
 
     template <int N>
-    template <int M>
-    inline VectorBase<N>& VectorBase<N>::operator-=(const VectorBase<M>& rhs)
+    inline VectorBase<N>& VectorBase<N>::operator-=(const VectorBase& rhs)
     {
         mData[0] -= rhs.mData[0];
         mData[1] -= rhs.mData[1];
-        if constexpr (N >= 3 && M >= 3)
+        if constexpr (N >= 3)
         {
             mData[2] -= rhs.mData[2];
         }
-        if constexpr (N >= 4 && M >= 4)
+        if constexpr (N >= 4)
         {
             mData[3] -= rhs.mData[3];
         }
@@ -332,16 +294,15 @@ namespace cube
     }
 
     template <int N>
-    template <int M>
-    inline VectorBase<N>& VectorBase<N>::operator*=(const VectorBase<M>& rhs)
+    inline VectorBase<N>& VectorBase<N>::operator*=(const VectorBase& rhs)
     {
         mData[0] *= rhs.mData[0];
         mData[1] *= rhs.mData[1];
-        if constexpr (N >= 3 && M >= 3)
+        if constexpr (N >= 3)
         {
             mData[2] *= rhs.mData[2];
         }
-        if constexpr (N >= 4 && M >= 4)
+        if constexpr (N >= 4)
         {
             mData[3] *= rhs.mData[3];
         }
@@ -367,16 +328,15 @@ namespace cube
     }
 
     template <int N>
-    template <int M>
-    inline VectorBase<N>& VectorBase<N>::operator/=(const VectorBase<M>& rhs)
+    inline VectorBase<N>& VectorBase<N>::operator/=(const VectorBase& rhs)
     {
         mData[0] /= rhs.mData[0];
         mData[1] /= rhs.mData[1];
-        if constexpr (N >= 3 && M >= 3)
+        if constexpr (N >= 3)
         {
             mData[2] /= rhs.mData[2];
         }
-        if constexpr (N >= 4 && M >= 4)
+        if constexpr (N >= 4)
         {
             mData[3] /= rhs.mData[3];
         }

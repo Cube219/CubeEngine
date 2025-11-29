@@ -17,9 +17,20 @@ namespace cube
         class ShaderVariables;
         class ShaderVariablesLayout;
         class Texture;
+        class TextureDSV;
+        class TextureRTV;
         class TextureSRV;
         class TextureUAV;
-        class Viewport;
+
+        struct Viewport
+        {
+            float x;
+            float y;
+            float width;
+            float height;
+            float minDepth = 0.0f;
+            float maxDepth = 1.0f;
+        };
 
         struct ScissorRect
         {
@@ -38,6 +49,35 @@ namespace cube
             TriangleStrip
         };
 
+        enum class LoadOperation
+        {
+            DontCare,
+            Load,
+            Clear
+        };
+
+        enum class StoreOperation
+        {
+            DontCare,
+            Store
+        };
+
+        struct ColorAttachment
+        {
+            SharedPtr<TextureRTV> rtv = nullptr;
+            LoadOperation loadOperation = LoadOperation::Load;
+            StoreOperation storeOperation = StoreOperation::Store;
+            Float4 clearColor;
+        };
+
+        struct DepthStencilAttachment
+        {
+            SharedPtr<TextureDSV> dsv = nullptr;
+            LoadOperation loadOperation = LoadOperation::Load;
+            StoreOperation storeOperation = StoreOperation::Store;
+            float clearDepth;
+        };
+
         struct TransitionState
         {
             enum class ResourceType
@@ -45,14 +85,16 @@ namespace cube
                 Buffer,
                 SRV,
                 UAV,
-                ViewportBackBuffer
+                RTV,
+                DSV
             };
             ResourceType resourceType;
             
             SharedPtr<Buffer> buffer = nullptr;
             SharedPtr<TextureSRV> srv = nullptr;
             SharedPtr<TextureUAV> uav = nullptr;
-            SharedPtr<Viewport> viewport = nullptr;
+            SharedPtr<TextureRTV> rtv = nullptr;
+            SharedPtr<TextureDSV> dsv = nullptr;
 
             ResourceStateFlags src;
             ResourceStateFlags dst;
@@ -73,14 +115,12 @@ namespace cube
             virtual void End() = 0;
             virtual void Reset() = 0;
 
-            virtual void SetViewports(ArrayView<SharedPtr<Viewport>> viewports) = 0;
+            virtual void SetViewports(ArrayView<Viewport> viewports) = 0;
             virtual void SetScissors(ArrayView<ScissorRect> scissors) = 0;
             virtual void SetPrimitiveTopology(PrimitiveTopology primitiveTopology) = 0;
 
             virtual void SetGraphicsPipeline(SharedPtr<GraphicsPipeline> graphicsPipeline) = 0;
-            virtual void SetRenderTarget(SharedPtr<Viewport> viewport) = 0;
-            virtual void ClearRenderTargetView(SharedPtr<Viewport> viewport, Float4 color) = 0;
-            virtual void ClearDepthStencilView(SharedPtr<Viewport> viewport, float depth) = 0;
+            virtual void SetRenderTargets(ArrayView<ColorAttachment> colors, DepthStencilAttachment depthStencil) = 0;
 
             virtual void BindVertexBuffers(Uint32 startIndex, ArrayView<SharedPtr<Buffer>> buffers, ArrayView<Uint32> offsets) = 0;
             virtual void BindIndexBuffer(SharedPtr<Buffer> buffer, Uint32 offset) = 0;

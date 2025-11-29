@@ -291,9 +291,9 @@ namespace cube
         subMatrixDet[3][3] = GetSubMatrixDet<3, 3>();
 
         const float det =
-            mRows[0].mData[0] * subMatrixDet[0][0] +
+            mRows[0].mData[0] * subMatrixDet[0][0] -
             mRows[1].mData[0] * subMatrixDet[1][0] +
-            mRows[2].mData[0] * subMatrixDet[2][0] +
+            mRows[2].mData[0] * subMatrixDet[2][0] -
             mRows[3].mData[0] * subMatrixDet[3][0];
         const float rDet = 1.0f / det;
 

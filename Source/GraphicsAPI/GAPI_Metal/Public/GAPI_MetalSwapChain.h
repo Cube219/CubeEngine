@@ -3,7 +3,7 @@
 #include "MetalHeader.h"
 
 #include "GAPI_Metal.h"
-#include "GAPI_Viewport.h"
+#include "GAPI_SwapChain.h"
 
 @interface CubeMTKView : MTKView <MTKViewDelegate>
 
@@ -13,17 +13,19 @@ namespace cube
 {
     namespace gapi
     {
-        class MetalViewport : public Viewport
+        class MetalSwapChain : public SwapChain
         {
         public:
-            MetalViewport(id<MTLDevice> device, CubeImGUIMTKView* imGUIView, const ViewportCreateInfo& createInfo);
-            virtual ~MetalViewport();
+            MetalSwapChain(id<MTLDevice> device, CubeImGUIMTKView* imGUIView, const SwapChainCreateInfo& createInfo);
+            virtual ~MetalSwapChain();
 
             virtual void AcquireNextImage() override;
             virtual void Present() override;
 
             virtual void Resize(Uint32 width, Uint32 height) override;
             virtual void SetVsync(bool vsync) override;
+
+            virtual SharedPtr<TextureRTV> GetCurrentBackbufferRTV() const override;
 
         private:
             CubeMTKView* mView;

@@ -41,6 +41,10 @@ namespace cube
             {
                 flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
             }
+            if (info.flags.IsSet(TextureFlag::DepthStencil))
+            {
+                flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+            }
 
             D3D12_RESOURCE_DESC desc = {
                 .Dimension = dimension,
@@ -70,13 +74,36 @@ namespace cube
                 heapType = D3D12_HEAP_TYPE_UPLOAD;
                 break;
             }
-            mAllocation = device.GetMemoryAllocator().Allocate(heapType, desc);
+            // Add a dummy clear value in depth texture to suppress debug warnings.
+            if (info.flags.IsSet(TextureFlag::DepthStencil))
+            {
+                D3D12_CLEAR_VALUE clearValue = {
+                    .Format = GetDX12ElementFormatInfo(info.format).format,
+                    .DepthStencil = {
+                        .Depth = 0.0f,
+                        .Stencil = 0
+                    }
+                };
+                mAllocation = device.GetMemoryAllocator().Allocate(heapType, desc, &clearValue);
+            }
+            else
+            {
+                mAllocation = device.GetMemoryAllocator().Allocate(heapType, desc);
+            }
+            mResource = mAllocation.allocation->GetResource();
             SET_DEBUG_NAME(mAllocation.allocation->GetResource(), info.debugName);
         }
 
         DX12Texture::~DX12Texture()
         {
-            mDevice.GetMemoryAllocator().Free(mAllocation);
+            if (mUploadDesc.IsValid())
+            {
+                mDevice.GetUploadManager().Discard(mUploadDesc);
+            }
+            if (mAllocation.IsValid())
+            {
+                mDevice.GetMemoryAllocator().Free(mAllocation);
+            }
         }
 
         void* DX12Texture::Map()
@@ -126,6 +153,23 @@ namespace cube
         SharedPtr<TextureUAV> DX12Texture::CreateUAV(const TextureUAVCreateInfo& createInfo)
         {
             return std::make_shared<DX12TextureUAV>(createInfo, std::dynamic_pointer_cast<DX12Texture>(shared_from_this()), mDevice);
+        }
+
+        SharedPtr<TextureRTV> DX12Texture::CreateRTV(const TextureRTVCreateInfo& createInfo)
+        {
+            return std::make_shared<DX12TextureRTV>(createInfo, std::dynamic_pointer_cast<DX12Texture>(shared_from_this()), mDevice);
+        }
+
+        SharedPtr<TextureDSV> DX12Texture::CreateDSV(const TextureDSVCreateInfo& createInfo)
+        {
+            return std::make_shared<DX12TextureDSV>(createInfo, std::dynamic_pointer_cast<DX12Texture>(shared_from_this()), mDevice);
+        }
+
+        DX12Texture::DX12Texture(const TextureCreateInfo& info, ID3D12Resource* resource, DX12Device& device)
+            : Texture(info)
+            , mDevice(device)
+            , mResource(resource)
+        {
         }
 
         DX12TextureSRV::DX12TextureSRV(const TextureSRVCreateInfo& createInfo, SharedPtr<Texture> texture, DX12Device& device) :
@@ -246,6 +290,109 @@ namespace cube
         DX12TextureUAV::~DX12TextureUAV()
         {
             mDevice.GetDescriptorManager().GetSRVHeap().FreeCPU(mUAVDescriptor);
+        }
+
+        DX12TextureRTV::DX12TextureRTV(const TextureRTVCreateInfo& createInfo, SharedPtr<Texture> texture, DX12Device& device)
+            : TextureRTV(createInfo, texture)
+            , mDevice(device)
+        {
+            SharedPtr<DX12Texture> dx12Texture = std::dynamic_pointer_cast<DX12Texture>(texture);
+            CHECK(dx12Texture);
+
+            mRTVDescriptor = device.GetDescriptorManager().GetRTVHeap().AllocateCPU();
+            D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+            rtvDesc.Format = GetDX12ElementFormatInfo(dx12Texture->GetFormat()).format;
+            switch (dx12Texture->GetType())
+            {
+            case TextureType::Texture1D:
+                rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1D;
+                rtvDesc.Texture1D.MipSlice = createInfo.mipLevel;
+                break;
+            case TextureType::Texture1DArray:
+                rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1DARRAY;
+                rtvDesc.Texture1DArray.MipSlice = createInfo.mipLevel;
+                rtvDesc.Texture1DArray.FirstArraySlice = createInfo.firstArrayIndex;
+                rtvDesc.Texture1DArray.ArraySize = createInfo.arraySize;
+                break;
+            case TextureType::Texture2D:
+                rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+                rtvDesc.Texture2D.MipSlice = createInfo.mipLevel;
+                break;
+            case TextureType::Texture2DArray:
+                rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+                rtvDesc.Texture2DArray.MipSlice = createInfo.mipLevel;
+                rtvDesc.Texture2DArray.FirstArraySlice = createInfo.firstArrayIndex;
+                rtvDesc.Texture2DArray.ArraySize = createInfo.arraySize;
+                break;
+            case TextureType::Texture3D:
+                rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE3D;
+                rtvDesc.Texture3D.MipSlice = createInfo.mipLevel;
+                rtvDesc.Texture3D.FirstWSlice = createInfo.firstDepthIndex;
+                rtvDesc.Texture3D.WSize = createInfo.DepthSize;
+                break;
+            case TextureType::TextureCube:
+            case TextureType::TextureCubeArray:
+                CHECK_FORMAT(false, "Render target view does not support TexutureCube texture.");
+                break;
+            default:
+                NOT_IMPLEMENTED();
+            }
+
+            device.GetDevice()->CreateRenderTargetView(dx12Texture->GetResource(), &rtvDesc, mRTVDescriptor.handle);
+        }
+
+        DX12TextureRTV::~DX12TextureRTV()
+        {
+            mDevice.GetDescriptorManager().GetRTVHeap().FreeCPU(mRTVDescriptor);
+        }
+
+        DX12TextureDSV::DX12TextureDSV(const TextureDSVCreateInfo& createInfo, SharedPtr<Texture> texture, DX12Device& device)
+            : TextureDSV(createInfo, texture)
+            , mDevice(device)
+        {
+            SharedPtr<DX12Texture> dx12Texture = std::dynamic_pointer_cast<DX12Texture>(texture);
+            CHECK(dx12Texture);
+
+            mDSVDescriptor = device.GetDescriptorManager().GetDSVHeap().AllocateCPU();
+            D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+            dsvDesc.Format = GetDX12ElementFormatInfo(dx12Texture->GetFormat()).format;
+            switch (dx12Texture->GetType())
+            {
+            case TextureType::Texture1D:
+                dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1D;
+                dsvDesc.Texture1D.MipSlice = createInfo.mipLevel;
+                break;
+            case TextureType::Texture1DArray:
+                dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1DARRAY;
+                dsvDesc.Texture1DArray.MipSlice = createInfo.mipLevel;
+                dsvDesc.Texture1DArray.FirstArraySlice = createInfo.firstArrayIndex;
+                dsvDesc.Texture1DArray.ArraySize = createInfo.arraySize;
+                break;
+            case TextureType::Texture2D:
+                dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+                dsvDesc.Texture2D.MipSlice = createInfo.mipLevel;
+                break;
+            case TextureType::Texture2DArray:
+                dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
+                dsvDesc.Texture2DArray.MipSlice = createInfo.mipLevel;
+                dsvDesc.Texture2DArray.FirstArraySlice = createInfo.firstArrayIndex;
+                dsvDesc.Texture2DArray.ArraySize = createInfo.arraySize;
+                break;
+            case TextureType::Texture3D:
+            case TextureType::TextureCube:
+            case TextureType::TextureCubeArray:
+                CHECK_FORMAT(false, "Depth stencil view does not support Texture3D and TexutureCube texture.");
+                break;
+            default:
+                NOT_IMPLEMENTED();
+            }
+
+            device.GetDevice()->CreateDepthStencilView(dx12Texture->GetResource(), &dsvDesc, mDSVDescriptor.handle);
+        }
+
+        DX12TextureDSV::~DX12TextureDSV()
+        {
+            mDevice.GetDescriptorManager().GetDSVHeap().FreeCPU(mDSVDescriptor);
         }
     } // namespace gapi
 } // namespace cube

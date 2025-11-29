@@ -315,11 +315,11 @@ namespace cube
 
             if (c1.SquareLength() > c2.SquareLength())
             {
-                vertex.tangent = c1.Normalized();
+                vertex.tangent = Vector4(c1.Normalized());
             }
             else
             {
-                vertex.tangent = c2.Normalized();
+                vertex.tangent = Vector4(c2.Normalized());
             }
             vertex.tangent += Vector4(0.0f, 0.0f, 0.0f, 1.0f);
         }

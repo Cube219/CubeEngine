@@ -12,8 +12,8 @@ set(PUBLIC_FILES
     Public/GAPI_DX12Sampler.h
     Public/GAPI_DX12Shader.h
     Public/GAPI_DX12ShaderVariable.h
+    Public/GAPI_DX12SwapChain.h
     Public/GAPI_DX12Texture.h
-    Public/GAPI_DX12Viewport.h
 )
 
 set(PRECOMPILE_HEADER_FILES
@@ -53,8 +53,8 @@ set(PRIVATE_FILES
     Private/GAPI_DX12Sampler.cpp
     Private/GAPI_DX12Shader.cpp
     Private/GAPI_DX12ShaderVariable.cpp
+    Private/GAPI_DX12SwapChain.cpp
     Private/GAPI_DX12Texture.cpp
-    Private/GAPI_DX12Viewport.cpp
 )
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${PUBLIC_FILES} ${PRIVATE_FILES})

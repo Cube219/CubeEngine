@@ -221,7 +221,7 @@ namespace cube
 
         LoopImGUI();
 
-        mRenderer->Render();
+        mRenderer->RenderAndPresent();
     }
 
     void Engine::OnClosing()

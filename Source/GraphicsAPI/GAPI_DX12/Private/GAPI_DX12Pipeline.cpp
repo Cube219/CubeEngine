@@ -268,23 +268,17 @@ namespace cube
             graphicsPSODesc.InputLayout = { inputElements.data(), (Uint32)(inputElements.size()) };
             graphicsPSODesc.pRootSignature = dynamic_cast<DX12ShaderVariablesLayout*>(info.shaderVariablesLayout.get())->GetRootSignature();
 
-            CUBE_DX12_BOUND_OBJECT(info.shaderVariablesLayout);
-
             if (info.vertexShader)
             {
                 DX12Shader* dx12VertexShader = dynamic_cast<DX12Shader*>(info.vertexShader.get());
                 graphicsPSODesc.VS.pShaderBytecode = dx12VertexShader->GetShader().GetData();
                 graphicsPSODesc.VS.BytecodeLength = dx12VertexShader->GetShader().GetSize();
-
-                CUBE_DX12_BOUND_OBJECT(info.vertexShader);
             }
             if (info.pixelShader)
             {
                 DX12Shader* dx12PixelShader = dynamic_cast<DX12Shader*>(info.pixelShader.get());
                 graphicsPSODesc.PS.pShaderBytecode = dx12PixelShader->GetShader().GetData();
                 graphicsPSODesc.PS.BytecodeLength = dx12PixelShader->GetShader().GetSize();
-
-                CUBE_DX12_BOUND_OBJECT(info.pixelShader);
             }
 
             graphicsPSODesc.RasterizerState = ConvertToDX12RasterizerDesc(info.rasterizerState);
@@ -313,13 +307,11 @@ namespace cube
         {
             D3D12_COMPUTE_PIPELINE_STATE_DESC computePSODesc = {};
             computePSODesc.pRootSignature = dynamic_cast<DX12ShaderVariablesLayout*>(info.shaderVariablesLayout.get())->GetRootSignature();
-            CUBE_DX12_BOUND_OBJECT(info.shaderVariablesLayout);
 
             DX12Shader* dx12ComputeShader = dynamic_cast<DX12Shader*>(info.shader.get());
             CHECK(dx12ComputeShader);
             computePSODesc.CS.pShaderBytecode = dx12ComputeShader->GetShader().GetData();
             computePSODesc.CS.BytecodeLength = dx12ComputeShader->GetShader().GetSize();
-            CUBE_DX12_BOUND_OBJECT(info.shader);
 
             CHECK_HR(device.GetDevice()->CreateComputePipelineState(&computePSODesc, IID_PPV_ARGS(&mPipelineState)));
             SET_DEBUG_NAME(mPipelineState, info.debugName);

@@ -22,6 +22,15 @@ namespace cube
 
             virtual SharedPtr<TextureSRV> CreateSRV(const TextureSRVCreateInfo& createInfo) override;
             virtual SharedPtr<TextureUAV> CreateUAV(const TextureUAVCreateInfo& createInfo) override;
+            virtual SharedPtr<TextureRTV> CreateRTV(const TextureRTVCreateInfo& createInfo) override
+            {
+                return std::make_shared<TextureRTV>(createInfo, shared_from_this());
+            }
+
+            virtual SharedPtr<TextureDSV> CreateDSV(const TextureDSVCreateInfo& createInfo) override
+            {
+                return std::make_shared<TextureDSV>(createInfo, shared_from_this());
+            }
 
             id<MTLTexture> GetMTLTexture() const { return mTexture; }
             MTLPixelFormat GetPixelFormat() const { return mPixelFormat; }
@@ -58,6 +67,16 @@ namespace cube
         public:
             MetalTextureUAV(const TextureUAVCreateInfo& createInfo, SharedPtr<Texture> texture, MetalDevice& device);
             virtual ~MetalTextureUAV();
+
+            virtual SharedPtr<TextureRTV> CreateRTV(const TextureRTVCreateInfo& createInfo) override
+            {
+                return std::make_shared<TextureRTV>(createInfo, shared_from_this());
+            }
+
+            virtual SharedPtr<TextureDSV> CreateDSV(const TextureDSVCreateInfo& createInfo) override
+            {
+                return std::make_shared<TextureDSV>(createInfo, shared_from_this());
+            }
 
         private:
             MetalDevice& mDevice;

@@ -18,14 +18,12 @@ namespace cube
             void End() override {}
             void Reset() override {}
 
-            void SetViewports(ArrayView<SharedPtr<Viewport>> viewports) override {}
+            void SetViewports(ArrayView<Viewport> viewports) override {}
             void SetScissors(ArrayView<ScissorRect> scissors) override {}
             void SetPrimitiveTopology(PrimitiveTopology primitiveTopology) override {}
 
-            void SetGraphicsPipeline(SharedPtr<GraphicsPipeline> graphicsPipeline) override {};
-            void SetRenderTarget(SharedPtr<Viewport> viewport) override {};
-            void ClearRenderTargetView(SharedPtr<Viewport> viewport, Float4 color) override {};
-            void ClearDepthStencilView(SharedPtr<Viewport> viewport, float depth) override {};
+            void SetGraphicsPipeline(SharedPtr<GraphicsPipeline> graphicsPipeline) override {}
+            virtual void SetRenderTargets(ArrayView<ColorAttachment> colors, DepthStencilAttachment depthStencil) override {}
 
             void BindVertexBuffers(Uint32 startIndex, ArrayView<SharedPtr<Buffer>> buffers, ArrayView<Uint32> offsets) override {};
             void BindIndexBuffer(SharedPtr<Buffer> buffer, Uint32 offset) override {};

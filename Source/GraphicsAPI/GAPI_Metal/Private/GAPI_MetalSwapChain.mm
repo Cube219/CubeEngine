@@ -1,4 +1,4 @@
-#include "GAPI_MetalViewport.h"
+#include "GAPI_MetalSwapChain.h"
 
 #include "MacOS/MacOSPlatform.h"
 #include "MacOS/MacOSUtility.h"
@@ -19,7 +19,7 @@ namespace cube
 {
     namespace gapi
     {
-        MetalViewport::MetalViewport(id<MTLDevice> device, CubeImGUIMTKView* imGUIView, const ViewportCreateInfo& createInfo)
+        MetalSwapChain::MetalSwapChain(id<MTLDevice> device, CubeImGUIMTKView* imGUIView, const SwapChainCreateInfo& createInfo)
         {
             platform::MacOSUtility::DispatchToMainThreadAndWait([this, device, imGUIView] {
                 CubeWindow* window = platform::MacOSPlatform::GetWindow();
@@ -36,14 +36,14 @@ namespace cube
             });
         }
 
-        MetalViewport::~MetalViewport()
+        MetalSwapChain::~MetalSwapChain()
         {
             platform::MacOSUtility::DispatchToMainThreadAndWait([this] {
                 [mView release];
             });
         }
 
-        void MetalViewport::AcquireNextImage()
+        void MetalSwapChain::AcquireNextImage()
         {
             do
             {
@@ -51,20 +51,25 @@ namespace cube
             } while (mBackBufferDescriptor == nil);
         }
 
-        void MetalViewport::Present()
+        void MetalSwapChain::Present()
         {
             [mView.currentDrawable present];
             [mView draw];
         }
 
-        void MetalViewport::Resize(Uint32 width, Uint32 height)
+        void MetalSwapChain::Resize(Uint32 width, Uint32 height)
         {
             // TODO: It is needed?
         }
 
-        void MetalViewport::SetVsync(bool vsync)
+        void MetalSwapChain::SetVsync(bool vsync)
         {
             // TODO: It is possible?
+        }
+
+        SharedPtr<TextureRTV> MetalSwapChain::GetCurrentBackbufferRTV() const
+        {
+            return nullptr;
         }
     } // namespace gapi
 } // namespace cube

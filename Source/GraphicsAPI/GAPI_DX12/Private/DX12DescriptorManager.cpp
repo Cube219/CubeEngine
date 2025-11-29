@@ -22,11 +22,13 @@ namespace cube
         };
     }
 
-    void DX12DescriptorHeap::FreeCPU(DX12DescriptorHandle descriptor)
+    void DX12DescriptorHeap::FreeCPU(DX12DescriptorHandle& descriptor)
     {
+        CHECK_FORMAT(descriptor.index >= 0, "Try to free invalid descriptor.");
         CHECK_FORMAT(std::ranges::find(mFreedIndicesCPU, descriptor.index) == mFreedIndicesCPU.end(), "Freed the descriptor that already was freed.");
 
         mFreedIndicesCPU.push_back(descriptor.index);
+        descriptor.index = -1;
     }
 
     D3D12_GPU_DESCRIPTOR_HANDLE DX12DescriptorHeap::AllocateGPU()

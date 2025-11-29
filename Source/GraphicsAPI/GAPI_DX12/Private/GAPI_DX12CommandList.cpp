@@ -7,7 +7,6 @@
 #include "GAPI_DX12Resource.h"
 #include "GAPI_DX12ShaderVariable.h"
 #include "GAPI_DX12Texture.h"
-#include "GAPI_DX12Viewport.h"
 #include "GAPI_Sampler.h"
 #include "GAPI_Texture.h"
 #include "Renderer/RenderTypes.h"
@@ -36,12 +35,12 @@ namespace cube
             return (D3D12_PRIMITIVE_TOPOLOGY)0;
         }
 
-        DX12CommandList::DX12CommandList(DX12Device& device, const CommandListCreateInfo& info) :
-            mCommandListManager(device.GetCommandListManager()),
-            mDescriptorManager(device.GetDescriptorManager()),
-            mQueueManager(device.GetQueueManager()),
-            mQueryManager(device.GetQueryManager()),
-            mState(State::Closed)
+        DX12CommandList::DX12CommandList(DX12Device& device, const CommandListCreateInfo& info)
+            : mCommandListManager(device.GetCommandListManager())
+            , mDescriptorManager(device.GetDescriptorManager())
+            , mQueueManager(device.GetQueueManager())
+            , mQueryManager(device.GetQueryManager())
+            , mState(State::Closed)
         {
             device.GetDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, mCommandListManager.GetCurrentAllocator(), nullptr, IID_PPV_ARGS(&mCommandList));
             SET_DEBUG_NAME(mCommandList, info.debugName);
@@ -89,17 +88,22 @@ namespace cube
             mState = State::Initial;
         }
 
-        void DX12CommandList::SetViewports(ArrayView<SharedPtr<Viewport>> viewports)
+        void DX12CommandList::SetViewports(ArrayView<Viewport> viewports)
         {
             CHECK(mState == State::Writing);
 
             FrameVector<D3D12_VIEWPORT> d3d12Viewports(viewports.size());
             for (int i = 0; i < viewports.size(); ++i)
             {
-                const DX12Viewport* dxViewport = dynamic_cast<DX12Viewport*>(viewports[i].get());
-                d3d12Viewports[i] = dxViewport->GetD3D12Viewport();
-
-                CUBE_DX12_BOUND_OBJECT(viewports[i]);
+                const Viewport& vp = viewports[i];
+                d3d12Viewports[i] = {
+                    .TopLeftX = vp.x,
+                    .TopLeftY = vp.y,
+                    .Width = vp.width,
+                    .Height = vp.height,
+                    .MinDepth = vp.minDepth,
+                    .MaxDepth = vp.maxDepth
+                };
             }
 
             mCommandList->RSSetViewports(d3d12Viewports.size(), d3d12Viewports.data());
@@ -134,43 +138,50 @@ namespace cube
             CHECK(mState == State::Writing);
 
             mCommandList->SetPipelineState(dynamic_cast<DX12GraphicsPipeline*>(graphicsPipeline.get())->GetPipelineState());
-
-            CUBE_DX12_BOUND_OBJECT(graphicsPipeline);
         }
 
-        void DX12CommandList::SetRenderTarget(SharedPtr<Viewport> viewport)
+        void DX12CommandList::SetRenderTargets(ArrayView<ColorAttachment> colors, DepthStencilAttachment depthStencil)
         {
             CHECK(mState == State::Writing);
 
-            DX12Viewport* dx12Viewport = dynamic_cast<DX12Viewport*>(viewport.get());
-            D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = dx12Viewport->GetCurrentRTVDescriptor();
-            D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = dx12Viewport->GetDSVDescriptor().handle;
-            mCommandList->OMSetRenderTargets(1, &rtvHandle, false, &dsvHandle);
+            FrameVector<D3D12_CPU_DESCRIPTOR_HANDLE> rtvHandles(colors.size());
+            for (int i = 0; i < colors.size(); ++i)
+            {
+                DX12TextureRTV* dx12RTV = dynamic_cast<DX12TextureRTV*>(colors[i].rtv.get());
+                CHECK(dx12RTV);
+                rtvHandles[i] = dx12RTV->GetDescriptorHandle();
+            }
 
-            CUBE_DX12_BOUND_OBJECT(viewport);
-        }
+            if (depthStencil.dsv)
+            {
+                DX12TextureDSV* dx12DSV = dynamic_cast<DX12TextureDSV*>(depthStencil.dsv.get());
+                CHECK(dx12DSV);
+                D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = dx12DSV->GetDescriptorHandle();
 
-        void DX12CommandList::ClearRenderTargetView(SharedPtr<Viewport> viewport, Float4 color)
-        {
-            CHECK(mState == State::Writing);
+                mCommandList->OMSetRenderTargets((UINT)rtvHandles.size(), rtvHandles.data(), false, &dsvHandle);
+            }
+            else
+            {
+                mCommandList->OMSetRenderTargets((UINT)rtvHandles.size(), rtvHandles.data(), false, nullptr);
+            }
 
-            float fColor[4] = { color.x, color.y, color.z, color.w };
-            DX12Viewport* dx12Viewport = dynamic_cast<DX12Viewport*>(viewport.get());
-            D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = dx12Viewport->GetCurrentRTVDescriptor();
-            mCommandList->ClearRenderTargetView(rtvHandle, fColor, 0, nullptr);
-
-            CUBE_DX12_BOUND_OBJECT(viewport);
-        }
-
-        void DX12CommandList::ClearDepthStencilView(SharedPtr<Viewport> viewport, float depth)
-        {
-            CHECK(mState == State::Writing);
-
-            DX12Viewport* dx12Viewport = dynamic_cast<DX12Viewport*>(viewport.get());
-            D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = dx12Viewport->GetDSVDescriptor().handle;
-            mCommandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, depth, 0, 0, nullptr);
-
-            CUBE_DX12_BOUND_OBJECT(viewport);
+            // Clear RTVs / DSV if needed
+            for (int i = 0; i < colors.size(); ++i)
+            {
+                if (colors[i].loadOperation == LoadOperation::Clear)
+                {
+                    DX12TextureRTV* dx12RTV = dynamic_cast<DX12TextureRTV*>(colors[i].rtv.get());
+                    CHECK(dx12RTV);
+                    float fColor[4] = { colors[i].clearColor.x, colors[i].clearColor.y, colors[i].clearColor.z, colors[i].clearColor.w };
+                    mCommandList->ClearRenderTargetView(dx12RTV->GetDescriptorHandle(), fColor, 0, nullptr);
+                }
+            }
+            if (depthStencil.dsv && depthStencil.loadOperation == LoadOperation::Clear)
+            {
+                DX12TextureDSV* dx12DSV = dynamic_cast<DX12TextureDSV*>(depthStencil.dsv.get());
+                CHECK(dx12DSV);
+                mCommandList->ClearDepthStencilView(dx12DSV->GetDescriptorHandle(), D3D12_CLEAR_FLAG_DEPTH, depthStencil.clearDepth, 0, 0, nullptr);
+            }
         }
 
         void DX12CommandList::BindVertexBuffers(Uint32 startIndex, ArrayView<SharedPtr<Buffer>> buffers, ArrayView<Uint32> offsets)
@@ -191,8 +202,6 @@ namespace cube
                     .SizeInBytes = static_cast<UINT>(dx12Buffer->GetSize()),
                     .StrideInBytes = sizeof(Vertex)
                 };
-
-                CUBE_DX12_BOUND_OBJECT(buffers[i]);
             }
 
             mCommandList->IASetVertexBuffers(0, d3d12VertexBufferViews.size(), d3d12VertexBufferViews.data());
@@ -212,8 +221,6 @@ namespace cube
             };
 
             mCommandList->IASetIndexBuffer(&indexBufferView);
-
-            CUBE_DX12_BOUND_OBJECT(buffer);
         }
 
         void DX12CommandList::Draw(Uint32 numVertices, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance)
@@ -245,8 +252,6 @@ namespace cube
             mCommandList->SetGraphicsRootSignature(dx12ShaderVariablesLayout->GetRootSignature());
             mCommandList->SetComputeRootSignature(dx12ShaderVariablesLayout->GetRootSignature());
 
-            CUBE_DX12_BOUND_OBJECT(shaderVariablesLayout);
-
             mIsShaderVariableLayoutSet = true;
         }
 
@@ -260,8 +265,6 @@ namespace cube
 
             mCommandList->SetGraphicsRootConstantBufferView(index, dx12Buffer->GetResource()->GetGPUVirtualAddress());
             mCommandList->SetComputeRootConstantBufferView(index, dx12Buffer->GetResource()->GetGPUVirtualAddress());
-
-            CUBE_DX12_BOUND_OBJECT(constantBuffer);
         }
 
         void DX12CommandList::BindTexture(SharedPtr<Texture> texture)
@@ -269,7 +272,6 @@ namespace cube
             CHECK(mState == State::Writing);
 
             // Just bind the object
-            CUBE_DX12_BOUND_OBJECT(texture);
         }
 
         void DX12CommandList::BindSampler(SharedPtr<Sampler> sampler)
@@ -277,7 +279,6 @@ namespace cube
             CHECK(mState == State::Writing);
 
             // Just bind the object
-            CUBE_DX12_BOUND_OBJECT(sampler);
         }
 
         void DX12CommandList::ResourceTransition(TransitionState state)
@@ -292,6 +293,20 @@ namespace cube
             FrameVector<D3D12_RESOURCE_BARRIER> barriers;
             barriers.reserve(states.size());
 
+            auto AddTextureSubresourceBarriers = [&barriers, this](const DX12Texture* texture, SubresourceRange range, D3D12_RESOURCE_BARRIER barrier)
+            {
+                Uint32 arraySize = texture->GetArraySize();
+                Uint32 mipLevels = texture->GetMipLevels();
+                for (Uint32 arrayIndex = range.firstArrayIndex; arrayIndex < range.firstArrayIndex + range.arraySize; ++arrayIndex)
+                {
+                    for (Uint32 mipIndex = range.firstMipLevel; mipIndex < range.firstMipLevel + range.mipLevels; ++mipIndex)
+                    {
+                        barrier.Transition.Subresource = D3D12CalcSubresource(mipIndex, arrayIndex, 0, mipLevels, arraySize);
+                        barriers.push_back(barrier);
+                    }
+                }
+            };
+
             for (const TransitionState state : states)
             {
                 D3D12_RESOURCE_BARRIER barrier = {
@@ -299,8 +314,7 @@ namespace cube
                     .Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
                     .Transition = {
                         .StateBefore = ConvertToDX12ResourceStates(state.src),
-                        .StateAfter = ConvertToDX12ResourceStates(state.dst)
-                    }
+                        .StateAfter = ConvertToDX12ResourceStates(state.dst) }
                 };
 
                 switch (state.resourceType)
@@ -311,60 +325,38 @@ namespace cube
                     barrier.Transition.pResource = dx12Buffer->GetResource();
                     barrier.Transition.Subresource = 0;
                     barriers.push_back(barrier);
-
-                    CUBE_DX12_BOUND_OBJECT(state.buffer);
                     break;
                 }
                 case TransitionState::ResourceType::SRV:
                 {
-                    const DX12TextureSRV* dxSRV = dynamic_cast<DX12TextureSRV*>(state.srv.get());
-                    const DX12Texture* dxTexture = dxSRV->GetDX12Texture();
-                    barrier.Transition.pResource = dxTexture->GetResource();
-
-                    Uint32 arraySize = dxTexture->GetArraySize();
-                    Uint32 mipLevels = dxTexture->GetMipLevels();
-                    SubresourceRange range = dxSRV->GetSubresourceRange();
-                    for (Uint32 arrayIndex = range.firstArrayIndex; arrayIndex < range.firstArrayIndex + range.arraySize; ++arrayIndex)
-                    {
-                        for (Uint32 mipIndex = range.firstMipLevel; mipIndex < range.firstMipLevel + range.mipLevels; ++mipIndex)
-                        {
-                            barrier.Transition.Subresource = D3D12CalcSubresource(mipIndex, arrayIndex, 0, mipLevels, arraySize);
-                            barriers.push_back(barrier);
-                        }
-                    }
-
-                    CUBE_DX12_BOUND_OBJECT(state.srv);
+                    const DX12TextureSRV* dx12SRV = dynamic_cast<DX12TextureSRV*>(state.srv.get());
+                    const DX12Texture* dx12Texture = dx12SRV->GetDX12Texture();
+                    barrier.Transition.pResource = dx12Texture->GetResource();
+                    AddTextureSubresourceBarriers(dx12Texture, dx12SRV->GetSubresourceRange(), barrier);
                     break;
                 }
                 case TransitionState::ResourceType::UAV:
                 {
-                    const DX12TextureUAV* dxUAV = dynamic_cast<DX12TextureUAV*>(state.uav.get());
-                    const DX12Texture* dxTexture = dxUAV->GetDX12Texture();
-                    barrier.Transition.pResource = dxUAV->GetDX12Texture()->GetResource();
-
-                    Uint32 arraySize = dxTexture->GetArraySize();
-                    Uint32 mipLevels = dxTexture->GetMipLevels();
-                    SubresourceRange range = dxUAV->GetSubresourceRange();
-                    for (Uint32 arrayIndex = range.firstArrayIndex; arrayIndex < range.firstArrayIndex + range.arraySize; ++arrayIndex)
-                    {
-                        for (Uint32 mipIndex = range.firstMipLevel; mipIndex < range.firstMipLevel + range.mipLevels; ++mipIndex)
-                        {
-                            barrier.Transition.Subresource = D3D12CalcSubresource(mipIndex, arrayIndex, 0, mipLevels, arraySize);
-                            barriers.push_back(barrier);
-                        }
-                    }
-
-                    CUBE_DX12_BOUND_OBJECT(state.uav);
+                    const DX12TextureUAV* dx12UAV = dynamic_cast<DX12TextureUAV*>(state.uav.get());
+                    const DX12Texture* dx12Texture = dx12UAV->GetDX12Texture();
+                    barrier.Transition.pResource = dx12UAV->GetDX12Texture()->GetResource();
+                    AddTextureSubresourceBarriers(dx12Texture, dx12UAV->GetSubresourceRange(), barrier);
                     break;
                 }
-                case TransitionState::ResourceType::ViewportBackBuffer:
+                case TransitionState::ResourceType::RTV:
                 {
-                    ID3D12Resource* currentBackbuffer = dynamic_cast<DX12Viewport*>(state.viewport.get())->GetCurrentBackbuffer();
-                    barrier.Transition.pResource = currentBackbuffer;
-                    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-                    barriers.push_back(barrier);
-
-                    CUBE_DX12_BOUND_OBJECT(state.viewport);
+                    const DX12TextureRTV* dx12RTV = dynamic_cast<DX12TextureRTV*>(state.rtv.get());
+                    const DX12Texture* dx12Texture = dx12RTV->GetDX12Texture();
+                    barrier.Transition.pResource = dx12RTV->GetDX12Texture()->GetResource();
+                    AddTextureSubresourceBarriers(dx12Texture, dx12RTV->GetSubresourceRange(), barrier);
+                    break;
+                }
+                case TransitionState::ResourceType::DSV:
+                {
+                    const DX12TextureDSV* dx12DSV = dynamic_cast<DX12TextureDSV*>(state.dsv.get());
+                    const DX12Texture* dx12Texture = dx12DSV->GetDX12Texture();
+                    barrier.Transition.pResource = dx12DSV->GetDX12Texture()->GetResource();
+                    AddTextureSubresourceBarriers(dx12Texture, dx12DSV->GetSubresourceRange(), barrier);
                     break;
                 }
                 default:
@@ -381,8 +373,6 @@ namespace cube
             CHECK(mState == State::Writing);
 
             mCommandList->SetPipelineState(dynamic_cast<DX12ComputePipeline*>(computePipeline.get())->GetPipelineState());
-
-            CUBE_DX12_BOUND_OBJECT(computePipeline);
         }
 
         void DX12CommandList::Dispatch(Uint32 threadGroupX, Uint32 threadGroupY, Uint32 threadGroupZ)
@@ -408,9 +398,6 @@ namespace cube
 
             ID3D12CommandList* cmdLists[] = { mCommandList.Get() };
             mQueueManager.GetMainQueue()->ExecuteCommandLists(1, cmdLists);
-
-            mCommandListManager.AddBoundObjects(mBoundObjects);
-            mBoundObjects.clear();
         }
     } // namespace gapi
 } // namespace cube

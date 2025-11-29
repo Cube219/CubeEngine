@@ -18,7 +18,7 @@ namespace cube
     {
         gapi::ResourceType type;
 
-        void* pData;
+        void* pData = nullptr;
         Uint64 size;
 
         ID3D12Resource* dstResource;
@@ -27,6 +27,8 @@ namespace cube
 
         int pageId;
         Uint64 offsetInPage;
+
+        bool IsValid() const { return pData != nullptr; }
     };
 
     // TODO: shrink page?
@@ -44,6 +46,7 @@ namespace cube
         // TODO: Thread-safe
         DX12UploadDesc Allocate(gapi::ResourceType type, Uint64 size, Uint64 alignment = 1);
         DX12FenceValue Submit(DX12UploadDesc& desc, bool waitForCompletion = false);
+        void Discard(DX12UploadDesc& desc);
 
         bool IsUploadFinished(DX12FenceValue submitFenceValue);
 
