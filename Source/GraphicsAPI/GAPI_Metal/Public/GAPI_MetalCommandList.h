@@ -23,9 +23,7 @@ namespace cube
             void SetPrimitiveTopology(PrimitiveTopology primitiveTopology) override {}
 
             void SetGraphicsPipeline(SharedPtr<GraphicsPipeline> graphicsPipeline) override {}
-            void SetRenderTargets(ArrayView<SharedPtr<TextureRTV>> rtvs, SharedPtr<TextureDSV> dsv) override {}
-            void ClearRenderTargetView(SharedPtr<TextureRTV> rtv, Float4 color) override {}
-            void ClearDepthStencilView(SharedPtr<TextureDSV> dsv, float depth) override {}
+            virtual void SetRenderTargets(ArrayView<ColorAttachment> colors, DepthStencilAttachment depthStencil) override {}
 
             void BindVertexBuffers(Uint32 startIndex, ArrayView<SharedPtr<Buffer>> buffers, ArrayView<Uint32> offsets) override {};
             void BindIndexBuffer(SharedPtr<Buffer> buffer, Uint32 offset) override {};

@@ -360,9 +360,19 @@ namespace cube
             mCommandList->SetPrimitiveTopology(gapi::PrimitiveTopology::TriangleList);
 
             mCommandList->SetShaderVariablesLayout(mShaderManager.GetMaterialShaderManager().GetShaderVariablesLayout());
-            mCommandList->SetRenderTargets({ &mCurrentBackbufferRTV, 1 }, mDSV);
-            mCommandList->ClearRenderTargetView(mCurrentBackbufferRTV, { 0.2f, 0.2f, 0.2f, 1.0f });
-            mCommandList->ClearDepthStencilView(mDSV, 0);
+            gapi::ColorAttachment colorAttachment = {
+                .rtv = mCurrentBackbufferRTV,
+                .loadOperation = gapi::LoadOperation::Clear,
+                .storeOperation = gapi::StoreOperation::Store,
+                .clearColor = { 0.2f, 0.2f, 0.2f, 1.0f }
+            };
+            gapi::DepthStencilAttachment depthStencilAttachment = {
+                .dsv = mDSV,
+                .loadOperation = gapi::LoadOperation::Clear,
+                .storeOperation = gapi::StoreOperation::Store,
+                .clearDepth = 0.0f
+            };
+            mCommandList->SetRenderTargets({ &colorAttachment, 1 }, depthStencilAttachment);
 
             SharedPtr<GlobalShaderParameters> globalShaderParameters = mShaderParametersManager.CreateShaderParameters<GlobalShaderParameters>();
             globalShaderParameters->viewPosition = mViewPosition;

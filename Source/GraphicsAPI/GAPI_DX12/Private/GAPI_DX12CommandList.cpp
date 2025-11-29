@@ -140,21 +140,21 @@ namespace cube
             mCommandList->SetPipelineState(dynamic_cast<DX12GraphicsPipeline*>(graphicsPipeline.get())->GetPipelineState());
         }
 
-        void DX12CommandList::SetRenderTargets(ArrayView<SharedPtr<TextureRTV>> rtvs, SharedPtr<TextureDSV> dsv)
+        void DX12CommandList::SetRenderTargets(ArrayView<ColorAttachment> colors, DepthStencilAttachment depthStencil)
         {
             CHECK(mState == State::Writing);
 
-            FrameVector<D3D12_CPU_DESCRIPTOR_HANDLE> rtvHandles(rtvs.size());
-            for (int i = 0; i < rtvs.size(); ++i)
+            FrameVector<D3D12_CPU_DESCRIPTOR_HANDLE> rtvHandles(colors.size());
+            for (int i = 0; i < colors.size(); ++i)
             {
-                DX12TextureRTV* dx12RTV = dynamic_cast<DX12TextureRTV*>(rtvs[i].get());
+                DX12TextureRTV* dx12RTV = dynamic_cast<DX12TextureRTV*>(colors[i].rtv.get());
                 CHECK(dx12RTV);
                 rtvHandles[i] = dx12RTV->GetDescriptorHandle();
             }
 
-            if (dsv)
+            if (depthStencil.dsv)
             {
-                DX12TextureDSV* dx12DSV = dynamic_cast<DX12TextureDSV*>(dsv.get());
+                DX12TextureDSV* dx12DSV = dynamic_cast<DX12TextureDSV*>(depthStencil.dsv.get());
                 CHECK(dx12DSV);
                 D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = dx12DSV->GetDescriptorHandle();
 
@@ -164,26 +164,24 @@ namespace cube
             {
                 mCommandList->OMSetRenderTargets((UINT)rtvHandles.size(), rtvHandles.data(), false, nullptr);
             }
-        }
 
-        void DX12CommandList::ClearRenderTargetView(SharedPtr<TextureRTV> rtv, Float4 color)
-        {
-            CHECK(mState == State::Writing);
-
-            float fColor[4] = { color.x, color.y, color.z, color.w };
-            DX12TextureRTV* dx12RTV = dynamic_cast<DX12TextureRTV*>(rtv.get());
-            CHECK(dx12RTV);
-
-            mCommandList->ClearRenderTargetView(dx12RTV->GetDescriptorHandle(), fColor, 0, nullptr);
-        }
-
-        void DX12CommandList::ClearDepthStencilView(SharedPtr<TextureDSV> dsv, float depth)
-        {
-            CHECK(mState == State::Writing);
-
-            DX12TextureDSV* dx12DSV = dynamic_cast<DX12TextureDSV*>(dsv.get());
-            CHECK(dx12DSV);
-            mCommandList->ClearDepthStencilView(dx12DSV->GetDescriptorHandle(), D3D12_CLEAR_FLAG_DEPTH, depth, 0, 0, nullptr);
+            // Clear RTVs / DSV if needed
+            for (int i = 0; i < colors.size(); ++i)
+            {
+                if (colors[i].loadOperation == LoadOperation::Clear)
+                {
+                    DX12TextureRTV* dx12RTV = dynamic_cast<DX12TextureRTV*>(colors[i].rtv.get());
+                    CHECK(dx12RTV);
+                    float fColor[4] = { colors[i].clearColor.x, colors[i].clearColor.y, colors[i].clearColor.z, colors[i].clearColor.w };
+                    mCommandList->ClearRenderTargetView(dx12RTV->GetDescriptorHandle(), fColor, 0, nullptr);
+                }
+            }
+            if (depthStencil.dsv && depthStencil.loadOperation == LoadOperation::Clear)
+            {
+                DX12TextureDSV* dx12DSV = dynamic_cast<DX12TextureDSV*>(depthStencil.dsv.get());
+                CHECK(dx12DSV);
+                mCommandList->ClearDepthStencilView(dx12DSV->GetDescriptorHandle(), D3D12_CLEAR_FLAG_DEPTH, depthStencil.clearDepth, 0, 0, nullptr);
+            }
         }
 
         void DX12CommandList::BindVertexBuffers(Uint32 startIndex, ArrayView<SharedPtr<Buffer>> buffers, ArrayView<Uint32> offsets)
