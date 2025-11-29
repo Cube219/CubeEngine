@@ -22,15 +22,8 @@ namespace cube
 
             virtual SharedPtr<TextureSRV> CreateSRV(const TextureSRVCreateInfo& createInfo) override;
             virtual SharedPtr<TextureUAV> CreateUAV(const TextureUAVCreateInfo& createInfo) override;
-            virtual SharedPtr<TextureRTV> CreateRTV(const TextureRTVCreateInfo& createInfo) override
-            {
-                return std::make_shared<TextureRTV>(createInfo, shared_from_this());
-            }
-
-            virtual SharedPtr<TextureDSV> CreateDSV(const TextureDSVCreateInfo& createInfo) override
-            {
-                return std::make_shared<TextureDSV>(createInfo, shared_from_this());
-            }
+            virtual SharedPtr<TextureRTV> CreateRTV(const TextureRTVCreateInfo& createInfo) override;
+            virtual SharedPtr<TextureDSV> CreateDSV(const TextureDSVCreateInfo& createInfo) override;
 
             id<MTLTexture> GetMTLTexture() const { return mTexture; }
             MTLPixelFormat GetPixelFormat() const { return mPixelFormat; }
@@ -68,20 +61,36 @@ namespace cube
             MetalTextureUAV(const TextureUAVCreateInfo& createInfo, SharedPtr<Texture> texture, MetalDevice& device);
             virtual ~MetalTextureUAV();
 
-            virtual SharedPtr<TextureRTV> CreateRTV(const TextureRTVCreateInfo& createInfo) override
-            {
-                return std::make_shared<TextureRTV>(createInfo, shared_from_this());
-            }
-
-            virtual SharedPtr<TextureDSV> CreateDSV(const TextureDSVCreateInfo& createInfo) override
-            {
-                return std::make_shared<TextureDSV>(createInfo, shared_from_this());
-            }
-
         private:
             MetalDevice& mDevice;
 
             id<MTLTexture> mUAV;
+            MetalArgumentBufferHandle mArgumentBufferHandle;
+        };
+
+        class MetalTextureRTV : public TextureRTV
+        {
+        public:
+            MetalTextureRTV(const TextureRTVCreateInfo& createInfo, SharedPtr<Texture> texture, MetalDevice& device);
+            ~MetalTextureRTV() override;
+
+        private:
+            MetalDevice& mDevice;
+
+            id<MTLTexture> mRTV;
+            MetalArgumentBufferHandle mArgumentBufferHandle;
+        };
+
+        class MetalTextureDSV : public TextureDSV
+        {
+        public:
+            MetalTextureDSV(const TextureDSVCreateInfo& createInfo, SharedPtr<Texture> texture, MetalDevice& device);
+            virtual ~MetalTextureDSV();
+
+        private:
+            MetalDevice& mDevice;
+
+            id<MTLTexture> mDSV;
             MetalArgumentBufferHandle mArgumentBufferHandle;
         };
     } // namespace gapi

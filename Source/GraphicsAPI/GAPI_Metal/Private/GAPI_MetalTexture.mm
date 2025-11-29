@@ -48,7 +48,8 @@ namespace cube
             mTextureType = type;
 
             MTLTextureUsage usage = MTLTextureUsageShaderRead;
-            if (info.flags.IsSet(TextureFlag::RenderTarget))
+            // Metal treat depth and stencil usage as render target.
+            if (info.flags.IsSet(TextureFlag::RenderTarget) || info.flags.IsSet(TextureFlag::DepthStencil))
             {
                 usage |= MTLTextureUsageRenderTarget;
             }
@@ -148,6 +149,16 @@ namespace cube
             return std::make_shared<MetalTextureUAV>(createInfo, std::dynamic_pointer_cast<MetalTexture>(shared_from_this()), mDevice);
         }
 
+        SharedPtr<TextureRTV> MetalTexture::CreateRTV(const TextureRTVCreateInfo& createInfo)
+        {
+            return std::make_shared<MetalTextureRTV>(createInfo, shared_from_this(), mDevice);
+        }
+
+        SharedPtr<TextureDSV> MetalTexture::CreateDSV(const TextureDSVCreateInfo& createInfo)
+        {
+            return std::make_shared<MetalTextureDSV>(createInfo, shared_from_this(), mDevice);
+        }
+
         MetalTextureSRV::MetalTextureSRV(const TextureSRVCreateInfo& createInfo, SharedPtr<Texture> texture, MetalDevice& device)
             : TextureSRV(createInfo, texture)
             , mDevice(device)
@@ -200,6 +211,56 @@ namespace cube
         {
             mDevice.GetArgumentBufferManager().Free(mArgumentBufferHandle);
             [mUAV release];
+        }
+
+        MetalTextureRTV::MetalTextureRTV(const TextureRTVCreateInfo& createInfo, SharedPtr<Texture> texture, MetalDevice& device)
+            : TextureRTV(createInfo, texture)
+            , mDevice(device)
+        {
+            SharedPtr<MetalTexture> metalTexture = std::dynamic_pointer_cast<MetalTexture>(texture);
+            CHECK(metalTexture);
+            CHECK_FORMAT(metalTexture->GetTextureUsage() & MTLTextureUsageRenderTarget, "Cannot create MetalTextureRTV. Texture was not created with MTLTextureUsageRenderTarget.");
+
+            Uint32 arraySize = createInfo.arraySize != -1 ? createInfo.arraySize : metalTexture->GetArraySize() - createInfo.firstArrayIndex;
+            mRTV = [metalTexture->GetMTLTexture()
+                newTextureViewWithPixelFormat:metalTexture->GetPixelFormat()
+                textureType:metalTexture->GetTextureType()
+                                       levels:NSMakeRange(createInfo.mipLevel, 1)
+                                       slices:NSMakeRange(createInfo.firstArrayIndex, arraySize)
+            ];
+
+            mArgumentBufferHandle = mDevice.GetArgumentBufferManager().Allocate();
+        }
+
+        MetalTextureRTV::~MetalTextureRTV()
+        {
+            mDevice.GetArgumentBufferManager().Free(mArgumentBufferHandle);
+            [mRTV release];
+        }
+
+        MetalTextureDSV::MetalTextureDSV(const TextureDSVCreateInfo& createInfo, SharedPtr<Texture> texture, MetalDevice& device)
+            : TextureDSV(createInfo, texture)
+            , mDevice(device)
+        {
+            SharedPtr<MetalTexture> metalTexture = std::dynamic_pointer_cast<MetalTexture>(texture);
+            CHECK(metalTexture);
+            CHECK_FORMAT(metalTexture->GetTextureUsage() & MTLTextureUsageRenderTarget, "Cannot create MetalTextureDSV. Texture was not created with MTLTextureUsageRenderTarget.");
+
+            Uint32 arraySize = createInfo.arraySize != -1 ? createInfo.arraySize : metalTexture->GetArraySize() - createInfo.firstArrayIndex;
+            mDSV = [metalTexture->GetMTLTexture()
+                newTextureViewWithPixelFormat:metalTexture->GetPixelFormat()
+                                  textureType:metalTexture->GetTextureType()
+                                       levels:NSMakeRange(createInfo.mipLevel, 1)
+                                       slices:NSMakeRange(createInfo.firstArrayIndex, arraySize)
+            ];
+
+            mArgumentBufferHandle = mDevice.GetArgumentBufferManager().Allocate();
+        }
+
+        MetalTextureDSV::~MetalTextureDSV()
+        {
+            mDevice.GetArgumentBufferManager().Free(mArgumentBufferHandle);
+            [mDSV release];
         }
     } // namespace gapi
 } // namespace cube
