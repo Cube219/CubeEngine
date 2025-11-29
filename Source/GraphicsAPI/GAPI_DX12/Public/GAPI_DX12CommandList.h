@@ -81,8 +81,6 @@ namespace cube
             bool mIsDescriptorHeapSet = false;
             bool mIsShaderVariableLayoutSet = false;
             bool mHasTimestampQuery = false;
-
-            Vector<SharedPtr<DX12APIObject>> mBoundObjects;
         };
     } // namespace gapi
 } // namespace cube

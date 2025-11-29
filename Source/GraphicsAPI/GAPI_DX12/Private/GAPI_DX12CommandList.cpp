@@ -98,8 +98,6 @@ namespace cube
             {
                 const DX12Viewport* dxViewport = dynamic_cast<DX12Viewport*>(viewports[i].get());
                 d3d12Viewports[i] = dxViewport->GetD3D12Viewport();
-
-                CUBE_DX12_BOUND_OBJECT(viewports[i]);
             }
 
             mCommandList->RSSetViewports(d3d12Viewports.size(), d3d12Viewports.data());
@@ -134,8 +132,6 @@ namespace cube
             CHECK(mState == State::Writing);
 
             mCommandList->SetPipelineState(dynamic_cast<DX12GraphicsPipeline*>(graphicsPipeline.get())->GetPipelineState());
-
-            CUBE_DX12_BOUND_OBJECT(graphicsPipeline);
         }
 
         void DX12CommandList::SetRenderTarget(SharedPtr<Viewport> viewport)
@@ -146,8 +142,6 @@ namespace cube
             D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = dx12Viewport->GetCurrentRTVDescriptor();
             D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = dx12Viewport->GetDSVDescriptor().handle;
             mCommandList->OMSetRenderTargets(1, &rtvHandle, false, &dsvHandle);
-
-            CUBE_DX12_BOUND_OBJECT(viewport);
         }
 
         void DX12CommandList::ClearRenderTargetView(SharedPtr<Viewport> viewport, Float4 color)
@@ -158,8 +152,6 @@ namespace cube
             DX12Viewport* dx12Viewport = dynamic_cast<DX12Viewport*>(viewport.get());
             D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = dx12Viewport->GetCurrentRTVDescriptor();
             mCommandList->ClearRenderTargetView(rtvHandle, fColor, 0, nullptr);
-
-            CUBE_DX12_BOUND_OBJECT(viewport);
         }
 
         void DX12CommandList::ClearDepthStencilView(SharedPtr<Viewport> viewport, float depth)
@@ -169,8 +161,6 @@ namespace cube
             DX12Viewport* dx12Viewport = dynamic_cast<DX12Viewport*>(viewport.get());
             D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = dx12Viewport->GetDSVDescriptor().handle;
             mCommandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, depth, 0, 0, nullptr);
-
-            CUBE_DX12_BOUND_OBJECT(viewport);
         }
 
         void DX12CommandList::BindVertexBuffers(Uint32 startIndex, ArrayView<SharedPtr<Buffer>> buffers, ArrayView<Uint32> offsets)
@@ -191,8 +181,6 @@ namespace cube
                     .SizeInBytes = static_cast<UINT>(dx12Buffer->GetSize()),
                     .StrideInBytes = sizeof(Vertex)
                 };
-
-                CUBE_DX12_BOUND_OBJECT(buffers[i]);
             }
 
             mCommandList->IASetVertexBuffers(0, d3d12VertexBufferViews.size(), d3d12VertexBufferViews.data());
@@ -212,8 +200,6 @@ namespace cube
             };
 
             mCommandList->IASetIndexBuffer(&indexBufferView);
-
-            CUBE_DX12_BOUND_OBJECT(buffer);
         }
 
         void DX12CommandList::Draw(Uint32 numVertices, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance)
@@ -245,8 +231,6 @@ namespace cube
             mCommandList->SetGraphicsRootSignature(dx12ShaderVariablesLayout->GetRootSignature());
             mCommandList->SetComputeRootSignature(dx12ShaderVariablesLayout->GetRootSignature());
 
-            CUBE_DX12_BOUND_OBJECT(shaderVariablesLayout);
-
             mIsShaderVariableLayoutSet = true;
         }
 
@@ -260,8 +244,6 @@ namespace cube
 
             mCommandList->SetGraphicsRootConstantBufferView(index, dx12Buffer->GetResource()->GetGPUVirtualAddress());
             mCommandList->SetComputeRootConstantBufferView(index, dx12Buffer->GetResource()->GetGPUVirtualAddress());
-
-            CUBE_DX12_BOUND_OBJECT(constantBuffer);
         }
 
         void DX12CommandList::BindTexture(SharedPtr<Texture> texture)
@@ -269,7 +251,6 @@ namespace cube
             CHECK(mState == State::Writing);
 
             // Just bind the object
-            CUBE_DX12_BOUND_OBJECT(texture);
         }
 
         void DX12CommandList::BindSampler(SharedPtr<Sampler> sampler)
@@ -277,7 +258,6 @@ namespace cube
             CHECK(mState == State::Writing);
 
             // Just bind the object
-            CUBE_DX12_BOUND_OBJECT(sampler);
         }
 
         void DX12CommandList::ResourceTransition(TransitionState state)
@@ -311,8 +291,6 @@ namespace cube
                     barrier.Transition.pResource = dx12Buffer->GetResource();
                     barrier.Transition.Subresource = 0;
                     barriers.push_back(barrier);
-
-                    CUBE_DX12_BOUND_OBJECT(state.buffer);
                     break;
                 }
                 case TransitionState::ResourceType::SRV:
@@ -332,8 +310,6 @@ namespace cube
                             barriers.push_back(barrier);
                         }
                     }
-
-                    CUBE_DX12_BOUND_OBJECT(state.srv);
                     break;
                 }
                 case TransitionState::ResourceType::UAV:
@@ -353,8 +329,6 @@ namespace cube
                             barriers.push_back(barrier);
                         }
                     }
-
-                    CUBE_DX12_BOUND_OBJECT(state.uav);
                     break;
                 }
                 case TransitionState::ResourceType::ViewportBackBuffer:
@@ -363,8 +337,6 @@ namespace cube
                     barrier.Transition.pResource = currentBackbuffer;
                     barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
                     barriers.push_back(barrier);
-
-                    CUBE_DX12_BOUND_OBJECT(state.viewport);
                     break;
                 }
                 default:
@@ -381,8 +353,6 @@ namespace cube
             CHECK(mState == State::Writing);
 
             mCommandList->SetPipelineState(dynamic_cast<DX12ComputePipeline*>(computePipeline.get())->GetPipelineState());
-
-            CUBE_DX12_BOUND_OBJECT(computePipeline);
         }
 
         void DX12CommandList::Dispatch(Uint32 threadGroupX, Uint32 threadGroupY, Uint32 threadGroupZ)
@@ -408,9 +378,6 @@ namespace cube
 
             ID3D12CommandList* cmdLists[] = { mCommandList.Get() };
             mQueueManager.GetMainQueue()->ExecuteCommandLists(1, cmdLists);
-
-            mCommandListManager.AddBoundObjects(mBoundObjects);
-            mBoundObjects.clear();
         }
     } // namespace gapi
 } // namespace cube
