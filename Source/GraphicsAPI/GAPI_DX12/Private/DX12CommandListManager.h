@@ -22,6 +22,7 @@ namespace cube
 
         void SetNumGPUSync(Uint32 newNumGPUSync);
         void MoveToNextIndex(Uint64 nextGPUFrame);
+        void ClearAll();
 
         void AddBoundObjects(ArrayView<SharedPtr<DX12APIObject>> objects);
         ID3D12CommandAllocator* GetCurrentAllocator() const { return mAllocators[mCurrentIndex].Get(); }

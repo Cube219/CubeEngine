@@ -119,5 +119,7 @@ namespace cube
         waitFence.Wait(1);
 
         waitFence.Shutdown();
+
+        GetCommandListManager().ClearAll();
     }
 } // namespace cube

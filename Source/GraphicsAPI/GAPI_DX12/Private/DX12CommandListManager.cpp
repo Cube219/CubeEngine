@@ -53,6 +53,19 @@ namespace cube
         mBoundObjectsInCommand[mCurrentIndex].clear();
     }
 
+    void DX12CommandListManager::ClearAll()
+    {
+        for (auto& allocator : mAllocators)
+        {
+            CHECK_HR(allocator->Reset());
+        }
+
+        for (auto& boundObjects : mBoundObjectsInCommand)
+        {
+            boundObjects.clear();
+        }
+    }
+
     void DX12CommandListManager::AddBoundObjects(ArrayView<SharedPtr<DX12APIObject>> objects)
     {
         auto& boundObjects = mBoundObjectsInCommand[mCurrentIndex];

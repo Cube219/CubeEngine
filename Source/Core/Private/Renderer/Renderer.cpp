@@ -227,12 +227,42 @@ namespace cube
         mViewportWidth = width;
         mViewportHeight = height;
 
+        mGAPI->WaitAllGPUSync();
+
         if (mSwapChain)
         {
-            mGAPI->WaitAllGPUSync();
-
             mCurrentBackbufferRTV = nullptr;
             mSwapChain->Resize(width, height);
+        }
+
+        if (mDepthStencilTexture)
+        {
+            mDSV = nullptr;
+            mDepthStencilTexture = nullptr;
+
+            mDepthStencilTexture = mGAPI->CreateTexture({
+                .usage = gapi::ResourceUsage::GPUOnly,
+                .format = gapi::ElementFormat::D32_Float,
+                .type = gapi::TextureType::Texture2D,
+                .flags = gapi::TextureFlag::DepthStencil,
+                .width = mViewportWidth,
+                .height = mViewportHeight,
+                .debugName = CUBE_T("MainDepthStencilTexture")
+            });
+            mDSV = mDepthStencilTexture->CreateDSV({});
+
+            mCommandList->Reset();
+            mCommandList->Begin();
+
+            mCommandList->ResourceTransition({
+                .resourceType = gapi::TransitionState::ResourceType::DSV,
+                .dsv = mDSV,
+                .src = gapi::ResourceStateFlag::Common,
+                .dst = gapi::ResourceStateFlag::DepthWrite
+            });
+
+            mCommandList->End();
+            mCommandList->Submit();
         }
     }
 
