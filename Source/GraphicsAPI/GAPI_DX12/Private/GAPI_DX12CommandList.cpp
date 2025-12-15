@@ -43,6 +43,8 @@ namespace cube
             , mQueueManager(device.GetQueueManager())
             , mQueryManager(device.GetQueryManager())
             , mState(State::Closed)
+            , mMaxNumShaderParameterRegister(device.GetShaderParameterHelper().GetMaxNumRegister())
+            , mMaxNumShaderParameterSpace(device.GetShaderParameterHelper().GetMaxNumSpace())
         {
             device.GetDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, mCommandListManager.GetCurrentAllocator(), nullptr, IID_PPV_ARGS(&mCommandList));
             SET_DEBUG_NAME(mCommandList, info.debugName);
@@ -297,9 +299,12 @@ namespace cube
             CHECK(constantBuffer->GetType() == BufferType::Constant);
 
             const DX12Buffer* dx12Buffer = dynamic_cast<DX12Buffer*>(constantBuffer.get());
+            CHECK(dx12Buffer);
 
-            mCommandList->SetGraphicsRootConstantBufferView(index, dx12Buffer->GetResource()->GetGPUVirtualAddress());
-            mCommandList->SetComputeRootConstantBufferView(index, dx12Buffer->GetResource()->GetGPUVirtualAddress());
+            // Register space index is used in Slang's ParameterBlock.
+            CHECK(index < mMaxNumShaderParameterSpace);
+            mCommandList->SetGraphicsRootConstantBufferView(index * mMaxNumShaderParameterRegister, dx12Buffer->GetResource()->GetGPUVirtualAddress());
+            mCommandList->SetComputeRootConstantBufferView(index * mMaxNumShaderParameterRegister, dx12Buffer->GetResource()->GetGPUVirtualAddress());
 
             CUBE_DX12_BOUND_OBJECT(constantBuffer);
         }

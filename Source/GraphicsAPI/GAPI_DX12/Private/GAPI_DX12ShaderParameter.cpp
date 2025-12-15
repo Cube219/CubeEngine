@@ -11,6 +11,8 @@ namespace cube
     {
         DX12ShaderParameterHelper::DX12ShaderParameterHelper(DX12Device& device)
         {
+            mMaxNumRegister = 4;
+            mMaxNumSpace = 8;
         }
 
         DX12ShaderParameterHelper::~DX12ShaderParameterHelper()

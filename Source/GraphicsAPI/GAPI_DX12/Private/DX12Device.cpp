@@ -12,6 +12,7 @@ namespace cube
         mDescriptorManager(*this),
         mCommandListManager(*this),
         mQueryManager(*this),
+        mShaderParameterHelper(*this),
         mGPUSyncFence(*this)
     {
     }

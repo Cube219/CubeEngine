@@ -21,6 +21,13 @@ namespace cube
 
             virtual void UpdateShaderParameterInfo(Vector<ShaderParameterInfo>& inOutParameterInfos, Uint32& outTotalBufferSize) const override;
             virtual void WriteParametersToBuffer(SharedPtr<Buffer> buffer, const Vector<ShaderParameterInfo>& paramInfos, const void* pParameters) const override;
+
+            int GetMaxNumRegister() const { return mMaxNumRegister; }
+            int GetMaxNumSpace() const { return mMaxNumSpace; }
+
+        private:
+            int mMaxNumRegister;
+            int mMaxNumSpace;
         };
     } // namespace gapi
 } // namespace cube

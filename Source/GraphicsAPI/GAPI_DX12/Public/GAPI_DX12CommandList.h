@@ -87,6 +87,9 @@ namespace cube
             bool mHasTimestampQuery = false;
 
             Vector<AnsiString> mCurrentEventNameList;
+
+            int mMaxNumShaderParameterRegister;
+            int mMaxNumShaderParameterSpace;
         };
     } // namespace gapi
 } // namespace cube

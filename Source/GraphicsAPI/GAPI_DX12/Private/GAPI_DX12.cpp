@@ -170,15 +170,11 @@ namespace cube
 
         mCurrentGPUFrame = 0;
         SetNumGPUSync(initInfo.numGPUSync);
-
-        mShaderParameterHelper = std::make_unique<gapi::DX12ShaderParameterHelper>(*mMainDevice);
     }
 
     void GAPI_DX12::Shutdown(const ImGUIContext& imGUIInfo)
     {
         CUBE_LOG(Info, DX12, "Shutdown GAPI_DX12.");
-
-        mShaderParameterHelper = nullptr;
 
         DX12ShaderCompiler::Shutdown();
 
@@ -262,6 +258,11 @@ namespace cube
     void GAPI_DX12::WaitAllGPUSync()
     {
         mMainDevice->WaitAllGPUSync();
+    }
+
+    const gapi::ShaderParameterHelper& GAPI_DX12::GetShaderParameterHelper() const
+    {
+        return mMainDevice->GetShaderParameterHelper();
     }
 
     SharedPtr<gapi::Buffer> GAPI_DX12::CreateBuffer(const gapi::BufferCreateInfo& info)
