@@ -80,6 +80,8 @@ namespace cube
             ComPtr<ID3D12GraphicsCommandList> mCommandList;
             State mState;
 
+            Vector<SharedPtr<DX12APIObject>> mBoundObjects;
+
             bool mIsDescriptorHeapSet = false;
             bool mIsShaderVariableLayoutSet = false;
             bool mHasTimestampQuery = false;
