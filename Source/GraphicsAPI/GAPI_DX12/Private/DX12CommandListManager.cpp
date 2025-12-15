@@ -55,6 +55,7 @@ namespace cube
 
     void DX12CommandListManager::AddBoundObjects(ArrayView<SharedPtr<DX12APIObject>> objects)
     {
-        mBoundObjectsInCommand[mCurrentIndex].assign(objects.begin(), objects.end());
+        auto& boundObjects = mBoundObjectsInCommand[mCurrentIndex];
+        boundObjects.insert(boundObjects.end(), objects.begin(), objects.end());
     }
 } // namespace cube
