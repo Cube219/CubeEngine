@@ -9,8 +9,9 @@
 
 namespace cube
 {
-    bool DX12Debug::mIsInitizlied = false;
+    bool DX12Debug::mIsInitialized = false;
     DX12Device* DX12Debug::mDevice;
+    DWORD DX12Debug::mMessageCallbackCookie;
     HANDLE DX12Debug::mExceptionHandler;
 
     SharedPtr<platform::DLib> DX12Debug::mDXGIDebugDLib;
@@ -18,7 +19,7 @@ namespace cube
 
     void DX12Debug::Initialize(Uint32& outDxgiFactoryFlags)
     {
-        CHECK(mIsInitizlied == false);
+        CHECK(mIsInitialized == false);
 
         ComPtr<ID3D12Debug> debugController;
         if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController))))
@@ -43,12 +44,12 @@ namespace cube
             }
         }
 
-        mIsInitizlied = true;
+        mIsInitialized = true;
     }
 
     void DX12Debug::Shutdown()
     {
-        if (mIsInitizlied == false)
+        if (mIsInitialized == false)
         {
             return;
         }
@@ -66,31 +67,64 @@ namespace cube
         mDXGIDebugDLib = nullptr;
     }
 
-    void DX12Debug::InitializeD3DExceptionHandler(DX12Device& device)
+    void DX12Debug::InitializeD3DDebugMessageLogging(DX12Device& device)
     {
         mDevice = &device;
 
-        mExceptionHandler = AddVectoredExceptionHandler(1, D3DVectoredExceptionHandler);
-
+        bool useMessageCallback = false;
         ComPtr<ID3D12InfoQueue> infoQueue;
         if (SUCCEEDED(device.GetDevice()->QueryInterface(IID_PPV_ARGS(&infoQueue))))
         {
             infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, true);
             infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, true);
+
+            ComPtr<ID3D12InfoQueue1> infoQueue1;
+            if (SUCCEEDED(device.GetDevice()->QueryInterface(IID_PPV_ARGS(&infoQueue1))))
+            {
+                // Use debug layer message callback if possible.
+                infoQueue1->RegisterMessageCallback(D3DMessageCallback, D3D12_MESSAGE_CALLBACK_FLAG_NONE, nullptr, &mMessageCallbackCookie);
+            
+                useMessageCallback = true;
+            }
+        }
+
+        if (!useMessageCallback)
+        {
+            mExceptionHandler = AddVectoredExceptionHandler(1, D3DVectoredExceptionHandler);
         }
     }
 
-    void DX12Debug::ShutdownD3DExceptionHandler()
+    void DX12Debug::ShutdownD3DDebugMessageLogging()
     {
+        if (mMessageCallbackCookie)
+        {
+            ComPtr<ID3D12InfoQueue1> infoQueue1;
+            if (SUCCEEDED(mDevice->GetDevice()->QueryInterface(IID_PPV_ARGS(&infoQueue1))))
+            {
+                infoQueue1->UnregisterMessageCallback(mMessageCallbackCookie);
+            }
+        }
+
         if (mExceptionHandler)
         {
             RemoveVectoredExceptionHandler(mExceptionHandler);
         }
     }
 
-    void DX12Debug::CheckDebugMessages()
+    LONG DX12Debug::D3DVectoredExceptionHandler(EXCEPTION_POINTERS* exceptionInfo)
     {
-        if (mIsInitizlied == false)
+        if (exceptionInfo->ExceptionRecord->ExceptionCode == _FACDXGI)
+        {
+            CheckD3DDebugMessages();
+            return EXCEPTION_CONTINUE_EXECUTION;
+        }
+
+        return EXCEPTION_CONTINUE_SEARCH;
+    }
+
+    void DX12Debug::CheckD3DDebugMessages()
+    {
+        if (mIsInitialized == false)
         {
             return;
         }
@@ -131,29 +165,7 @@ namespace cube
                     }
 
                     infoQueue->GetMessage(i, message, &messageLength);
-
-                    switch (message->Severity)
-                    {
-                    case D3D12_MESSAGE_SEVERITY_CORRUPTION:
-                    case D3D12_MESSAGE_SEVERITY_ERROR:
-                        CUBE_LOG(Error, DX12, "[DX12Debug]: {}", message->pDescription);
-
-                        if (platform::PlatformDebug::IsDebuggerAttached())
-                        {
-                            CUBE_DEBUG_BREAK
-                        }
-
-                        break;
-
-                    case D3D12_MESSAGE_SEVERITY_WARNING:
-                        CUBE_LOG(Warning, DX12, "[DX12Debug]: {}", message->pDescription);
-                        break;
-
-                    case D3D12_MESSAGE_SEVERITY_INFO:
-                    case D3D12_MESSAGE_SEVERITY_MESSAGE:
-                        CUBE_LOG(Info, DX12, "[DX12Debug]: {}", message->pDescription);
-                        break;
-                    }
+                    LogD3DDebugMessage(message->Severity, message->pDescription);
                 }
                 else
                 {
@@ -171,14 +183,36 @@ namespace cube
         }
     }
 
-    LONG DX12Debug::D3DVectoredExceptionHandler(EXCEPTION_POINTERS* exceptionInfo)
+    void DX12Debug::D3DMessageCallback(D3D12_MESSAGE_CATEGORY Category, D3D12_MESSAGE_SEVERITY Severity, D3D12_MESSAGE_ID ID, LPCSTR pDescription, void* pContext)
     {
-        if (exceptionInfo->ExceptionRecord->ExceptionCode == _FACDXGI)
+        if (Severity <= D3D12_MESSAGE_SEVERITY_WARNING)
         {
-            CheckDebugMessages();
-            return EXCEPTION_CONTINUE_EXECUTION;
+            LogD3DDebugMessage(Severity, pDescription);
         }
+    }
 
-        return EXCEPTION_CONTINUE_SEARCH;
+    void DX12Debug::LogD3DDebugMessage(D3D12_MESSAGE_SEVERITY severity, LPCSTR pDescription)
+    {
+        switch (severity)
+        {
+        case D3D12_MESSAGE_SEVERITY_CORRUPTION:
+        case D3D12_MESSAGE_SEVERITY_ERROR:
+            CUBE_LOG(Error, DX12, "[DX12Debug]: {0}", pDescription);
+
+            if (platform::PlatformDebug::IsDebuggerAttached())
+            {
+                CUBE_DEBUG_BREAK
+            }
+            break;
+
+        case D3D12_MESSAGE_SEVERITY_WARNING:
+            CUBE_LOG(Warning, DX12, "[DX12Debug]: {0}", pDescription);
+            break;
+
+        case D3D12_MESSAGE_SEVERITY_INFO:
+        case D3D12_MESSAGE_SEVERITY_MESSAGE:
+            CUBE_LOG(Info, DX12, "[DX12Debug]: {0}", pDescription);
+            break;
+        }
     }
 } // namespace cube

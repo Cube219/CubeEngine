@@ -161,7 +161,7 @@ namespace cube
 
         if (initInfo.enableDebugLayer)
         {
-            DX12Debug::InitializeD3DExceptionHandler(*mMainDevice);
+            DX12Debug::InitializeD3DDebugMessageLogging(*mMainDevice);
         }
 
         InitializeImGUI(initInfo.imGUI);
@@ -181,7 +181,7 @@ namespace cube
 
         WaitAllGPUSync();
 
-        DX12Debug::ShutdownD3DExceptionHandler();
+        DX12Debug::ShutdownD3DDebugMessageLogging();
 
         for (DX12Device* device : mDevices)
         {
