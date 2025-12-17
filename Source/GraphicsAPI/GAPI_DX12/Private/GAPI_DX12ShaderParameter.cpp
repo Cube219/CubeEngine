@@ -1,5 +1,6 @@
 #include "GAPI_DX12ShaderParameter.h"
 
+#include "DX12Device.h"
 #include "Allocator/AllocatorUtility.h"
 #include "DX12ShaderCompiler.h"
 #include "GAPI_Shader.h"
@@ -10,6 +11,7 @@ namespace cube
     namespace gapi
     {
         DX12ShaderParameterHelper::DX12ShaderParameterHelper(DX12Device& device)
+            : mDevice(device)
         {
             mMaxNumRegister = 4;
             mMaxNumSpace = 8;
@@ -17,6 +19,52 @@ namespace cube
 
         DX12ShaderParameterHelper::~DX12ShaderParameterHelper()
         {
+        }
+
+        void DX12ShaderParameterHelper::Initialize()
+        {
+            FrameVector<D3D12_ROOT_PARAMETER1> parameters;
+
+            parameters.reserve(mMaxNumRegister * mMaxNumSpace);
+            for (Uint32 space = 0; space < mMaxNumSpace; ++space)
+            {
+                for (Uint32 reg = 0; reg < mMaxNumRegister; ++reg)
+                {
+                    parameters.push_back({
+                        .ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV,
+                        .Descriptor = {
+                            .ShaderRegister = reg,
+                            .RegisterSpace = space,
+                            .Flags = D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC
+                        },
+                        .ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL
+                    });
+                }
+            }
+
+            const D3D12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc = {
+                .Version = D3D_ROOT_SIGNATURE_VERSION_1_1,
+                .Desc_1_1 = {
+                    .NumParameters = static_cast<Uint32>(parameters.size()),
+                    .pParameters = parameters.data(),
+                    .NumStaticSamplers = 0,
+                    .pStaticSamplers = nullptr,
+                    .Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
+                        | D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED
+                        | D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED
+                }
+            };
+
+            ComPtr<ID3DBlob> signatureBlob;
+            ComPtr<ID3DBlob> errorBlob;
+            CHECK_HR(D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, mDevice.GetMaxRootSignatureVersion(), &signatureBlob, &errorBlob));
+            CHECK_HR(mDevice.GetDevice()->CreateRootSignature(0, signatureBlob->GetBufferPointer(), signatureBlob->GetBufferSize(), IID_PPV_ARGS(&mRootSignature)));
+            SET_DEBUG_NAME(mRootSignature, "GlobalRootSignature");
+        }
+
+        void DX12ShaderParameterHelper::Shutdown()
+        {
+            mRootSignature = nullptr;
         }
 
         void DX12ShaderParameterHelper::UpdateShaderParameterInfo(Vector<ShaderParameterInfo>& inOutParameterInfos, Uint32& outTotalBufferSize) const

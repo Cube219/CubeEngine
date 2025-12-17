@@ -7,7 +7,6 @@
 #include "GAPI_DX12Buffer.h"
 #include "GAPI_DX12Pipeline.h"
 #include "GAPI_DX12Resource.h"
-#include "GAPI_DX12ShaderVariable.h"
 #include "GAPI_DX12Texture.h"
 #include "GAPI_Sampler.h"
 #include "GAPI_Texture.h"
@@ -42,9 +41,8 @@ namespace cube
             , mDescriptorManager(device.GetDescriptorManager())
             , mQueueManager(device.GetQueueManager())
             , mQueryManager(device.GetQueryManager())
+            , mShaderParameterHelper(device.GetShaderParameterHelper())
             , mState(State::Closed)
-            , mMaxNumShaderParameterRegister(device.GetShaderParameterHelper().GetMaxNumRegister())
-            , mMaxNumShaderParameterSpace(device.GetShaderParameterHelper().GetMaxNumSpace())
         {
             device.GetDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, mCommandListManager.GetCurrentAllocator(), nullptr, IID_PPV_ARGS(&mCommandList));
             SET_DEBUG_NAME(mCommandList, info.debugName);
@@ -59,6 +57,12 @@ namespace cube
         void DX12CommandList::Begin()
         {
             CHECK(mState == State::Initial);
+
+            ArrayView<ID3D12DescriptorHeap*> heaps = mDescriptorManager.GetD3D12ShaderVisibleHeaps();
+            mCommandList->SetDescriptorHeaps(heaps.size(), heaps.data());
+
+            mCommandList->SetGraphicsRootSignature(mShaderParameterHelper.GetRootSignature());
+            mCommandList->SetComputeRootSignature(mShaderParameterHelper.GetRootSignature());
 
             mState = State::Writing;
         }
@@ -88,8 +92,6 @@ namespace cube
             CHECK(mState == State::Closed);
 
             CHECK_HR(mCommandList->Reset(mCommandListManager.GetCurrentAllocator(), nullptr));
-            mIsDescriptorHeapSet = false;
-            mIsShaderVariableLayoutSet = false;
             mHasTimestampQuery = false;
             mState = State::Initial;
         }
@@ -272,39 +274,18 @@ namespace cube
             mCommandList->DrawIndexedInstanced(numIndices, numInstances, baseIndex, baseVertex, baseInstance);
         }
 
-        void DX12CommandList::SetShaderVariablesLayout(SharedPtr<ShaderVariablesLayout> shaderVariablesLayout)
-        {
-            CHECK(IsWriting());
-
-            if (!mIsDescriptorHeapSet)
-            {
-                ArrayView<ID3D12DescriptorHeap*> heaps = mDescriptorManager.GetD3D12ShaderVisibleHeaps();
-                mCommandList->SetDescriptorHeaps(heaps.size(), heaps.data());
-                mIsDescriptorHeapSet = true;
-            }
-
-            const DX12ShaderVariablesLayout* dx12ShaderVariablesLayout = dynamic_cast<const DX12ShaderVariablesLayout*>(shaderVariablesLayout.get());
-            mCommandList->SetGraphicsRootSignature(dx12ShaderVariablesLayout->GetRootSignature());
-            mCommandList->SetComputeRootSignature(dx12ShaderVariablesLayout->GetRootSignature());
-
-            CUBE_DX12_BOUND_OBJECT(shaderVariablesLayout);
-
-            mIsShaderVariableLayoutSet = true;
-        }
-
         void DX12CommandList::SetShaderVariableConstantBuffer(Uint32 index, SharedPtr<Buffer> constantBuffer)
         {
             CHECK(IsWriting());
-            CHECK(mIsShaderVariableLayoutSet);
             CHECK(constantBuffer->GetType() == BufferType::Constant);
 
             const DX12Buffer* dx12Buffer = dynamic_cast<DX12Buffer*>(constantBuffer.get());
             CHECK(dx12Buffer);
 
             // Register space index is used in Slang's ParameterBlock.
-            CHECK(index < mMaxNumShaderParameterSpace);
-            mCommandList->SetGraphicsRootConstantBufferView(index * mMaxNumShaderParameterRegister, dx12Buffer->GetResource()->GetGPUVirtualAddress());
-            mCommandList->SetComputeRootConstantBufferView(index * mMaxNumShaderParameterRegister, dx12Buffer->GetResource()->GetGPUVirtualAddress());
+            CHECK(index < mShaderParameterHelper.GetMaxNumSpace());
+            mCommandList->SetGraphicsRootConstantBufferView(index * mShaderParameterHelper.GetMaxNumRegister(), dx12Buffer->GetResource()->GetGPUVirtualAddress());
+            mCommandList->SetComputeRootConstantBufferView(index * mShaderParameterHelper.GetMaxNumRegister(), dx12Buffer->GetResource()->GetGPUVirtualAddress());
 
             CUBE_DX12_BOUND_OBJECT(constantBuffer);
         }

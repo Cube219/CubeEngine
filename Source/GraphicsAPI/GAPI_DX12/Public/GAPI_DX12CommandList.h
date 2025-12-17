@@ -17,6 +17,7 @@ namespace cube
     {
         class Buffer;
         class ComputePipeline;
+        class DX12ShaderParameterHelper;
         class GraphicsPipeline;
         class Sampler;
         class Texture;
@@ -47,7 +48,6 @@ namespace cube
             void Draw(Uint32 numVertices, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance) override;
             void DrawIndexed(Uint32 numIndices, Uint32 baseIndex, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance) override;
 
-            void SetShaderVariablesLayout(SharedPtr<ShaderVariablesLayout> shaderVariablesLayout) override;
             void SetShaderVariableConstantBuffer(Uint32 index, SharedPtr<Buffer> constantBuffer) override;
             void BindTexture(SharedPtr<Texture> texture) override;
             void BindSampler(SharedPtr<Sampler> sampler) override;
@@ -76,20 +76,16 @@ namespace cube
             DX12DescriptorManager& mDescriptorManager;
             DX12QueueManager& mQueueManager;
             DX12QueryManager& mQueryManager;
+            DX12ShaderParameterHelper& mShaderParameterHelper;
 
             ComPtr<ID3D12GraphicsCommandList> mCommandList;
             State mState;
 
             Vector<SharedPtr<DX12APIObject>> mBoundObjects;
 
-            bool mIsDescriptorHeapSet = false;
-            bool mIsShaderVariableLayoutSet = false;
             bool mHasTimestampQuery = false;
 
             Vector<AnsiString> mCurrentEventNameList;
-
-            int mMaxNumShaderParameterRegister;
-            int mMaxNumShaderParameterSpace;
         };
     } // namespace gapi
 } // namespace cube

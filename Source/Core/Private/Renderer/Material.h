@@ -16,7 +16,6 @@ namespace cube
     namespace gapi
     {
         class Sampler;
-        class ShaderVariablesLayout;
         class Buffer;
         class Texture;
     } // namespace gapi
@@ -75,8 +74,6 @@ namespace cube
 
         SharedPtr<GraphicsPipeline> GetOrCreateMaterialPipeline(SharedPtr<Material> material);
 
-        SharedPtr<gapi::ShaderVariablesLayout> GetShaderVariablesLayout() const { return mShaderVariablesLayout; }
-
     private:
         friend class ShaderManager;
 
@@ -85,8 +82,6 @@ namespace cube
         void Shutdown();
 
         ShaderManager& mShaderManager;
-
-        SharedPtr<gapi::ShaderVariablesLayout> mShaderVariablesLayout;
 
         HashMap<Uint64, SharedPtr<Shader>> mMaterialVertexShaders;
         HashMap<Uint64, SharedPtr<Shader>> mMaterialPixelShaders;

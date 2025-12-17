@@ -14,8 +14,6 @@ namespace cube
         class ComputePipeline;
         class GraphicsPipeline;
         class Sampler;
-        class ShaderVariables;
-        class ShaderVariablesLayout;
         class Texture;
         class TextureDSV;
         class TextureRTV;
@@ -131,7 +129,6 @@ namespace cube
             virtual void Draw(Uint32 numVertices, Uint32 baseVertex, Uint32 numInstances = 1, Uint32 baseInstance = 0) = 0;
             virtual void DrawIndexed(Uint32 numIndices, Uint32 baseIndex, Uint32 baseVertex, Uint32 numInstances = 1, Uint32 baseInstance = 0) = 0;
 
-            virtual void SetShaderVariablesLayout(SharedPtr<ShaderVariablesLayout> shaderVariablesLayout) = 0;
             virtual void SetShaderVariableConstantBuffer(Uint32 index, SharedPtr<Buffer> constantBuffer) = 0;
             virtual void BindTexture(SharedPtr<Texture> texture) = 0;
             virtual void BindSampler(SharedPtr<Sampler> sampler) = 0;

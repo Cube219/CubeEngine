@@ -10,7 +10,6 @@
 #include "GAPI_CommandList.h"
 #include "GAPI_Pipeline.h"
 #include "GAPI_Shader.h"
-#include "GAPI_ShaderVariable.h"
 #include "GAPI_SwapChain.h"
 #include "Material.h"
 #include "MatrixUtility.h"
@@ -378,7 +377,6 @@ namespace cube
             mCommandList->SetScissors({ &scissor, 1 });
             mCommandList->SetPrimitiveTopology(gapi::PrimitiveTopology::TriangleList);
 
-            mCommandList->SetShaderVariablesLayout(mShaderManager.GetMaterialShaderManager().GetShaderVariablesLayout());
             gapi::ColorAttachment colorAttachment = {
                 .rtv = mCurrentBackbufferRTV,
                 .loadOperation = gapi::LoadOperation::Clear,

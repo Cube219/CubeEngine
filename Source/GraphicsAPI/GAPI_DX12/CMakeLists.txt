@@ -12,7 +12,6 @@ set(PUBLIC_FILES
     Public/GAPI_DX12Sampler.h
     Public/GAPI_DX12Shader.h
     Public/GAPI_DX12ShaderParameter.h
-    Public/GAPI_DX12ShaderVariable.h
     Public/GAPI_DX12SwapChain.h
     Public/GAPI_DX12Texture.h
 )
@@ -54,7 +53,6 @@ set(PRIVATE_FILES
     Private/GAPI_DX12Sampler.cpp
     Private/GAPI_DX12Shader.cpp
     Private/GAPI_DX12ShaderParameter.cpp
-    Private/GAPI_DX12ShaderVariable.cpp
     Private/GAPI_DX12SwapChain.cpp
     Private/GAPI_DX12Texture.cpp
 )

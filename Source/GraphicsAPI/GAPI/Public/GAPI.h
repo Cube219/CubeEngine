@@ -9,8 +9,6 @@ namespace cube
 {
     namespace gapi
     {
-        class ShaderVariablesLayout;
-        struct ShaderVariablesLayoutCreateInfo;
         class GraphicsPipeline;
         struct GraphicsPipelineCreateInfo;
         class ComputePipeline;
@@ -106,7 +104,6 @@ namespace cube
         virtual SharedPtr<gapi::ComputePipeline> CreateComputePipeline(const gapi::ComputePipelineCreateInfo& info) = 0;
         virtual SharedPtr<gapi::Sampler> CreateSampler(const gapi::SamplerCreateInfo& info) = 0;
         virtual SharedPtr<gapi::Shader> CreateShader(const gapi::ShaderCreateInfo& info) = 0;
-        virtual SharedPtr<gapi::ShaderVariablesLayout> CreateShaderVariablesLayout(const gapi::ShaderVariablesLayoutCreateInfo& info) = 0;
         virtual SharedPtr<gapi::Texture> CreateTexture(const gapi::TextureCreateInfo& info) = 0;
         virtual SharedPtr<gapi::SwapChain> CreateSwapChain(const gapi::SwapChainCreateInfo& info) = 0;
 

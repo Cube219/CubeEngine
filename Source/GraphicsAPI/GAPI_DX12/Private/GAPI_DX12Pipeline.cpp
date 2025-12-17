@@ -5,7 +5,6 @@
 #include "DX12Device.h"
 #include "DX12Types.h"
 #include "GAPI_DX12Shader.h"
-#include "GAPI_DX12ShaderVariable.h"
 
 namespace cube
 {
@@ -265,9 +264,7 @@ namespace cube
             
             D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsPSODesc = {};
             graphicsPSODesc.InputLayout = { inputElements.data(), (Uint32)(inputElements.size()) };
-            graphicsPSODesc.pRootSignature = dynamic_cast<DX12ShaderVariablesLayout*>(info.shaderVariablesLayout.get())->GetRootSignature();
-
-            CUBE_DX12_BOUND_OBJECT(info.shaderVariablesLayout);
+            graphicsPSODesc.pRootSignature = device.GetShaderParameterHelper().GetRootSignature();
 
             if (info.vertexShader)
             {
@@ -311,8 +308,7 @@ namespace cube
         DX12ComputePipeline::DX12ComputePipeline(DX12Device& device, const ComputePipelineCreateInfo& info)
         {
             D3D12_COMPUTE_PIPELINE_STATE_DESC computePSODesc = {};
-            computePSODesc.pRootSignature = dynamic_cast<DX12ShaderVariablesLayout*>(info.shaderVariablesLayout.get())->GetRootSignature();
-            CUBE_DX12_BOUND_OBJECT(info.shaderVariablesLayout);
+            computePSODesc.pRootSignature = device.GetShaderParameterHelper().GetRootSignature();
 
             DX12Shader* dx12ComputeShader = dynamic_cast<DX12Shader*>(info.shader.get());
             CHECK(dx12ComputeShader);
