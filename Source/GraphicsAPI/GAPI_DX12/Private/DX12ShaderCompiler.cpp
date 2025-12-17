@@ -143,7 +143,9 @@ namespace cube
             compileOption.target = gapi::ShaderLanguage::HLSL;
         }
 
-        Blob shader = SlangHelper::Compile(createInfo, compileOption, compileResult);
+        ShaderReflection reflection;
+
+        Blob shader = SlangHelper::Compile(createInfo, compileOption, compileResult, &reflection);
 
         if (compileResult.isSuccess)
         {
