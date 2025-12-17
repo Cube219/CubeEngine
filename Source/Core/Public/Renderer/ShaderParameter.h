@@ -29,6 +29,7 @@ namespace cube
     class ShaderParametersManager;
 
     // ===== ParameterTypeInfo =====
+    // Note: Also add in SlangHelperPrivate::GetReflection.
     enum class ShaderParameterType
     {
         Bool,
