@@ -33,9 +33,9 @@ namespace cube
         CUBE_END_SHADER_PARAMETERS
     };
 
-    class ObjectShaderParameters : public ShaderParameters
+    class PerObjectShaderParameters : public ShaderParameters
     {
-        CUBE_BEGIN_SHADER_PARAMETERS(ObjectShaderParameters)
+        CUBE_BEGIN_SHADER_PARAMETERS(PerObjectShaderParameters)
             CUBE_SHADER_PARAMETER(Matrix, model)
             CUBE_SHADER_PARAMETER(Matrix, modelInverse)
             CUBE_SHADER_PARAMETER(Matrix, modelInverseTranspose)

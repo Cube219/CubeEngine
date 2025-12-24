@@ -2,7 +2,7 @@ module Material;
 
 import MainInterface;
 
-public struct MaterialData_CB
+public struct MaterialShaderParameters
 {
     public float4 baseColor;
 
@@ -23,5 +23,5 @@ public struct MaterialValue
 
 public interface IMaterial
 {
-    MaterialValue GetMaterialValue(MaterialData_CB materialData, PSInput input);
+    MaterialValue GetMaterialValue(MaterialShaderParameters materialParams, PSInput input);
 }

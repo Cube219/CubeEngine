@@ -1,13 +1,13 @@
 module MainInterface;
 
-public struct GlobalData_CB
+public struct GlobalShaderParameters
 {
     public float3 cameraPosition;
     public float4x4 viewProjection;
     public float3 directionalLightDirection;
 };
 
-public struct PerObjectData_CB
+public struct PerObjectShaderParameters
 {
     public float4x4 model;
     public float4x4 modelInverse;

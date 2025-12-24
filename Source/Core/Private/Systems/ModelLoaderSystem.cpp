@@ -553,19 +553,19 @@ namespace cube
             if (gltfMaterial.pbrMetallicRoughness.baseColorTexture.index != -1)
             {
                 material->SetTexture(0, LoadTexture(CUBE_T("baseColorTexture"), gltfMaterial.pbrMetallicRoughness.baseColorTexture.index));
-                channelMappingCode += CUBE_T("value.albedo = materialData.textureSlot0.Sample(input.uv).rgb;\n");
+                channelMappingCode += CUBE_T("value.albedo = materialParams.textureSlot0.Sample(input.uv).rgb;\n");
             }
             if (gltfMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index != -1)
             {
                 material->SetTexture(1, LoadTexture(CUBE_T("metallicRoughnessTexture"), gltfMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index));
-                channelMappingCode += CUBE_T("float3 t1 = materialData.textureSlot1.Sample(input.uv).rgb;\n");
+                channelMappingCode += CUBE_T("float3 t1 = materialParams.textureSlot1.Sample(input.uv).rgb;\n");
                 channelMappingCode += CUBE_T("value.metallic = t1.g;\n");
                 channelMappingCode += CUBE_T("value.roughness = t1.b;\n");
             }
             if (gltfMaterial.normalTexture.index != -1)
             {
                 material->SetTexture(2, LoadTexture(CUBE_T("normalTexture"), gltfMaterial.normalTexture.index));
-                channelMappingCode += CUBE_T("float3 t2 = normalize(materialData.textureSlot2.Sample(input.uv).rgb * 2.0f - 1.0f);\n");
+                channelMappingCode += CUBE_T("float3 t2 = normalize(materialParams.textureSlot2.Sample(input.uv).rgb * 2.0f - 1.0f);\n");
                 channelMappingCode += CUBE_T("value.normal = t2;\n");
             }
 

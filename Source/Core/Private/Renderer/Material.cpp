@@ -22,7 +22,7 @@ namespace cube
         mSamplerIndex = Engine::GetRenderer()->GetSamplerManager().GetDefaultLinearSamplerIndex();
 
         static const Character* defaultChannelMappingCode = 
-            CUBE_T("value.albedo = materialData.baseColor.rgb;\n")
+            CUBE_T("value.albedo = materialParams.baseColor.rgb;\n")
         ;
 
         SetChannelMappingCode(defaultChannelMappingCode);
@@ -115,7 +115,7 @@ namespace cube
 
         // Generate material shader codes
         FrameString getMaterialShaderCode = Format<FrameString>(
-            CUBE_T("MaterialValue GetMaterialValue(MaterialData_CB materialData, PSInput input)\n")
+            CUBE_T("MaterialValue GetMaterialValue(MaterialShaderParameters materialParams, PSInput input)\n")
             CUBE_T("{{\n")
             CUBE_T("    MaterialValue value = {{}};\n")
             CUBE_T("\n")

@@ -407,12 +407,12 @@ namespace cube
                 mCommandList->BindVertexBuffers(0, { &vertexBuffer, 1 }, { &vertexBufferOffset, 1 });
                 mCommandList->BindIndexBuffer(mMesh->GetIndexBuffer(), 0);
 
-                SharedPtr<ObjectShaderParameters> objectShaderParameters = mShaderParametersManager.CreateShaderParameters<ObjectShaderParameters>();
-                objectShaderParameters->model = mModelMatrix;
-                objectShaderParameters->modelInverse = mModelMatrix.Inversed();
-                objectShaderParameters->modelInverseTranspose = mModelMatrix.Inversed().Transposed();
-                objectShaderParameters->WriteAllParametersToBuffer();
-                mCommandList->SetShaderVariableConstantBuffer(1, objectShaderParameters->GetBuffer());
+                SharedPtr<PerObjectShaderParameters> perObjectShaderParameters = mShaderParametersManager.CreateShaderParameters<PerObjectShaderParameters>();
+                perObjectShaderParameters->model = mModelMatrix;
+                perObjectShaderParameters->modelInverse = mModelMatrix.Inversed();
+                perObjectShaderParameters->modelInverseTranspose = mModelMatrix.Inversed().Transposed();
+                perObjectShaderParameters->WriteAllParametersToBuffer();
+                mCommandList->SetShaderVariableConstantBuffer(1, perObjectShaderParameters->GetBuffer());
 
                 SharedPtr<Material> currentMaterial = nullptr;
                 const Vector<SubMesh>& subMeshes = mMesh->GetSubMeshes();
@@ -451,7 +451,7 @@ namespace cube
                 mCommandList->BindIndexBuffer(mBoxMesh->GetIndexBuffer(), 0);
                 const Vector<SubMesh>& boxSubMeshes = mBoxMesh->GetSubMeshes();
 
-                SharedPtr<ObjectShaderParameters> xAxisObjectShaderParameters = mShaderParametersManager.CreateShaderParameters<ObjectShaderParameters>();
+                SharedPtr<PerObjectShaderParameters> xAxisObjectShaderParameters = mShaderParametersManager.CreateShaderParameters<PerObjectShaderParameters>();
                 xAxisObjectShaderParameters->model = mXAxisModelMatrix;
                 xAxisObjectShaderParameters->modelInverse = mXAxisModelMatrix.Inversed();
                 xAxisObjectShaderParameters->modelInverseTranspose = mXAxisModelMatrix.Inversed().Transposed();
@@ -463,7 +463,7 @@ namespace cube
                 {
                     mCommandList->DrawIndexed(subMesh.numIndices, subMesh.indexOffset, subMesh.vertexOffset);
                 }
-                SharedPtr<ObjectShaderParameters> yAxisObjectShaderParameters = mShaderParametersManager.CreateShaderParameters<ObjectShaderParameters>();
+                SharedPtr<PerObjectShaderParameters> yAxisObjectShaderParameters = mShaderParametersManager.CreateShaderParameters<PerObjectShaderParameters>();
                 yAxisObjectShaderParameters->model = mYAxisModelMatrix;
                 yAxisObjectShaderParameters->modelInverse = mYAxisModelMatrix.Inversed();
                 yAxisObjectShaderParameters->modelInverseTranspose = mYAxisModelMatrix.Inversed().Transposed();
@@ -475,7 +475,7 @@ namespace cube
                 {
                     mCommandList->DrawIndexed(subMesh.numIndices, subMesh.indexOffset, subMesh.vertexOffset);
                 }
-                SharedPtr<ObjectShaderParameters> zAxisObjectShaderParameters = mShaderParametersManager.CreateShaderParameters<ObjectShaderParameters>();
+                SharedPtr<PerObjectShaderParameters> zAxisObjectShaderParameters = mShaderParametersManager.CreateShaderParameters<PerObjectShaderParameters>();
                 zAxisObjectShaderParameters->model = mZAxisModelMatrix;
                 zAxisObjectShaderParameters->modelInverse = mZAxisModelMatrix.Inversed();
                 zAxisObjectShaderParameters->modelInverseTranspose = mZAxisModelMatrix.Inversed().Transposed();
