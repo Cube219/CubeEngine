@@ -88,7 +88,7 @@ namespace cube
             samplerDesc.minFilter = ConvertToMTLSamplerMinMagFilter(info.minFilter);
             samplerDesc.magFilter = ConvertToMTLSamplerMinMagFilter(info.magFilter);
             samplerDesc.mipFilter = ConvertToMTLSamplerMipFilter(info.mipFilter);
-            samplerDesc.maxAnisotropy = info.maxAnisotropy;
+            samplerDesc.maxAnisotropy = std::max(info.maxAnisotropy, 1u);
             samplerDesc.sAddressMode = ConvertToMTLSamplerAddressMode(info.addressU);
             samplerDesc.tAddressMode = ConvertToMTLSamplerAddressMode(info.addressV);
             samplerDesc.rAddressMode = ConvertToMTLSamplerAddressMode(info.addressW);

@@ -137,7 +137,7 @@ namespace cube
             virtual void ResourceTransition(ArrayView<TransitionState> states) = 0;
 
             virtual void SetComputePipeline(SharedPtr<ComputePipeline> computePipeline) = 0;
-            virtual void Dispatch(Uint32 threadGroupX, Uint32 threadGroupY, Uint32 threadGroupZ) = 0;
+            virtual void DispatchThreads(Uint32 numThreadsX, Uint32 numThreadsY, Uint32 numThreadsZ) = 0;
 
             virtual void InsertTimestamp(const String& name) = 0;
 

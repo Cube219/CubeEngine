@@ -51,9 +51,11 @@ namespace cube
         auto createGAPIFunc = reinterpret_cast<CreateGAPIFunction>(mGAPI_DLib->GetFunction(CUBE_T("CreateGAPI")));
         mGAPI = SharedPtr<GAPI>(createGAPIFunc());
 
-        mGAPI->Initialize({ .numGPUSync = numGPUSync,
-                            .enableDebugLayer = true,
-                            .imGUI = imGUIContext });
+        mGAPI->Initialize({
+            .numGPUSync = numGPUSync,
+            .enableDebugLayer = true,
+            .imGUI = imGUIContext
+        });
 
         mShaderManager.Initialize(mGAPI.get(), false);
         mTextureManager.Initialize(mGAPI.get(), mNumGPUSync, mShaderManager);
@@ -64,31 +66,39 @@ namespace cube
 
         mIsViewPerspectiveMatrixDirty = true;
 
-        mCommandList = mGAPI->CreateCommandList({ .debugName = CUBE_T("MainCommandList") });
+        mCommandList = mGAPI->CreateCommandList({
+            .debugName = CUBE_T("MainCommandList")
+        });
 
         mViewportWidth = platform::Platform::GetWindowWidth();
         mViewportHeight = platform::Platform::GetWindowHeight();
-        mSwapChain = mGAPI->CreateSwapChain({ .width = mViewportWidth,
-                                              .height = mViewportHeight,
-                                              .vsync = true,
-                                              .backbufferCount = 2,
-                                              .debugName = CUBE_T("MainSwapChain") });
-        mDepthStencilTexture = mGAPI->CreateTexture({ .usage = gapi::ResourceUsage::GPUOnly,
-                                                      .format = gapi::ElementFormat::D32_Float,
-                                                      .type = gapi::TextureType::Texture2D,
-                                                      .flags = gapi::TextureFlag::DepthStencil,
-                                                      .width = mViewportWidth,
-                                                      .height = mViewportHeight,
-                                                      .debugName = CUBE_T("MainDepthStencilTexture") });
+        mSwapChain = mGAPI->CreateSwapChain({
+            .width = mViewportWidth,
+            .height = mViewportHeight,
+            .vsync = true,
+            .backbufferCount = 2,
+            .debugName = CUBE_T("MainSwapChain")
+        });
+        mDepthStencilTexture = mGAPI->CreateTexture({
+            .usage = gapi::ResourceUsage::GPUOnly,
+            .format = gapi::ElementFormat::D32_Float,
+            .type = gapi::TextureType::Texture2D,
+            .flags = gapi::TextureFlag::DepthStencil,
+            .width = mViewportWidth,
+            .height = mViewportHeight,
+            .debugName = CUBE_T("MainDepthStencilTexture")
+        });
         mDSV = mDepthStencilTexture->CreateDSV({});
         mCommandList->Reset();
         {
             mCommandList->Begin();
 
-            mCommandList->ResourceTransition({ .resourceType = gapi::TransitionState::ResourceType::DSV,
-                                               .dsv = mDSV,
-                                               .src = gapi::ResourceStateFlag::Common,
-                                               .dst = gapi::ResourceStateFlag::DepthWrite });
+            mCommandList->ResourceTransition({
+                .resourceType =  gapi::TransitionState::ResourceType::DSV,
+                .dsv = mDSV,
+                .src = gapi::ResourceStateFlag::Common,
+                .dst = gapi::ResourceStateFlag::DepthWrite
+            });
 
             mCommandList->End();
             mCommandList->Submit();
@@ -179,11 +189,13 @@ namespace cube
         mCommandList->Reset();
         {
             mCommandList->Begin();
-
-            mCommandList->ResourceTransition({ .resourceType = gapi::TransitionState::ResourceType::RTV,
-                                               .rtv = mCurrentBackbufferRTV,
-                                               .src = gapi::ResourceStateFlag::Present,
-                                               .dst = gapi::ResourceStateFlag::RenderTarget });
+            
+            mCommandList->ResourceTransition({
+                .resourceType =  gapi::TransitionState::ResourceType::RTV,
+                .rtv = mCurrentBackbufferRTV,
+                .src = gapi::ResourceStateFlag::Present,
+                .dst = gapi::ResourceStateFlag::RenderTarget
+            });
 
             mCommandList->End();
             mCommandList->Submit();
@@ -205,10 +217,12 @@ namespace cube
         {
             mCommandList->Begin();
 
-            mCommandList->ResourceTransition({ .resourceType = gapi::TransitionState::ResourceType::RTV,
-                                               .rtv = mCurrentBackbufferRTV,
-                                               .src = gapi::ResourceStateFlag::RenderTarget,
-                                               .dst = gapi::ResourceStateFlag::Present });
+            mCommandList->ResourceTransition({
+                .resourceType =  gapi::TransitionState::ResourceType::RTV,
+                .rtv = mCurrentBackbufferRTV,
+                .src = gapi::ResourceStateFlag::RenderTarget,
+                .dst = gapi::ResourceStateFlag::Present
+            });
 
             mCommandList->End();
             mCommandList->Submit();
@@ -356,7 +370,6 @@ namespace cube
         mCommandList->Reset();
         mCommandList->Begin();
         {
-
             mCommandList->InsertTimestamp(CUBE_T("Begin"));
 
             GPU_EVENT_SCOPE(mCommandList, CUBE_T("Frame"));

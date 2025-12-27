@@ -32,7 +32,7 @@ namespace cube
         SlangHelper::Shutdown();
     }
 
-    Blob DX12ShaderCompiler::Compile(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult)
+    DX12ShaderCompilerResult DX12ShaderCompiler::Compile(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult)
     {
         compileResult.Reset();
 
@@ -50,7 +50,7 @@ namespace cube
         }
     }
 
-    Blob DX12ShaderCompiler::CompileFromHLSL(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult)
+    DX12ShaderCompilerResult DX12ShaderCompiler::CompileFromHLSL(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult)
     {
         using FrameWindowsString = TFrameString<WindowsCharacter>;
 
@@ -98,7 +98,11 @@ namespace cube
 
             ComPtr<IDxcBlob> shader;
             dxcResult->GetResult(&shader);
-            return Blob(shader->GetBufferPointer(), shader->GetBufferSize());
+
+            DX12ShaderCompilerResult result;
+            result.shader = Blob(shader->GetBufferPointer(), shader->GetBufferSize());
+
+            return result;
         }
         else
         {
@@ -117,16 +121,18 @@ namespace cube
         }
     }
 
-    Blob DX12ShaderCompiler::CompileFromDXIL(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult)
+    DX12ShaderCompilerResult DX12ShaderCompiler::CompileFromDXIL(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult)
     {
         ComPtr<IDxcBlobEncoding> shader;
         mUtils->CreateBlob(createInfo.shaderCodeInfos[0].code.GetData(), createInfo.shaderCodeInfos[0].code.GetSize(), DXC_CP_ACP, &shader);
 
         compileResult.isSuccess = true;
-        return Blob(shader->GetBufferPointer(), shader->GetBufferSize());
+        DX12ShaderCompilerResult result;
+        result.shader = Blob(shader->GetBufferPointer(), shader->GetBufferSize());
+        return result;
     }
 
-    Blob DX12ShaderCompiler::CompileFromSlang(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult)
+    DX12ShaderCompilerResult DX12ShaderCompiler::CompileFromSlang(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult)
     {
         SlangCompileOptions compileOption = {
 #if CUBE_DX12_SLANG_PRINT_HLSL
@@ -144,7 +150,6 @@ namespace cube
         }
 
         ShaderReflection reflection;
-
         Blob shader = SlangHelper::Compile(createInfo, compileOption, compileResult, &reflection);
 
         if (compileResult.isSuccess)
@@ -162,6 +167,8 @@ namespace cube
             FrameAnsiString shaderCode((const char*)shader.GetData(), shader.GetSize() / sizeof(char));
             CUBE_LOG(Info, DX12, "Compiled HLSL code from\n\t{0}:\n{1}", pathList, shaderCode);
 #endif
+
+            DX12ShaderCompilerResult result;
             // Compile the shader once again
             compileResult.isSuccess = false;
 
@@ -171,7 +178,7 @@ namespace cube
                 hlslCreateInfo.language = gapi::ShaderLanguage::HLSL;
                 hlslCreateInfo.shaderCodeInfos[0].code = shader;
 
-                return CompileFromHLSL(hlslCreateInfo, compileResult);
+                result = CompileFromHLSL(hlslCreateInfo, compileResult);
             }
             else if (compileOption.target == gapi::ShaderLanguage::DXIL)
             {
@@ -179,8 +186,11 @@ namespace cube
                 dxilCreateInfo.language = gapi::ShaderLanguage::DXIL;
                 dxilCreateInfo.shaderCodeInfos[0].code = shader;
 
-                return CompileFromDXIL(dxilCreateInfo, compileResult);
+                result = CompileFromDXIL(dxilCreateInfo, compileResult);
             }
+            // Use reflection from slang compiler first.
+            result.reflection = reflection;
+            return result;
         }
 
         return {};

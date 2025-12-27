@@ -319,6 +319,10 @@ namespace cube
 
             CHECK_HR(device.GetDevice()->CreateComputePipelineState(&computePSODesc, IID_PPV_ARGS(&mPipelineState)));
             SET_DEBUG_NAME(mPipelineState, info.debugName);
+
+            mThreadGroupSizeX = dx12ComputeShader->GetThreadGroupSizeX();
+            mThreadGroupSizeY = dx12ComputeShader->GetThreadGroupSizeY();
+            mThreadGroupSizeZ = dx12ComputeShader->GetThreadGroupSizeZ();
         }
 
         DX12ComputePipeline::~DX12ComputePipeline()

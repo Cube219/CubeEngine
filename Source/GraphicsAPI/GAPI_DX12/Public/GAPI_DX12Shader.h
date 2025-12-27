@@ -5,6 +5,7 @@
 #include "GAPI_Shader.h"
 
 #include "DX12APIObject.h"
+#include "DX12ShaderCompiler.h"
 
 namespace cube
 {
@@ -13,7 +14,7 @@ namespace cube
         class DX12Shader : public Shader, public DX12APIObject
         {
         public:
-            DX12Shader(Blob&& shader, StringView warningMessage, StringView errorMessage);
+            DX12Shader(DX12ShaderCompilerResult&& result, StringView warningMessage, StringView errorMessage);
             virtual ~DX12Shader();
 
             BlobView GetShader() const { return mShader; }

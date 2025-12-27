@@ -169,7 +169,8 @@ namespace cube
 
             Uint32 mipLevels = createInfo.mipLevels != -1 ? createInfo.mipLevels : metalTexture->GetMipLevels() - createInfo.firstMipLevel;
             Uint32 arraySize = createInfo.arraySize != -1 ? createInfo.arraySize : metalTexture->GetArraySize() - createInfo.firstArrayIndex;
-            mSRV = [metalTexture->GetMTLTexture()
+            id<MTLTexture> mtlTexture = metalTexture->GetMTLTexture();
+            mSRV = [mtlTexture
                 newTextureViewWithPixelFormat:metalTexture->GetPixelFormat()
                 textureType:metalTexture->GetTextureType()
                 levels:NSMakeRange(createInfo.firstMipLevel, mipLevels)
@@ -177,7 +178,7 @@ namespace cube
             ];
 
             mArgumentBufferHandle = mDevice.GetArgumentBufferManager().Allocate();
-            mBindlessIndex = mArgumentBufferHandle.index;
+            mBindlessIndex = mtlTexture.gpuResourceID._impl;
         }
 
         MetalTextureSRV::~MetalTextureSRV()
@@ -196,7 +197,8 @@ namespace cube
             CHECK_FORMAT(metalTexture->GetTextureUsage() & (MTLTextureUsageShaderRead | MTLTextureUsageShaderWrite), "Cannot create MetalTextureUAV. Texture was not created with MTLTextureUsageShaderRead and MTLTextureUsageShaderWrite.");
 
             Uint32 arraySize = createInfo.arraySize != -1 ? createInfo.arraySize : metalTexture->GetArraySize() - createInfo.firstArrayIndex;
-            mUAV = [metalTexture->GetMTLTexture()
+            id<MTLTexture> mtlTexture = metalTexture->GetMTLTexture();
+            mUAV = [mtlTexture
                 newTextureViewWithPixelFormat:metalTexture->GetPixelFormat()
                 textureType:metalTexture->GetTextureType()
                 levels:NSMakeRange(createInfo.mipLevel, 1)
@@ -204,7 +206,7 @@ namespace cube
             ];
 
             mArgumentBufferHandle = mDevice.GetArgumentBufferManager().Allocate();
-            mBindlessIndex = mArgumentBufferHandle.index;
+            mBindlessIndex = mtlTexture.gpuResourceID._impl;
         }
 
         MetalTextureUAV::~MetalTextureUAV()
@@ -235,7 +237,19 @@ namespace cube
         MetalTextureRTV::~MetalTextureRTV()
         {
             mDevice.GetArgumentBufferManager().Free(mArgumentBufferHandle);
-            [mRTV release];
+            if (!mFromExisted)
+            {
+                [mRTV release];
+            }
+        }
+
+        MetalTextureRTV::MetalTextureRTV(id<MTLTexture> mtlRTV, MetalDevice& device)
+            : mDevice(device)
+        {
+            mFromExisted = true;
+
+            mArgumentBufferHandle = mDevice.GetArgumentBufferManager().Allocate();
+            mRTV = mtlRTV;
         }
 
         MetalTextureDSV::MetalTextureDSV(const TextureDSVCreateInfo& createInfo, SharedPtr<Texture> texture, MetalDevice& device)

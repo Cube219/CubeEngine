@@ -19,6 +19,8 @@ namespace cube
             virtual void* Map() override;
             virtual void Unmap() override;
 
+            id<MTLBuffer> GetMTLBuffer() const { return mBuffer; }
+
         private:
             id<MTLBuffer> mBuffer;
         };

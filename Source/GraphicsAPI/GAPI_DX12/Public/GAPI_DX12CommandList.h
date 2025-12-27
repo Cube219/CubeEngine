@@ -56,7 +56,7 @@ namespace cube
             void ResourceTransition(ArrayView<TransitionState> states) override;
 
             void SetComputePipeline(SharedPtr<ComputePipeline> computePipeline) override;
-            void Dispatch(Uint32 threadGroupX, Uint32 threadGroupY, Uint32 threadGroupZ) override;
+            virtual void DispatchThreads(Uint32 numThreadsX, Uint32 numThreadsY, Uint32 numThreadsZ) override;
 
             void InsertTimestamp(const String& name) override;
 
@@ -82,6 +82,10 @@ namespace cube
             State mState;
 
             Vector<SharedPtr<DX12APIObject>> mBoundObjects;
+
+            Uint32 mComputeThreadGroupSizeX;
+            Uint32 mComputeThreadGroupSizeY;
+            Uint32 mComputeThreadGroupSizeZ;
 
             bool mHasTimestampQuery = false;
 

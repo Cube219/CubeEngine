@@ -111,7 +111,7 @@ namespace cube
 
                 mCommandList->ResourceTransition(transitions);
 
-                mCommandList->Dispatch((width + 7) / 8, (height + 7) / 8, 1);
+                mCommandList->DispatchThreads(width, height, 1);
             }
 
             FrameVector<gapi::TransitionState> endTransitions;

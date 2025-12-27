@@ -63,11 +63,12 @@ namespace cube
         Vector<MetalDevice*> mDevices;
         MetalDevice* mMainDevice;
         MTLRenderPassDescriptor* mRenderPassDescriptor;
-        id<MTLCommandQueue> mCommandQueue;
 
         ImGUIContext mImGUIContext;
         CubeImGUIMTKView* mImGUIView;
 
         UniquePtr<gapi::MetalShaderParameterHelper> mShaderParameterHelper;
+
+        Uint64 mCurrentGPUFrame;
     };
 } // namespace cube

@@ -21,7 +21,7 @@ namespace cube
         static void Shutdown();
 
         static Blob Compile(const gapi::ShaderCreateInfo& info, const SlangCompileOptions& options, gapi::ShaderCompileResult& compileResult, ShaderReflection* pReflection);
-        static void GetReflection(ComPtr<slang::IComponentType> program, ShaderReflection& outReflection);
+        static void GetReflection(const gapi::ShaderCreateInfo& info, ComPtr<slang::IComponentType> program, ShaderReflection& outReflection);
 
         static ComPtr<slang::IGlobalSession> mGlobalSession;
         static AnsiString mShaderSearchPath;
@@ -260,19 +260,26 @@ namespace cube
 
         if (pReflection)
         {
-            GetReflection(linkedProgram, *pReflection);
+            GetReflection(info, linkedProgram, *pReflection);
         }
 
         return resBlob;
     }
 
-    void SlangHelperPrivate::GetReflection(ComPtr<slang::IComponentType> program, ShaderReflection& outReflection)
+    void SlangHelperPrivate::GetReflection(const gapi::ShaderCreateInfo& info, ComPtr<slang::IComponentType> program, ShaderReflection& outReflection)
     {
         using namespace slang;
 
         outReflection.blocks.clear();
 
         ProgramLayout* layout = program->getLayout();
+
+        EntryPointReflection* entryPoint = layout->findEntryPointByName(info.entryPoint.data());
+        SlangUInt threadGroupSize[3];
+        entryPoint->getComputeThreadGroupSize(3, threadGroupSize);
+        outReflection.threadGroupSizeX = threadGroupSize[0];
+        outReflection.threadGroupSizeY = threadGroupSize[1];
+        outReflection.threadGroupSizeZ = threadGroupSize[2];
 
         const Uint32 numParameterBlocks = layout->getParameterCount();
         for (Uint32 blockIndex = 0; blockIndex < numParameterBlocks; ++blockIndex)
