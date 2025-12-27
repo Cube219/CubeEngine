@@ -1,0 +1,562 @@
+/Users/limhj/Develops/Projects/Personal/Renderer/CubeEngine/Binaries/Debug/CE-Main.app/Contents/MacOS/CE-Main
+2025-12-10 17:47:48.130697+0900 CE-Main[16692:8908221] Metal API Validation Enabled
+   INFO [2025-12-10 08:47:48.198 / Engine] : Initialize CubeEngine.
+   INFO [2025-12-10 08:47:48.205 / Engine] : Found the root directory path: /Users/limhj/Develops/Projects/Personal/Renderer/CubeEngine
+2025-12-10 17:47:51.600206+0900 CE-Main[16692:8908221] [StateRestoration] -[NSApplication(NSWindowRestoration) restoreWindowWithIdentifier:state:completionHandler:] Unable to find className=(null)
+2025-12-10 17:47:51.600253+0900 CE-Main[16692:8908221] [StateRestoration] -[NSApplication(NSWindowRestoration) restoreWindowWithIdentifier:state:completionHandler:] Unable to find className=(null)
+   INFO [2025-12-10 08:47:51.647 / Engine] : Using GAPI Metal.
+   INFO [2025-12-10 08:47:51.647 / Renderer] : Initialize renderer. (GAPI: Metal)
+   INFO [2025-12-10 08:47:52.300 / Metal] : Initialize GAPI_Metal.
+   INFO [2025-12-10 08:47:52.311 / Metal] : ImGUI context is set in the initialize info. Initialize ImGUI.
+   INFO [2025-12-10 08:47:58.959 / TMP] : spirv:
+; SPIR-V
+; Version: 1.4
+; Generator: NVIDIA Slang Compiler; 0
+; Bound: 85
+; Schema: 0
+OpCapability RuntimeDescriptorArray
+OpCapability StorageImageReadWithoutFormat
+OpCapability StorageImageWriteWithoutFormat
+OpCapability Shader
+OpExtension "SPV_EXT_descriptor_indexing"
+OpMemoryModel Logical GLSL450
+OpEntryPoint GLCompute %2 "CSMain" %34 %24 %13 %9
+OpExecutionMode %2 LocalSize 8 8 1
+OpSource Slang 1
+OpName %10 "GenerateMipmapsParameters_std140"
+OpMemberName %10 0 "srcTexture"
+OpMemberName %10 1 "dstTexture"
+OpName %13 "generateMipmapsParams"
+OpName %24 "__slang_resource_heap"
+OpName %34 "__slang_resource_heap"
+OpName %37 "dstCoord"
+OpName %40 "srcCoord"
+OpName %48 "sampled"
+OpName %58 "sampled"
+OpName %67 "sampled"
+OpName %76 "sampled"
+OpName %78 "sum"
+OpName %2 "CSMain"
+OpDecorate %9 BuiltIn GlobalInvocationId
+OpDecorate %10 Block
+OpMemberDecorate %10 0 Offset 0
+OpMemberDecorate %10 1 Offset 8
+OpDecorate %13 Binding 0
+OpDecorate %13 DescriptorSet 0
+OpDecorate %24 Binding 2
+OpDecorate %24 DescriptorSet 1
+OpDecorate %34 Binding 2
+OpDecorate %34 DescriptorSet 1
+%1 = OpTypeVoid
+%3 = OpTypeFunction %1
+%5 = OpTypeInt 32 0
+%6 = OpTypeVector %5 3
+%8 = OpTypePointer Input %6
+%11 = OpTypeVector %5 2
+%10 = OpTypeStruct %11 %11
+%12 = OpTypePointer Uniform %10
+%14 = OpTypeInt 32 1
+%15 = OpConstant %14 0
+%16 = OpTypePointer Uniform %11
+%21 = OpTypeFloat 32
+%22 = OpTypeImage %21 2D 2 0 0 1 Unknown
+%20 = OpTypeRuntimeArray %22
+%23 = OpTypePointer UniformConstant %20
+%25 = OpTypePointer UniformConstant %22
+%27 = OpConstant %14 1
+%32 = OpTypeImage %21 2D 2 0 0 2 Unknown
+%31 = OpTypeRuntimeArray %32
+%33 = OpTypePointer UniformConstant %31
+%35 = OpTypePointer UniformConstant %32
+%39 = OpConstant %5 2
+%41 = OpTypeVector %14 2
+%43 = OpTypeVector %14 3
+%47 = OpTypeVector %21 4
+%52 = OpConstant %5 1
+%53 = OpConstant %5 0
+%51 = OpConstantComposite %11 %52 %53
+%62 = OpConstantComposite %11 %53 %52
+%71 = OpConstantComposite %11 %52 %52
+%80 = OpConstant %21 0.25
+%9 = OpVariable %8 Input
+%13 = OpVariable %12 Uniform
+%24 = OpVariable %23 UniformConstant
+%34 = OpVariable %33 UniformConstant
+%84 = OpConstantComposite %11 %39 %39
+%2 = OpFunction %1 None %3
+%4 = OpLabel
+%7 = OpLoad %6 %9
+%17 = OpAccessChain %16 %13 %15
+%18 = OpLoad %11 %17
+%19 = OpCompositeExtract %5 %18 0
+%26 = OpAccessChain %25 %24 %19
+%28 = OpAccessChain %16 %13 %27
+%29 = OpLoad %11 %28
+%30 = OpCompositeExtract %5 %29 0
+%36 = OpAccessChain %35 %34 %30
+%37 = OpVectorShuffle %11 %7 %7 0 1
+%40 = OpIMul %11 %37 %84
+%42 = OpBitcast %41 %40
+%44 = OpCompositeConstruct %43 %42 %15
+%45 = OpVectorShuffle %41 %44 %44 0 1
+%46 = OpLoad %22 %26
+%48 = OpImageFetch %47 %46 %45 Lod %15
+%50 = OpIAdd %11 %40 %51
+%54 = OpBitcast %41 %50
+%55 = OpCompositeConstruct %43 %54 %15
+%56 = OpVectorShuffle %41 %55 %55 0 1
+%57 = OpLoad %22 %26
+%58 = OpImageFetch %47 %57 %56 Lod %15
+%60 = OpFAdd %47 %48 %58
+%61 = OpIAdd %11 %40 %62
+%63 = OpBitcast %41 %61
+%64 = OpCompositeConstruct %43 %63 %15
+%65 = OpVectorShuffle %41 %64 %64 0 1
+%66 = OpLoad %22 %26
+%67 = OpImageFetch %47 %66 %65 Lod %15
+%69 = OpFAdd %47 %60 %67
+%70 = OpIAdd %11 %40 %71
+%72 = OpBitcast %41 %70
+%73 = OpCompositeConstruct %43 %72 %15
+%74 = OpVectorShuffle %41 %73 %73 0 1
+%75 = OpLoad %22 %26
+%76 = OpImageFetch %47 %75 %74 Lod %15
+%78 = OpFAdd %47 %69 %76
+%79 = OpVectorTimesScalar %47 %78 %80
+%81 = OpLoad %32 %36
+OpImageWrite %81 %37 %79
+OpReturn
+OpFunctionEnd
+
+   INFO [2025-12-10 08:48:25.760 / TMP] : Metal:
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
+
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+template<typename T>
+struct spvDescriptor
+{
+    T value;
+};
+
+template<typename T>
+struct spvDescriptorArray
+{
+    spvDescriptorArray(const device spvDescriptor<T>* ptr) : ptr(&ptr->value)
+    {
+    }
+    const device T& operator [] (size_t i) const
+    {
+        return ptr[i];
+    }
+    const device T* ptr;
+};
+
+struct GenerateMipmapsParameters_std140
+{
+    uint2 srcTexture;
+    uint2 dstTexture;
+};
+
+kernel void CSMain(constant GenerateMipmapsParameters_std140& generateMipmapsParams [[buffer(0)]], const device spvDescriptor<texture2d<float>>* _slang_resource_heap_ [[buffer(1)]], const device spvDescriptor<texture2d<float, access::write>>* _slang_resource_heap_1_ [[buffer(2)]], uint3 gl_GlobalInvocationID [[thread_position_in_grid]])
+{
+    spvDescriptorArray<texture2d<float>> _slang_resource_heap {_slang_resource_heap_};
+    spvDescriptorArray<texture2d<float, access::write>> _slang_resource_heap_1 {_slang_resource_heap_1_};
+
+    uint2 srcCoord = gl_GlobalInvocationID.xy * uint2(2u);
+    _slang_resource_heap_1[generateMipmapsParams.dstTexture.x].write((((_slang_resource_heap[generateMipmapsParams.srcTexture.x].read(uint2(int3(int2(srcCoord), 0).xy), 0) + _slang_resource_heap[generateMipmapsParams.srcTexture.x].read(uint2(int3(int2(srcCoord + uint2(1u, 0u)), 0).xy), 0)) + _slang_resource_heap[generateMipmapsParams.srcTexture.x].read(uint2(int3(int2(srcCoord + uint2(0u, 1u)), 0).xy), 0)) + _slang_resource_heap[generateMipmapsParams.srcTexture.x].read(uint2(int3(int2(srcCoord + uint2(1u)), 0).xy), 0)) * 0.25, uint2(gl_GlobalInvocationID.xy));
+}
+
+
+WARNING [2025-12-10 08:48:26.289 / Shader] : Shader compile WARNING (/Users/limhj/Develops/Projects/Personal/Renderer/CubeEngine/Source/GraphicsAPI/GAPI_Base/Private/SlangHelper.cpp:177): Warning about compiling Slang shader.
+
+/Users/limhj/Develops/Projects/Personal/Renderer/CubeEngine/Resources/Shaders/GenerateMipmaps.slang(10): warning 41012: entry point 'CSMain' uses additional capabilities that are not part of the specified profile 'lib_6_6'. The profile setting is automatically updated to include these capabilities: 'spvBindlessTextureNV'
+void CSMain(uint3 threadId : SV_DispatchThreadID)
+     ^~~~~~
+
+
+
+2025-12-10 17:48:26.508777+0900 CE-Main[16692:8908256] Unable to open mach-O at path: default.metallib  Error:2
+   INFO [2025-12-10 08:48:26.629 / TMP] : spirv:
+; SPIR-V
+; Version: 1.4
+; Generator: NVIDIA Slang Compiler; 0
+; Bound: 230
+; Schema: 0
+OpCapability Shader
+%141 = OpExtInstImport "GLSL.std.450"
+OpMemoryModel Logical GLSL450
+OpEntryPoint Vertex %2 "VSMain" %34 %68 %199 %203 %206 %210 %14 %16 %19 %22
+OpSource Slang 1
+OpName %14 "input.position"
+OpName %16 "input.normal"
+OpName %19 "input.tangent"
+OpName %22 "input.uv"
+OpName %30 "_MatrixStorage_float4x4std140"
+OpMemberName %30 0 "data"
+OpName %29 "PerObjectData_CB_std140"
+OpMemberName %29 0 "model"
+OpMemberName %29 1 "modelInverse"
+OpMemberName %29 2 "modelInverseTranspose"
+OpName %34 "perObjectCB"
+OpName %66 "GlobalData_CB_std140"
+OpMemberName %66 0 "cameraPosition"
+OpMemberName %66 1 "viewProjection"
+OpMemberName %66 2 "directionalLightDirection"
+OpName %68 "globalCB"
+OpName %203 "entryPointParam_VSMain.normal"
+OpName %206 "entryPointParam_VSMain.tangent"
+OpName %210 "entryPointParam_VSMain.uv"
+OpName %2 "VSMain"
+OpDecorate %14 Location 0
+OpDecorate %16 Location 1
+OpDecorate %19 Location 2
+OpDecorate %22 Location 3
+OpDecorate %31 ArrayStride 16
+OpMemberDecorate %30 0 Offset 0
+OpDecorate %29 Block
+OpMemberDecorate %29 0 Offset 0
+OpMemberDecorate %29 1 Offset 64
+OpMemberDecorate %29 2 Offset 128
+OpDecorate %34 Binding 1
+OpDecorate %34 DescriptorSet 0
+OpDecorate %66 Block
+OpMemberDecorate %66 0 Offset 0
+OpMemberDecorate %66 1 Offset 16
+OpMemberDecorate %66 2 Offset 80
+OpDecorate %68 Binding 0
+OpDecorate %68 DescriptorSet 0
+OpDecorate %199 BuiltIn Position
+OpDecorate %203 Location 0
+OpDecorate %206 Location 1
+OpDecorate %210 Location 2
+%1 = OpTypeVoid
+%3 = OpTypeFunction %1
+%6 = OpTypeFloat 32
+%7 = OpTypeVector %6 4
+%8 = OpTypeVector %6 3
+%9 = OpTypeVector %6 2
+%13 = OpTypePointer Input %8
+%18 = OpTypePointer Input %7
+%21 = OpTypePointer Input %9
+%23 = OpTypeInt 32 1
+%24 = OpConstant %23 0
+%25 = OpTypePointer Function %7
+%28 = OpConstant %6 1
+%32 = OpConstant %23 4
+%31 = OpTypeArray %7 %32
+%30 = OpTypeStruct %31
+%29 = OpTypeStruct %30 %30 %30
+%33 = OpTypePointer Uniform %29
+%35 = OpTypePointer Uniform %30
+%63 = OpTypeMatrix %7 4
+%66 = OpTypeStruct %8 %30 %8
+%67 = OpTypePointer Uniform %66
+%69 = OpConstant %23 1
+%102 = OpConstant %23 2
+%137 = OpTypeMatrix %8 3
+%198 = OpTypePointer Output %7
+%202 = OpTypePointer Output %8
+%209 = OpTypePointer Output %9
+%14 = OpVariable %13 Input
+%16 = OpVariable %13 Input
+%19 = OpVariable %18 Input
+%22 = OpVariable %21 Input
+%34 = OpVariable %33 Uniform
+%68 = OpVariable %67 Uniform
+%199 = OpVariable %198 Output
+%203 = OpVariable %202 Output
+%206 = OpVariable %198 Output
+%210 = OpVariable %209 Output
+%2 = OpFunction %1 None %3
+%4 = OpLabel
+%215 = OpVariable %25 Function
+%12 = OpLoad %8 %14
+%15 = OpLoad %8 %16
+%17 = OpLoad %7 %19
+%20 = OpLoad %9 %22
+%27 = OpCompositeConstruct %7 %12 %28
+%36 = OpAccessChain %35 %34 %24
+%37 = OpLoad %30 %36
+%38 = OpCompositeExtract %31 %37 0
+%39 = OpCompositeExtract %7 %38 0
+%44 = OpCompositeExtract %7 %38 1
+%49 = OpCompositeExtract %7 %38 2
+%54 = OpCompositeExtract %7 %38 3
+%64 = OpCompositeConstruct %63 %39 %44 %49 %54
+%65 = OpMatrixTimesVector %7 %64 %27
+%70 = OpAccessChain %35 %68 %69
+%71 = OpLoad %30 %70
+%72 = OpCompositeExtract %31 %71 0
+%73 = OpCompositeExtract %7 %72 0
+%78 = OpCompositeExtract %7 %72 1
+%83 = OpCompositeExtract %7 %72 2
+%88 = OpCompositeExtract %7 %72 3
+%97 = OpCompositeConstruct %63 %73 %78 %83 %88
+%98 = OpMatrixTimesVector %7 %97 %65
+%103 = OpAccessChain %35 %34 %102
+%104 = OpLoad %30 %103
+%105 = OpCompositeExtract %31 %104 0
+%106 = OpCompositeExtract %7 %105 0
+%111 = OpCompositeExtract %7 %105 1
+%116 = OpCompositeExtract %7 %105 2
+%132 = OpVectorShuffle %8 %106 %106 0 1 2
+%134 = OpVectorShuffle %8 %111 %111 0 1 2
+%136 = OpVectorShuffle %8 %116 %116 0 1 2
+%138 = OpCompositeConstruct %137 %132 %134 %136
+%139 = OpMatrixTimesVector %8 %138 %15
+%140 = OpExtInst %8 %141 Normalize %139
+%144 = OpVectorShuffle %8 %17 %17 0 1 2
+%145 = OpLoad %30 %36
+%146 = OpCompositeExtract %31 %145 0
+%147 = OpCompositeExtract %7 %146 0
+%152 = OpCompositeExtract %7 %146 1
+%157 = OpCompositeExtract %7 %146 2
+%173 = OpVectorShuffle %8 %147 %147 0 1 2
+%175 = OpVectorShuffle %8 %152 %152 0 1 2
+%177 = OpVectorShuffle %8 %157 %157 0 1 2
+%178 = OpCompositeConstruct %137 %173 %175 %177
+%179 = OpMatrixTimesVector %8 %178 %144
+%180 = OpExtInst %8 %141 Normalize %179
+%183 = OpCompositeExtract %6 %180 0
+%222 = OpLoad %7 %215
+%223 = OpCompositeInsert %7 %183 %222 0
+%185 = OpCompositeExtract %6 %180 1
+%225 = OpCompositeInsert %7 %185 %223 1
+%187 = OpCompositeExtract %6 %180 2
+%227 = OpCompositeInsert %7 %187 %225 2
+%191 = OpCompositeExtract %6 %17 3
+%229 = OpCompositeInsert %7 %191 %227 3
+OpStore %215 %229
+OpStore %199 %98
+OpStore %203 %140
+OpStore %206 %229
+OpStore %210 %20
+OpReturn
+OpFunctionEnd
+
+   INFO [2025-12-10 08:48:26.633 / TMP] : Metal:
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+struct _MatrixStorage_float4x4std140
+{
+    float4 data[4];
+};
+
+struct PerObjectData_CB_std140
+{
+    _MatrixStorage_float4x4std140 model;
+    _MatrixStorage_float4x4std140 modelInverse;
+    _MatrixStorage_float4x4std140 modelInverseTranspose;
+};
+
+struct GlobalData_CB_std140
+{
+    float3 cameraPosition;
+    _MatrixStorage_float4x4std140 viewProjection;
+    float3 directionalLightDirection;
+};
+
+struct VSMain_out
+{
+    float3 entryPointParam_VSMain_normal [[user(locn0)]];
+    float4 entryPointParam_VSMain_tangent [[user(locn1)]];
+    float2 entryPointParam_VSMain_uv [[user(locn2)]];
+    float4 gl_Position [[position]];
+};
+
+struct VSMain_in
+{
+    float3 input_position [[attribute(0)]];
+    float3 input_normal [[attribute(1)]];
+    float4 input_tangent [[attribute(2)]];
+    float2 input_uv [[attribute(3)]];
+};
+
+vertex VSMain_out VSMain(VSMain_in in [[stage_in]], constant PerObjectData_CB_std140& perObjectCB [[buffer(0)]], constant GlobalData_CB_std140& globalCB [[buffer(1)]])
+{
+    VSMain_out out = {};
+    float3 _180 = fast::normalize(float3x3(perObjectCB.model.data[0].xyz, perObjectCB.model.data[1].xyz, perObjectCB.model.data[2].xyz) * in.input_tangent.xyz);
+    float4 _215;
+    float4 _222 = _215;
+    _222.x = _180.x;
+    _222.y = _180.y;
+    _222.z = _180.z;
+    _222.w = in.input_tangent.w;
+    _215 = _222;
+    out.gl_Position = float4x4(globalCB.viewProjection.data[0], globalCB.viewProjection.data[1], globalCB.viewProjection.data[2], globalCB.viewProjection.data[3]) * (float4x4(perObjectCB.model.data[0], perObjectCB.model.data[1], perObjectCB.model.data[2], perObjectCB.model.data[3]) * float4(in.input_position, 1.0));
+    out.entryPointParam_VSMain_normal = fast::normalize(float3x3(perObjectCB.modelInverseTranspose.data[0].xyz, perObjectCB.modelInverseTranspose.data[1].xyz, perObjectCB.modelInverseTranspose.data[2].xyz) * in.input_normal);
+    out.entryPointParam_VSMain_tangent = _222;
+    out.entryPointParam_VSMain_uv = in.input_uv;
+    return out;
+}
+
+
+   INFO [2025-12-10 08:48:27.187 / TMP] : spirv:
+; SPIR-V
+; Version: 1.4
+; Generator: NVIDIA Slang Compiler; 0
+; Bound: 195
+; Schema: 0
+OpCapability Shader
+%108 = OpExtInstImport "GLSL.std.450"
+OpMemoryModel Logical GLSL450
+OpEntryPoint Fragment %2 "PSMain" %40 %119 %162 %31 %33
+OpExecutionMode %2 OriginUpperLeft
+OpSource Slang 1
+OpName %31 "input.normal"
+OpName %33 "input.tangent"
+OpName %38 "MaterialData_CB_std140"
+OpMemberName %38 0 "baseColor"
+OpMemberName %38 1 "textureSlot0"
+OpMemberName %38 2 "textureSlot1"
+OpMemberName %38 3 "textureSlot2"
+OpMemberName %38 4 "textureSlot3"
+OpMemberName %38 5 "textureSlot4"
+OpName %40 "materialCB"
+OpName %106 "tangent"
+OpName %110 "bitangent"
+OpName %112 "TBN"
+OpName %116 "_MatrixStorage_float4x4std140"
+OpMemberName %116 0 "data"
+OpName %115 "GlobalData_CB_std140"
+OpMemberName %115 0 "cameraPosition"
+OpMemberName %115 1 "viewProjection"
+OpMemberName %115 2 "directionalLightDirection"
+OpName %119 "globalCB"
+OpName %162 "entryPointParam_PSMain.color"
+OpName %2 "PSMain"
+OpDecorate %31 Location 0
+OpDecorate %33 Location 1
+OpDecorate %38 Block
+OpMemberDecorate %38 0 Offset 0
+OpMemberDecorate %38 1 Offset 16
+OpMemberDecorate %38 2 Offset 24
+OpMemberDecorate %38 3 Offset 32
+OpMemberDecorate %38 4 Offset 40
+OpMemberDecorate %38 5 Offset 48
+OpDecorate %40 Binding 2
+OpDecorate %40 DescriptorSet 0
+OpDecorate %117 ArrayStride 16
+OpMemberDecorate %116 0 Offset 0
+OpDecorate %115 Block
+OpMemberDecorate %115 0 Offset 0
+OpMemberDecorate %115 1 Offset 16
+OpMemberDecorate %115 2 Offset 80
+OpDecorate %119 Binding 0
+OpDecorate %119 DescriptorSet 0
+OpDecorate %162 Location 0
+%1 = OpTypeVoid
+%3 = OpTypeFunction %1
+%6 = OpTypeFloat 32
+%7 = OpTypeVector %6 4
+%8 = OpTypeInt 32 0
+%9 = OpTypeVector %8 2
+%13 = OpTypeVector %6 3
+%27 = OpTypePointer Input %7
+%30 = OpTypePointer Input %13
+%38 = OpTypeStruct %7 %9 %9 %9 %9 %9
+%39 = OpTypePointer Uniform %38
+%41 = OpTypeInt 32 1
+%42 = OpConstant %41 0
+%43 = OpTypePointer Uniform %7
+%50 = OpConstant %41 2
+%56 = OpConstant %41 4
+%94 = OpConstant %6 1
+%95 = OpConstant %6 0
+%96 = OpConstantComposite %13 %95 %95 %94
+%111 = OpTypeMatrix %13 3
+%117 = OpTypeArray %7 %56
+%116 = OpTypeStruct %117
+%115 = OpTypeStruct %13 %116 %13
+%118 = OpTypePointer Uniform %115
+%120 = OpTypePointer Uniform %13
+%161 = OpTypePointer Output %7
+%31 = OpVariable %30 Input
+%33 = OpVariable %27 Input
+%40 = OpVariable %39 Uniform
+%119 = OpVariable %118 Uniform
+%162 = OpVariable %161 Output
+%2 = OpFunction %1 None %3
+%4 = OpLabel
+%29 = OpLoad %13 %31
+%32 = OpLoad %7 %33
+%44 = OpAccessChain %43 %40 %42
+%45 = OpLoad %7 %44
+%172 = OpVectorShuffle %13 %45 %45 0 1 2
+%106 = OpVectorShuffle %13 %32 %32 0 1 2
+%107 = OpExtInst %13 %108 Cross %29 %106
+%109 = OpCompositeExtract %6 %32 3
+%110 = OpVectorTimesScalar %13 %107 %109
+%112 = OpCompositeConstruct %111 %106 %110 %29
+%114 = OpMatrixTimesVector %13 %112 %96
+%126 = OpAccessChain %120 %119 %50
+%127 = OpLoad %13 %126
+%128 = OpExtInst %13 %108 Normalize %127
+%192 = OpDot %6 %114 %128
+%194 = OpVectorTimesScalar %13 %172 %192
+%157 = OpCompositeConstruct %7 %194 %94
+OpStore %162 %157
+OpReturn
+OpFunctionEnd
+
+   INFO [2025-12-10 08:48:27.190 / TMP] : Metal:
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+struct MaterialData_CB_std140
+{
+    float4 baseColor;
+    uint2 textureSlot0;
+    uint2 textureSlot1;
+    uint2 textureSlot2;
+    uint2 textureSlot3;
+    uint2 textureSlot4;
+};
+
+struct _MatrixStorage_float4x4std140
+{
+    float4 data[4];
+};
+
+struct GlobalData_CB_std140
+{
+    float3 cameraPosition;
+    _MatrixStorage_float4x4std140 viewProjection;
+    float3 directionalLightDirection;
+};
+
+struct PSMain_out
+{
+    float4 entryPointParam_PSMain_color [[color(0)]];
+};
+
+struct PSMain_in
+{
+    float3 input_normal [[user(locn0)]];
+    float4 input_tangent [[user(locn1)]];
+};
+
+fragment PSMain_out PSMain(PSMain_in in [[stage_in]], constant MaterialData_CB_std140& materialCB [[buffer(0)]], constant GlobalData_CB_std140& globalCB [[buffer(1)]])
+{
+    PSMain_out out = {};
+    out.entryPointParam_PSMain_color = float4(materialCB.baseColor.xyz * dot(float3x3(in.input_tangent.xyz, cross(in.input_normal, in.input_tangent.xyz) * in.input_tangent.w, in.input_normal) * float3(0.0, 0.0, 1.0), fast::normalize(globalCB.directionalLightDirection)), 1.0);
+    return out;
+}
+
+
+2025-12-10 17:48:27.572634+0900 CE-Main[16692:8908262] -[MTLDebugRenderCommandEncoder validateCommonDrawErrors:instanceCount:baseInstance:maxVertexID:], line 5776: error 'Draw Errors Validation
+missing vertexDescriptor buffer binding at index 10.
+'
+-[MTLDebugRenderCommandEncoder validateCommonDrawErrors:instanceCount:baseInstance:maxVertexID:]:5776: failed assertion `Draw Errors Validation
+missing vertexDescriptor buffer binding at index 10.
+'
+Signal: SIGABRT (hit program assert)

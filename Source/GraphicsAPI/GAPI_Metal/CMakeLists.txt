@@ -16,6 +16,7 @@ set(PUBLIC_FILES
 set(PRIVATE_FILES
     Private/GAPI_Metal.mm
     Private/GAPI_MetalBuffer.mm
+    Private/GAPI_MetalCommandList.mm
     Private/GAPI_MetalPipeline.mm
     Private/GAPI_MetalSampler.mm
     Private/GAPI_MetalShader.mm
@@ -30,6 +31,7 @@ set(PRIVATE_FILES
     Private/MetalShaderCompiler.mm
     Private/MetalTypes.h
     Private/MetalTypes.mm
+    Private/MetalUtility.h
 )
 # Objective-C does not support precompiled headers
 set_source_files_properties(${PRIVATE_FILES}
@@ -56,6 +58,7 @@ target_link_libraries(CE-GAPI_Metal
         "-framework Metal"
         "-framework MetalKit"
         imgui
+        spirv-tools
         spirv-cross-msl
         CE-Base
         CE-Logger

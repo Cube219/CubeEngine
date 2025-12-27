@@ -37,6 +37,7 @@ namespace cube
         }
 
         mCommandList = mGAPI->CreateCommandList({
+            .type = gapi::CommandListType::Compute,
             .debugName = CUBE_T("TextureManagerCommandList")
         });
     }

@@ -111,7 +111,8 @@ namespace cube
                     alignment = 16;
                     break;
                 case ShaderParameterType::Bindless:
-                    size = sizeof(BindlessResource);
+                    // uint2
+                    size = sizeof(Uint32) * 2;
                     alignment = sizeof(Uint32);
                     break;
                 default:
@@ -196,9 +197,15 @@ namespace cube
                     memcpy(dst, &floatMatrix, sizeof(floatMatrix));
                     break;
                 }
+                case ShaderParameterType::Bindless:
+                {
+                    const BindlessResource* data = reinterpret_cast<const BindlessResource*>(src);
+                    Uint32 uint2[2] = { static_cast<Uint32>(data->index), static_cast<Uint32>(data->samplerIndex) };
+                    memcpy(dst, src, paramInfo.sizeInCPU);
+                    break;
+                }
                 case ShaderParameterType::Int:
                 case ShaderParameterType::Float:
-                case ShaderParameterType::Bindless:
                 {
                     CHECK_PARAMS(paramInfo.sizeInCPU == paramInfo.sizeInGPU);
                     memcpy(dst, src, paramInfo.sizeInCPU);

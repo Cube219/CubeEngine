@@ -19,6 +19,10 @@ namespace cube
             id<MTLRenderPipelineState> GetMTLRenderPipelineState() const { return mPipelineState; }
             id<MTLDepthStencilState> GetMTLDepthStencilState() const { return mDepthStencilState; }
 
+            MTLTriangleFillMode GetFillMode() const { return mFillMode; }
+            MTLCullMode GetCullMode() const { return mCullMode; }
+            MTLWinding GetWinding() const { return mWinding; }
+
         private:
             id<MTLRenderPipelineState> mPipelineState;
             id<MTLDepthStencilState> mDepthStencilState;

@@ -7,6 +7,7 @@
 #include "MacOS/MacOSString.h"
 #include "MetalDevice.h"
 #include "MetalTypes.h"
+#include "MetalUtility.h"
 
 namespace cube
 {
@@ -211,13 +212,13 @@ namespace cube
                 MetalElementFormatInfo formatInfo = GetMetalElementFormatInfo(element.format);
                 vertexDesc.attributes[i].format = formatInfo.vertexFormat;
                 vertexDesc.attributes[i].offset = element.offset;
-                vertexDesc.attributes[i].bufferIndex = element.index;
+                vertexDesc.attributes[i].bufferIndex = MetalVertexBufferOffset;
 
                 maxStride = std::max(maxStride, (Uint64)element.offset + formatInfo.bytes);
             }
-            vertexDesc.layouts[0].stride = maxStride;
-            vertexDesc.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
-            vertexDesc.layouts[0].stepRate = 1;
+            vertexDesc.layouts[MetalVertexBufferOffset].stride = maxStride;
+            vertexDesc.layouts[MetalVertexBufferOffset].stepFunction = MTLVertexStepFunctionPerVertex;
+            vertexDesc.layouts[MetalVertexBufferOffset].stepRate = 1;
             
             MTLRenderPipelineDescriptor* desc = [[MTLRenderPipelineDescriptor alloc] init];
             if (info.vertexShader)
@@ -312,6 +313,7 @@ namespace cube
             CHECK(metalComputeShader);
 
             MTLComputePipelineDescriptor* desc = [[MTLComputePipelineDescriptor alloc] init];
+
             desc.computeFunction = metalComputeShader->GetMTLFunction();
             desc.label = String_Convert<NSString*>(info.debugName);
 

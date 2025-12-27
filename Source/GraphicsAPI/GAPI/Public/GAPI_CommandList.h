@@ -98,8 +98,16 @@ namespace cube
             ResourceStateFlags dst;
         };
 
+        enum class CommandListType
+        {
+            Graphics,
+            Compute
+        };
+
         struct CommandListCreateInfo
         {
+            CommandListType type;
+
             StringView debugName;
         };
 

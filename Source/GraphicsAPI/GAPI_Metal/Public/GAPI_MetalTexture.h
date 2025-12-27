@@ -48,6 +48,8 @@ namespace cube
             MetalTextureSRV(const TextureSRVCreateInfo& createInfo, SharedPtr<Texture> texture, MetalDevice& device);
             virtual ~MetalTextureSRV();
 
+            id<MTLTexture> GetMTLTexture() const { return mSRV; }
+
         private:
             MetalDevice& mDevice;
 
@@ -61,6 +63,8 @@ namespace cube
             MetalTextureUAV(const TextureUAVCreateInfo& createInfo, SharedPtr<Texture> texture, MetalDevice& device);
             virtual ~MetalTextureUAV();
 
+            id<MTLTexture> GetMTLTexture() const { return mUAV; }
+
         private:
             MetalDevice& mDevice;
 
@@ -72,11 +76,16 @@ namespace cube
         {
         public:
             MetalTextureRTV(const TextureRTVCreateInfo& createInfo, SharedPtr<Texture> texture, MetalDevice& device);
+            // Constructor for existed MTLTexture. (Used in backbuffer in swap chain)
+            MetalTextureRTV(id<MTLTexture> mtlRTV, MetalDevice& device);
             ~MetalTextureRTV() override;
+
+            id<MTLTexture> GetMTLTexture() const { return mRTV; }
 
         private:
             MetalDevice& mDevice;
 
+            bool mFromExisted = false;
             id<MTLTexture> mRTV;
             MetalArgumentBufferHandle mArgumentBufferHandle;
         };
@@ -86,6 +95,8 @@ namespace cube
         public:
             MetalTextureDSV(const TextureDSVCreateInfo& createInfo, SharedPtr<Texture> texture, MetalDevice& device);
             virtual ~MetalTextureDSV();
+
+            id<MTLTexture> GetMTLTexture() const { return mDSV; }
 
         private:
             MetalDevice& mDevice;

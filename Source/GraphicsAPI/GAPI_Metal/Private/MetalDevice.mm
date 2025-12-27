@@ -15,15 +15,25 @@ namespace cube
     {
     }
 
-    void MetalDevice::Initialize(id<MTLDevice> device)
+    void MetalDevice::Initialize(id<MTLDevice> device, Uint32 numGPUSync)
     {
         mDevice = device;
 
+        mNumGPUSync = numGPUSync;
+        mGPUSyncEvent = [mDevice newSharedEvent];
+        mGPUSyncEvent.label = @"GPUSyncEvent";
+        mGPUSyncEvent.signaledValue = 0;
+
         mArgumentBufferManager.Initialize();
+        mMainCommandQueue = [device newCommandQueue];
+        mMainCommandQueue.label = @"MainCommandQueue";
     }
 
     void MetalDevice::Shutdown()
     {
+        WaitAllGPUSync();
+
+        [mMainCommandQueue release];
         mArgumentBufferManager.Shutdown();
 
         [mDevice release];
@@ -41,4 +51,37 @@ namespace cube
 
         return true;
     }
+
+    void MetalDevice::SetNumGPUSync(Uint32 newNumGPUSync)
+    {
+        WaitAllGPUSync();
+
+        mNumGPUSync = newNumGPUSync;
+    }
+
+    void MetalDevice::BeginGPUFrame(Uint64 gpuFrame)
+    {
+        if (gpuFrame >= mNumGPUSync)
+        {
+            [mGPUSyncEvent waitUntilSignaledValue:gpuFrame-1 timeoutMS:100000000000];
+        }
+    }
+
+    void MetalDevice::EndGPUFrame(Uint64 gpuFrame)
+    { @autoreleasepool {
+        id<MTLCommandBuffer> signalCommandBuffer = [mMainCommandQueue commandBuffer];
+        signalCommandBuffer.label = @"EndGPUFrameSignalCommandBuffer";
+
+        [signalCommandBuffer encodeSignalEvent:mGPUSyncEvent value:gpuFrame];
+        [signalCommandBuffer commit];
+    }}
+
+    void MetalDevice::WaitAllGPUSync()
+    { @autoreleasepool {
+        id<MTLCommandBuffer> waitAllGPUSyncCommandBuffer = [mMainCommandQueue commandBuffer];
+        waitAllGPUSyncCommandBuffer.label = @"WaitAllGPUSyncCommandBuffer";
+
+        [waitAllGPUSyncCommandBuffer commit];
+        [waitAllGPUSyncCommandBuffer waitUntilCompleted];
+    }}
 } // namespace cube

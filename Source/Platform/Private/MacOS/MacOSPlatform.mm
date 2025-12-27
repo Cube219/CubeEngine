@@ -264,6 +264,8 @@ namespace cube { namespace platform { namespace internal
     cube::Uint32 newWidth = static_cast<cube::Uint32>(window.contentView.frame.size.width);
     cube::Uint32 newHeight = static_cast<cube::Uint32>(window.contentView.frame.size.height);
 
+    using namespace cube;
+
     MacOSPlatform::QueueEvent([newWidth, newHeight]() {
         using namespace cube;
 

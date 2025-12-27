@@ -178,7 +178,7 @@ namespace cube
                     .depthFunction = gapi::CompareFunction::Greater
                 },
                 .numRenderTargets = 1,
-                .renderTargetFormats = { gapi::ElementFormat::RGBA8_UNorm },
+                .renderTargetFormats = { gapi::ElementFormat::BGRA8_UNorm },
                 .debugName = Format<FrameString>(CUBE_T("MaterialPipeline ({0})"), materialHash)
             });
         }
