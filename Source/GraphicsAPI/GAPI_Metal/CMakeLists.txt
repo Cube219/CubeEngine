@@ -19,6 +19,7 @@ set(PRIVATE_FILES
     Private/GAPI_MetalPipeline.mm
     Private/GAPI_MetalSampler.mm
     Private/GAPI_MetalShader.mm
+    Private/GAPI_MetalShaderParameter.mm
     Private/GAPI_MetalTexture.mm
     Private/GAPI_MetalSwapChain.mm
     Private/MetalArgumentBufferManager.h
