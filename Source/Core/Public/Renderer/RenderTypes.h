@@ -18,8 +18,16 @@ namespace cube
 
     struct BindlessResource
     {
-        Uint32 index = -1;
-        Uint32 samplerIndex = -1;
+        enum class Type
+        {
+            Unknown,
+            Texture,
+            Sampler,
+            CombinedTextureSampler
+        };
+        Type type = Type::Unknown;
+        Uint64 index = -1;
+        Uint64 samplerIndex = -1;
     };
-    static constexpr BindlessResource InvalidBindlessResource = { static_cast<Uint32>(-1), static_cast<Uint32>(-1) };
+    static constexpr BindlessResource InvalidBindlessResource = { BindlessResource::Type::Unknown, static_cast<Uint64>(-1), static_cast<Uint64>(-1) };
 } // namespace cube

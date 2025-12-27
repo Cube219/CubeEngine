@@ -138,7 +138,7 @@ namespace cube
                 };
             }
 
-            int GetBindlessIndex() const { return mBindlessIndex; }
+            Uint64 GetBindlessIndex() const { return mBindlessIndex; }
 
         protected:
             SharedPtr<Texture> mTexture;
@@ -148,7 +148,7 @@ namespace cube
             Uint32 mFirstArrayIndex;
             Uint32 mArraySize;
 
-            int mBindlessIndex;
+            Uint64 mBindlessIndex;
         };
 
         struct TextureUAVCreateInfo
@@ -193,7 +193,7 @@ namespace cube
                 };
             }
 
-            int GetBindlessIndex() const { return mBindlessIndex; }
+            Uint64 GetBindlessIndex() const { return mBindlessIndex; }
 
         protected:
             SharedPtr<Texture> mTexture;
@@ -204,7 +204,7 @@ namespace cube
             Uint32 mFirstDepthIndex;
             Uint32 mDepthSize;
 
-            int mBindlessIndex;
+            Uint64 mBindlessIndex;
         };
 
         struct TextureRTVCreateInfo
