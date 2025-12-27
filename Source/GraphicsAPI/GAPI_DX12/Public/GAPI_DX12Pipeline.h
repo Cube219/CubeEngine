@@ -33,9 +33,15 @@ namespace cube
             virtual ~DX12ComputePipeline();
 
             ID3D12PipelineState* GetPipelineState() const { return mPipelineState.Get(); }
+            Uint32 GetThreadGroupSizeX() const { return mThreadGroupSizeX; }
+            Uint32 GetThreadGroupSizeY() const { return mThreadGroupSizeY; }
+            Uint32 GetThreadGroupSizeZ() const { return mThreadGroupSizeZ; }
 
         private:
             ComPtr<ID3D12PipelineState> mPipelineState;
+            Uint32 mThreadGroupSizeX;
+            Uint32 mThreadGroupSizeY;
+            Uint32 mThreadGroupSizeZ;
 
             Vector<SharedPtr<DX12APIObject>> mBoundObjects;
         };

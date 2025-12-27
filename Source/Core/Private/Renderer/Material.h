@@ -15,6 +15,7 @@ namespace cube
 
     namespace gapi
     {
+        class CommandList;
         class Sampler;
         class Buffer;
         class Texture;
@@ -25,11 +26,11 @@ namespace cube
         CUBE_BEGIN_SHADER_PARAMETERS(MaterialShaderParameters)
             CUBE_SHADER_PARAMETER(Vector4, baseColor)
 
-            CUBE_SHADER_PARAMETER(BindlessResource, textureSlot0)
-            CUBE_SHADER_PARAMETER(BindlessResource, textureSlot1)
-            CUBE_SHADER_PARAMETER(BindlessResource, textureSlot2)
-            CUBE_SHADER_PARAMETER(BindlessResource, textureSlot3)
-            CUBE_SHADER_PARAMETER(BindlessResource, textureSlot4)
+            CUBE_SHADER_PARAMETER(BindlessCombinedTextureSampler, textureSlot0)
+            CUBE_SHADER_PARAMETER(BindlessCombinedTextureSampler, textureSlot1)
+            CUBE_SHADER_PARAMETER(BindlessCombinedTextureSampler, textureSlot2)
+            CUBE_SHADER_PARAMETER(BindlessCombinedTextureSampler, textureSlot3)
+            CUBE_SHADER_PARAMETER(BindlessCombinedTextureSampler, textureSlot4)
         CUBE_END_SHADER_PARAMETERS
     };
 
@@ -45,9 +46,9 @@ namespace cube
 
         void SetTexture(int slotIndex, SharedPtr<TextureResource> texture);
 
-        void SetSampler(int samplerIndex);
+        void SetSampler(Uint64 samplerId);
 
-        SharedPtr<MaterialShaderParameters> GenerateShaderParameters() const;
+        SharedPtr<MaterialShaderParameters> GenerateShaderParameters(gapi::CommandList* commandList) const;
 
         StringView GetDebugName() const { return mDebugName; }
 
@@ -61,7 +62,7 @@ namespace cube
 
         Vector4 mConstantBaseColor;
         Array<SharedPtr<TextureResource>, 5> mTextures;
-        int mSamplerIndex;
+        Uint64 mSamplerId;
 
         String mDebugName;
     };

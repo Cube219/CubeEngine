@@ -7,12 +7,16 @@ namespace cube
 {
     namespace gapi
     {
-        DX12Shader::DX12Shader(Blob&& shader, StringView warningMessage, StringView errorMessage) :
-            mShader(std::move(shader))
+        DX12Shader::DX12Shader(DX12ShaderCompilerResult&& result, StringView warningMessage, StringView errorMessage)
+            : mShader(std::move(result.shader))
         {
             mCreated = mShader.GetSize() > 0;
             mWarningMessage = warningMessage;
             mErrorMessage = errorMessage;
+
+            mThreadGroupSizeX = result.reflection.threadGroupSizeX;
+            mThreadGroupSizeY = result.reflection.threadGroupSizeY;
+            mThreadGroupSizeZ = result.reflection.threadGroupSizeZ;
         }
 
         DX12Shader::~DX12Shader()

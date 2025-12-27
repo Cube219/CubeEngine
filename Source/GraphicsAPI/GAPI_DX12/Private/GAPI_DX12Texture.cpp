@@ -231,7 +231,7 @@ namespace cube
             }
 
             device.GetDevice()->CreateShaderResourceView(dx12Texture->GetResource(), &srvDesc, mSRVDescriptor.handle);
-            mBindlessIndex = mSRVDescriptor.index;
+            mBindlessId = mSRVDescriptor.index;
         }
 
         DX12TextureSRV::~DX12TextureSRV()
@@ -284,7 +284,7 @@ namespace cube
             }
 
             device.GetDevice()->CreateUnorderedAccessView(dx12Texture->GetResource(), nullptr, &uavDesc, mUAVDescriptor.handle);
-            mBindlessIndex = mUAVDescriptor.index;
+            mBindlessId = mUAVDescriptor.index;
         }
 
         DX12TextureUAV::~DX12TextureUAV()

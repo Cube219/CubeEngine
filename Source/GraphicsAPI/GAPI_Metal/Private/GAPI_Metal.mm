@@ -47,21 +47,22 @@ namespace cube
 
         mInfo = {
             .apiName = GAPIName::Metal,
-            .useLeftHanded = false
+            .useLeftHanded = true
         };
 
         InitializeTypes();
 
         mDevices.resize(1);
         mDevices[0] = new MetalDevice();
-        mDevices[0]->Initialize(MTLCreateSystemDefaultDevice());
+        mDevices[0]->Initialize(MTLCreateSystemDefaultDevice(), initInfo.numGPUSync);
         mMainDevice = mDevices[0];
         CHECK(mMainDevice->CheckFeatureRequirements());
 
-        mCommandQueue = [mMainDevice->GetMTLDevice() newCommandQueue];
-
         InitializeImGUI(initInfo.imGUI);
         MetalShaderCompiler::Initialize(mMainDevice);
+
+        mCurrentGPUFrame = 0;
+        SetNumGPUSync(initInfo.numGPUSync);
 
         mShaderParameterHelper = std::make_unique<gapi::MetalShaderParameterHelper>();
     }
@@ -87,6 +88,7 @@ namespace cube
 
     void GAPI_Metal::SetNumGPUSync(Uint32 newNumGPUSync)
     {
+        mMainDevice->SetNumGPUSync(newNumGPUSync);
     }
 
     void GAPI_Metal::OnBeforeRender()
@@ -108,7 +110,7 @@ namespace cube
             } while (mRenderPassDescriptor == nil);
             ImGui_ImplMetal_NewFrame(mRenderPassDescriptor);
 
-            id<MTLCommandBuffer> commandBuffer = [mCommandQueue commandBuffer];
+            id<MTLCommandBuffer> commandBuffer = [mMainDevice->GetMainCommandQueue() commandBuffer];
 
             ImDrawData* draw_data = ImGui::GetDrawData();
 
@@ -139,18 +141,18 @@ namespace cube
 
     void GAPI_Metal::BeginRenderingFrame()
     {
+        mMainDevice->BeginGPUFrame(mCurrentGPUFrame);
     }
 
     void GAPI_Metal::EndRenderingFrame()
     {
+        mMainDevice->EndGPUFrame(mCurrentGPUFrame);
+        mCurrentGPUFrame++;
     }
 
     void GAPI_Metal::WaitAllGPUSync()
     {
-        // TODO: Use another way not using comand buffer?
-        id<MTLCommandBuffer> commandBuffer = [mCommandQueue commandBuffer];
-        [commandBuffer commit];
-        [commandBuffer waitUntilCompleted];
+        mMainDevice->WaitAllGPUSync();
     }
 
     const gapi::ShaderParameterHelper& GAPI_Metal::GetShaderParameterHelper() const
@@ -165,7 +167,7 @@ namespace cube
 
     SharedPtr<gapi::CommandList> GAPI_Metal::CreateCommandList(const gapi::CommandListCreateInfo& info)
     {
-        return std::make_shared<gapi::MetalCommandList>(info);
+        return std::make_shared<gapi::MetalCommandList>(info, *mMainDevice);
     }
 
     SharedPtr<gapi::Fence> GAPI_Metal::CreateFence(const gapi::FenceCreateInfo& info)
@@ -204,7 +206,7 @@ namespace cube
 
     SharedPtr<gapi::SwapChain> GAPI_Metal::CreateSwapChain(const gapi::SwapChainCreateInfo& info)
     {
-        return std::make_shared<gapi::MetalSwapChain>(mMainDevice->GetMTLDevice(), mImGUIView, info);
+        return std::make_shared<gapi::MetalSwapChain>(*mMainDevice, mImGUIView, info);
     }
 
     gapi::TimestampList GAPI_Metal::GetLastTimestampList()
@@ -271,7 +273,7 @@ namespace cube
         {
             return;
         }
-        CUBE_LOG(Info, Metal, "Shtudown ImGUI.");
+        CUBE_LOG(Info, Metal, "Shutdown ImGUI.");
 
         // Wait until the main queue will flush.
         platform::MacOSUtility::DispatchToMainThreadAndWait([] {});

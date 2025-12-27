@@ -110,8 +110,11 @@ namespace cube
                     // Matrix is treated as array of Float4 so it is aligned to 16.
                     alignment = 16;
                     break;
-                case ShaderParameterType::Bindless:
-                    size = sizeof(BindlessResource);
+                case ShaderParameterType::BindlessTexture:
+                case ShaderParameterType::BindlessSampler:
+                case ShaderParameterType::BindlessCombinedTextureSampler:
+                    // uint2
+                    size = sizeof(Uint32) * 2;
                     alignment = sizeof(Uint32);
                     break;
                 default:
@@ -196,9 +199,29 @@ namespace cube
                     memcpy(dst, &floatMatrix, sizeof(floatMatrix));
                     break;
                 }
+                case ShaderParameterType::BindlessTexture:
+                {
+                    const BindlessTexture* data = reinterpret_cast<const BindlessTexture*>(src);
+                    Uint32 uint2[2] = { static_cast<Uint32>(data->id), static_cast<Uint32>(-1) };
+                    memcpy(dst, uint2, sizeof(uint2));
+                    break;
+                }
+                case ShaderParameterType::BindlessSampler:
+                {
+                    const BindlessSampler* data = reinterpret_cast<const BindlessSampler*>(src);
+                    Uint32 uint2[2] = { static_cast<Uint32>(data->id), static_cast<Uint32>(-1) };
+                    memcpy(dst, uint2, sizeof(uint2));
+                    break;
+                }
+                case ShaderParameterType::BindlessCombinedTextureSampler:
+                {
+                    const BindlessCombinedTextureSampler* data = reinterpret_cast<const BindlessCombinedTextureSampler*>(src);
+                    Uint32 uint2[2] = { static_cast<Uint32>(data->textureId), static_cast<Uint32>(data->samplerId) };
+                    memcpy(dst, uint2, sizeof(uint2));
+                    break;
+                }
                 case ShaderParameterType::Int:
                 case ShaderParameterType::Float:
-                case ShaderParameterType::Bindless:
                 {
                     CHECK_PARAMS(paramInfo.sizeInCPU == paramInfo.sizeInGPU);
                     memcpy(dst, src, paramInfo.sizeInCPU);

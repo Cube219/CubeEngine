@@ -54,9 +54,14 @@ namespace cube
                     // Matrix is treated as array of Float4 so it is aligned to 16.
                     alignment = 16;
                     break;
-                case ShaderParameterType::Bindless:
-                    size = sizeof(BindlessResource);
-                    alignment = sizeof(Uint32);
+                case ShaderParameterType::BindlessTexture:
+                case ShaderParameterType::BindlessSampler:
+                    size = sizeof(Uint64);
+                    alignment = sizeof(Uint64);
+                    break;
+                case ShaderParameterType::BindlessCombinedTextureSampler:
+                    size = sizeof(Uint64) * 2;
+                    alignment = sizeof(Uint64) * 2;
                     break;
                 default:
                     NOT_IMPLEMENTED();
@@ -134,9 +139,31 @@ namespace cube
                     memcpy(dst, &floatMatrix, sizeof(floatMatrix));
                     break;
                 }
+                case ShaderParameterType::BindlessTexture:
+                {
+                    const BindlessTexture* bindlessTexture = reinterpret_cast<const BindlessTexture*>(src);
+                    Uint64 id = bindlessTexture->id;
+                    memcpy(dst, &id, sizeof(Uint64));
+                    break;
+                }
+                case ShaderParameterType::BindlessSampler:
+                {
+                    const BindlessSampler* bindlessSampler = reinterpret_cast<const BindlessSampler*>(src);
+                    Uint64 id = bindlessSampler->id;
+                    memcpy(dst, &id, sizeof(Uint64));
+                    break;
+                }
+                case ShaderParameterType::BindlessCombinedTextureSampler:
+                {
+                    const BindlessCombinedTextureSampler* bindlessCombinedTextureSampler = reinterpret_cast<const BindlessCombinedTextureSampler*>(src);
+                    Uint64 ids[2];
+                    ids[0] = bindlessCombinedTextureSampler->textureId;
+                    ids[1] = bindlessCombinedTextureSampler->samplerId;
+                    memcpy(dst, ids, sizeof(ids));
+                    break;
+                }
                 case ShaderParameterType::Int:
                 case ShaderParameterType::Float:
-                case ShaderParameterType::Bindless:
                 {
                     CHECK_PARAMS(paramInfo.sizeInCPU == paramInfo.sizeInGPU);
                     memcpy(dst, src, paramInfo.sizeInCPU);

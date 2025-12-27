@@ -17,6 +17,7 @@ public struct PerObjectData_CB
 public struct VSInput
 {
     public float3 position : POSITION;
+    public float3 color : COLOR0;
     public float3 normal : NORMAL;
     public float4 tangent : TANGENT;
     public float2 uv : TEXCOORD0;

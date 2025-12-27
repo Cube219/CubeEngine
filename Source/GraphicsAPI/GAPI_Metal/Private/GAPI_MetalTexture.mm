@@ -169,20 +169,19 @@ namespace cube
 
             Uint32 mipLevels = createInfo.mipLevels != -1 ? createInfo.mipLevels : metalTexture->GetMipLevels() - createInfo.firstMipLevel;
             Uint32 arraySize = createInfo.arraySize != -1 ? createInfo.arraySize : metalTexture->GetArraySize() - createInfo.firstArrayIndex;
-            mSRV = [metalTexture->GetMTLTexture()
+            id<MTLTexture> mtlTexture = metalTexture->GetMTLTexture();
+            mSRV = [mtlTexture
                 newTextureViewWithPixelFormat:metalTexture->GetPixelFormat()
                 textureType:metalTexture->GetTextureType()
                 levels:NSMakeRange(createInfo.firstMipLevel, mipLevels)
                 slices:NSMakeRange(createInfo.firstArrayIndex, arraySize)
             ];
 
-            mArgumentBufferHandle = mDevice.GetArgumentBufferManager().Allocate();
-            mBindlessIndex = mArgumentBufferHandle.index;
+            mBindlessId = mSRV.gpuResourceID._impl;
         }
 
         MetalTextureSRV::~MetalTextureSRV()
         {
-            mDevice.GetArgumentBufferManager().Free(mArgumentBufferHandle);
             [mSRV release];
         }
 
@@ -196,20 +195,19 @@ namespace cube
             CHECK_FORMAT(metalTexture->GetTextureUsage() & (MTLTextureUsageShaderRead | MTLTextureUsageShaderWrite), "Cannot create MetalTextureUAV. Texture was not created with MTLTextureUsageShaderRead and MTLTextureUsageShaderWrite.");
 
             Uint32 arraySize = createInfo.arraySize != -1 ? createInfo.arraySize : metalTexture->GetArraySize() - createInfo.firstArrayIndex;
-            mUAV = [metalTexture->GetMTLTexture()
+            id<MTLTexture> mtlTexture = metalTexture->GetMTLTexture();
+            mUAV = [mtlTexture
                 newTextureViewWithPixelFormat:metalTexture->GetPixelFormat()
                 textureType:metalTexture->GetTextureType()
                 levels:NSMakeRange(createInfo.mipLevel, 1)
                 slices:NSMakeRange(createInfo.firstArrayIndex, arraySize)
             ];
 
-            mArgumentBufferHandle = mDevice.GetArgumentBufferManager().Allocate();
-            mBindlessIndex = mArgumentBufferHandle.index;
+            mBindlessId = mUAV.gpuResourceID._impl;
         }
 
         MetalTextureUAV::~MetalTextureUAV()
         {
-            mDevice.GetArgumentBufferManager().Free(mArgumentBufferHandle);
             [mUAV release];
         }
 
@@ -228,14 +226,22 @@ namespace cube
                                        levels:NSMakeRange(createInfo.mipLevel, 1)
                                        slices:NSMakeRange(createInfo.firstArrayIndex, arraySize)
             ];
-
-            mArgumentBufferHandle = mDevice.GetArgumentBufferManager().Allocate();
         }
 
         MetalTextureRTV::~MetalTextureRTV()
         {
-            mDevice.GetArgumentBufferManager().Free(mArgumentBufferHandle);
-            [mRTV release];
+            if (!mFromExisted)
+            {
+                [mRTV release];
+            }
+        }
+
+        MetalTextureRTV::MetalTextureRTV(id<MTLTexture> mtlRTV, MetalDevice& device)
+            : mDevice(device)
+        {
+            mFromExisted = true;
+
+            mRTV = mtlRTV;
         }
 
         MetalTextureDSV::MetalTextureDSV(const TextureDSVCreateInfo& createInfo, SharedPtr<Texture> texture, MetalDevice& device)
@@ -253,13 +259,10 @@ namespace cube
                                        levels:NSMakeRange(createInfo.mipLevel, 1)
                                        slices:NSMakeRange(createInfo.firstArrayIndex, arraySize)
             ];
-
-            mArgumentBufferHandle = mDevice.GetArgumentBufferManager().Allocate();
         }
 
         MetalTextureDSV::~MetalTextureDSV()
         {
-            mDevice.GetArgumentBufferManager().Free(mArgumentBufferHandle);
             [mDSV release];
         }
     } // namespace gapi

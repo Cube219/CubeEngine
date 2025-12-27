@@ -37,14 +37,14 @@ namespace cube
         mCachedSamplers.clear();
     }
 
-    int SamplerManager::GetDefaultLinearSamplerIndex()
+    Uint64 SamplerManager::GetDefaultLinearSamplerId()
     {
-        return GetOrCreateSampler(mDefaultLinearSamplerCreateInfo)->GetBindlessIndex();
+        return GetOrCreateSampler(mDefaultLinearSamplerCreateInfo)->GetBindlessId();
     }
 
-    int SamplerManager::GetSamplerIndex(const gapi::SamplerCreateInfo& createInfo)
+    Uint64 SamplerManager::GetSamplerId(const gapi::SamplerCreateInfo& createInfo)
     {
-        return GetOrCreateSampler(createInfo)->GetBindlessIndex();
+        return GetOrCreateSampler(createInfo)->GetBindlessId();
     }
 
     gapi::Sampler* SamplerManager::GetOrCreateSampler(const gapi::SamplerCreateInfo& createInfo)

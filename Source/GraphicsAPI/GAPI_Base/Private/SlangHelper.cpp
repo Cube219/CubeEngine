@@ -21,7 +21,7 @@ namespace cube
         static void Shutdown();
 
         static Blob Compile(const gapi::ShaderCreateInfo& info, const SlangCompileOptions& options, gapi::ShaderCompileResult& compileResult, ShaderReflection* pReflection);
-        static void GetReflection(ComPtr<slang::IComponentType> program, ShaderReflection& outReflection);
+        static void GetReflection(const gapi::ShaderCreateInfo& info, ComPtr<slang::IComponentType> program, ShaderReflection& outReflection);
 
         static ComPtr<slang::IGlobalSession> mGlobalSession;
         static AnsiString mShaderSearchPath;
@@ -121,6 +121,12 @@ namespace cube
             break;
         }
 
+        FrameVector<slang::PreprocessorMacroDesc> macros;
+        macros.push_back({
+            .name = "CUBE_SLANG_METAL",
+            .value = (options.target == gapi::ShaderLanguage::Metal || options.target == gapi::ShaderLanguage::MetalLib) ? "1" : "0"
+        });
+
         FrameVector<slang::CompilerOptionEntry> compilerOptions;
         if (options.withDebugSymbol)
         {
@@ -150,8 +156,10 @@ namespace cube
             .targetCount = 1,
             .searchPaths = &shaderRootDirPath_CStr,
             .searchPathCount = 1,
+            .preprocessorMacros = macros.data(),
+            .preprocessorMacroCount = static_cast<Uint32>(macros.size()),
             .compilerOptionEntries = compilerOptions.data(),
-            .compilerOptionEntryCount = static_cast<uint32_t>(compilerOptions.size())
+            .compilerOptionEntryCount = static_cast<Uint32>(compilerOptions.size())
         };
 
         ComPtr<slang::ISession> session;
@@ -260,19 +268,26 @@ namespace cube
 
         if (pReflection)
         {
-            GetReflection(linkedProgram, *pReflection);
+            GetReflection(info, linkedProgram, *pReflection);
         }
 
         return resBlob;
     }
 
-    void SlangHelperPrivate::GetReflection(ComPtr<slang::IComponentType> program, ShaderReflection& outReflection)
+    void SlangHelperPrivate::GetReflection(const gapi::ShaderCreateInfo& info, ComPtr<slang::IComponentType> program, ShaderReflection& outReflection)
     {
         using namespace slang;
 
         outReflection.blocks.clear();
 
         ProgramLayout* layout = program->getLayout();
+
+        EntryPointReflection* entryPoint = layout->findEntryPointByName(info.entryPoint.data());
+        SlangUInt threadGroupSize[3];
+        entryPoint->getComputeThreadGroupSize(3, threadGroupSize);
+        outReflection.threadGroupSizeX = threadGroupSize[0];
+        outReflection.threadGroupSizeY = threadGroupSize[1];
+        outReflection.threadGroupSizeZ = threadGroupSize[2];
 
         const Uint32 numParameterBlocks = layout->getParameterCount();
         for (Uint32 blockIndex = 0; blockIndex < numParameterBlocks; ++blockIndex)
@@ -314,7 +329,8 @@ namespace cube
                         {
                             if (fieldTypeName == AnsiString("DescriptorHandle"))
                             {
-                                AppendParmeterReflection(ShaderParameterType::Bindless);
+                                // TODO
+                                // AppendParmeterReflection(ShaderParameterType::Bindless);
                             }
                             else
                             {

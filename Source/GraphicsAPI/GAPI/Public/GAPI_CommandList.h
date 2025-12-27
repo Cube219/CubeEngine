@@ -76,6 +76,14 @@ namespace cube
             float clearDepth;
         };
 
+        enum class ResourceUsageFlag
+        {
+            Read = 1 << 0,
+            Write = 1 << 1
+        };
+        using ResourceUsageFlags = Flags<ResourceUsageFlag>;
+        FLAGS_OPERATOR(ResourceUsageFlag);
+
         struct TransitionState
         {
             enum class ResourceType
@@ -130,14 +138,14 @@ namespace cube
             virtual void DrawIndexed(Uint32 numIndices, Uint32 baseIndex, Uint32 baseVertex, Uint32 numInstances = 1, Uint32 baseInstance = 0) = 0;
 
             virtual void SetShaderVariableConstantBuffer(Uint32 index, SharedPtr<Buffer> constantBuffer) = 0;
-            virtual void BindTexture(SharedPtr<Texture> texture) = 0;
-            virtual void BindSampler(SharedPtr<Sampler> sampler) = 0;
+            virtual void UseResource(SharedPtr<TextureSRV> srv) = 0;
+            virtual void UseResource(SharedPtr<TextureUAV> uav) = 0;
 
             virtual void ResourceTransition(TransitionState state) = 0;
             virtual void ResourceTransition(ArrayView<TransitionState> states) = 0;
 
             virtual void SetComputePipeline(SharedPtr<ComputePipeline> computePipeline) = 0;
-            virtual void Dispatch(Uint32 threadGroupX, Uint32 threadGroupY, Uint32 threadGroupZ) = 0;
+            virtual void DispatchThreads(Uint32 numThreadsX, Uint32 numThreadsY, Uint32 numThreadsZ) = 0;
 
             virtual void InsertTimestamp(const String& name) = 0;
 

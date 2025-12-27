@@ -2,6 +2,8 @@
 
 #include "MetalHeader.h"
 
+#include "ShaderParameterReflection.h"
+
 namespace cube
 {
     namespace gapi
@@ -15,6 +17,8 @@ namespace cube
     {
         id<MTLLibrary> library = nil;
         id<MTLFunction> function = nil;
+
+        ShaderReflection reflection;
     };
 
     class MetalShaderCompiler
@@ -32,7 +36,6 @@ namespace cube
         static MetalShaderCompileResult CompileFromMetal(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult);
         static MetalShaderCompileResult CompileFromMetalLib(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult);
         static MetalShaderCompileResult CompileFromSlang(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult);
-        static MetalShaderCompileResult CompileFromSlangDirectly(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult);
 
         static MetalDevice* mDevice;
     };

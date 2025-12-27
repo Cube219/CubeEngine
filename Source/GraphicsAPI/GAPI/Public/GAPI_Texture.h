@@ -120,7 +120,7 @@ namespace cube
                 mMipLevels(createInfo.mipLevels > 0 ? createInfo.mipLevels : texture->GetMipLevels() - createInfo.firstMipLevel),
                 mFirstArrayIndex(createInfo.firstArrayIndex),
                 mArraySize(createInfo.arraySize > 0 ? createInfo.arraySize : texture->GetArraySize() - createInfo.firstArrayIndex),
-                mBindlessIndex(-1) // Set in child class
+                mBindlessId(-1) // Set in child class
             {}
             virtual ~TextureSRV() {}
 
@@ -138,7 +138,7 @@ namespace cube
                 };
             }
 
-            int GetBindlessIndex() const { return mBindlessIndex; }
+            Uint64 GetBindlessId() const { return mBindlessId; }
 
         protected:
             SharedPtr<Texture> mTexture;
@@ -148,7 +148,7 @@ namespace cube
             Uint32 mFirstArrayIndex;
             Uint32 mArraySize;
 
-            int mBindlessIndex;
+            Uint64 mBindlessId;
         };
 
         struct TextureUAVCreateInfo
@@ -174,7 +174,7 @@ namespace cube
                 mArraySize(createInfo.arraySize > 0 ? createInfo.arraySize : texture->GetArraySize() - createInfo.firstArrayIndex),
                 mFirstDepthIndex(createInfo.firstDepthIndex),
                 mDepthSize(createInfo.DepthSize > 0 ? createInfo.DepthSize : texture->GetDepth() - createInfo.firstDepthIndex),
-                mBindlessIndex(-1) // Set in child class
+                mBindlessId(-1) // Set in child class
             {}
             virtual ~TextureUAV() {}
 
@@ -193,7 +193,7 @@ namespace cube
                 };
             }
 
-            int GetBindlessIndex() const { return mBindlessIndex; }
+            Uint64 GetBindlessId() const { return mBindlessId; }
 
         protected:
             SharedPtr<Texture> mTexture;
@@ -204,7 +204,7 @@ namespace cube
             Uint32 mFirstDepthIndex;
             Uint32 mDepthSize;
 
-            int mBindlessIndex;
+            Uint64 mBindlessId;
         };
 
         struct TextureRTVCreateInfo

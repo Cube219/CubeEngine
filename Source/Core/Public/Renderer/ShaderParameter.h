@@ -40,7 +40,9 @@ namespace cube
         Float3,
         Float4,
         Matrix,
-        Bindless
+        BindlessTexture,
+        BindlessSampler,
+        BindlessCombinedTextureSampler
     };
 
     template <typename T>
@@ -91,10 +93,24 @@ namespace cube
     };
 
     template <>
-    struct ShaderParameterTypeInfo<BindlessResource>
+    struct ShaderParameterTypeInfo<BindlessTexture>
     {
-        static constexpr ShaderParameterType type = ShaderParameterType::Bindless;
-        static constexpr Uint32 size = sizeof(BindlessResource);
+        static constexpr ShaderParameterType type = ShaderParameterType::BindlessTexture;
+        static constexpr Uint32 size = sizeof(BindlessTexture);
+    };
+
+    template <>
+    struct ShaderParameterTypeInfo<BindlessSampler>
+    {
+        static constexpr ShaderParameterType type = ShaderParameterType::BindlessSampler;
+        static constexpr Uint32 size = sizeof(BindlessSampler);
+    };
+
+    template <>
+    struct ShaderParameterTypeInfo<BindlessCombinedTextureSampler>
+    {
+        static constexpr ShaderParameterType type = ShaderParameterType::BindlessCombinedTextureSampler;
+        static constexpr Uint32 size = sizeof(BindlessCombinedTextureSampler);
     };
 
     // ===== ShaderParameters =====

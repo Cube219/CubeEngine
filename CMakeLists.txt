@@ -67,7 +67,6 @@ if(PLATFORM_WINDOWS)
     add_subdirectory("ThirdParty/WinPixEventRuntime")
 endif()
 if(PLATFORM_MACOS)
-    add_subdirectory("ThirdParty/SPIRV-Cross")
 endif()
 
 add_subdirectory("Source/Base")

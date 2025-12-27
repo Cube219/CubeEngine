@@ -25,5 +25,9 @@ namespace cube
     struct ShaderReflection
     {
         Vector<ShaderParameterBlockReflection> blocks;
+
+        Uint32 threadGroupSizeX = 0;
+        Uint32 threadGroupSizeY = 0;
+        Uint32 threadGroupSizeZ = 0;
     };
 } // namespace cube

@@ -1,7 +1,9 @@
+import Common;
+
 struct GenerateMipmapsParameters
 {
-    DescriptorHandle<Texture2D> srcTexture;
-    DescriptorHandle<RWTexture2D> dstTexture;
+    Bindless<Texture2D> srcTexture;
+    Bindless<RWTexture2D> dstTexture;
 };
 ParameterBlock<GenerateMipmapsParameters> generateMipmapsParams;
 

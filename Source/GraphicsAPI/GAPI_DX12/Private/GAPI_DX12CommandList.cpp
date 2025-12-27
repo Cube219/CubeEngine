@@ -290,20 +290,20 @@ namespace cube
             CUBE_DX12_BOUND_OBJECT(constantBuffer);
         }
 
-        void DX12CommandList::BindTexture(SharedPtr<Texture> texture)
+        void DX12CommandList::UseResource(SharedPtr<TextureSRV> srv)
         {
             CHECK(IsWriting());
 
             // Just bind the object
-            CUBE_DX12_BOUND_OBJECT(texture);
+            CUBE_DX12_BOUND_OBJECT(srv);
         }
 
-        void DX12CommandList::BindSampler(SharedPtr<Sampler> sampler)
+        void DX12CommandList::UseResource(SharedPtr<TextureUAV> uav)
         {
             CHECK(IsWriting());
 
             // Just bind the object
-            CUBE_DX12_BOUND_OBJECT(sampler);
+            CUBE_DX12_BOUND_OBJECT(uav);
         }
 
         void DX12CommandList::ResourceTransition(TransitionState state)
@@ -407,14 +407,24 @@ namespace cube
         {
             CHECK(IsWriting());
 
-            mCommandList->SetPipelineState(dynamic_cast<DX12ComputePipeline*>(computePipeline.get())->GetPipelineState());
+            DX12ComputePipeline* dx12ComputePipeline = dynamic_cast<DX12ComputePipeline*>(computePipeline.get());
+            CHECK(dx12ComputePipeline);
+
+            mCommandList->SetPipelineState(dx12ComputePipeline->GetPipelineState());
+            mComputeThreadGroupSizeX = dx12ComputePipeline->GetThreadGroupSizeX();
+            mComputeThreadGroupSizeY = dx12ComputePipeline->GetThreadGroupSizeY();
+            mComputeThreadGroupSizeZ = dx12ComputePipeline->GetThreadGroupSizeZ();
 
             CUBE_DX12_BOUND_OBJECT(computePipeline);
         }
 
-        void DX12CommandList::Dispatch(Uint32 threadGroupX, Uint32 threadGroupY, Uint32 threadGroupZ)
+        void DX12CommandList::DispatchThreads(Uint32 numThreadsX, Uint32 numThreadsY, Uint32 numThreadsZ)
         {
             CHECK(IsWriting());
+
+            Uint32 threadGroupX = (numThreadsX + mComputeThreadGroupSizeX - 1) / mComputeThreadGroupSizeX;
+            Uint32 threadGroupY = (numThreadsY + mComputeThreadGroupSizeY - 1) / mComputeThreadGroupSizeY;
+            Uint32 threadGroupZ = (numThreadsZ + mComputeThreadGroupSizeZ - 1) / mComputeThreadGroupSizeZ;
 
             mCommandList->Dispatch(threadGroupX, threadGroupY, threadGroupZ);
         }

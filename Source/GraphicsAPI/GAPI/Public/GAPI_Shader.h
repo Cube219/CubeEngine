@@ -93,10 +93,19 @@ namespace cube
             StringView GetWarningMessage() const { return mWarningMessage; }
             StringView GetErrorMessage() const { return mErrorMessage; }
 
+            // TODO: Use reflection data
+            Uint32 GetThreadGroupSizeX() const { return mThreadGroupSizeX; }
+            Uint32 GetThreadGroupSizeY() const { return mThreadGroupSizeY; }
+            Uint32 GetThreadGroupSizeZ() const { return mThreadGroupSizeZ; }
+
         protected:
             bool mCreated;
             String mWarningMessage;
             String mErrorMessage;
+
+            Uint32 mThreadGroupSizeX;
+            Uint32 mThreadGroupSizeY;
+            Uint32 mThreadGroupSizeZ;
         };
 
         struct ShaderCompileResult

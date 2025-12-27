@@ -93,8 +93,10 @@ namespace cube
 
                 SharedPtr<GenerateMipmapsShaderParameters> parameters = shaderParametersManager.CreateShaderParameters<GenerateMipmapsShaderParameters>();
 
-                parameters->srcTexture.index = srvs[mipIndex - 1]->GetBindlessIndex();
-                parameters->dstTexture.index = uavs[mipIndex]->GetBindlessIndex();
+                parameters->srcTexture.id = srvs[mipIndex - 1]->GetBindlessId();
+                parameters->dstTexture.id = uavs[mipIndex]->GetBindlessId();
+                mCommandList->UseResource(srvs[mipIndex - 1]);
+                mCommandList->UseResource(uavs[mipIndex]);
                 parameters->WriteAllParametersToBuffer();
                 mCommandList->SetShaderVariableConstantBuffer(0, parameters->GetBuffer());
 
@@ -111,7 +113,7 @@ namespace cube
 
                 mCommandList->ResourceTransition(transitions);
 
-                mCommandList->Dispatch((width + 7) / 8, (height + 7) / 8, 1);
+                mCommandList->DispatchThreads(width, height, 1);
             }
 
             FrameVector<gapi::TransitionState> endTransitions;

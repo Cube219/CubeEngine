@@ -3,7 +3,6 @@
 #include "MetalHeader.h"
 
 #include "GAPI_Texture.h"
-#include "MetalArgumentBufferManager.h"
 
 namespace cube
 {
@@ -48,11 +47,12 @@ namespace cube
             MetalTextureSRV(const TextureSRVCreateInfo& createInfo, SharedPtr<Texture> texture, MetalDevice& device);
             virtual ~MetalTextureSRV();
 
+            id<MTLTexture> GetMTLTexture() const { return mSRV; }
+
         private:
             MetalDevice& mDevice;
 
             id<MTLTexture> mSRV;
-            MetalArgumentBufferHandle mArgumentBufferHandle;
         };
 
         class MetalTextureUAV : public TextureUAV
@@ -61,24 +61,29 @@ namespace cube
             MetalTextureUAV(const TextureUAVCreateInfo& createInfo, SharedPtr<Texture> texture, MetalDevice& device);
             virtual ~MetalTextureUAV();
 
+            id<MTLTexture> GetMTLTexture() const { return mUAV; }
+
         private:
             MetalDevice& mDevice;
 
             id<MTLTexture> mUAV;
-            MetalArgumentBufferHandle mArgumentBufferHandle;
         };
 
         class MetalTextureRTV : public TextureRTV
         {
         public:
             MetalTextureRTV(const TextureRTVCreateInfo& createInfo, SharedPtr<Texture> texture, MetalDevice& device);
+            // Constructor for existed MTLTexture. (Used in backbuffer in swap chain)
+            MetalTextureRTV(id<MTLTexture> mtlRTV, MetalDevice& device);
             ~MetalTextureRTV() override;
+
+            id<MTLTexture> GetMTLTexture() const { return mRTV; }
 
         private:
             MetalDevice& mDevice;
 
+            bool mFromExisted = false;
             id<MTLTexture> mRTV;
-            MetalArgumentBufferHandle mArgumentBufferHandle;
         };
 
         class MetalTextureDSV : public TextureDSV
@@ -87,11 +92,12 @@ namespace cube
             MetalTextureDSV(const TextureDSVCreateInfo& createInfo, SharedPtr<Texture> texture, MetalDevice& device);
             virtual ~MetalTextureDSV();
 
+            id<MTLTexture> GetMTLTexture() const { return mDSV; }
+
         private:
             MetalDevice& mDevice;
 
             id<MTLTexture> mDSV;
-            MetalArgumentBufferHandle mArgumentBufferHandle;
         };
     } // namespace gapi
 } // namespace cube
