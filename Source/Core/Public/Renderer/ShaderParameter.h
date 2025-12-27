@@ -5,6 +5,7 @@
 #include "Checker.h"
 #include "GAPI_Buffer.h"
 #include "GAPI_ShaderParameter.h"
+#include "Matrix.h"
 #include "Renderer/RenderTypes.h"
 
 #ifndef CUBE_CHECK_PARAMETERS

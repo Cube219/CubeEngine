@@ -14,7 +14,6 @@
 #include "GAPI_MetalSampler.h"
 #include "GAPI_MetalShader.h"
 #include "GAPI_MetalShaderParameter.h"
-#include "GAPI_MetalShaderVariable.h"
 #include "GAPI_MetalSwapChain.h"
 #include "GAPI_MetalTexture.h"
 #include "Logger.h"
@@ -193,11 +192,6 @@ namespace cube
         MetalShaderCompileResult shaderResult = MetalShaderCompiler::Compile(info, compileResult);
 
         return std::make_shared<gapi::MetalShader>(shaderResult, compileResult.warning, compileResult.error);
-    }
-
-    SharedPtr<gapi::ShaderVariablesLayout> GAPI_Metal::CreateShaderVariablesLayout(const gapi::ShaderVariablesLayoutCreateInfo& info)
-    {
-        return std::make_shared<gapi::MetalShaderVariablesLayout>(info);
     }
 
     SharedPtr<gapi::Texture> GAPI_Metal::CreateTexture(const gapi::TextureCreateInfo& info)
