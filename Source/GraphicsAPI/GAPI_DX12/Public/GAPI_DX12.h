@@ -35,6 +35,8 @@ namespace cube
         virtual void EndRenderingFrame() override;
         virtual void WaitAllGPUSync() override;
 
+        virtual const gapi::ShaderParameterHelper& GetShaderParameterHelper() const override;
+
         virtual SharedPtr<gapi::Buffer> CreateBuffer(const gapi::BufferCreateInfo& info) override;
         virtual SharedPtr<gapi::CommandList> CreateCommandList(const gapi::CommandListCreateInfo& info) override;
         virtual SharedPtr<gapi::Fence> CreateFence(const gapi::FenceCreateInfo& info) override;
@@ -42,7 +44,6 @@ namespace cube
         virtual SharedPtr<gapi::ComputePipeline> CreateComputePipeline(const gapi::ComputePipelineCreateInfo& info) override;
         virtual SharedPtr<gapi::Sampler> CreateSampler(const gapi::SamplerCreateInfo& info) override;
         virtual SharedPtr<gapi::Shader> CreateShader(const gapi::ShaderCreateInfo& info) override;
-        virtual SharedPtr<gapi::ShaderVariablesLayout> CreateShaderVariablesLayout(const gapi::ShaderVariablesLayoutCreateInfo& info) override;
         virtual SharedPtr<gapi::Texture> CreateTexture(const gapi::TextureCreateInfo& info) override;
         virtual SharedPtr<gapi::SwapChain> CreateSwapChain(const gapi::SwapChainCreateInfo& info) override;
 

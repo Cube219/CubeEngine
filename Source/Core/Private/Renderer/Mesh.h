@@ -20,6 +20,8 @@ namespace cube
         Uint64 indexOffset;
         Uint64 numIndices;
         int materialIndex;
+
+        String debugName;
     };
 
     class MeshData

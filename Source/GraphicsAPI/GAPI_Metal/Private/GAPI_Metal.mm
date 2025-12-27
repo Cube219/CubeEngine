@@ -12,7 +12,7 @@
 #include "GAPI_MetalPipeline.h"
 #include "GAPI_MetalSampler.h"
 #include "GAPI_MetalShader.h"
-#include "GAPI_MetalShaderVariable.h"
+#include "GAPI_MetalShaderParameter.h"
 #include "GAPI_MetalSwapChain.h"
 #include "GAPI_MetalTexture.h"
 #include "Logger.h"
@@ -62,6 +62,8 @@ namespace cube
 
         InitializeImGUI(initInfo.imGUI);
         MetalShaderCompiler::Initialize(mMainDevice);
+
+        mShaderParameterHelper = std::make_unique<gapi::MetalShaderParameterHelper>();
     }
 
     void GAPI_Metal::Shutdown(const ImGUIContext& imGUIInfo)
@@ -69,6 +71,8 @@ namespace cube
         CUBE_LOG(Info, Metal, "Shutdown GAPI_Metal.");
 
         WaitAllGPUSync();
+
+        mShaderParameterHelper = nullptr;
 
         MetalShaderCompiler::Shutdown();
         ShutdownImGUI(imGUIInfo);
@@ -149,6 +153,11 @@ namespace cube
         [commandBuffer waitUntilCompleted];
     }
 
+    const gapi::ShaderParameterHelper& GAPI_Metal::GetShaderParameterHelper() const
+    {
+        return *mShaderParameterHelper.get();
+    }
+
     SharedPtr<gapi::Buffer> GAPI_Metal::CreateBuffer(const gapi::BufferCreateInfo& info)
     {
         return std::make_shared<gapi::MetalBuffer>(info, *mMainDevice);
@@ -186,11 +195,6 @@ namespace cube
         MetalShaderCompileResult shaderResult = MetalShaderCompiler::Compile(info, compileResult);
 
         return std::make_shared<gapi::MetalShader>(shaderResult, compileResult.warning, compileResult.error);
-    }
-
-    SharedPtr<gapi::ShaderVariablesLayout> GAPI_Metal::CreateShaderVariablesLayout(const gapi::ShaderVariablesLayoutCreateInfo& info)
-    {
-        return std::make_shared<gapi::MetalShaderVariablesLayout>(info);
     }
 
     SharedPtr<gapi::Texture> GAPI_Metal::CreateTexture(const gapi::TextureCreateInfo& info)

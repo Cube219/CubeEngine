@@ -3,7 +3,7 @@ struct GenerateMipmapsParameters
     DescriptorHandle<Texture2D> srcTexture;
     DescriptorHandle<RWTexture2D> dstTexture;
 };
-ConstantBuffer<GenerateMipmapsParameters> generateMipmapsParams;
+ParameterBlock<GenerateMipmapsParameters> generateMipmapsParams;
 
 [shader("compute")]
 [numthreads(8, 8, 1)]

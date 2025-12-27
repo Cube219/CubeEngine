@@ -40,6 +40,9 @@ namespace cube
             CHECK_HR(mDevice.GetDevice()->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&allocator)));
             SET_DEBUG_NAME_FORMAT(allocator, "CommandListAllocator[{0}]", i);
         }
+
+        mBoundObjectsInCommand.clear();
+        mBoundObjectsInCommand.resize(newNumGPUSync);
     }
 
     void DX12CommandListManager::MoveToNextIndex(Uint64 nextGPUFrame)
@@ -47,5 +50,25 @@ namespace cube
         mCurrentIndex = (mCurrentIndex + 1) % mAllocators.size();
 
         CHECK_HR(mAllocators[mCurrentIndex]->Reset());
+        mBoundObjectsInCommand[mCurrentIndex].clear();
+    }
+
+    void DX12CommandListManager::ClearAll()
+    {
+        for (auto& allocator : mAllocators)
+        {
+            CHECK_HR(allocator->Reset());
+        }
+
+        for (auto& boundObjects : mBoundObjectsInCommand)
+        {
+            boundObjects.clear();
+        }
+    }
+
+    void DX12CommandListManager::AddBoundObjects(ArrayView<SharedPtr<DX12APIObject>> objects)
+    {
+        auto& boundObjects = mBoundObjectsInCommand[mCurrentIndex];
+        boundObjects.insert(boundObjects.end(), objects.begin(), objects.end());
     }
 } // namespace cube

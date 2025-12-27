@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.19)
 
 set(PUBLIC_FILES
     Public/GAPI_BaseHeader.h
+    Public/ShaderParameterReflection.h
     Public/SlangHelper.h
 )
 set(PRIVATE_FILES

@@ -3,7 +3,7 @@
 #include "CoreHeader.h"
 
 #include "Renderer/RenderTypes.h"
-#include "ShaderParameter.h"
+#include "Renderer/ShaderParameter.h"
 #include "Vector.h"
 
 namespace cube
@@ -16,7 +16,6 @@ namespace cube
     namespace gapi
     {
         class Sampler;
-        class ShaderVariablesLayout;
         class Buffer;
         class Texture;
     } // namespace gapi
@@ -50,6 +49,8 @@ namespace cube
 
         SharedPtr<MaterialShaderParameters> GenerateShaderParameters() const;
 
+        StringView GetDebugName() const { return mDebugName; }
+
     private:
         friend class MaterialShaderManager;
 
@@ -61,6 +62,8 @@ namespace cube
         Vector4 mConstantBaseColor;
         Array<SharedPtr<TextureResource>, 5> mTextures;
         int mSamplerIndex;
+
+        String mDebugName;
     };
 
     class MaterialShaderManager
@@ -71,8 +74,6 @@ namespace cube
 
         SharedPtr<GraphicsPipeline> GetOrCreateMaterialPipeline(SharedPtr<Material> material);
 
-        SharedPtr<gapi::ShaderVariablesLayout> GetShaderVariablesLayout() const { return mShaderVariablesLayout; }
-
     private:
         friend class ShaderManager;
 
@@ -81,8 +82,6 @@ namespace cube
         void Shutdown();
 
         ShaderManager& mShaderManager;
-
-        SharedPtr<gapi::ShaderVariablesLayout> mShaderVariablesLayout;
 
         HashMap<Uint64, SharedPtr<Shader>> mMaterialVertexShaders;
         HashMap<Uint64, SharedPtr<Shader>> mMaterialPixelShaders;

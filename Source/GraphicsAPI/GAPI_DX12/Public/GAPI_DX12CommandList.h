@@ -17,6 +17,7 @@ namespace cube
     {
         class Buffer;
         class ComputePipeline;
+        class DX12ShaderParameterHelper;
         class GraphicsPipeline;
         class Sampler;
         class Texture;
@@ -31,6 +32,9 @@ namespace cube
             void End() override;
             void Reset() override;
 
+            virtual void BeginEvent(StringView name) override;
+            virtual void EndEvent() override;
+
             void SetViewports(ArrayView<Viewport> viewports) override;
             void SetScissors(ArrayView<ScissorRect> scissors) override;
             void SetPrimitiveTopology(PrimitiveTopology primitiveTopology) override;
@@ -44,7 +48,6 @@ namespace cube
             void Draw(Uint32 numVertices, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance) override;
             void DrawIndexed(Uint32 numIndices, Uint32 baseIndex, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance) override;
 
-            void SetShaderVariablesLayout(SharedPtr<ShaderVariablesLayout> shaderVariablesLayout) override;
             void SetShaderVariableConstantBuffer(Uint32 index, SharedPtr<Buffer> constantBuffer) override;
             void BindTexture(SharedPtr<Texture> texture) override;
             void BindSampler(SharedPtr<Sampler> sampler) override;
@@ -59,6 +62,8 @@ namespace cube
 
             void Submit() override;
 
+            bool IsWriting() const { return mState == State::Writing; }
+
         private:
             enum class State
             {
@@ -71,13 +76,16 @@ namespace cube
             DX12DescriptorManager& mDescriptorManager;
             DX12QueueManager& mQueueManager;
             DX12QueryManager& mQueryManager;
+            DX12ShaderParameterHelper& mShaderParameterHelper;
 
             ComPtr<ID3D12GraphicsCommandList> mCommandList;
             State mState;
 
-            bool mIsDescriptorHeapSet = false;
-            bool mIsShaderVariableLayoutSet = false;
+            Vector<SharedPtr<DX12APIObject>> mBoundObjects;
+
             bool mHasTimestampQuery = false;
+
+            Vector<AnsiString> mCurrentEventNameList;
         };
     } // namespace gapi
 } // namespace cube

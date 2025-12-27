@@ -260,7 +260,7 @@ namespace cube
         // Reset the command list allocator if it's all command lists are executed.
         for (CommandListAllocator& allocator : mCommandListAllocators)
         {
-            if (!allocator.boundObjectsInCommand.empty() && allocator.lastFenceValue >= completedFenceValue)
+            if (!allocator.boundObjectsInCommand.empty() && allocator.lastFenceValue <= completedFenceValue)
             {
                 CHECK_HR(allocator.allocator->Reset());
                 allocator.boundObjectsInCommand.clear();
@@ -271,7 +271,7 @@ namespace cube
         int emptyAllocatorIndex = -1;
         for (int i = 0; i < MAX_ALLOCATOR_SIZE; ++i)
         {
-            if (mCommandListAllocators[i].lastFenceValue >= completedFenceValue)
+            if (mCommandListAllocators[i].lastFenceValue <= completedFenceValue)
             {
                 emptyAllocatorIndex = i;
                 break;

@@ -3,7 +3,6 @@
 #include "Allocator/FrameAllocator.h"
 #include "Engine.h"
 #include "GAPI_Shader.h"
-#include "GAPI_ShaderVariable.h"
 #include "GAPI_Texture.h"
 #include "Mesh.h"
 #include "Renderer.h"
@@ -14,8 +13,9 @@ namespace cube
 {
     Material::Material(StringView debugName)
         : mConstantBaseColor(1.0f, 0.0f, 0.80392f) // Magenta
+        , mDebugName(std::move(debugName))
     {
-        FrameString bufferDebugName = Format<FrameString>(CUBE_T("[{0}] MaterialBuffer"), debugName);
+        FrameString bufferDebugName = Format<FrameString>(CUBE_T("[{0}] MaterialBuffer"), mDebugName);
 
         mTextures.fill(nullptr);
 
@@ -179,7 +179,6 @@ namespace cube
                 },
                 .numRenderTargets = 1,
                 .renderTargetFormats = { gapi::ElementFormat::RGBA8_UNorm },
-                .shaderVariablesLayout = mShaderVariablesLayout,
                 .debugName = Format<FrameString>(CUBE_T("MaterialPipeline ({0})"), materialHash)
             });
         }
@@ -189,11 +188,6 @@ namespace cube
 
     void MaterialShaderManager::Initialize(GAPI* gapi)
     {
-        mShaderVariablesLayout = gapi->CreateShaderVariablesLayout({
-            .numShaderVariablesConstantBuffer = 3,
-            .shaderVariablesConstantBuffer = nullptr,
-            .debugName = CUBE_T("MaterialShaderVariablesLayout")
-        });
     }
 
     void MaterialShaderManager::Shutdown()
@@ -201,7 +195,5 @@ namespace cube
         mMaterialPipelines.clear();
         mMaterialPixelShaders.clear();
         mMaterialVertexShaders.clear();
-
-        mShaderVariablesLayout = nullptr;
     }
 } // namespace cube

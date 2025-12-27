@@ -7,8 +7,8 @@
 #include "SlangHelper.h"
 #include "Windows/WindowsString.h"
 
-#ifndef CUBE_DX12_SLANG_TARGET_HLSL
-#define CUBE_DX12_SLANG_TARGET_HLSL 0
+#ifndef CUBE_DX12_SLANG_PRINT_HLSL
+#define CUBE_DX12_SLANG_PRINT_HLSL 0
 #endif
 
 namespace cube
@@ -129,7 +129,7 @@ namespace cube
     Blob DX12ShaderCompiler::CompileFromSlang(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult)
     {
         SlangCompileOptions compileOption = {
-#if CUBE_DX12_SLANG_TARGET_HLSL
+#if CUBE_DX12_SLANG_PRINT_HLSL
             .target = gapi::ShaderLanguage::HLSL
 #else
             .target = gapi::ShaderLanguage::DXIL
@@ -143,10 +143,25 @@ namespace cube
             compileOption.target = gapi::ShaderLanguage::HLSL;
         }
 
-        Blob shader = SlangHelper::Compile(createInfo, compileOption, compileResult);
+        ShaderReflection reflection;
+
+        Blob shader = SlangHelper::Compile(createInfo, compileOption, compileResult, &reflection);
 
         if (compileResult.isSuccess)
         {
+#if CUBE_DX12_SLANG_PRINT_HLSL
+            FrameString pathList;
+            for (auto& codeInfo : createInfo.shaderCodeInfos)
+            {
+                if (!pathList.empty())
+                {
+                    pathList.push_back(CUBE_T('\n'));
+                }
+                pathList += codeInfo.path;
+            }
+            FrameAnsiString shaderCode((const char*)shader.GetData(), shader.GetSize() / sizeof(char));
+            CUBE_LOG(Info, DX12, "Compiled HLSL code from\n\t{0}:\n{1}", pathList, shaderCode);
+#endif
             // Compile the shader once again
             compileResult.isSuccess = false;
 

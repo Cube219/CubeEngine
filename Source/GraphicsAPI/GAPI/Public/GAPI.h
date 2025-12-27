@@ -9,8 +9,6 @@ namespace cube
 {
     namespace gapi
     {
-        class ShaderVariablesLayout;
-        struct ShaderVariablesLayoutCreateInfo;
         class GraphicsPipeline;
         struct GraphicsPipelineCreateInfo;
         class ComputePipeline;
@@ -20,6 +18,7 @@ namespace cube
         class Shader;
         struct ShaderCreateInfo;
         struct ShaderCompileResult;
+        class ShaderParameterHelper;
         class Buffer;
         struct BufferCreateInfo;
         class Texture;
@@ -96,6 +95,7 @@ namespace cube
         virtual void WaitAllGPUSync() = 0;
 
         const Info& GetInfo() const { return mInfo; }
+        virtual const gapi::ShaderParameterHelper& GetShaderParameterHelper() const = 0;
 
         virtual SharedPtr<gapi::Buffer> CreateBuffer(const gapi::BufferCreateInfo& info) = 0;
         virtual SharedPtr<gapi::CommandList> CreateCommandList(const gapi::CommandListCreateInfo& info) = 0;
@@ -104,7 +104,6 @@ namespace cube
         virtual SharedPtr<gapi::ComputePipeline> CreateComputePipeline(const gapi::ComputePipelineCreateInfo& info) = 0;
         virtual SharedPtr<gapi::Sampler> CreateSampler(const gapi::SamplerCreateInfo& info) = 0;
         virtual SharedPtr<gapi::Shader> CreateShader(const gapi::ShaderCreateInfo& info) = 0;
-        virtual SharedPtr<gapi::ShaderVariablesLayout> CreateShaderVariablesLayout(const gapi::ShaderVariablesLayoutCreateInfo& info) = 0;
         virtual SharedPtr<gapi::Texture> CreateTexture(const gapi::TextureCreateInfo& info) = 0;
         virtual SharedPtr<gapi::SwapChain> CreateSwapChain(const gapi::SwapChainCreateInfo& info) = 0;
 

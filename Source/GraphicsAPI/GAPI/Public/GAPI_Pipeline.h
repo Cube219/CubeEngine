@@ -10,7 +10,6 @@ namespace cube
     namespace gapi
     {
         class Shader;
-        class ShaderVariablesLayout;
 
         constexpr int MAX_NUM_RENDER_TARGETS = 8;
 
@@ -162,8 +161,6 @@ namespace cube
             Array<ElementFormat, MAX_NUM_RENDER_TARGETS> renderTargetFormats;
             ElementFormat depthStencilFormat = ElementFormat::D32_Float;
 
-            SharedPtr<ShaderVariablesLayout> shaderVariablesLayout;
-
             StringView debugName;
         };
 
@@ -177,8 +174,7 @@ namespace cube
         struct ComputePipelineCreateInfo
         {
             SharedPtr<Shader> shader;
-            SharedPtr<ShaderVariablesLayout> shaderVariablesLayout;
-
+            
             StringView debugName;
         };
 

@@ -8,6 +8,9 @@
 #define CUBE_DEBUG 1
 #endif
 
+#define CUBE_MACRO_JOIN(a, b) CUBE_MACRO_JOIN2(a, b)
+#define CUBE_MACRO_JOIN2(a, b) a##b
+
 // Platform-dependent defines
 #if CUBE_PLATFORM_WINDOWS
 #include "Windows/WindowsDefines.h"

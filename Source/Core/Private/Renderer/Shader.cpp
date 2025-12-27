@@ -259,7 +259,6 @@ namespace cube
             .numRenderTargets = createInfo.numRenderTargets,
             .renderTargetFormats = createInfo.renderTargetFormats,
             .depthStencilFormat = createInfo.depthStencilFormat,
-            .shaderVariablesLayout = createInfo.shaderVariablesLayout,
             .debugName = createInfo.debugName
         });
 
@@ -303,7 +302,6 @@ namespace cube
             .numRenderTargets = mRecreateInfo.numRenderTargets,
             .renderTargetFormats = mRecreateInfo.renderTargetFormats,
             .depthStencilFormat = mRecreateInfo.depthStencilFormat,
-            .shaderVariablesLayout = mRecreateInfo.shaderVariablesLayout,
             .debugName = Format<String>(CUBE_T("{0}:{1}"), mRecreateInfo.debugName, mRecreateCount + 1)
         });
 
@@ -315,7 +313,6 @@ namespace cube
     {
         mGAPIComputePipeline = Engine::GetRenderer()->GetGAPI().CreateComputePipeline({
             .shader = createInfo.shader ? createInfo.shader->GetGAPIShader() : nullptr,
-            .shaderVariablesLayout = createInfo.shaderVariablesLayout,
             .debugName = createInfo.debugName
         });
 
@@ -339,7 +336,6 @@ namespace cube
     {
         mGAPIComputePipeline = Engine::GetRenderer()->GetGAPI().CreateComputePipeline({
             .shader = mRecreateInfo.shader ? mRecreateInfo.shader->GetGAPIShader() : nullptr,
-            .shaderVariablesLayout = mRecreateInfo.shaderVariablesLayout,
             .debugName = Format<String>(CUBE_T("{0}:{1}"), mRecreateInfo.debugName, mRecreateCount + 1)
         });
 

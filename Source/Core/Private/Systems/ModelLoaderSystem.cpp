@@ -263,7 +263,8 @@ namespace cube
                     .vertexOffset = vertexOffset,
                     .indexOffset = indexOffset,
                     .numIndices = numIndices,
-                    .materialIndex = prim.material
+                    .materialIndex = prim.material,
+                    .debugName = String_Convert<String>(mesh.name)
                 });
 
                 vertices.insert(vertices.end(), numVertices, {});
@@ -563,7 +564,7 @@ namespace cube
             }
             if (gltfMaterial.normalTexture.index != -1)
             {
-                material->SetTexture(2, LoadTexture(CUBE_T("metallicRoughnessTexture"), gltfMaterial.normalTexture.index));
+                material->SetTexture(2, LoadTexture(CUBE_T("normalTexture"), gltfMaterial.normalTexture.index));
                 channelMappingCode += CUBE_T("float3 t2 = normalize(materialData.textureSlot2.Sample(input.uv).rgb * 2.0f - 1.0f);\n");
                 channelMappingCode += CUBE_T("value.normal = t2;\n");
             }

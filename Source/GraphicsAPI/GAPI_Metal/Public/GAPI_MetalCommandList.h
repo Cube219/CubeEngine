@@ -18,6 +18,9 @@ namespace cube
             void End() override {}
             void Reset() override {}
 
+            virtual void BeginEvent(StringView name) override {}
+            virtual void EndEvent() override {}
+
             void SetViewports(ArrayView<Viewport> viewports) override {}
             void SetScissors(ArrayView<ScissorRect> scissors) override {}
             void SetPrimitiveTopology(PrimitiveTopology primitiveTopology) override {}
@@ -31,7 +34,6 @@ namespace cube
             void Draw(Uint32 numVertices, Uint32 baseVertex, Uint32 numInstances = 1, Uint32 baseInstance = 0) override {};
             void DrawIndexed(Uint32 numIndices, Uint32 baseIndex, Uint32 baseVertex, Uint32 numInstances = 1, Uint32 baseInstance = 0) override {};
 
-            void SetShaderVariablesLayout(SharedPtr<ShaderVariablesLayout> shaderVariablesLayout) override {};
             void SetShaderVariableConstantBuffer(Uint32 index, SharedPtr<Buffer> constantBuffer) override {};
             void BindTexture(SharedPtr<Texture> texture) override {};
             void BindSampler(SharedPtr<Sampler> sampler) override {};

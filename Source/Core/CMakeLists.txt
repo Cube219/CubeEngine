@@ -4,6 +4,7 @@ set(PUBLIC_FILES
     Public/Allocator/AllocatorUtility.h
     Public/Allocator/FrameAllocator.h
     Public/Renderer/RenderTypes.h
+    Public/Renderer/ShaderParameter.h
     Public/CoreHeader.h
     Public/Engine.h
     Public/PathHelper.h
@@ -20,6 +21,8 @@ set(PRIVATE_FILES
     Private/Renderer/Renderer.h
     Private/Renderer/RenderObject.cpp
     Private/Renderer/RenderObject.h
+    Private/Renderer/RenderProfiling.cpp
+    Private/Renderer/RenderProfiling.h
     Private/Renderer/SamplerManager.cpp
     Private/Renderer/SamplerManager.h
     Private/Renderer/Shader.cpp
@@ -27,7 +30,6 @@ set(PRIVATE_FILES
     Private/Renderer/ShaderManager.cpp
     Private/Renderer/ShaderManager.h
     Private/Renderer/ShaderParameter.cpp
-    Private/Renderer/ShaderParameter.h
     Private/Renderer/Texture.cpp
     Private/Renderer/Texture.h
     Private/Renderer/TextureManager.cpp
