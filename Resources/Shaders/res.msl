@@ -1,0 +1,80 @@
+#include <metal_stdlib>
+#include <metal_math>
+#include <metal_texture>
+using namespace metal;
+
+#line 996 "hlsl.meta.slang"
+struct Sampler2D_0
+{
+    texture2d<float, access::sample> texture_0;
+    sampler sampler_0;
+};
+
+
+#line 996
+struct Texture2D_0
+{
+    texture2d<float, access::sample> texture_1;
+    sampler sampler_1;
+};
+
+
+#line 4187
+struct pixelOutput_0
+{
+    float4 output_0 [[color(0)]];
+};
+
+
+#line 2380 "core.meta.slang"
+struct pixelInput_0
+{
+    float3 normal_0 [[user(NORMAL)]];
+    float4 tangent_0 [[user(TANGENT)]];
+    float2 uv_0 [[user(TEXCOORD)]];
+};
+
+
+#line 24676 "hlsl.meta.slang"
+struct MaterialData_CB_default_0
+{
+    float4 baseColor_0;
+    Sampler2D_0 textureSlot0_0;
+    Texture2D_0 textureSlot1_0;
+};
+
+
+#line 24676
+struct KernelContext_0
+{
+    MaterialData_CB_default_0 constant* materialCB_0;
+};
+
+
+#line 25 "test2.slang"
+[[fragment]] pixelOutput_0 PSMain(pixelInput_0 _S1 [[stage_in]], float4 position_0 [[position]], MaterialData_CB_default_0 constant* materialCB_1 [[buffer(0)]])
+{
+
+#line 25
+    thread KernelContext_0 kernelContext_0;
+
+#line 25
+    (&kernelContext_0)->materialCB_0 = materialCB_1;
+
+
+    Sampler2D_0 _S2 = materialCB_1->textureSlot0_0;
+
+#line 28
+    ;
+
+#line 28
+    sampler _S3 = (&kernelContext_0)->materialCB_0->textureSlot1_0.sampler_1;
+
+#line 28
+    pixelOutput_0 _S4 = { float4(((_S2.texture_0).sample((_S2.sampler_0), (_S1.uv_0))).xyz.xy, (((&kernelContext_0)->materialCB_0->textureSlot1_0.texture_1).read(vec<uint,2>(((_S3)).xy), uint(((_S3)).z))).xyz.xy) };
+
+
+
+    return _S4;
+}
+

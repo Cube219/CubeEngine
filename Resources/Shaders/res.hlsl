@@ -1,0 +1,1 @@
+slangc /Users/limhj/Develops/Projects/Personal/Renderer/CubeEngine/Resources/Shaders/test2.slang -profile sm_6_6 -target metal -o /Users/limhj/Develops/Projects/Personal/Renderer/CubeEngine/Resources/Shaders/res.msl -entry PSMain

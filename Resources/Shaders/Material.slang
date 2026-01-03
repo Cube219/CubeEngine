@@ -6,11 +6,11 @@ public struct MaterialData_CB
 {
     public float4 baseColor;
 
-    public Sampler2D.Handle textureSlot0;
-    public Sampler2D.Handle textureSlot1;
-    public Sampler2D.Handle textureSlot2;
-    public Sampler2D.Handle textureSlot3;
-    public Sampler2D.Handle textureSlot4;
+    public DescriptorHandle<Sampler2D> textureSlot0;
+    public DescriptorHandle<Sampler2D> textureSlot1;
+    public DescriptorHandle<Sampler2D> textureSlot2;
+    public DescriptorHandle<Sampler2D> textureSlot3;
+    public DescriptorHandle<Sampler2D> textureSlot4;
 };
 
 public struct MaterialValue
