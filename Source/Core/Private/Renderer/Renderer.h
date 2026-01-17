@@ -5,9 +5,9 @@
 #include "GAPI.h"
 #include "GAPI_Texture.h"
 #include "Matrix.h"
+#include "Renderer/ShaderParameter.h"
 #include "SamplerManager.h"
 #include "ShaderManager.h"
-#include "ShaderParameter.h"
 #include "TextureManager.h"
 #include "Vector.h"
 

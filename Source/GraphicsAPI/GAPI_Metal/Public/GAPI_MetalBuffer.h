@@ -6,26 +6,23 @@
 
 namespace cube
 {
+    class MetalDevice;
+    
     namespace gapi
     {
         class MetalBuffer : public Buffer
         {
         public:
-            MetalBuffer(const BufferCreateInfo& info) :
-                Buffer(info)
-            {
-                mTempBuffer = malloc(info.size);
-            }
-            virtual ~MetalBuffer()
-            {
-                free(mTempBuffer);
-            }
+            MetalBuffer(const BufferCreateInfo& info, MetalDevice& device);
+            virtual ~MetalBuffer();
 
-            virtual void* Map() override { return mTempBuffer; }
-            virtual void Unmap() override {}
+            virtual void* Map() override;
+            virtual void Unmap() override;
+
+            id<MTLBuffer> GetMTLBuffer() const { return mBuffer; }
 
         private:
-            void* mTempBuffer;
+            id<MTLBuffer> mBuffer;
         };
     } // namespace gapi
 } // namespace cube

@@ -16,7 +16,7 @@ namespace cube
 
         enum class SamplerAddressMode
         {
-            Warp,
+            Wrap,
             Mirror,
             Clamp,
             Border,
@@ -76,15 +76,15 @@ namespace cube
         class Sampler
         {
         public:
-            Sampler() :
-                mBindlessIndex(-1)
+            Sampler()
+                : mBindlessId(-1)
             {}
             virtual ~Sampler() = default;
 
-            int GetBindlessIndex() const { return mBindlessIndex; }
+            Uint64 GetBindlessId() const { return mBindlessId; }
 
         protected:
-            int mBindlessIndex;
+            Uint64 mBindlessId;
         };
     } // namespace gapi
 } // namespace cube

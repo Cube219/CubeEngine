@@ -13,7 +13,7 @@
 #include "GAPI_DX12Pipeline.h"
 #include "GAPI_DX12Sampler.h"
 #include "GAPI_DX12Shader.h"
-#include "GAPI_DX12ShaderVariable.h"
+#include "GAPI_DX12ShaderParameter.h"
 #include "GAPI_DX12SwapChain.h"
 #include "GAPI_DX12Texture.h"
 #include "Logger.h"
@@ -259,6 +259,11 @@ namespace cube
         mMainDevice->WaitAllGPUSync();
     }
 
+    const gapi::ShaderParameterHelper& GAPI_DX12::GetShaderParameterHelper() const
+    {
+        return mMainDevice->GetShaderParameterHelper();
+    }
+
     SharedPtr<gapi::Buffer> GAPI_DX12::CreateBuffer(const gapi::BufferCreateInfo& info)
     {
         return std::make_shared<gapi::DX12Buffer>(info, *mMainDevice);
@@ -295,14 +300,9 @@ namespace cube
     {
         gapi::ShaderCompileResult compileResult;
 
-        Blob shader = DX12ShaderCompiler::Compile(info, compileResult);
+        DX12ShaderCompilerResult res = DX12ShaderCompiler::Compile(info, compileResult);
 
-        return std::make_shared<gapi::DX12Shader>(std::move(shader), compileResult.warning, compileResult.error);
-    }
-
-    SharedPtr<gapi::ShaderVariablesLayout> GAPI_DX12::CreateShaderVariablesLayout(const gapi::ShaderVariablesLayoutCreateInfo& info)
-    {
-        return std::make_shared<gapi::DX12ShaderVariablesLayout>(*mMainDevice, info);
+        return std::make_shared<gapi::DX12Shader>(std::move(res), compileResult.warning, compileResult.error);
     }
 
     SharedPtr<gapi::Texture> GAPI_DX12::CreateTexture(const gapi::TextureCreateInfo& info)

@@ -2,8 +2,8 @@
 
 #include "Allocator/FrameAllocator.h"
 #include "Engine.h"
+#include "GAPI_CommandList.h"
 #include "GAPI_Shader.h"
-#include "GAPI_ShaderVariable.h"
 #include "GAPI_Texture.h"
 #include "Mesh.h"
 #include "Renderer.h"
@@ -20,7 +20,7 @@ namespace cube
 
         mTextures.fill(nullptr);
 
-        mSamplerIndex = Engine::GetRenderer()->GetSamplerManager().GetDefaultLinearSamplerIndex();
+        mSamplerId = Engine::GetRenderer()->GetSamplerManager().GetDefaultLinearSamplerId();
 
         static const Character* defaultChannelMappingCode = 
             CUBE_T("value.albedo = materialData.baseColor.rgb;\n")
@@ -52,12 +52,12 @@ namespace cube
         mTextures[slotIndex] = texture;
     }
 
-    void Material::SetSampler(int samplerIndex)
+    void Material::SetSampler(Uint64 samplerId)
     {
-        mSamplerIndex = samplerIndex;
+        mSamplerId = samplerId;
     }
 
-    SharedPtr<MaterialShaderParameters> Material::GenerateShaderParameters() const
+    SharedPtr<MaterialShaderParameters> Material::GenerateShaderParameters(gapi::CommandList* commandList) const
     {
         ShaderParametersManager& shaderParametersManager = Engine::GetRenderer()->GetShaderParametersManager();
 
@@ -66,28 +66,33 @@ namespace cube
         parameters->baseColor = mConstantBaseColor;
         if (mTextures[0])
         {
-            parameters->textureSlot0.index = mTextures[0]->GetDefaultSRV()->GetBindlessIndex();
-            parameters->textureSlot0.samplerIndex = mSamplerIndex;
+            parameters->textureSlot0.textureId = mTextures[0]->GetDefaultSRV()->GetBindlessId();
+            parameters->textureSlot0.samplerId = mSamplerId;
+            commandList->UseResource(mTextures[0]->GetDefaultSRV());
         }
         if (mTextures[1])
         {
-            parameters->textureSlot1.index = mTextures[1]->GetDefaultSRV()->GetBindlessIndex();
-            parameters->textureSlot1.samplerIndex = mSamplerIndex;
+            parameters->textureSlot1.textureId = mTextures[1]->GetDefaultSRV()->GetBindlessId();
+            parameters->textureSlot1.samplerId = mSamplerId;
+            commandList->UseResource(mTextures[1]->GetDefaultSRV());
         }
         if (mTextures[2])
         {
-            parameters->textureSlot2.index = mTextures[2]->GetDefaultSRV()->GetBindlessIndex();
-            parameters->textureSlot2.samplerIndex = mSamplerIndex;
+            parameters->textureSlot2.textureId = mTextures[2]->GetDefaultSRV()->GetBindlessId();
+            parameters->textureSlot2.samplerId = mSamplerId;
+            commandList->UseResource(mTextures[2]->GetDefaultSRV());
         }
         if (mTextures[3])
         {
-            parameters->textureSlot3.index = mTextures[3]->GetDefaultSRV()->GetBindlessIndex();
-            parameters->textureSlot3.samplerIndex = mSamplerIndex;
+            parameters->textureSlot3.textureId = mTextures[3]->GetDefaultSRV()->GetBindlessId();
+            parameters->textureSlot3.samplerId = mSamplerId;
+            commandList->UseResource(mTextures[3]->GetDefaultSRV());
         }
         if (mTextures[4])
         {
-            parameters->textureSlot4.index = mTextures[4]->GetDefaultSRV()->GetBindlessIndex();
-            parameters->textureSlot4.samplerIndex = mSamplerIndex;
+            parameters->textureSlot4.textureId = mTextures[4]->GetDefaultSRV()->GetBindlessId();
+            parameters->textureSlot4.samplerId = mSamplerId;
+            commandList->UseResource(mTextures[4]->GetDefaultSRV());
         }
 
         parameters->WriteAllParametersToBuffer();
@@ -180,7 +185,6 @@ namespace cube
                 },
                 .numRenderTargets = 1,
                 .renderTargetFormats = { gapi::ElementFormat::RGBA8_UNorm },
-                .shaderVariablesLayout = mShaderVariablesLayout,
                 .debugName = Format<FrameString>(CUBE_T("MaterialPipeline ({0})"), materialHash)
             });
         }
@@ -190,11 +194,6 @@ namespace cube
 
     void MaterialShaderManager::Initialize(GAPI* gapi)
     {
-        mShaderVariablesLayout = gapi->CreateShaderVariablesLayout({
-            .numShaderVariablesConstantBuffer = 3,
-            .shaderVariablesConstantBuffer = nullptr,
-            .debugName = CUBE_T("MaterialShaderVariablesLayout")
-        });
     }
 
     void MaterialShaderManager::Shutdown()
@@ -202,7 +201,5 @@ namespace cube
         mMaterialPipelines.clear();
         mMaterialPixelShaders.clear();
         mMaterialVertexShaders.clear();
-
-        mShaderVariablesLayout = nullptr;
     }
 } // namespace cube

@@ -6,7 +6,6 @@
 #include "GAPI.h"
 #include "GAPI_CommandList.h"
 #include "GAPI_Pipeline.h"
-#include "GAPI_ShaderVariable.h"
 #include "RenderProfiling.h"
 #include "Renderer.h"
 #include "Shader.h"
@@ -20,12 +19,6 @@ namespace cube
         mGAPI = gapi;
 
         {
-            mGenerateMipmapsShaderVariablesLayout = mGAPI->CreateShaderVariablesLayout({
-                .numShaderVariablesConstantBuffer = 1,
-                .shaderVariablesConstantBuffer = nullptr,
-                .debugName = CUBE_T("GenerateMipmapsShaderVariablesLayout")
-            });
-        
             String shaderFilePath = Format<String>(CUBE_T("{0}/Resources/Shaders/{1}"), Engine::GetRootDirectoryPath(), CUBE_T("GenerateMipmaps.slang"));
         
             mGenerateMipmapsShader = shaderManager.CreateShader({
@@ -39,7 +32,6 @@ namespace cube
         
             mGenerateMipmapsPipeline = shaderManager.CreateComputePipeline({
                 .shader = mGenerateMipmapsShader,
-                .shaderVariablesLayout = mGenerateMipmapsShaderVariablesLayout,
                 .debugName = CUBE_T("GenerateMipmapsComputePipeline")
             });
         }
@@ -55,7 +47,6 @@ namespace cube
 
         mGenerateMipmapsPipeline = nullptr;
         mGenerateMipmapsShader = nullptr;
-        mGenerateMipmapsShaderVariablesLayout = nullptr;
     }
 
     void TextureManager::GenerateMipmaps(SharedPtr<gapi::Texture> texture)
@@ -73,7 +64,6 @@ namespace cube
         {
             GPU_EVENT_SCOPE(mCommandList, CUBE_T("GenerateMipmaps"));
             
-            mCommandList->SetShaderVariablesLayout(mGenerateMipmapsShaderVariablesLayout);
             mCommandList->SetComputePipeline(mGenerateMipmapsPipeline->GetGAPIComputePipeline());
 
             Uint32 width = texture->GetWidth();
@@ -103,8 +93,10 @@ namespace cube
 
                 SharedPtr<GenerateMipmapsShaderParameters> parameters = shaderParametersManager.CreateShaderParameters<GenerateMipmapsShaderParameters>();
 
-                parameters->srcTexture.index = srvs[mipIndex - 1]->GetBindlessIndex();
-                parameters->dstTexture.index = uavs[mipIndex]->GetBindlessIndex();
+                parameters->srcTexture.id = srvs[mipIndex - 1]->GetBindlessId();
+                parameters->dstTexture.id = uavs[mipIndex]->GetBindlessId();
+                mCommandList->UseResource(srvs[mipIndex - 1]);
+                mCommandList->UseResource(uavs[mipIndex]);
                 parameters->WriteAllParametersToBuffer();
                 mCommandList->SetShaderVariableConstantBuffer(0, parameters->GetBuffer());
 
@@ -121,7 +113,7 @@ namespace cube
 
                 mCommandList->ResourceTransition(transitions);
 
-                mCommandList->Dispatch((width + 7) / 8, (height + 7) / 8, 1);
+                mCommandList->DispatchThreads(width, height, 1);
             }
 
             FrameVector<gapi::TransitionState> endTransitions;

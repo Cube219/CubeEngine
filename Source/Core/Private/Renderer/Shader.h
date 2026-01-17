@@ -101,8 +101,6 @@ namespace cube
         Array<gapi::ElementFormat, gapi::MAX_NUM_RENDER_TARGETS> renderTargetFormats;
         gapi::ElementFormat depthStencilFormat = gapi::ElementFormat::D32_Float;
 
-        SharedPtr<gapi::ShaderVariablesLayout> shaderVariablesLayout;
-
         StringView debugName;
     };
 
@@ -144,8 +142,6 @@ namespace cube
             Array<gapi::ElementFormat, gapi::MAX_NUM_RENDER_TARGETS> renderTargetFormats;
             gapi::ElementFormat depthStencilFormat = gapi::ElementFormat::D32_Float;
 
-            SharedPtr<gapi::ShaderVariablesLayout> shaderVariablesLayout;
-
             String debugName;
 
             void CopyFromCreateInfo(const GraphisPipelineCreateInfo& createInfo)
@@ -167,8 +163,6 @@ namespace cube
                 std::copy(createInfo.renderTargetFormats.begin(), createInfo.renderTargetFormats.end(), renderTargetFormats.begin());
                 depthStencilFormat = createInfo.depthStencilFormat;
 
-                shaderVariablesLayout = createInfo.shaderVariablesLayout;
-
                 debugName = createInfo.debugName;
             }
         };
@@ -181,7 +175,6 @@ namespace cube
     struct ComputePipelineCreateInfo
     {
         SharedPtr<Shader> shader;
-        SharedPtr<gapi::ShaderVariablesLayout> shaderVariablesLayout;
 
         StringView debugName;
     };
@@ -208,14 +201,12 @@ namespace cube
         struct RecreateInfo
         {
             SharedPtr<Shader> shader;
-            SharedPtr<gapi::ShaderVariablesLayout> shaderVariablesLayout;
 
             StringView debugName;
 
             void CopyFromCreateInfo(const ComputePipelineCreateInfo& createInfo)
             {
                 shader = createInfo.shader;
-                shaderVariablesLayout = createInfo.shaderVariablesLayout;
 
                 debugName = createInfo.debugName;
             }

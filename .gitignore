@@ -475,5 +475,8 @@ Resources/Models/*
 # VSCode
 .vscode/
 
+# CLion
+.idea/
+
 # MacOS
 .DS_Store

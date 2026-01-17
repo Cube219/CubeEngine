@@ -46,6 +46,7 @@ if(PLATFORM_WINDOWS)
 endif()
 if(PLATFORM_MACOS)
     add_definitions(-DCUBE_PLATFORM_MACOS)
+    add_compile_options(-Wno-invalid-offsetof)
 endif()
 
 # Output directory
@@ -64,6 +65,8 @@ if(PLATFORM_WINDOWS)
     add_subdirectory("ThirdParty/DirectXAgilitySDK")
     add_subdirectory("ThirdParty/dxc")
     add_subdirectory("ThirdParty/WinPixEventRuntime")
+endif()
+if(PLATFORM_MACOS)
 endif()
 
 add_subdirectory("Source/Base")

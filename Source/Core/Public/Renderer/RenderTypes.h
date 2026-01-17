@@ -16,10 +16,19 @@ namespace cube
     };
     using Index = Uint32;
 
-    struct BindlessResource
+    struct BindlessTexture
     {
-        Uint32 index = -1;
-        Uint32 samplerIndex = -1;
+        Uint64 id = -1;
     };
-    static constexpr BindlessResource InvalidBindlessResource = { static_cast<Uint32>(-1), static_cast<Uint32>(-1) };
+
+    struct BindlessSampler
+    {
+        Uint64 id = -1;
+    };
+
+    struct BindlessCombinedTextureSampler
+    {
+        Uint64 textureId = -1;
+        Uint64 samplerId = -1;
+    };
 } // namespace cube

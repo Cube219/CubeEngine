@@ -7,7 +7,6 @@
 #include "GAPI_DX12Buffer.h"
 #include "GAPI_DX12Pipeline.h"
 #include "GAPI_DX12Resource.h"
-#include "GAPI_DX12ShaderVariable.h"
 #include "GAPI_DX12Texture.h"
 #include "GAPI_Sampler.h"
 #include "GAPI_Texture.h"
@@ -42,6 +41,7 @@ namespace cube
             , mDescriptorManager(device.GetDescriptorManager())
             , mQueueManager(device.GetQueueManager())
             , mQueryManager(device.GetQueryManager())
+            , mShaderParameterHelper(device.GetShaderParameterHelper())
             , mState(State::Closed)
         {
             device.GetDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, mCommandListManager.GetCurrentAllocator(), nullptr, IID_PPV_ARGS(&mCommandList));
@@ -57,6 +57,12 @@ namespace cube
         void DX12CommandList::Begin()
         {
             CHECK(mState == State::Initial);
+
+            ArrayView<ID3D12DescriptorHeap*> heaps = mDescriptorManager.GetD3D12ShaderVisibleHeaps();
+            mCommandList->SetDescriptorHeaps(heaps.size(), heaps.data());
+
+            mCommandList->SetGraphicsRootSignature(mShaderParameterHelper.GetRootSignature());
+            mCommandList->SetComputeRootSignature(mShaderParameterHelper.GetRootSignature());
 
             mState = State::Writing;
         }
@@ -86,8 +92,6 @@ namespace cube
             CHECK(mState == State::Closed);
 
             CHECK_HR(mCommandList->Reset(mCommandListManager.GetCurrentAllocator(), nullptr));
-            mIsDescriptorHeapSet = false;
-            mIsShaderVariableLayoutSet = false;
             mHasTimestampQuery = false;
             mState = State::Initial;
         }
@@ -161,6 +165,8 @@ namespace cube
             CHECK(IsWriting());
 
             mCommandList->SetPipelineState(dynamic_cast<DX12GraphicsPipeline*>(graphicsPipeline.get())->GetPipelineState());
+
+            CUBE_DX12_BOUND_OBJECT(graphicsPipeline);
         }
 
         void DX12CommandList::SetRenderTargets(ArrayView<ColorAttachment> colors, DepthStencilAttachment depthStencil)
@@ -173,6 +179,8 @@ namespace cube
                 DX12TextureRTV* dx12RTV = dynamic_cast<DX12TextureRTV*>(colors[i].rtv.get());
                 CHECK(dx12RTV);
                 rtvHandles[i] = dx12RTV->GetDescriptorHandle();
+
+                CUBE_DX12_BOUND_OBJECT(colors[i].rtv);
             }
 
             if (depthStencil.dsv)
@@ -180,6 +188,8 @@ namespace cube
                 DX12TextureDSV* dx12DSV = dynamic_cast<DX12TextureDSV*>(depthStencil.dsv.get());
                 CHECK(dx12DSV);
                 D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = dx12DSV->GetDescriptorHandle();
+
+                CUBE_DX12_BOUND_OBJECT(depthStencil.dsv);
 
                 mCommandList->OMSetRenderTargets((UINT)rtvHandles.size(), rtvHandles.data(), false, &dsvHandle);
             }
@@ -225,6 +235,8 @@ namespace cube
                     .SizeInBytes = static_cast<UINT>(dx12Buffer->GetSize()),
                     .StrideInBytes = sizeof(Vertex)
                 };
+
+                CUBE_DX12_BOUND_OBJECT(buffers[i]);
             }
 
             mCommandList->IASetVertexBuffers(0, d3d12VertexBufferViews.size(), d3d12VertexBufferViews.data());
@@ -244,6 +256,8 @@ namespace cube
             };
 
             mCommandList->IASetIndexBuffer(&indexBufferView);
+
+            CUBE_DX12_BOUND_OBJECT(buffer);
         }
 
         void DX12CommandList::Draw(Uint32 numVertices, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance)
@@ -260,48 +274,36 @@ namespace cube
             mCommandList->DrawIndexedInstanced(numIndices, numInstances, baseIndex, baseVertex, baseInstance);
         }
 
-        void DX12CommandList::SetShaderVariablesLayout(SharedPtr<ShaderVariablesLayout> shaderVariablesLayout)
-        {
-            CHECK(IsWriting());
-
-            if (!mIsDescriptorHeapSet)
-            {
-                ArrayView<ID3D12DescriptorHeap*> heaps = mDescriptorManager.GetD3D12ShaderVisibleHeaps();
-                mCommandList->SetDescriptorHeaps(heaps.size(), heaps.data());
-                mIsDescriptorHeapSet = true;
-            }
-
-            const DX12ShaderVariablesLayout* dx12ShaderVariablesLayout = dynamic_cast<const DX12ShaderVariablesLayout*>(shaderVariablesLayout.get());
-            mCommandList->SetGraphicsRootSignature(dx12ShaderVariablesLayout->GetRootSignature());
-            mCommandList->SetComputeRootSignature(dx12ShaderVariablesLayout->GetRootSignature());
-
-            mIsShaderVariableLayoutSet = true;
-        }
-
         void DX12CommandList::SetShaderVariableConstantBuffer(Uint32 index, SharedPtr<Buffer> constantBuffer)
         {
             CHECK(IsWriting());
-            CHECK(mIsShaderVariableLayoutSet);
             CHECK(constantBuffer->GetType() == BufferType::Constant);
 
             const DX12Buffer* dx12Buffer = dynamic_cast<DX12Buffer*>(constantBuffer.get());
+            CHECK(dx12Buffer);
 
-            mCommandList->SetGraphicsRootConstantBufferView(index, dx12Buffer->GetResource()->GetGPUVirtualAddress());
-            mCommandList->SetComputeRootConstantBufferView(index, dx12Buffer->GetResource()->GetGPUVirtualAddress());
+            // Register space index is used in Slang's ParameterBlock.
+            CHECK(index < mShaderParameterHelper.GetMaxNumSpace());
+            mCommandList->SetGraphicsRootConstantBufferView(index * mShaderParameterHelper.GetMaxNumRegister(), dx12Buffer->GetResource()->GetGPUVirtualAddress());
+            mCommandList->SetComputeRootConstantBufferView(index * mShaderParameterHelper.GetMaxNumRegister(), dx12Buffer->GetResource()->GetGPUVirtualAddress());
+
+            CUBE_DX12_BOUND_OBJECT(constantBuffer);
         }
 
-        void DX12CommandList::BindTexture(SharedPtr<Texture> texture)
+        void DX12CommandList::UseResource(SharedPtr<TextureSRV> srv)
         {
             CHECK(IsWriting());
 
             // Just bind the object
+            CUBE_DX12_BOUND_OBJECT(srv);
         }
 
-        void DX12CommandList::BindSampler(SharedPtr<Sampler> sampler)
+        void DX12CommandList::UseResource(SharedPtr<TextureUAV> uav)
         {
             CHECK(IsWriting());
 
             // Just bind the object
+            CUBE_DX12_BOUND_OBJECT(uav);
         }
 
         void DX12CommandList::ResourceTransition(TransitionState state)
@@ -348,6 +350,8 @@ namespace cube
                     barrier.Transition.pResource = dx12Buffer->GetResource();
                     barrier.Transition.Subresource = 0;
                     barriers.push_back(barrier);
+
+                    CUBE_DX12_BOUND_OBJECT(state.buffer);
                     break;
                 }
                 case TransitionState::ResourceType::SRV:
@@ -356,6 +360,8 @@ namespace cube
                     const DX12Texture* dx12Texture = dx12SRV->GetDX12Texture();
                     barrier.Transition.pResource = dx12Texture->GetResource();
                     AddTextureSubresourceBarriers(dx12Texture, dx12SRV->GetSubresourceRange(), barrier);
+
+                    CUBE_DX12_BOUND_OBJECT(state.srv);
                     break;
                 }
                 case TransitionState::ResourceType::UAV:
@@ -364,6 +370,8 @@ namespace cube
                     const DX12Texture* dx12Texture = dx12UAV->GetDX12Texture();
                     barrier.Transition.pResource = dx12UAV->GetDX12Texture()->GetResource();
                     AddTextureSubresourceBarriers(dx12Texture, dx12UAV->GetSubresourceRange(), barrier);
+
+                    CUBE_DX12_BOUND_OBJECT(state.uav);
                     break;
                 }
                 case TransitionState::ResourceType::RTV:
@@ -372,6 +380,8 @@ namespace cube
                     const DX12Texture* dx12Texture = dx12RTV->GetDX12Texture();
                     barrier.Transition.pResource = dx12RTV->GetDX12Texture()->GetResource();
                     AddTextureSubresourceBarriers(dx12Texture, dx12RTV->GetSubresourceRange(), barrier);
+
+                    CUBE_DX12_BOUND_OBJECT(state.rtv);
                     break;
                 }
                 case TransitionState::ResourceType::DSV:
@@ -380,6 +390,8 @@ namespace cube
                     const DX12Texture* dx12Texture = dx12DSV->GetDX12Texture();
                     barrier.Transition.pResource = dx12DSV->GetDX12Texture()->GetResource();
                     AddTextureSubresourceBarriers(dx12Texture, dx12DSV->GetSubresourceRange(), barrier);
+
+                    CUBE_DX12_BOUND_OBJECT(state.dsv);
                     break;
                 }
                 default:
@@ -395,12 +407,24 @@ namespace cube
         {
             CHECK(IsWriting());
 
-            mCommandList->SetPipelineState(dynamic_cast<DX12ComputePipeline*>(computePipeline.get())->GetPipelineState());
+            DX12ComputePipeline* dx12ComputePipeline = dynamic_cast<DX12ComputePipeline*>(computePipeline.get());
+            CHECK(dx12ComputePipeline);
+
+            mCommandList->SetPipelineState(dx12ComputePipeline->GetPipelineState());
+            mComputeThreadGroupSizeX = dx12ComputePipeline->GetThreadGroupSizeX();
+            mComputeThreadGroupSizeY = dx12ComputePipeline->GetThreadGroupSizeY();
+            mComputeThreadGroupSizeZ = dx12ComputePipeline->GetThreadGroupSizeZ();
+
+            CUBE_DX12_BOUND_OBJECT(computePipeline);
         }
 
-        void DX12CommandList::Dispatch(Uint32 threadGroupX, Uint32 threadGroupY, Uint32 threadGroupZ)
+        void DX12CommandList::DispatchThreads(Uint32 numThreadsX, Uint32 numThreadsY, Uint32 numThreadsZ)
         {
             CHECK(IsWriting());
+
+            Uint32 threadGroupX = (numThreadsX + mComputeThreadGroupSizeX - 1) / mComputeThreadGroupSizeX;
+            Uint32 threadGroupY = (numThreadsY + mComputeThreadGroupSizeY - 1) / mComputeThreadGroupSizeY;
+            Uint32 threadGroupZ = (numThreadsZ + mComputeThreadGroupSizeZ - 1) / mComputeThreadGroupSizeZ;
 
             mCommandList->Dispatch(threadGroupX, threadGroupY, threadGroupZ);
         }
@@ -421,6 +445,9 @@ namespace cube
 
             ID3D12CommandList* cmdLists[] = { mCommandList.Get() };
             mQueueManager.GetMainQueue()->ExecuteCommandLists(1, cmdLists);
+
+            mCommandListManager.AddBoundObjects(mBoundObjects);
+            mBoundObjects.clear();
         }
     } // namespace gapi
 } // namespace cube

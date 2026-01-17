@@ -10,7 +10,6 @@
 #include "GAPI_CommandList.h"
 #include "GAPI_Pipeline.h"
 #include "GAPI_Shader.h"
-#include "GAPI_ShaderVariable.h"
 #include "GAPI_SwapChain.h"
 #include "Material.h"
 #include "MatrixUtility.h"
@@ -52,9 +51,11 @@ namespace cube
         auto createGAPIFunc = reinterpret_cast<CreateGAPIFunction>(mGAPI_DLib->GetFunction(CUBE_T("CreateGAPI")));
         mGAPI = SharedPtr<GAPI>(createGAPIFunc());
 
-        mGAPI->Initialize({ .numGPUSync = numGPUSync,
-                            .enableDebugLayer = true,
-                            .imGUI = imGUIContext });
+        mGAPI->Initialize({
+            .numGPUSync = numGPUSync,
+            .enableDebugLayer = true,
+            .imGUI = imGUIContext
+        });
 
         mShaderManager.Initialize(mGAPI.get(), false);
         mTextureManager.Initialize(mGAPI.get(), mNumGPUSync, mShaderManager);
@@ -65,31 +66,39 @@ namespace cube
 
         mIsViewPerspectiveMatrixDirty = true;
 
-        mCommandList = mGAPI->CreateCommandList({ .debugName = CUBE_T("MainCommandList") });
+        mCommandList = mGAPI->CreateCommandList({
+            .debugName = CUBE_T("MainCommandList")
+        });
 
         mViewportWidth = platform::Platform::GetWindowWidth();
         mViewportHeight = platform::Platform::GetWindowHeight();
-        mSwapChain = mGAPI->CreateSwapChain({ .width = mViewportWidth,
-                                              .height = mViewportHeight,
-                                              .vsync = true,
-                                              .backbufferCount = 2,
-                                              .debugName = CUBE_T("MainSwapChain") });
-        mDepthStencilTexture = mGAPI->CreateTexture({ .usage = gapi::ResourceUsage::GPUOnly,
-                                                      .format = gapi::ElementFormat::D32_Float,
-                                                      .type = gapi::TextureType::Texture2D,
-                                                      .flags = gapi::TextureFlag::DepthStencil,
-                                                      .width = mViewportWidth,
-                                                      .height = mViewportHeight,
-                                                      .debugName = CUBE_T("MainDepthStencilTexture") });
+        mSwapChain = mGAPI->CreateSwapChain({
+            .width = mViewportWidth,
+            .height = mViewportHeight,
+            .vsync = true,
+            .backbufferCount = 2,
+            .debugName = CUBE_T("MainSwapChain")
+        });
+        mDepthStencilTexture = mGAPI->CreateTexture({
+            .usage = gapi::ResourceUsage::GPUOnly,
+            .format = gapi::ElementFormat::D32_Float,
+            .type = gapi::TextureType::Texture2D,
+            .flags = gapi::TextureFlag::DepthStencil,
+            .width = mViewportWidth,
+            .height = mViewportHeight,
+            .debugName = CUBE_T("MainDepthStencilTexture")
+        });
         mDSV = mDepthStencilTexture->CreateDSV({});
         mCommandList->Reset();
         {
             mCommandList->Begin();
 
-            mCommandList->ResourceTransition({ .resourceType = gapi::TransitionState::ResourceType::DSV,
-                                               .dsv = mDSV,
-                                               .src = gapi::ResourceStateFlag::Common,
-                                               .dst = gapi::ResourceStateFlag::DepthWrite });
+            mCommandList->ResourceTransition({
+                .resourceType =  gapi::TransitionState::ResourceType::DSV,
+                .dsv = mDSV,
+                .src = gapi::ResourceStateFlag::Common,
+                .dst = gapi::ResourceStateFlag::DepthWrite
+            });
 
             mCommandList->End();
             mCommandList->Submit();
@@ -180,11 +189,13 @@ namespace cube
         mCommandList->Reset();
         {
             mCommandList->Begin();
-
-            mCommandList->ResourceTransition({ .resourceType = gapi::TransitionState::ResourceType::RTV,
-                                               .rtv = mCurrentBackbufferRTV,
-                                               .src = gapi::ResourceStateFlag::Present,
-                                               .dst = gapi::ResourceStateFlag::RenderTarget });
+            
+            mCommandList->ResourceTransition({
+                .resourceType =  gapi::TransitionState::ResourceType::RTV,
+                .rtv = mCurrentBackbufferRTV,
+                .src = gapi::ResourceStateFlag::Present,
+                .dst = gapi::ResourceStateFlag::RenderTarget
+            });
 
             mCommandList->End();
             mCommandList->Submit();
@@ -206,10 +217,12 @@ namespace cube
         {
             mCommandList->Begin();
 
-            mCommandList->ResourceTransition({ .resourceType = gapi::TransitionState::ResourceType::RTV,
-                                               .rtv = mCurrentBackbufferRTV,
-                                               .src = gapi::ResourceStateFlag::RenderTarget,
-                                               .dst = gapi::ResourceStateFlag::Present });
+            mCommandList->ResourceTransition({
+                .resourceType =  gapi::TransitionState::ResourceType::RTV,
+                .rtv = mCurrentBackbufferRTV,
+                .src = gapi::ResourceStateFlag::RenderTarget,
+                .dst = gapi::ResourceStateFlag::Present
+            });
 
             mCommandList->End();
             mCommandList->Submit();
@@ -227,12 +240,42 @@ namespace cube
         mViewportWidth = width;
         mViewportHeight = height;
 
+        mGAPI->WaitAllGPUSync();
+
         if (mSwapChain)
         {
-            mGAPI->WaitAllGPUSync();
-
             mCurrentBackbufferRTV = nullptr;
             mSwapChain->Resize(width, height);
+        }
+
+        if (mDepthStencilTexture)
+        {
+            mDSV = nullptr;
+            mDepthStencilTexture = nullptr;
+
+            mDepthStencilTexture = mGAPI->CreateTexture({
+                .usage = gapi::ResourceUsage::GPUOnly,
+                .format = gapi::ElementFormat::D32_Float,
+                .type = gapi::TextureType::Texture2D,
+                .flags = gapi::TextureFlag::DepthStencil,
+                .width = mViewportWidth,
+                .height = mViewportHeight,
+                .debugName = CUBE_T("MainDepthStencilTexture")
+            });
+            mDSV = mDepthStencilTexture->CreateDSV({});
+
+            mCommandList->Reset();
+            mCommandList->Begin();
+
+            mCommandList->ResourceTransition({
+                .resourceType = gapi::TransitionState::ResourceType::DSV,
+                .dsv = mDSV,
+                .src = gapi::ResourceStateFlag::Common,
+                .dst = gapi::ResourceStateFlag::DepthWrite
+            });
+
+            mCommandList->End();
+            mCommandList->Submit();
         }
     }
 
@@ -327,7 +370,6 @@ namespace cube
         mCommandList->Reset();
         mCommandList->Begin();
         {
-
             mCommandList->InsertTimestamp(CUBE_T("Begin"));
 
             GPU_EVENT_SCOPE(mCommandList, CUBE_T("Frame"));
@@ -348,7 +390,6 @@ namespace cube
             mCommandList->SetScissors({ &scissor, 1 });
             mCommandList->SetPrimitiveTopology(gapi::PrimitiveTopology::TriangleList);
 
-            mCommandList->SetShaderVariablesLayout(mShaderManager.GetMaterialShaderManager().GetShaderVariablesLayout());
             gapi::ColorAttachment colorAttachment = {
                 .rtv = mCurrentBackbufferRTV,
                 .loadOperation = gapi::LoadOperation::Clear,
@@ -405,7 +446,7 @@ namespace cube
                     if (currentMaterial != lastMaterial)
                     {
                         SetGraphicsPipeline(mShaderManager.GetMaterialShaderManager().GetOrCreateMaterialPipeline(currentMaterial));
-                        SharedPtr<MaterialShaderParameters> materialShaderParameters = currentMaterial->GenerateShaderParameters();
+                        SharedPtr<MaterialShaderParameters> materialShaderParameters = currentMaterial->GenerateShaderParameters(mCommandList.get());
                         mCommandList->SetShaderVariableConstantBuffer(2, materialShaderParameters->GetBuffer());
                     }
 
@@ -429,7 +470,7 @@ namespace cube
                 xAxisObjectShaderParameters->modelInverseTranspose = mXAxisModelMatrix.Inversed().Transposed();
                 xAxisObjectShaderParameters->WriteAllParametersToBuffer();
                 mCommandList->SetShaderVariableConstantBuffer(1, xAxisObjectShaderParameters->GetBuffer());
-                SharedPtr<MaterialShaderParameters> xAxisMaterialShaderParameters = mXAxisMaterial->GenerateShaderParameters();
+                SharedPtr<MaterialShaderParameters> xAxisMaterialShaderParameters = mXAxisMaterial->GenerateShaderParameters(mCommandList.get());
                 mCommandList->SetShaderVariableConstantBuffer(2, xAxisMaterialShaderParameters->GetBuffer());
                 for (const SubMesh& subMesh : boxSubMeshes)
                 {
@@ -441,7 +482,7 @@ namespace cube
                 yAxisObjectShaderParameters->modelInverseTranspose = mYAxisModelMatrix.Inversed().Transposed();
                 yAxisObjectShaderParameters->WriteAllParametersToBuffer();
                 mCommandList->SetShaderVariableConstantBuffer(1, yAxisObjectShaderParameters->GetBuffer());
-                SharedPtr<MaterialShaderParameters> yAxisMaterialShaderParameters = mYAxisMaterial->GenerateShaderParameters();
+                SharedPtr<MaterialShaderParameters> yAxisMaterialShaderParameters = mYAxisMaterial->GenerateShaderParameters(mCommandList.get());
                 mCommandList->SetShaderVariableConstantBuffer(2, yAxisMaterialShaderParameters->GetBuffer());
                 for (const SubMesh& subMesh : boxSubMeshes)
                 {
@@ -453,7 +494,7 @@ namespace cube
                 zAxisObjectShaderParameters->modelInverseTranspose = mZAxisModelMatrix.Inversed().Transposed();
                 zAxisObjectShaderParameters->WriteAllParametersToBuffer();
                 mCommandList->SetShaderVariableConstantBuffer(1, zAxisObjectShaderParameters->GetBuffer());
-                SharedPtr<MaterialShaderParameters> zAxisMaterialShaderParameters = mZAxisMaterial->GenerateShaderParameters();
+                SharedPtr<MaterialShaderParameters> zAxisMaterialShaderParameters = mZAxisMaterial->GenerateShaderParameters(mCommandList.get());
                 mCommandList->SetShaderVariableConstantBuffer(2, zAxisMaterialShaderParameters->GetBuffer());
                 for (const SubMesh& subMesh : boxSubMeshes)
                 {

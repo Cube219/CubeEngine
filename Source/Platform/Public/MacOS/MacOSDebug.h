@@ -45,12 +45,16 @@ namespace cube
 
         private:
             static void ShowDebugMessageAlert(StringView title, StringView msg);
+            static void ShowDebugMessageAlert_MainThread(StringView title, StringView msg);
         
             static CubeLoggerWindow* mLoggerWindow;
             static CubeLoggerWindowDelegate* mLoggerWindowDelegaate;
             static CubeLoggerTextView* mLoggerTextView;
 
             static bool mIsLoggerWindowCreated;
+
+            static bool mIsDebugBreakSetInDebugMessageAlert;
+            static bool mIsForceTerminationSetInDebugMessageAlert;
         };
     } // namespace platform
 } // namespace cube

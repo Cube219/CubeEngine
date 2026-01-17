@@ -17,6 +17,7 @@ namespace cube
     {
         class Buffer;
         class ComputePipeline;
+        class DX12ShaderParameterHelper;
         class GraphicsPipeline;
         class Sampler;
         class Texture;
@@ -47,16 +48,15 @@ namespace cube
             void Draw(Uint32 numVertices, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance) override;
             void DrawIndexed(Uint32 numIndices, Uint32 baseIndex, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance) override;
 
-            void SetShaderVariablesLayout(SharedPtr<ShaderVariablesLayout> shaderVariablesLayout) override;
             void SetShaderVariableConstantBuffer(Uint32 index, SharedPtr<Buffer> constantBuffer) override;
-            void BindTexture(SharedPtr<Texture> texture) override;
-            void BindSampler(SharedPtr<Sampler> sampler) override;
+            virtual void UseResource(SharedPtr<TextureSRV> srv) override;
+            virtual void UseResource(SharedPtr<TextureUAV> uav) override;
 
             void ResourceTransition(TransitionState state) override;
             void ResourceTransition(ArrayView<TransitionState> states) override;
 
             void SetComputePipeline(SharedPtr<ComputePipeline> computePipeline) override;
-            void Dispatch(Uint32 threadGroupX, Uint32 threadGroupY, Uint32 threadGroupZ) override;
+            virtual void DispatchThreads(Uint32 numThreadsX, Uint32 numThreadsY, Uint32 numThreadsZ) override;
 
             void InsertTimestamp(const String& name) override;
 
@@ -76,12 +76,17 @@ namespace cube
             DX12DescriptorManager& mDescriptorManager;
             DX12QueueManager& mQueueManager;
             DX12QueryManager& mQueryManager;
+            DX12ShaderParameterHelper& mShaderParameterHelper;
 
             ComPtr<ID3D12GraphicsCommandList> mCommandList;
             State mState;
 
-            bool mIsDescriptorHeapSet = false;
-            bool mIsShaderVariableLayoutSet = false;
+            Vector<SharedPtr<DX12APIObject>> mBoundObjects;
+
+            Uint32 mComputeThreadGroupSizeX;
+            Uint32 mComputeThreadGroupSizeY;
+            Uint32 mComputeThreadGroupSizeZ;
+
             bool mHasTimestampQuery = false;
 
             Vector<AnsiString> mCurrentEventNameList;

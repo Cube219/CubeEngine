@@ -14,8 +14,10 @@ namespace cube
         class MetalShader : public Shader
         {
         public:
-            MetalShader(MetalShaderCompileResult result, StringView warningMessage, StringView errorMessage);
+            MetalShader(const MetalShaderCompileResult& result, StringView warningMessage, StringView errorMessage);
             virtual ~MetalShader();
+
+            id<MTLFunction> GetMTLFunction() const { return mFunction; }
 
         private:
             id<MTLLibrary> mLibrary;

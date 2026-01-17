@@ -2,9 +2,9 @@ import Light;
 import MainInterface;
 import Material;
 
-ConstantBuffer<GlobalData_CB> globalCB;
-ConstantBuffer<PerObjectData_CB> perObjectCB;
-ConstantBuffer<MaterialData_CB> materialCB;
+ParameterBlock<GlobalData_CB> globalCB;
+ParameterBlock<PerObjectData_CB> perObjectCB;
+ParameterBlock<MaterialData_CB> materialCB;
 
 extern struct Material : IMaterial;
 

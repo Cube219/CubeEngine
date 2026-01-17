@@ -12,6 +12,7 @@ namespace cube
         mDescriptorManager(*this),
         mCommandListManager(*this),
         mQueryManager(*this),
+        mShaderParameterHelper(*this),
         mGPUSyncFence(*this)
     {
     }
@@ -37,6 +38,7 @@ namespace cube
         mDescriptorManager.Initialize();
         mCommandListManager.Initialize(numGPUSync);
         mQueryManager.Initialize(numGPUSync);
+        mShaderParameterHelper.Initialize();
 
         mGPUSyncFence.Initialize(CUBE_T("GPUSyncFence"));
         mNumGPUSync = numGPUSync;
@@ -49,6 +51,7 @@ namespace cube
         WaitAllGPUSync();
         mGPUSyncFence.Shutdown();
 
+        mShaderParameterHelper.Shutdown();
         mQueryManager.Shutdown();
         mCommandListManager.Shutdown();
         mDescriptorManager.Shutdown();
@@ -119,5 +122,7 @@ namespace cube
         waitFence.Wait(1);
 
         waitFence.Shutdown();
+
+        GetCommandListManager().ClearAll();
     }
 } // namespace cube

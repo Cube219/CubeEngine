@@ -38,7 +38,7 @@ namespace cube
             HLSL,
             GLSL,
             DXIL,
-            SPIR_V,
+            SPIRV,
             Metal,
             MetalLib,
             Slang
@@ -53,8 +53,8 @@ namespace cube
                 return CUBE_T("GLSL");
             case ShaderLanguage::DXIL:
                 return CUBE_T("DXIL");
-            case ShaderLanguage::SPIR_V:
-                return CUBE_T("SPIR_V");
+            case ShaderLanguage::SPIRV:
+                return CUBE_T("SPIRV");
             case ShaderLanguage::Metal:
                 return CUBE_T("Metal");
             case ShaderLanguage::MetalLib:
@@ -93,10 +93,19 @@ namespace cube
             StringView GetWarningMessage() const { return mWarningMessage; }
             StringView GetErrorMessage() const { return mErrorMessage; }
 
+            // TODO: Use reflection data
+            Uint32 GetThreadGroupSizeX() const { return mThreadGroupSizeX; }
+            Uint32 GetThreadGroupSizeY() const { return mThreadGroupSizeY; }
+            Uint32 GetThreadGroupSizeZ() const { return mThreadGroupSizeZ; }
+
         protected:
             bool mCreated;
             String mWarningMessage;
             String mErrorMessage;
+
+            Uint32 mThreadGroupSizeX;
+            Uint32 mThreadGroupSizeY;
+            Uint32 mThreadGroupSizeZ;
         };
 
         struct ShaderCompileResult

@@ -23,7 +23,7 @@ namespace cube
             D3D12_RESOURCE_DESC desc = {
                 .Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
                 .Alignment = 0,
-                .Width = info.size,
+                .Width = mSize,
                 .Height = 1,
                 .DepthOrArraySize = 1,
                 .MipLevels = 1,

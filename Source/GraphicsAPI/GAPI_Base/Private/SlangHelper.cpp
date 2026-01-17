@@ -19,7 +19,9 @@ namespace cube
 
         static void Initialize();
         static void Shutdown();
-        static Blob Compile(const gapi::ShaderCreateInfo& info, const SlangCompileOptions& options, gapi::ShaderCompileResult& compileResult);
+
+        static Blob Compile(const gapi::ShaderCreateInfo& info, const SlangCompileOptions& options, gapi::ShaderCompileResult& compileResult, ShaderReflection* pReflection);
+        static void GetReflection(const gapi::ShaderCreateInfo& info, ComPtr<slang::IComponentType> program, ShaderReflection& outReflection);
 
         static ComPtr<slang::IGlobalSession> mGlobalSession;
         static AnsiString mShaderSearchPath;
@@ -86,13 +88,12 @@ namespace cube
         mGlobalSession = nullptr;
     }
 
-    Blob SlangHelperPrivate::Compile(const gapi::ShaderCreateInfo& info, const SlangCompileOptions& options, gapi::ShaderCompileResult& compileResult)
+    Blob SlangHelperPrivate::Compile(const gapi::ShaderCreateInfo& info, const SlangCompileOptions& options, gapi::ShaderCompileResult& compileResult, ShaderReflection* pReflection)
     {
         compileResult.Reset();
         ComPtr<slang::IBlob> diagnosticBlob;
 
         slang::TargetDesc targetDesc = {
-            .format = SLANG_HLSL,
             .profile = mGlobalSession->findProfile(options.profile)
         };
         switch (options.target)
@@ -106,7 +107,7 @@ namespace cube
         case gapi::ShaderLanguage::DXIL:
             targetDesc.format = SLANG_DXIL;
             break;
-        case gapi::ShaderLanguage::SPIR_V:
+        case gapi::ShaderLanguage::SPIRV:
             targetDesc.format = SLANG_SPIRV;
             break;
         case gapi::ShaderLanguage::Metal:
@@ -119,6 +120,12 @@ namespace cube
             CHECK_FORMAT(false, "Not supported shader target type");
             break;
         }
+
+        FrameVector<slang::PreprocessorMacroDesc> macros;
+        macros.push_back({
+            .name = "CUBE_SLANG_METAL",
+            .value = (options.target == gapi::ShaderLanguage::Metal || options.target == gapi::ShaderLanguage::MetalLib) ? "1" : "0"
+        });
 
         FrameVector<slang::CompilerOptionEntry> compilerOptions;
         if (options.withDebugSymbol)
@@ -136,6 +143,12 @@ namespace cube
                 },
             });
         }
+        compilerOptions.push_back({
+            .name = slang::CompilerOptionName::VulkanUseEntryPointName,
+            .value = {
+                .intValue0 = 1
+            },
+        });
 
         const char* shaderRootDirPath_CStr = mShaderSearchPath.c_str();
         const slang::SessionDesc sessionDesc = {
@@ -143,8 +156,10 @@ namespace cube
             .targetCount = 1,
             .searchPaths = &shaderRootDirPath_CStr,
             .searchPathCount = 1,
+            .preprocessorMacros = macros.data(),
+            .preprocessorMacroCount = static_cast<Uint32>(macros.size()),
             .compilerOptionEntries = compilerOptions.data(),
-            .compilerOptionEntryCount = static_cast<uint32_t>(compilerOptions.size())
+            .compilerOptionEntryCount = static_cast<Uint32>(compilerOptions.size())
         };
 
         ComPtr<slang::ISession> session;
@@ -251,7 +266,160 @@ namespace cube
 
         compileResult.isSuccess = true;
 
+        if (pReflection)
+        {
+            GetReflection(info, linkedProgram, *pReflection);
+        }
+
         return resBlob;
+    }
+
+    void SlangHelperPrivate::GetReflection(const gapi::ShaderCreateInfo& info, ComPtr<slang::IComponentType> program, ShaderReflection& outReflection)
+    {
+        using namespace slang;
+
+        outReflection.blocks.clear();
+
+        ProgramLayout* layout = program->getLayout();
+
+        EntryPointReflection* entryPoint = layout->findEntryPointByName(info.entryPoint.data());
+        SlangUInt threadGroupSize[3];
+        entryPoint->getComputeThreadGroupSize(3, threadGroupSize);
+        outReflection.threadGroupSizeX = threadGroupSize[0];
+        outReflection.threadGroupSizeY = threadGroupSize[1];
+        outReflection.threadGroupSizeZ = threadGroupSize[2];
+
+        const Uint32 numParameterBlocks = layout->getParameterCount();
+        for (Uint32 blockIndex = 0; blockIndex < numParameterBlocks; ++blockIndex)
+        {
+            VariableLayoutReflection* blockVariableLayout = layout->getParameterByIndex(blockIndex);
+            TypeLayoutReflection* blockTypeLayout = blockVariableLayout->getTypeLayout();
+
+            if (blockTypeLayout->getKind() == TypeReflection::Kind::ParameterBlock)
+            {
+                TypeLayoutReflection* parameterTypeLayout = blockTypeLayout->getElementTypeLayout();
+                VariableLayoutReflection* parameterVariableLayout = blockTypeLayout->getElementVarLayout();
+
+                const char* parameterTypeName = parameterTypeLayout->getName();
+                Uint32 index = parameterVariableLayout->getBindingIndex();
+                ShaderParameterBlockReflection& outBlockReflection = outReflection.blocks.emplace_back(parameterTypeName, index);
+                
+                if (parameterTypeLayout->getKind() == TypeReflection::Kind::Struct)
+                {
+                    Uint32 fieldCount = parameterTypeLayout->getFieldCount();
+                    for (Uint32 fieldIndex = 0; fieldIndex < fieldCount; ++fieldIndex)
+                    {
+                        VariableLayoutReflection* fieldVariableLayout = parameterTypeLayout->getFieldByIndex(fieldIndex);
+                        TypeLayoutReflection* fieldTypeLayout = fieldVariableLayout->getTypeLayout();
+                        TypeReflection* fieldType = fieldVariableLayout->getType();
+
+                        const char* fieldTypeName = fieldType->getName();
+                        const char* fieldVariableName = fieldVariableLayout->getName();
+
+                        auto AppendParmeterReflection = [&](ShaderParameterType type)
+                        {
+                            Uint32 offset = fieldVariableLayout->getOffset();
+                            Uint32 size = fieldTypeLayout->getSize();
+                            outBlockReflection.params.emplace_back(fieldVariableName, type, offset, size);
+                        };
+
+                        switch (fieldType->getKind())
+                        {
+                        case TypeReflection::Kind::Struct:
+                        {
+                            if (fieldTypeName == AnsiString("DescriptorHandle"))
+                            {
+                                // TODO
+                                // AppendParmeterReflection(ShaderParameterType::Bindless);
+                            }
+                            else
+                            {
+                                CUBE_LOG(Warning, Slang, "Unsupported field type. Ignore it. (name: {0} / type: {1})", fieldVariableName, fieldTypeName);
+                            }
+                            break;
+                        }
+                        case TypeReflection::Kind::Matrix:
+                        {
+                            Uint32 numRow = fieldTypeLayout->getRowCount();
+                            Uint32 numCol = fieldTypeLayout->getColumnCount();
+                            if (numRow == 4 && numCol == 4)
+                            {
+                                AppendParmeterReflection(ShaderParameterType::Matrix);
+                            }
+                            else
+                            {
+                                CUBE_LOG(Warning, Slang, "Unsupported dimension in matrix. Only 4x4 is allowed. Ignore it. (name: {0} / row: {1} / col: {2})", fieldVariableName, numRow, numCol);
+                            }
+                            break;
+                        }
+                        case TypeReflection::Kind::Vector:
+                        {
+                            TypeReflection* vectorType = fieldType->getElementType();
+                            TypeReflection::ScalarType vectorScalarType = vectorType->getScalarType();
+                            if (vectorScalarType == TypeReflection::Float32)
+                            {
+                                Uint32 numElements = fieldType->getElementCount();
+                                switch (numElements)
+                                {
+                                case 1:
+                                    AppendParmeterReflection(ShaderParameterType::Float);
+                                    break;
+                                case 2:
+                                    AppendParmeterReflection(ShaderParameterType::Float2);
+                                    break;
+                                case 3:
+                                    AppendParmeterReflection(ShaderParameterType::Float3);
+                                    break;
+                                case 4:
+                                    AppendParmeterReflection(ShaderParameterType::Float4);
+                                    break;
+                                default:
+                                    NO_ENTRY_FORMAT("Invalid vector count: {0}", numElements);
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                CUBE_LOG(Warning, Slang, "Unsupported type in vector. Only float32 is allowed. Ignore it. (name: {0} / type: {1})", fieldVariableName, (int)vectorScalarType);
+                            }
+                            break;
+                        }
+                        case TypeReflection::Kind::Scalar:
+                        {
+                            TypeReflection::ScalarType scalarType = fieldTypeLayout->getScalarType();
+                            switch (scalarType)
+                            {
+                            case TypeReflection::ScalarType::Bool:
+                                AppendParmeterReflection(ShaderParameterType::Bool);
+                                break;
+                            case TypeReflection::ScalarType::Int32:
+                                AppendParmeterReflection(ShaderParameterType::Int);
+                                break;
+                            case TypeReflection::ScalarType::Float32:
+                                AppendParmeterReflection(ShaderParameterType::Float);
+                                break;
+                            default:
+                                CUBE_LOG(Warning, Slang, "Unsupported type in scalar. Ignore it. (name: {0} / type: {1})", fieldVariableName, (int)scalarType);
+                                break;
+                            }
+                            break;
+                        }
+                        default:
+                            CUBE_LOG(Warning, Slang, "Unsupported field type. Ignore it. (name: {0} / type: {1})", fieldVariableName, fieldTypeName);
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    CUBE_LOG(Warning, Slang, "Only structure is allowed in ParameterBlock. Ignore it. (name: {0})", parameterTypeLayout->getName());
+                }
+            }
+            else
+            {
+                CUBE_LOG(Warning, Slang, "Only ParameterBlock is allowed at the global scope. Ignore it. (name: {0})", blockVariableLayout->getName());
+            }
+        }
     }
 
     // Interface class
@@ -265,8 +433,8 @@ namespace cube
         SlangHelperPrivate::Shutdown();
     }
 
-    Blob SlangHelper::Compile(const gapi::ShaderCreateInfo& info, const SlangCompileOptions& options, gapi::ShaderCompileResult& compileResult)
+    Blob SlangHelper::Compile(const gapi::ShaderCreateInfo& info, const SlangCompileOptions& options, gapi::ShaderCompileResult& compileResult, ShaderReflection* pReflection)
     {
-        return SlangHelperPrivate::Compile(info, options, compileResult);
+        return SlangHelperPrivate::Compile(info, options, compileResult, pReflection);
     }
 } // namespace cube
