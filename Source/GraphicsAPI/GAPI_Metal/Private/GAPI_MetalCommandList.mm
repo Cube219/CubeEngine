@@ -281,7 +281,8 @@ namespace cube
         }
 
         MetalCommandList::MetalCommandList(const CommandListCreateInfo& info, MetalDevice& device)
-            : mIsWriting(false)
+            : mTimestampManager(device.GetTimestampManager())
+            , mIsWriting(false)
             , mIsNeededRenderEncoderUpdating(false)
             , mRenderPassDescriptor(nullptr)
             , mRenderEncoder(nil)
@@ -577,6 +578,10 @@ namespace cube
         void MetalCommandList::InsertTimestamp(const String& name)
         {
             CHECK(IsWriting());
+
+            // Currently most Apple silicon only support sampling data at stage boundary, not draw/dispatch boundary.
+            // So it is not possible to insert timestamp based on command list.
+            // Timestamp will be implemented after implement render pass.
         }
 
         void MetalCommandList::Submit()

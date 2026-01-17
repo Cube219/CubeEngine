@@ -3,6 +3,7 @@
 #include "MetalHeader.h"
 
 #include "GAPI_CommandList.h"
+#include "MetalTimestampManager.h"
 
 namespace cube
 {
@@ -149,6 +150,8 @@ namespace cube
             void BeginEncoding(EncoderType type);
             void EndEncoding();
             void UpdateEncoderIfNeeded(EncoderType type);
+
+            MetalTimestampManager& mTimestampManager;
 
             id<MTLCommandQueue> mCommandQueueRef;
             id<MTLCommandBuffer> mCommandBuffer;

@@ -74,15 +74,15 @@ namespace cube
         mTimestampNames.resize(newNumGPUSync);
     }
 
-    void DX12QueryManager::MoveToNextIndex(Uint64 lastGPUFrame)
+    void DX12QueryManager::MoveToNextIndex(Uint64 nextGPUFrame)
     {
         Uint32 numSyncBuffer = mTimestampHeaps.size();
 
         mCurrentIndex = (mCurrentIndex + 1) % numSyncBuffer;
 
-        if (lastGPUFrame >= numSyncBuffer)
+        if (nextGPUFrame >= numSyncBuffer)
         {
-            UpdateLastTimestamp(lastGPUFrame - numSyncBuffer);
+            UpdateLastTimestamp(nextGPUFrame - numSyncBuffer);
         }
 
         mTimestampNames[mCurrentIndex].clear();

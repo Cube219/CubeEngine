@@ -27,6 +27,8 @@ set(PRIVATE_FILES
     Private/MetalDevice.mm
     Private/MetalShaderCompiler.h
     Private/MetalShaderCompiler.mm
+    Private/MetalTimestampManager.h
+    Private/MetalTimestampManager.mm
     Private/MetalTypes.h
     Private/MetalTypes.mm
     Private/MetalUtility.h
