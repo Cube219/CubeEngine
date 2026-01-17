@@ -461,6 +461,7 @@ FodyWeavers.xsd
 
 # Cmake folder
 build/
+build-*/
 
 # Binary folder
 Binaries/
