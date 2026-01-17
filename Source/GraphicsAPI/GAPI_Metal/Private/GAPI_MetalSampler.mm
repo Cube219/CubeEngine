@@ -96,7 +96,7 @@ namespace cube
             samplerDesc.normalizedCoordinates = YES;
             samplerDesc.lodMinClamp = info.minLod;
             samplerDesc.lodMaxClamp = info.maxLod;
-            samplerDesc.lodBias = info.mipLodBias;
+            // samplerDesc.lodBias = info.mipLodBias; // Only support macOS 26.0 or newer
             samplerDesc.supportArgumentBuffers = YES;
             samplerDesc.label = String_Convert<NSString*>(info.debugName);
 
