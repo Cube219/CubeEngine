@@ -135,7 +135,9 @@ namespace cube
 
             // Does not call Metal_NewFrame at this point because currentRenderPassDescriptor
             // in MTKView block the process until available.
-            ImGui_ImplOSX_NewFrame(mImGUIView);
+            platform::MacOSUtility::DispatchToMainThreadAndWait([this] {
+                ImGui_ImplOSX_NewFrame(mImGUIView);
+            });
         }
     }
 
@@ -258,13 +260,17 @@ namespace cube
             [window.contentView addSubview:mImGUIView];
         });
 
-        ImGui_ImplOSX_Init(mImGUIView);
+        platform::MacOSUtility::DispatchToMainThreadAndWait([this] {
+            ImGui_ImplOSX_Init(mImGUIView);
+        });
         ImGui_ImplMetal_Init(mMainDevice->GetMTLDevice());
 
         // Start new frame before starting ImGUI loop in Engine class
         mRenderPassDescriptor = mImGUIView.currentRenderPassDescriptor;
         ImGui_ImplMetal_NewFrame(mImGUIView.currentRenderPassDescriptor);
-        ImGui_ImplOSX_NewFrame(mImGUIView);
+        platform::MacOSUtility::DispatchToMainThreadAndWait([this] {
+            ImGui_ImplOSX_NewFrame(mImGUIView);
+        });
     }
 
     void GAPI_Metal::ShutdownImGUI(const ImGUIContext& imGUIInfo)
