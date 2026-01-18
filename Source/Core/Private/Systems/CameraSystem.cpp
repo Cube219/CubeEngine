@@ -43,6 +43,9 @@ namespace cube
     Int32 CameraSystem::mLastMouseY;
     Int32 CameraSystem::mCurrentMouseX;
     Int32 CameraSystem::mCurrentMouseY;
+    bool CameraSystem::mIsMouseLocked = false;
+    Int32 CameraSystem::mLockedMouseX;
+    Int32 CameraSystem::mLockedMouseY;
     float CameraSystem::mMouseSpeed = 3.0f;
 
     bool CameraSystem::mIsMouseWheelMoved;
@@ -136,6 +139,10 @@ namespace cube
         });
         mMousePositionEventFunc = platform::Platform::GetMousePositionEvent().AddListener([](Int32 x, Int32 y)
         {
+            if (x == mCurrentMouseX && y == mCurrentMouseY)
+            {
+                return;
+            }
             mIsMouseMoved = true;
 
             mLastMouseX = mCurrentMouseX;
@@ -209,16 +216,29 @@ namespace cube
             mPosition += delta;
         }
         { // Mouse
-            if (mIsRightMousePressed && mIsMouseMoved)
+            if (mIsRightMousePressed && !mIsMouseLocked)
             {
-                Int32 deltaX = mCurrentMouseX - mLastMouseX;
-                Int32 deltaY = mCurrentMouseY - mLastMouseY;
+                mLockedMouseX = mCurrentMouseX;
+                mLockedMouseY = mCurrentMouseY;
+                platform::Platform::HideCursor();
+            }
+            else if (!mIsRightMousePressed && mIsMouseLocked)
+            {
+                platform::Platform::ShowCursor();
+            }
+            mIsMouseLocked = mIsRightMousePressed;
+
+            if (mIsMouseLocked && mIsMouseMoved)
+            {
+                Int32 deltaX = mCurrentMouseX - mLockedMouseX;
+                Int32 deltaY = mCurrentMouseY - mLockedMouseY;
 
                 float scaledMouseSpeed = mMouseSpeed * 0.02f;
                 mAxisXAngle = Math::Max(-89.9f, Math::Min(89.9f, mAxisXAngle - static_cast<float>(deltaY) * scaledMouseSpeed));
                 mAxisYAngle = mAxisYAngle - static_cast<float>(deltaX) * scaledMouseSpeed;
                 UpdateDirection();
 
+                platform::Platform::MoveCursor(mLockedMouseX, mLockedMouseY);
                 mIsMouseMoved = false;
             }
 

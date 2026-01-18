@@ -72,6 +72,9 @@ namespace cube
         static Int32 mLastMouseY;
         static Int32 mCurrentMouseX;
         static Int32 mCurrentMouseY;
+        static bool mIsMouseLocked;
+        static Int32 mLockedMouseX;
+        static Int32 mLockedMouseY;
         static float mMouseSpeed;
 
         static bool mIsMouseWheelMoved;
