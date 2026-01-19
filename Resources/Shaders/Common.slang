@@ -7,3 +7,5 @@ public typealias Bindless<T> where T:IOpaqueDescriptor = T;
 #else
 public typealias Bindless<T> where T:IOpaqueDescriptor = DescriptorHandle<T>;
 #endif
+
+public static const float PI = 3.14159265359;

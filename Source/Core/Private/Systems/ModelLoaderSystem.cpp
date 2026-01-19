@@ -559,8 +559,8 @@ namespace cube
             {
                 material->SetTexture(1, LoadTexture(CUBE_T("metallicRoughnessTexture"), gltfMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index));
                 channelMappingCode += CUBE_T("float3 t1 = materialData.textureSlot1.Sample(input.uv).rgb;\n");
-                channelMappingCode += CUBE_T("value.metallic = t1.g;\n");
-                channelMappingCode += CUBE_T("value.roughness = t1.b;\n");
+                channelMappingCode += CUBE_T("value.metallic = t1.b;\n");
+                channelMappingCode += CUBE_T("value.roughness = t1.g;\n");
             }
             if (gltfMaterial.normalTexture.index != -1)
             {

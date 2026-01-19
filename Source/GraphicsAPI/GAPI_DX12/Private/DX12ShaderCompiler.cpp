@@ -77,6 +77,7 @@ namespace cube
         }
         if (createInfo.withDebugSymbol)
         {
+            args.push_back(WINDOWS_T("-Od"));
             args.push_back(WINDOWS_T("-Zi"));
             args.push_back(WINDOWS_T("-Qembed_debug"));
         }

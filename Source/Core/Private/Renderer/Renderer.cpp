@@ -170,7 +170,7 @@ namespace cube
 
         if (ImGui::Button("RecompileShader"))
         {
-            mShaderManager.RecompileShaders();
+            mShaderManager.RecompileShaders(true);
         }
 
         ImGui::End();

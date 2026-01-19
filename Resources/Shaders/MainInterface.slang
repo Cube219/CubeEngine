@@ -26,6 +26,7 @@ public struct VSInput
 public struct PSInput
 {
     public float4 position : SV_POSITION;
+    public float4 worldPosition : POSITION;
     public float3 normal : NORMAL;
     public float4 tangent : TANGENT;
     public float2 uv : TEXCOORD0;
