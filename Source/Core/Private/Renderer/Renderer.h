@@ -30,6 +30,7 @@ namespace cube
             CUBE_SHADER_PARAMETER(Vector3, viewPosition)
             CUBE_SHADER_PARAMETER(Matrix, viewProjection)
             CUBE_SHADER_PARAMETER(Vector3, directionalLightDirection)
+            CUBE_SHADER_PARAMETER(Vector3, directionalLightIntensity)
         CUBE_END_SHADER_PARAMETERS
     };
 
@@ -107,7 +108,7 @@ namespace cube
         SharedPtr<gapi::TextureDSV> mDSV;
 
         Vector3 mDirectionalLightDirection;
-        bool mIsDirectionalLightDirty;
+        Vector3 mDirectionalLightIntensity;
 
         Matrix mModelMatrix;
         SharedPtr<Mesh> mMesh;

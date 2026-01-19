@@ -19,6 +19,7 @@ PSInput VSMain(VSInput input)
     PSInput output;
 
     output.position = mul(mul(float4(input.position, 1), perObjectCB.model), globalCB.viewProjection);
+    output.worldPosition = mul(float4(input.position, 1), perObjectCB.model);
     output.normal = normalize(mul(input.normal, (float3x3)perObjectCB.modelInverseTranspose));
     output.tangent.xyz = normalize(mul(input.tangent.xyz, (float3x3)perObjectCB.model));
     output.tangent.w = input.tangent.w;
@@ -35,14 +36,14 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 
     float3 normal = input.normal;
     float3 tangent = input.tangent.xyz;
-    float3 bitangent = cross(normal, tangent) * input.tangent.w;
+    float3 bitangent = normalize(cross(normal, tangent) * input.tangent.w);
 
     float3x3 TBN = float3x3(tangent, bitangent, normal);
-    normal = mul(materialValue.normal, TBN);
+    normal = normalize(mul(materialValue.normal, TBN));
 
-    float3 view = normalize(globalCB.cameraPosition - input.position.xyz);
+    float3 view = normalize(globalCB.cameraPosition - input.worldPosition.xyz);
 
-    ILight directionalLight = DirectionalLight(normalize(globalCB.directionalLightDirection));
+    ILight directionalLight = DirectionalLight(normalize(globalCB.directionalLightDirection), globalCB.directionalLightIntensity);
     float3 color = directionalLight.CalculateLight(view, normal, materialValue);
 
     PSOutput output;

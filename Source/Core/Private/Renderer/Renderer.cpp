@@ -105,7 +105,7 @@ namespace cube
         }
 
         mDirectionalLightDirection = Vector3(1.0f, 1.0f, 1.0f).Normalized();
-        mIsDirectionalLightDirty = true;
+        mDirectionalLightIntensity = Vector3(3.0f, 3.0f, 3.0f);
 
         LoadResources();
     }
@@ -157,7 +157,12 @@ namespace cube
                 Vector4 afterDirection = directionInView * mViewMatrix.Inversed();
 
                 mDirectionalLightDirection = Vector3(afterDirection);
-                mIsDirectionalLightDirty = true;
+            }
+            {
+                Float3 intensityFloat3 = mDirectionalLightIntensity.GetFloat3();
+                ImGui::DragFloat3("Intensity", &intensityFloat3.x, 0.1f);
+
+                mDirectionalLightIntensity = Vector3(intensityFloat3.x, intensityFloat3.y, intensityFloat3.z);
             }
         }
 
@@ -170,7 +175,9 @@ namespace cube
 
         if (ImGui::Button("RecompileShader"))
         {
-            mShaderManager.RecompileShaders();
+            // Currently force recompile all shaders because the engine does not know imported file
+            // has been changed.
+            mShaderManager.RecompileShaders(true);
         }
 
         ImGui::End();
@@ -408,6 +415,7 @@ namespace cube
             globalShaderParameters->viewPosition = mViewPosition;
             globalShaderParameters->viewProjection = mViewPerspectiveMatirx;
             globalShaderParameters->directionalLightDirection = mDirectionalLightDirection;
+            globalShaderParameters->directionalLightIntensity = mDirectionalLightIntensity;
             globalShaderParameters->WriteAllParametersToBuffer();
             mCommandList->SetShaderVariableConstantBuffer(0, globalShaderParameters->GetBuffer());
 

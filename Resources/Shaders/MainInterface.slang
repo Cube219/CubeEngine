@@ -5,6 +5,7 @@ public struct GlobalData_CB
     public float3 cameraPosition;
     public float4x4 viewProjection;
     public float3 directionalLightDirection;
+    public float3 directionalLightIntensity;
 };
 
 public struct PerObjectData_CB
@@ -26,6 +27,7 @@ public struct VSInput
 public struct PSInput
 {
     public float4 position : SV_POSITION;
+    public float4 worldPosition : POSITION;
     public float3 normal : NORMAL;
     public float4 tangent : TANGENT;
     public float2 uv : TEXCOORD0;
