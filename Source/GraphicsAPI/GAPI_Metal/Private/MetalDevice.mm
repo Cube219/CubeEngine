@@ -36,6 +36,7 @@ namespace cube
         mTimestampManager.Shutdown();
 
         [mMainCommandQueue release];
+        [mGPUSyncEvent release];
 
         [mDevice release];
     }

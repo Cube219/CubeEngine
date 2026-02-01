@@ -87,6 +87,7 @@ namespace cube
 
             mRowPitch = info.width * formatInfo.bytes;
             mTexture = [device.GetMTLDevice() newTextureWithDescriptor:desc];
+            [desc release];
             CHECK(mTexture);
             mTexture.label = String_Convert<NSString*>(info.debugName);
 

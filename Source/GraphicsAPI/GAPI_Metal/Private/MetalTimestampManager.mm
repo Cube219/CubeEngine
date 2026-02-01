@@ -60,6 +60,7 @@ namespace cube
             }
             CHECK(buffer);
         }
+        [desc release];
 
         // Name
         mTimestampNames.clear();

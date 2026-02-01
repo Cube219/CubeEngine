@@ -828,7 +828,7 @@ namespace cube
 
             mRunMainLoopSignal.Wait();
             while (1)
-            {
+            { @autoreleasepool {
                 if (mIsLoopFinished)
                 {
                     break;
@@ -847,7 +847,7 @@ namespace cube
                 }
 
                 mLoopEvent.Dispatch();
-            }
+            }}
 
             if (mEngineShutdownFunction)
             {
