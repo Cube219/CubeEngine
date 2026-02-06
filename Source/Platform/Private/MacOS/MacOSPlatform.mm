@@ -503,19 +503,19 @@ namespace cube
         void MacOSPlatform::ShowCursorImpl()
         {
             // Prevent call hide/unhide multiple times because they are stack-based.
-            if (!mIsMouseHidden)
+            if (mIsMouseHidden)
             {
-                [NSCursor hide];
-                mIsMouseHidden = true;
+                [NSCursor unhide];
+                mIsMouseHidden = false;
             }
         }
 
         void MacOSPlatform::HideCursorImpl()
         {
-            if (mIsMouseHidden)
+            if (!mIsMouseHidden)
             {
-                [NSCursor unhide];
-                mIsMouseHidden = false;
+                [NSCursor hide];
+                mIsMouseHidden = true;
             }
         }
 
@@ -526,7 +526,12 @@ namespace cube
 
             // CG's y coordinate moves from top to bottom. So flip again.
             float cgY = [[NSScreen mainScreen] frame].size.height - screenLocation.y;
+
             CGWarpMouseCursorPosition(CGPointMake(screenLocation.x, cgY));
+            // The mouse movement events are suppressed around 0.3s after warp the mouse cursor.
+            // CGEventSourceSetLocalEventsSuppressionInterval can help but I don't know how to use.
+            // Instead, call CGAssociateMouseAndMouseCursorPosition to reset suppression.
+            CGAssociateMouseAndMouseCursorPosition(true);
         }
 
         void MacOSPlatform::GetCursorPosImpl(int& x, int& y)
