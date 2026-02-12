@@ -142,26 +142,20 @@ namespace cube
             CUBE_T("Sponza"),
             CUBE_T("Suzanne"),
         };
-        Vector<String> list = platform::FileSystem::GetList(resourceBasePath);
-        for (const String& e : list)
+        Vector<String> gltfList = platform::FileSystem::GetList(resourceBasePath);
+        for (const Character* modelName : gltfLoadModels)
         {
-            bool contained = false;
-            for (const Character* modelName : gltfLoadModels)
+            for (const String& e : gltfList)
             {
                 if (e == modelName)
                 {
-                    contained = true;
+                    mModelPathList.push_back({
+                        .type = ModelType::glTF,
+                        .name = String_Convert<AnsiString>(e),
+                        .path = Format<String>(CUBE_T("{0}/{1}/glTF/{1}.gltf"), resourceBasePath, e)
+                    });
                     break;
                 }
-            }
-
-            if (contained)
-            {
-                mModelPathList.push_back({
-                    .type = ModelType::glTF,
-                    .name = String_Convert<AnsiString>(e),
-                    .path = Format<String>(CUBE_T("{0}/{1}/glTF/{1}.gltf"), resourceBasePath, e)
-                });
             }
         }
 
@@ -173,25 +167,19 @@ namespace cube
             CUBE_T("living_room"),
         };
         Vector<String> objList = platform::FileSystem::GetList(objBasePath);
-        for (const String& e : objList)
+        for (const Character* modelName : objLoadModels)
         {
-            bool contained = false;
-            for (const Character* modelName : objLoadModels)
+            for (const String& e : objList)
             {
                 if (e == modelName)
                 {
-                    contained = true;
+                    mModelPathList.push_back({
+                        .type = ModelType::Obj,
+                        .name = String_Convert<AnsiString>(e),
+                        .path = Format<String>(CUBE_T("{0}{1}"), objBasePath, e)
+                    });
                     break;
                 }
-            }
-
-            if (contained)
-            {
-                mModelPathList.push_back({
-                    .type = ModelType::Obj,
-                    .name = String_Convert<AnsiString>(e),
-                    .path = Format<String>(CUBE_T("{0}{1}"), objBasePath, e)
-                });
             }
         }
     }
