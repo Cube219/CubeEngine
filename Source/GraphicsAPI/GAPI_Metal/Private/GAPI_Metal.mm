@@ -198,7 +198,7 @@ namespace cube
 
         MetalShaderCompileResult shaderResult = MetalShaderCompiler::Compile(info, compileResult);
 
-        return std::make_shared<gapi::MetalShader>(shaderResult, compileResult.warning, compileResult.error);
+        return std::make_shared<gapi::MetalShader>(shaderResult, compileResult.warning, compileResult.error, std::move(compileResult.dependencyFilePaths));
     }
 
     SharedPtr<gapi::Texture> GAPI_Metal::CreateTexture(const gapi::TextureCreateInfo& info)

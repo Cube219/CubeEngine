@@ -98,6 +98,8 @@ namespace cube
             Uint32 GetThreadGroupSizeY() const { return mThreadGroupSizeY; }
             Uint32 GetThreadGroupSizeZ() const { return mThreadGroupSizeZ; }
 
+            const Vector<String>& GetDependencyFilePaths() const { return mDependencyFilePaths; }
+
         protected:
             bool mCreated;
             String mWarningMessage;
@@ -106,6 +108,8 @@ namespace cube
             Uint32 mThreadGroupSizeX;
             Uint32 mThreadGroupSizeY;
             Uint32 mThreadGroupSizeZ;
+
+            Vector<String> mDependencyFilePaths;
         };
 
         struct ShaderCompileResult
@@ -113,12 +117,14 @@ namespace cube
             bool isSuccess;
             String warning;
             String error;
+            Vector<String> dependencyFilePaths;
 
             void Reset()
             {
                 isSuccess = false;
                 warning.clear();
                 error.clear();
+                dependencyFilePaths.clear();
             }
 
             void AddWarning(StringView message, bool isBegin = true, const std::source_location location = std::source_location::current())

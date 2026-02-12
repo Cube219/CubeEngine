@@ -302,7 +302,7 @@ namespace cube
 
         DX12ShaderCompilerResult res = DX12ShaderCompiler::Compile(info, compileResult);
 
-        return std::make_shared<gapi::DX12Shader>(std::move(res), compileResult.warning, compileResult.error);
+        return std::make_shared<gapi::DX12Shader>(std::move(res), compileResult.warning, compileResult.error, std::move(compileResult.dependencyFilePaths));
     }
 
     SharedPtr<gapi::Texture> GAPI_DX12::CreateTexture(const gapi::TextureCreateInfo& info)

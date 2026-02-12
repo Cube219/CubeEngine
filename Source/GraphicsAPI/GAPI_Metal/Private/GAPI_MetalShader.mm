@@ -11,13 +11,14 @@ namespace cube
 {
     namespace gapi
     {
-        MetalShader::MetalShader(const MetalShaderCompileResult& result, StringView warningMessage, StringView errorMessage) :
+        MetalShader::MetalShader(const MetalShaderCompileResult& result, StringView warningMessage, StringView errorMessage, Vector<String>&& dependencyFilePaths) :
             mLibrary(result.library),
             mFunction(result.function)
         {
             mCreated = result.function != nil;
             mWarningMessage = warningMessage;
             mErrorMessage = errorMessage;
+            mDependencyFilePaths = std::move(dependencyFilePaths);
 
             const ShaderReflection& reflection = result.reflection;
             mThreadGroupSizeX = reflection.threadGroupSizeX;

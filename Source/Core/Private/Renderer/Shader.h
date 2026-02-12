@@ -28,7 +28,7 @@ namespace cube
     {
         bool isGeneratedShader = false;
         String path;
-        Time lastModifiedTimes;
+        Time lastModifiedTimes = 0;
     };
 
     class Shader
@@ -68,6 +68,7 @@ namespace cube
             gapi::ShaderLanguage language;
 
             Vector<ShaderFileInfo> fileInfos;
+            Vector<ShaderFileInfo> dependencyFileInfos;
             String materialShaderCode;
             AnsiString entryPoint;
 
@@ -77,6 +78,7 @@ namespace cube
 
         SharedPtr<gapi::Shader> mRecompiledGAPIShader;
         Vector<ShaderFileInfo> mRecompiledShaderFileInfos;
+        Vector<ShaderFileInfo> mRecompiledDependencyFileInfos;
         int mRecompileCount;
     };
 

@@ -14,7 +14,7 @@ namespace cube
         class DX12Shader : public Shader, public DX12APIObject
         {
         public:
-            DX12Shader(DX12ShaderCompilerResult&& result, StringView warningMessage, StringView errorMessage);
+            DX12Shader(DX12ShaderCompilerResult&& result, StringView warningMessage, StringView errorMessage, Vector<String>&& dependencyFilePaths);
             virtual ~DX12Shader();
 
             BlobView GetShader() const { return mShader; }

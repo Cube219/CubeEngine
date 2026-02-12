@@ -266,6 +266,38 @@ namespace cube
 
         compileResult.isSuccess = true;
 
+        // Collect dependency file paths from all loaded modules.
+        {
+            SlangInt moduleCount = session->getLoadedModuleCount();
+            for (SlangInt moduleIndex = 0; moduleIndex < moduleCount; ++moduleIndex)
+            {
+                slang::IModule* loadedModule = session->getLoadedModule(moduleIndex);
+                SlangInt32 dependencyFileCount = loadedModule->getDependencyFileCount();
+                for (SlangInt32 i = 0; i < dependencyFileCount; ++i)
+                {
+                    const char* dependencyFilePath = loadedModule->getDependencyFilePath(i);
+                    if (dependencyFilePath && dependencyFilePath[0] != '\0')
+                    {
+                        String dependencyFilePathStr = String_Convert<String>(AnsiStringView(dependencyFilePath));
+                        // Deduplicate
+                        bool isExisted = false;
+                        for (const String& existing : compileResult.dependencyFilePaths)
+                        {
+                            if (existing == dependencyFilePathStr)
+                            {
+                                isExisted = true;
+                                break;
+                            }
+                        }
+                        if (!isExisted)
+                        {
+                            compileResult.dependencyFilePaths.push_back(std::move(dependencyFilePathStr));
+                        }
+                    }
+                }
+            }
+        }
+
         if (pReflection)
         {
             GetReflection(info, linkedProgram, *pReflection);

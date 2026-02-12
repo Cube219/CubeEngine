@@ -175,9 +175,7 @@ namespace cube
 
         if (ImGui::Button("RecompileShader"))
         {
-            // Currently force recompile all shaders because the engine does not know imported file
-            // has been changed.
-            mShaderManager.RecompileShaders(true);
+            mShaderManager.RecompileShaders(false);
         }
 
         ImGui::End();

@@ -47,6 +47,38 @@ namespace cube
         }
     }
 
+    static FrameVector<ShaderFileInfo> GetDependencyFileInfos(ArrayView<const String> dependencyFilePaths, ArrayView<const ShaderFileInfo> excludeFileInfos)
+    {
+        FrameVector<ShaderFileInfo> dependencyFileInfos;
+
+        for (const String& dependencyFilePath : dependencyFilePaths)
+        {
+            bool isExcluded = false;
+            for (const ShaderFileInfo& excludeFileInfo : excludeFileInfos)
+            {
+                if (dependencyFilePath == excludeFileInfo.path)
+                {
+                    isExcluded = true;
+                    break;
+                }
+            }
+            if (isExcluded)
+            {
+                continue;
+            }
+
+            ShaderFileInfo fileInfo;
+            fileInfo.path = dependencyFilePath;
+            if (SharedPtr<platform::File> depFile = platform::FileSystem::OpenFile(dependencyFilePath, platform::FileAccessModeFlag::Read))
+            {
+                fileInfo.lastModifiedTimes = depFile->GetWriteTime();
+            }
+            dependencyFileInfos.push_back(std::move(fileInfo));
+        }
+
+        return dependencyFileInfos;
+    }
+
     String Shader::GetFilePathsString() const
     {
         String result;
@@ -105,6 +137,9 @@ namespace cube
         mMetaData.entryPoint = createInfo.entryPoint;
         mMetaData.debugName = createInfo.debugName;
 
+        FrameVector<ShaderFileInfo> dependencyFileInfos = GetDependencyFileInfos(mGAPIShader->GetDependencyFilePaths(), mMetaData.fileInfos);
+        mMetaData.dependencyFileInfos = { dependencyFileInfos.begin(), dependencyFileInfos.end() };
+
         mRecompiledGAPIShader = nullptr;
         mRecompileCount = 0;
     }
@@ -136,6 +171,13 @@ namespace cube
         FrameVector<ShaderFileInfo> shaderFileInfos;
         GetShaderFileInfosAndCodes(shaderFilePaths, mMetaData.materialShaderCode, shaderFileInfos, shaderCodes);
 
+        FrameVector<String> dependencyFilePaths;
+        for (const ShaderFileInfo& dependencyFileInfo : mMetaData.dependencyFileInfos)
+        {
+            dependencyFilePaths.push_back(dependencyFileInfo.path);
+        }
+        FrameVector<ShaderFileInfo> dependencyFileInfos = GetDependencyFileInfos(dependencyFilePaths, shaderFileInfos);
+
         bool hasNotOpen = false;
         for (const Blob& shaderCode : shaderCodes)
         {
@@ -143,7 +185,6 @@ namespace cube
             {
                 hasNotOpen = true;
                 break;
-                
             }
         }
         if (hasNotOpen)
@@ -166,22 +207,37 @@ namespace cube
             return RecompileResult::Unmodified;
         }
         CHECK(shaderFileInfos.size() == mMetaData.fileInfos.size());
+        CHECK(dependencyFileInfos.size() == mMetaData.dependencyFileInfos.size());
 
         bool hasModified = force ? true : false;
-        for (int i = 0; i < shaderFileInfos.size(); ++i)
+        if (!hasModified)
         {
-            const ShaderFileInfo& shaderFileInfo = shaderFileInfos[i];
-
-            if (shaderFileInfo.lastModifiedTimes != mMetaData.fileInfos[i].lastModifiedTimes)
+            for (int i = 0; i < shaderFileInfos.size(); ++i)
             {
-                hasModified = true;
-            }
+                const ShaderFileInfo& shaderFileInfo = shaderFileInfos[i];
 
-            if (hasModified)
-            {
-                break;
+                if (shaderFileInfo.lastModifiedTimes != mMetaData.fileInfos[i].lastModifiedTimes)
+                {
+                    hasModified = true;
+                    break;
+                }
             }
         }
+        // Also check dependency files.
+        if (!hasModified)
+        {
+            for (int i = 0; i < dependencyFileInfos.size(); ++i)
+            {
+                const ShaderFileInfo& dependencyFileInfo = dependencyFileInfos[i];
+
+                if (dependencyFileInfo.lastModifiedTimes != mMetaData.dependencyFileInfos[i].lastModifiedTimes)
+                {
+                    hasModified = true;
+                    break;
+                }
+            }
+        }
+
         if (!hasModified)
         {
             return RecompileResult::Unmodified;
@@ -219,6 +275,7 @@ namespace cube
 
         mRecompileCount++;
         mRecompiledShaderFileInfos = { shaderFileInfos.begin(), shaderFileInfos.end() };
+        mRecompiledDependencyFileInfos = { dependencyFileInfos.begin(), dependencyFileInfos.end() };
 
         return RecompileResult::Success;
     }
@@ -233,15 +290,18 @@ namespace cube
 
         CHECK(mMetaData.fileInfos.size() == mRecompiledShaderFileInfos.size());
         mMetaData.fileInfos = mRecompiledShaderFileInfos;
+        mMetaData.dependencyFileInfos = mRecompiledDependencyFileInfos;
         mGAPIShader = mRecompiledGAPIShader;
 
         mRecompiledShaderFileInfos.clear();
+        mRecompiledDependencyFileInfos.clear();
         mRecompiledGAPIShader = nullptr;
     }
 
     void Shader::DiscardRecompiledShader()
     {
         mRecompiledShaderFileInfos.clear();
+        mRecompiledDependencyFileInfos.clear();
         mRecompiledGAPIShader = nullptr;
     }
 
