@@ -470,6 +470,7 @@ Binaries/
 Resources/Models/*
 !Resources/Models/FetchDefaultModels.bat
 !Resources/Models/FetchDefaultModels.sh
+!Resources/Models/FetchDefaultModels.ps1
 !Resources/Models/FetchglTFSampleAssets.bat
 !Resources/Models/FetchglTFSampleAssets.sh
 

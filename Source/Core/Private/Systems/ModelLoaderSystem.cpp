@@ -163,8 +163,8 @@ namespace cube
         FrameString objBasePath = FrameString(Engine::GetRootDirectoryPath()) + CUBE_T("/Resources/Models/DefaultModels/");
         static const Character* objLoadModels[] = {
             CUBE_T("CornellBox"),
-            CUBE_T("fireplace_room"),
-            CUBE_T("living_room"),
+            CUBE_T("FireplaceRoom"),
+            CUBE_T("LivingRoom"),
         };
         Vector<String> objList = platform::FileSystem::GetList(objBasePath);
         for (const Character* modelName : objLoadModels)
