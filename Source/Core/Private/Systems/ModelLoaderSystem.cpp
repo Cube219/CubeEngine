@@ -67,6 +67,9 @@ namespace cube
                     case ModelType::glTF:
                         ImGui::SeparatorText("glTF Sample Asset");
                         break;
+                    case ModelType::Obj:
+                        ImGui::SeparatorText("Obj (DefaultModels)");
+                        break;
                     }
 
                     currentType = info.type;
@@ -115,6 +118,8 @@ namespace cube
         {
         case ModelType::glTF:
             return LoadModel_glTF(pathInfo);
+        case ModelType::Obj:
+            return LoadModel_Obj(pathInfo);
         default:
             NOT_IMPLEMENTED();
         }
@@ -127,6 +132,7 @@ namespace cube
     {
         mModelPathList.clear();
 
+        // glTF models.
         FrameString resourceBasePath = FrameString(Engine::GetRootDirectoryPath()) + CUBE_T("/Resources/Models/glTFSampleAssets/Models/");
         static const Character* gltfLoadModels[] = {
             CUBE_T("DamagedHelmet"),
@@ -155,6 +161,36 @@ namespace cube
                     .type = ModelType::glTF,
                     .name = String_Convert<AnsiString>(e),
                     .path = Format<String>(CUBE_T("{0}/{1}/glTF/{1}.gltf"), resourceBasePath, e)
+                });
+            }
+        }
+
+        // obj models.
+        FrameString objBasePath = FrameString(Engine::GetRootDirectoryPath()) + CUBE_T("/Resources/Models/DefaultModels/");
+        static const Character* objLoadModels[] = {
+            CUBE_T("CornellBox"),
+            CUBE_T("fireplace_room"),
+            CUBE_T("living_room"),
+        };
+        Vector<String> objList = platform::FileSystem::GetList(objBasePath);
+        for (const String& e : objList)
+        {
+            bool contained = false;
+            for (const Character* modelName : objLoadModels)
+            {
+                if (e == modelName)
+                {
+                    contained = true;
+                    break;
+                }
+            }
+
+            if (contained)
+            {
+                mModelPathList.push_back({
+                    .type = ModelType::Obj,
+                    .name = String_Convert<AnsiString>(e),
+                    .path = Format<String>(CUBE_T("{0}{1}"), objBasePath, e)
                 });
             }
         }
@@ -196,7 +232,7 @@ namespace cube
             return {};
         }
 
-        FrameString pathInfoName = String_Convert<FrameString>(pathInfo.name);
+        FrameString modelName = String_Convert<FrameString>(pathInfo.name);
 
         // Load meshes
         FrameVector<Vertex> vertices;
@@ -264,7 +300,7 @@ namespace cube
                     .indexOffset = indexOffset,
                     .numIndices = numIndices,
                     .materialIndex = prim.material,
-                    .debugName = String_Convert<String>(mesh.name)
+                    .debugName = Format<String>(CUBE_T("[{0}] {1}"), modelName, mesh.name)
                 });
 
                 vertices.insert(vertices.end(), numVertices, {});
@@ -486,9 +522,9 @@ namespace cube
 
         for (const tinygltf::Material& gltfMaterial : model.materials)
         {
-            auto LoadTexture = [&model, &pathInfoName](const Character* textureName, int textureIndex) -> SharedPtr<TextureResource>
+            auto LoadTexture = [&model, &modelName](const Character* textureName, int textureIndex) -> SharedPtr<TextureResource>
             {
-                FrameString debugName = Format<FrameString>(CUBE_T("[{0}({1})] Texture"), pathInfoName, textureName);
+                FrameString debugName = Format<FrameString>(CUBE_T("[{0}] {1}"), modelName, textureName);
 
                 if (textureIndex == -1)
                 {
@@ -507,8 +543,8 @@ namespace cube
                     CUBE_LOG(Warning, ModelLoaderSystem, "Cannot load {0}: empty image data", debugName);
                     return nullptr;
                 }
-                // Append file name
-                debugName = Format<FrameString>(CUBE_T("{0} ({1})"), debugName, image.uri);
+                // Append file path.
+                debugName = Format<FrameString>(CUBE_T("{0}({1})"), debugName, image.uri);
 
                 gapi::ElementFormat format = gapi::ElementFormat::Unknown;
                 if (image.component == 4)
@@ -543,7 +579,7 @@ namespace cube
                 return texture;
             };
 
-            FrameString materialName = Format<FrameString>(CUBE_T("{0}({1})"), pathInfoName, gltfMaterial.name);
+            FrameString materialName = Format<FrameString>(CUBE_T("[{0}] {1}"), modelName, gltfMaterial.name);
             materials.push_back(std::make_shared<Material>(materialName));
 
             // TODO: Remove duplication - check the image is used first
@@ -573,7 +609,274 @@ namespace cube
         }
 
         ModelResources loadedResources = {
-            .mesh = std::make_shared<MeshData>(vertices, indices, subMeshes, pathInfoName),
+            .mesh = std::make_shared<MeshData>(vertices, indices, subMeshes, modelName),
+            .materials = std::move(materials)
+        };
+
+        return loadedResources;
+    }
+
+    ModelResources ModelLoaderSystem::LoadModel_Obj(const ModelPathInfo& pathInfo)
+    {
+        FrameString modelName = String_Convert<FrameString>(pathInfo.name);
+
+        // Collect all .obj files in the path.
+        Vector<String> fileList = platform::FileSystem::GetList(pathInfo.path);
+        Vector<String> objFiles;
+        for (const String& file : fileList)
+        {
+            if (file.size() >= 4 && file.substr(file.size() - 4) == CUBE_T(".obj"))
+            {
+                objFiles.push_back(file);
+            }
+        }
+
+        if (objFiles.empty())
+        {
+            CUBE_LOG(Error, ModelLoaderSystem, "No .obj files found in folder: {0}", modelName);
+            return {};
+        }
+
+        FrameVector<Vertex> vertices;
+        FrameVector<Index> indices;
+        FrameVector<SubMesh> subMeshes;
+        Vector<SharedPtr<Material>> materials;
+
+        for (const String& objFile : objFiles)
+        {
+            AnsiString objFilePathAnsi = Format<AnsiString>("{0}/{1}", pathInfo.path, objFile);
+
+            tinyobj::ObjReaderConfig readerConfig;
+            tinyobj::ObjReader reader;
+            if (!reader.ParseFromFile(objFilePathAnsi, readerConfig))
+            {
+                if (!reader.Error().empty())
+                {
+                    CUBE_LOG(Error, ModelLoaderSystem, "Failed to load obj file: {0}", reader.Error());
+                }
+                continue;
+            }
+
+            if (!reader.Warning().empty())
+            {
+                CUBE_LOG(Warning, ModelLoaderSystem, "Warning while loading obj: {0}", reader.Warning());
+            }
+
+            const tinyobj::attrib_t& attrib = reader.GetAttrib();
+            const std::vector<tinyobj::shape_t>& objShapes = reader.GetShapes();
+            const std::vector<tinyobj::material_t>& objMaterials = reader.GetMaterials();
+
+            // Load meshes.
+            const int materialOffset = static_cast<int>(materials.size());
+
+            // tinyobj loads vertex attributes in each separated buffer. (SoA)
+            // To convert AoS, add vertex based on each index keys.
+            struct IndexKey
+            {
+                int vertexIndex;
+                int normalIndex;
+                int texcoordIndex;
+
+                bool operator<(const IndexKey& rhs) const
+                {
+                    if (vertexIndex != rhs.vertexIndex) return vertexIndex < rhs.vertexIndex;
+                    if (normalIndex != rhs.normalIndex) return normalIndex < rhs.normalIndex;
+                    return texcoordIndex < rhs.texcoordIndex;
+                }
+            };
+
+            for (const tinyobj::shape_t& objShape : objShapes)
+            {
+                const tinyobj::mesh_t& objMesh = objShape.mesh;
+
+                // Split faces into submeshes by material id.
+                const Uint32 numFaces = static_cast<Uint32>(objMesh.num_face_vertices.size());
+                Vector<Uint32> faceObjIndexOffsets(numFaces);
+                {
+                    Uint32 offset = 0;
+                    for (Uint32 f = 0; f < numFaces; ++f)
+                    {
+                        faceObjIndexOffsets[f] = offset;
+                        offset += objMesh.num_face_vertices[f];
+                    }
+                }
+
+                Map<int, Vector<Uint32>> facesByObjMaterial;
+                for (Uint32 f = 0; f < numFaces; ++f)
+                {
+                    int matId = objMesh.material_ids[f];
+                    facesByObjMaterial[matId].push_back(f);
+                }
+
+                int subMeshIndexPerShape = 0;
+                for (const auto& [matId, faces] : facesByObjMaterial)
+                {
+                    const Uint64 vertexOffset = vertices.size();
+                    const Uint64 indexOffset = indices.size();
+
+                    Map<IndexKey, Uint32> vertexMap;
+                    bool hasNormals = true;
+
+                    for (Uint32 f : faces)
+                    {
+                        Uint32 faceVertexCount = objShape.mesh.num_face_vertices[f];
+                        Uint32 faceObjIndexOffset = faceObjIndexOffsets[f];
+
+                        if (faceVertexCount != 3)
+                        {
+                            CUBE_LOG(Warning, ModelLoaderSystem, "Only 3 vertices supported. ({0}) Ignore that face.", faceVertexCount);
+                            continue;
+                        }
+
+                        for (Uint32 v = 0; v < faceVertexCount; ++v)
+                        {
+                            const tinyobj::index_t& idx = objShape.mesh.indices[faceObjIndexOffset + v];
+                            IndexKey key = { idx.vertex_index, idx.normal_index, idx.texcoord_index };
+
+                            auto findIter = vertexMap.find(key);
+                            if (findIter == vertexMap.end())
+                            {
+                                Vertex vertex = {};
+
+                                if (idx.vertex_index != -1)
+                                {
+                                    vertex.position = {
+                                        attrib.vertices[3 * idx.vertex_index + 0],
+                                        attrib.vertices[3 * idx.vertex_index + 1],
+                                        attrib.vertices[3 * idx.vertex_index + 2]
+                                    };
+                                }
+
+                                if (idx.normal_index != -1)
+                                {
+                                    vertex.normal = {
+                                        attrib.normals[3 * idx.normal_index + 0],
+                                        attrib.normals[3 * idx.normal_index + 1],
+                                        attrib.normals[3 * idx.normal_index + 2]
+                                    };
+                                }
+                                else
+                                {
+                                    hasNormals = false;
+                                }
+
+                                if (idx.texcoord_index != -1)
+                                {
+                                    vertex.uv = {
+                                        attrib.texcoords[2 * idx.texcoord_index + 0],
+                                        attrib.texcoords[2 * idx.texcoord_index + 1]
+                                    };
+                                }
+
+                                findIter = vertexMap.insert({key, static_cast<Uint32>(vertices.size())}).first;
+                                vertices.push_back(vertex);
+                            }
+                            indices.push_back(findIter->second - static_cast<Uint32>(vertexOffset));
+                        }
+                    }
+
+                    const Uint64 numIndices = indices.size() - indexOffset;
+
+                    subMeshes.push_back({
+                        .vertexOffset = vertexOffset,
+                        .indexOffset = indexOffset,
+                        .numIndices = numIndices,
+                        .materialIndex = (matId >= 0) ? (matId + materialOffset) : -1,
+                        .debugName = Format<String>(CUBE_T("[{0}] {1}_{2} ({3})"), modelName, objShape.name, subMeshIndexPerShape, objFile)
+                    });
+                    subMeshIndexPerShape++;
+
+                    Uint64 submeshVertexCount = vertices.size() - vertexOffset;
+                    if (!hasNormals)
+                    {
+                        CUBE_LOG(Info, ModelLoaderSystem, "No normal data found in obj shape '{0}'. Calculating normals.", objShape.name);
+                        MeshHelper::SetNormalVector(ArrayView(vertices.begin() + vertexOffset, submeshVertexCount), ArrayView(indices.begin() + indexOffset, numIndices));
+                    }
+                    MeshHelper::SetApproxTangentVector(ArrayView(vertices.begin() + vertexOffset, submeshVertexCount));
+                }
+            }
+
+            // Load materials.
+            for (const tinyobj::material_t& objMaterial : objMaterials)
+            {
+                FrameString materialName = Format<FrameString>(CUBE_T("{0}({1})"), modelName, objMaterial.name);
+                SharedPtr<Material> material = std::make_shared<Material>(materialName);
+
+                material->SetBaseColor(Vector4(objMaterial.diffuse[0], objMaterial.diffuse[1], objMaterial.diffuse[2], 1.0f));
+
+                auto LoadTexture = [&modelName, &pathInfo](const Character* textureName, AnsiStringView objTextureName) -> SharedPtr<TextureResource>
+                {
+                    // Normalize backslashes to forward slashes for cross-platform
+                    AnsiString objTextureNameAnsi = AnsiString(objTextureName);
+                    for (char& c : objTextureNameAnsi)
+                    {
+                        if (c == '\\')
+                        {
+                            c = '/';
+                        }
+                    }
+                    AnsiString texturePath = Format<AnsiString>("{0}/{1}", pathInfo.path, objTextureNameAnsi);
+
+                    int width, height, channels;
+                    unsigned char* imageData = stbi_load(texturePath.data(), &width, &height, &channels, 4);
+                    if (imageData)
+                    {
+                        FrameString debugName = Format<FrameString>(CUBE_T("[{0}] {1} ({2})"), modelName, textureName, objTextureNameAnsi);
+
+                        TextureResourceCreateInfo createInfo = {
+                            .type = gapi::TextureType::Texture2D,
+                            .format = gapi::ElementFormat::RGBA8_UNorm,
+                            .width = static_cast<Uint32>(width),
+                            .height = static_cast<Uint32>(height),
+                            .data = BlobView(imageData, static_cast<Uint64>(width) * height * 4),
+                            .bytesPerElement = 4,
+                            .generateMipMaps = true,
+                            .debugName = debugName
+                        };
+                        SharedPtr<TextureResource> texture = std::make_shared<TextureResource>(createInfo);
+                        stbi_image_free(imageData);
+
+                        return texture;
+                    }
+                    else
+                    {
+                        CUBE_LOG(Warning, ModelLoaderSystem, "Failed to load texture: {0}", texturePath);
+                        return nullptr;
+                    }
+                };
+
+                FrameString channelMappingCode;
+                if (!objMaterial.diffuse_texname.empty())
+                {
+                    material->SetTexture(0, LoadTexture(CUBE_T("baseColorTexture"), objMaterial.diffuse_texname));
+                    channelMappingCode += CUBE_T("value.albedo = materialData.textureSlot0.Sample(input.uv).rgb;\n");
+                }
+                if (!objMaterial.metallic_texname.empty())
+                {
+                    material->SetTexture(1, LoadTexture(CUBE_T("normalTexture"), objMaterial.metallic_texname));
+                    channelMappingCode += CUBE_T("float t1 = materialData.textureSlot1.Sample(input.uv).r;\n");
+                    channelMappingCode += CUBE_T("value.metallic = t1;\n");
+                }
+                if (!objMaterial.roughness_texname.empty())
+                {
+                    material->SetTexture(2, LoadTexture(CUBE_T("roughnessTexture"), objMaterial.roughness_texname));
+                    channelMappingCode += CUBE_T("float t2 = materialData.textureSlot2.Sample(input.uv).r;\n");
+                    channelMappingCode += CUBE_T("value.roughness = t2;\n");
+                }
+                if (!objMaterial.normal_texname.empty())
+                {
+                    material->SetTexture(3, LoadTexture(CUBE_T("normalTexture"), objMaterial.normal_texname));
+                    channelMappingCode += CUBE_T("float3 t3 = normalize(materialData.textureSlot3.Sample(input.uv).rgb * 2.0f - 1.0f);\n");
+                    channelMappingCode += CUBE_T("value.normal = t3;\n");
+                }
+                material->SetChannelMappingCode(channelMappingCode);
+
+                materials.push_back(material);
+            }
+        }
+
+        ModelResources loadedResources = {
+            .mesh = std::make_shared<MeshData>(vertices, indices, subMeshes, modelName),
             .materials = std::move(materials)
         };
 

@@ -11,7 +11,8 @@ namespace cube
 
     enum class ModelType
     {
-        glTF
+        glTF,
+        Obj
     };
 
     struct ModelPathInfo
@@ -45,6 +46,7 @@ namespace cube
         static void LoadCurrentModelAndSet();
 
         static ModelResources LoadModel_glTF(const ModelPathInfo& pathInfo);
+        static ModelResources LoadModel_Obj(const ModelPathInfo& pathInfo);
 
         static void UpdateModelMatrix();
         static void ResetModelScale();
