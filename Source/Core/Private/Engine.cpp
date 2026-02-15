@@ -53,7 +53,7 @@ namespace cube
                 colorCategory = platform::PrintColorCategory::Default;
                 break;
             }
-            platform::PlatformDebug::PrintToDebugConsole(formattedLog, colorCategory);
+            platform::Debug::PrintToDebugConsole(formattedLog, colorCategory);
         }
     };
 
@@ -62,14 +62,14 @@ namespace cube
     public:
         void ProcessFailedCheck(const char* fullFileName, int lineNum, StringView exprAndMsg) override
         {
-            String stackTrace = platform::PlatformDebug::DumpStackTrace();
+            String stackTrace = platform::Debug::DumpStackTrace();
             const char* fileName = platform::FileSystem::SplitFileNameFromFullPath(fullFileName);
 
             String formattedMsg = Format(CUBE_T("Check failed!\n\n{0}\n    In {1}:{2}\n    {3}"), stackTrace, fileName, lineNum, exprAndMsg);
             Logger::WriteLogFormatting(LogType::Error, fullFileName, lineNum, CUBE_T("Checker"), formattedMsg);
 
-            Checker::SetIsDebuggerAttached(platform::PlatformDebug::IsDebuggerAttached());
-            platform::PlatformDebug::ProcessFailedCheck(fileName, lineNum, formattedMsg);
+            Checker::SetIsDebuggerAttached(platform::Debug::IsDebuggerAttached());
+            platform::Debug::ProcessFailedCheck(fileName, lineNum, formattedMsg);
         }
     };
 

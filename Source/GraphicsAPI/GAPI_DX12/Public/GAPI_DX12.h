@@ -4,14 +4,11 @@
 
 #include "GAPI.h"
 
+#include "DLib.h"
 #include "DX12Device.h"
 
 namespace cube
 {
-    namespace platform
-    {
-        class DLib;
-    } // namespace platform
 
     extern "C" CUBE_DX12_EXPORT GAPI* CreateGAPI();
 

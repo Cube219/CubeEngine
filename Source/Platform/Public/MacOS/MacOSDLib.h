@@ -9,19 +9,25 @@ namespace cube
 {
     namespace platform
     {
-        class MacOSDLib : public DLib
+        class MacOSDLib : public BaseDLib
         {
+            // === Base member functions ===
+        public:
+            void* GetFunction(StringView name);
+            // === Base member functions ===
+
+#ifdef __OBJC__
         public:
             MacOSDLib(StringView path);
             ~MacOSDLib();
-
-            void* GetFunctionImpl(StringView name);
 
             void* GetHandle() const { return mHandle; }
 
         private:
             void* mHandle;
+#endif // __OBJC__
         };
+        using DLib = MacOSDLib;
     } // namespace platform
 } // namespace cube
 

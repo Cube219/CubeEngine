@@ -2,7 +2,6 @@
 #ifdef CUBE_PLATFORM_WINDOWS
 
 #include "PlatformHeader.h"
-
 #include "PlatformDebug.h"
 
 #include "WindowsString.h"
@@ -11,24 +10,28 @@ namespace cube
 {
     namespace platform
     {
-        class WindowsDebug : public PlatformDebug
+        class CUBE_PLATFORM_EXPORT WindowsDebug : public BaseDebug
         {
+            // === Base member functions ===
         public:
-            static void PrintToDebugConsoleImpl(StringView str, PrintColorCategory colorCategory);
+            static void PrintToDebugConsole(StringView str, PrintColorCategory colorCategory = PrintColorCategory::Default);
 
-            static void ProcessFatalErrorImpl(StringView msg);
+            static void ProcessFatalError(StringView msg);
 
-            static void ProcessFailedCheckImpl(const char* fileName, int lineNum, StringView formattedMsg);
+            static void ProcessFailedCheck(const char* fileName, int lineNum, StringView formattedMsg);
 
-            static String DumpStackTraceImpl(bool removeBeforeProjectFolderPath);
+            static String DumpStackTrace(bool removeBeforeProjectFolderPath = true);
 
-            static bool IsDebuggerAttachedImpl();
+            static bool IsDebuggerAttached();
+            // === Base member functions ===
 
+        public:
             static void CreateAndShowLoggerWindow();
 
         private:
             static void ShowDebugMessageBox(const WindowsString& title, const WindowsString& msg);
         };
+        using Debug = WindowsDebug;
     } // namespace platform
 } // namespace cube
 

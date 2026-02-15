@@ -11,8 +11,6 @@ namespace cube
 {
     namespace platform
     {
-        FILE_CLASS_DEFINITIONS(WindowsFile)
-
         WindowsFile::WindowsFile(HANDLE fileHandle) :
             mFileHandle(fileHandle)
         {}
@@ -22,7 +20,7 @@ namespace cube
             CloseHandle(mFileHandle);
         }
 
-        Uint64 WindowsFile::GetFileSizeImpl() const
+        Uint64 WindowsFile::GetFileSize() const
         {
             LARGE_INTEGER size_LI;
             BOOL res = GetFileSizeEx(mFileHandle, &size_LI);
@@ -31,7 +29,7 @@ namespace cube
             return size_LI.QuadPart;
         }
 
-        Time WindowsFile::GetWriteTimeImpl() const
+        Time WindowsFile::GetWriteTime() const
         {
             FILETIME writeTime;
 
@@ -43,7 +41,7 @@ namespace cube
             return (high << (sizeof(DWORD) * 8)) | low;
         }
 
-        void WindowsFile::SetFilePointerImpl(Uint64 offset)
+        void WindowsFile::SetFilePointer(Uint64 offset)
         {
             LARGE_INTEGER distance_LI;
             distance_LI.QuadPart = offset;
@@ -52,7 +50,7 @@ namespace cube
             CHECK_FORMAT(res, "Failed to set file pointer. (ErrorCode: {0})", GetLastError());
         }
 
-        void WindowsFile::MoveFilePointerImpl(Int64 distance)
+        void WindowsFile::MoveFilePointer(Int64 distance)
         {
             LARGE_INTEGER distance_LI;
             distance_LI.QuadPart = distance;
@@ -61,7 +59,7 @@ namespace cube
             CHECK_FORMAT(res, "Failed to move file pointer. (ErrorCode: {0})", GetLastError());
         }
 
-        Uint64 WindowsFile::ReadImpl(void* pReadBuffer, Uint64 bufferSizeToRead)
+        Uint64 WindowsFile::Read(void* pReadBuffer, Uint64 bufferSizeToRead)
         {
             DWORD readBufferSize;
 
@@ -71,16 +69,14 @@ namespace cube
             return readBufferSize;
         }
 
-        void WindowsFile::WriteImpl(void* pWriteBuffer, Uint64 bufferSize)
+        void WindowsFile::Write(void* pWriteBuffer, Uint64 bufferSize)
         {
             DWORD writtenSize;
             BOOL res = WriteFile(mFileHandle, pWriteBuffer, (DWORD)bufferSize, &writtenSize, nullptr);
             CHECK_FORMAT(res, "Failed to write the file. (ErrorCode: {0})", GetLastError());
         }
 
-        FILE_SYSTEM_CLASS_DEFINITIONS(WindowsFileSystem)
-
-        bool WindowsFileSystem::IsExistImpl(StringView path)
+        bool WindowsFileSystem::IsExist(StringView path)
         {
             WindowsString WinPath = String_Convert<WindowsString>(path);
 
@@ -88,7 +84,7 @@ namespace cube
             return res != INVALID_FILE_ATTRIBUTES;
         }
 
-        bool WindowsFileSystem::IsDirectoryImpl(StringView path)
+        bool WindowsFileSystem::IsDirectory(StringView path)
         {
             WindowsString WinPath = String_Convert<WindowsString>(path);
 
@@ -96,7 +92,7 @@ namespace cube
             return res != INVALID_FILE_ATTRIBUTES && !!(res & FILE_ATTRIBUTE_DIRECTORY);
         }
 
-        bool WindowsFileSystem::IsFileImpl(StringView path)
+        bool WindowsFileSystem::IsFile(StringView path)
         {
             WindowsString WinPath = String_Convert<WindowsString>(path);
 
@@ -104,7 +100,7 @@ namespace cube
             return res != INVALID_FILE_ATTRIBUTES && !(res & FILE_ATTRIBUTE_DIRECTORY);
         }
 
-        Vector<String> WindowsFileSystem::GetListImpl(StringView directoryPath)
+        Vector<String> WindowsFileSystem::GetList(StringView directoryPath)
         {
             Vector<String> res;
 
@@ -124,7 +120,7 @@ namespace cube
             return res;
         }
 
-        String WindowsFileSystem::GetCurrentDirectoryPathImpl()
+        String WindowsFileSystem::GetCurrentDirectoryPath()
         {
             DWORD len = GetCurrentDirectory(0, NULL);
             WindowsString winPath;
@@ -142,12 +138,12 @@ namespace cube
             }
         }
 
-        Character WindowsFileSystem::GetSeparatorImpl()
+        Character WindowsFileSystem::GetSeparator()
         {
             return CUBE_T('\\');
         }
 
-        SharedPtr<File> WindowsFileSystem::OpenFileImpl(StringView path, FileAccessModeFlags accessModeFlags, bool createIfNotExist)
+        SharedPtr<WindowsFile> WindowsFileSystem::OpenFile(StringView path, FileAccessModeFlags accessModeFlags, bool createIfNotExist)
         {
             DWORD desiredAccess = GetDwDesiredAccess(accessModeFlags);
             WindowsString pPath = String_Convert<WindowsString>(path);
@@ -174,9 +170,9 @@ namespace cube
             return nullptr;
         }
 
-        const char* WindowsFileSystem::SplitFileNameFromFullPathImpl(const char* fullPath)
+        const char* WindowsFileSystem::SplitFileNameFromFullPath(const char* fullPath)
         {
-            const char* lastSeparator = strrchr(fullPath, GetSeparatorImpl());
+            const char* lastSeparator = strrchr(fullPath, GetSeparator());
 
             if (lastSeparator != nullptr)
             {

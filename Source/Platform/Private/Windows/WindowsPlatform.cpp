@@ -13,19 +13,17 @@ namespace cube
 {
     namespace platform
     {
-        Event<void(KeyCode)> Platform::mKeyDownEvent;
-        Event<void(KeyCode)> Platform::mKeyUpEvent;
-        Event<void(MouseButton)> Platform::mMouseDownEvent;
-        Event<void(MouseButton)> Platform::mMouseUpEvent;
-        Event<void(int)> Platform::mMouseWheelEvent;
-        Event<void(Int32, Int32)> Platform::mMousePositionEvent;
+        Event<void(KeyCode)> BasePlatform::mKeyDownEvent;
+        Event<void(KeyCode)> BasePlatform::mKeyUpEvent;
+        Event<void(MouseButton)> BasePlatform::mMouseDownEvent;
+        Event<void(MouseButton)> BasePlatform::mMouseUpEvent;
+        Event<void(int)> BasePlatform::mMouseWheelEvent;
+        Event<void(Int32, Int32)> BasePlatform::mMousePositionEvent;
 
-        Event<void()> Platform::mLoopEvent;
-        Event<void(Uint32, Uint32)> Platform::mResizeEvent;
-        Event<void(WindowActivatedState)> Platform::mActivatedEvent;
-        Event<void()> Platform::mClosingEvent;
-
-        PLATFORM_CLASS_DEFINITIONS(WindowsPlatform)
+        Event<void()> BasePlatform::mLoopEvent;
+        Event<void(Uint32, Uint32)> BasePlatform::mResizeEvent;
+        Event<void(WindowActivatedState)> BasePlatform::mActivatedEvent;
+        Event<void()> BasePlatform::mClosingEvent;
 
         bool WindowsPlatform::mIsFinished = false;
 
@@ -42,7 +40,7 @@ namespace cube
 
         std::function<LRESULT(HWND, UINT, WPARAM, LPARAM)> gImGUIWndProcFunction;
 
-        void WindowsPlatform::InitializeImpl()
+        void WindowsPlatform::Initialize()
         {
             // Show logger window in debug mode
 #ifdef CUBE_DEBUG
@@ -50,7 +48,7 @@ namespace cube
 #endif // CUBE_DEBUG
         }
 
-        void WindowsPlatform::ShutdownImpl()
+        void WindowsPlatform::Shutdown()
         {
 #ifdef CUBE_DEBUG
             // Wait console input not to close console immediately
@@ -61,7 +59,7 @@ namespace cube
 #endif // CUBE_DEBUG
         }
 
-        void WindowsPlatform::InitWindowImpl(StringView title, Uint32 width, Uint32 height, Int32 posX, Int32 posY)
+        void WindowsPlatform::InitWindow(StringView title, Uint32 width, Uint32 height, Int32 posX, Int32 posY)
         {
             mWindowTitle = String_Convert<WindowsString>(title);
             mWindowWidth = width;
@@ -90,7 +88,7 @@ namespace cube
             CHECK_FORMAT(res, "Failed to registration while initializing window. (ErrorCode: {0})", GetLastError());
         }
 
-        void WindowsPlatform::ShowWindowImpl()
+        void WindowsPlatform::ShowWindow()
         {
             // Create Window
             RECT rect = { 0, 0, (LONG)mWindowWidth, (LONG)mWindowHeight };
@@ -107,7 +105,7 @@ namespace cube
             CHECK_FORMAT(mWindow, "Failed to create a window. (ErrorCode: {0})", GetLastError());
         }
 
-        void WindowsPlatform::ChangeWindowTitleImpl(StringView title)
+        void WindowsPlatform::ChangeWindowTitle(StringView title)
         {
             mWindowTitle = String_Convert<WindowsString>(title);
 
@@ -117,37 +115,37 @@ namespace cube
             }
         }
 
-        void* WindowsPlatform::AllocateImpl(Uint64 size)
+        void* WindowsPlatform::Allocate(Uint64 size)
         {
             return malloc(size);
         }
 
-        void WindowsPlatform::FreeImpl(void* ptr)
+        void WindowsPlatform::Free(void* ptr)
         {
             free(ptr);
         }
 
-        void* WindowsPlatform::AllocateAlignedImpl(Uint64 size, Uint64 alignment)
+        void* WindowsPlatform::AllocateAligned(Uint64 size, Uint64 alignment)
         {
             return _aligned_malloc(size, alignment);
         }
 
-        void WindowsPlatform::FreeAlignedImpl(void* ptr)
+        void WindowsPlatform::FreeAligned(void* ptr)
         {
             _aligned_free(ptr);
         }
 
-        void WindowsPlatform::SetEngineInitializeFunctionImpl(std::function<void()> function)
+        void WindowsPlatform::SetEngineInitializeFunction(std::function<void()> function)
         {
             // Do nothing
         }
 
-        void WindowsPlatform::SetEngineShutdownFunctionImpl(std::function<void()> function)
+        void WindowsPlatform::SetEngineShutdownFunction(std::function<void()> function)
         {
             // Do nothing
         }
 
-        void WindowsPlatform::StartLoopImpl()
+        void WindowsPlatform::StartLoop()
         {
             MSG msg;
 
@@ -167,17 +165,17 @@ namespace cube
             }
         }
 
-        void WindowsPlatform::FinishLoopImpl()
+        void WindowsPlatform::FinishLoop()
         {
             mIsFinished = true;
         }
 
-        void WindowsPlatform::SleepImpl(float timeSec)
+        void WindowsPlatform::Sleep(float timeSec)
         {
             ::Sleep(timeSec * 1000.0f);
         }
 
-        void WindowsPlatform::ShowCursorImpl()
+        void WindowsPlatform::ShowCursor()
         {
             if (mIsCursorShown == false)
             {
@@ -186,7 +184,7 @@ namespace cube
             }
         }
 
-        void WindowsPlatform::HideCursorImpl()
+        void WindowsPlatform::HideCursor()
         {
             if (mIsCursorShown == true)
             {
@@ -195,7 +193,7 @@ namespace cube
             }
         }
 
-        void WindowsPlatform::MoveCursorImpl(int x, int y)
+        void WindowsPlatform::MoveCursor(int x, int y)
         {
             POINT p;
             p.x = x;
@@ -205,7 +203,7 @@ namespace cube
             SetCursorPos(p.x, p.y);
         }
 
-        void WindowsPlatform::GetCursorPosImpl(int& x, int& y)
+        void WindowsPlatform::GetCursorPos(int& x, int& y)
         {
             POINT p;
             ::GetCursorPos(&p);
@@ -216,27 +214,27 @@ namespace cube
             y = p.y;
         }
 
-        Uint32 WindowsPlatform::GetWindowWidthImpl()
+        Uint32 WindowsPlatform::GetWindowWidth()
         {
             return mWindowWidth;
         }
 
-        Uint32 WindowsPlatform::GetWindowHeightImpl()
+        Uint32 WindowsPlatform::GetWindowHeight()
         {
             return mWindowHeight;
         }
 
-        Int32 WindowsPlatform::GetWindowPositionXImpl()
+        Int32 WindowsPlatform::GetWindowPositionX()
         {
             return mWindowPosX;
         }
 
-        Int32 WindowsPlatform::GetWindowPositionYImpl()
+        Int32 WindowsPlatform::GetWindowPositionY()
         {
             return mWindowPosY;
         }
 
-        SharedPtr<DLib> WindowsPlatform::LoadDLibImpl(StringView path)
+        SharedPtr<WindowsDLib> WindowsPlatform::LoadDLib(StringView path)
         {
             auto res = std::make_shared<WindowsDLib>(path);
             if (res->GetModule() == nullptr)
@@ -304,7 +302,7 @@ namespace cube
                     CUBE_LOG(Error, WindowsPlatform, "Invalid activated state ({0})", s);
                 }
 
-                Platform::GetActivatedEvent().Dispatch(state);
+                BasePlatform::GetActivatedEvent().Dispatch(state);
 
                 isActivatedByMouse = false;
 
@@ -312,7 +310,7 @@ namespace cube
             }
 
             case WM_CLOSE:
-                Platform::GetClosingEvent().Dispatch();
+                BasePlatform::GetClosingEvent().Dispatch();
                 break;
 
             case WM_SIZE:
@@ -321,7 +319,7 @@ namespace cube
                     WindowsPlatform::mWindowWidth = lParam & 0xffff;
                     WindowsPlatform::mWindowHeight = (lParam & 0xffff0000) >> 16;
 
-                    Platform::GetResizeEvent().Dispatch(WindowsPlatform::mWindowWidth, WindowsPlatform::mWindowHeight);
+                    BasePlatform::GetResizeEvent().Dispatch(WindowsPlatform::mWindowWidth, WindowsPlatform::mWindowHeight);
                 }
                 break;
 
@@ -333,33 +331,33 @@ namespace cube
             }
 
             case WM_KEYDOWN:
-                Platform::GetKeyDownEvent().Dispatch(static_cast<KeyCode>(wParam));
+                BasePlatform::GetKeyDownEvent().Dispatch(static_cast<KeyCode>(wParam));
                 break;
             case WM_KEYUP:
-                Platform::GetKeyUpEvent().Dispatch(static_cast<KeyCode>(wParam));
+                BasePlatform::GetKeyUpEvent().Dispatch(static_cast<KeyCode>(wParam));
                 break;
 
             case WM_LBUTTONDOWN:
-                Platform::GetMouseDownEvent().Dispatch(MouseButton::Left);
+                BasePlatform::GetMouseDownEvent().Dispatch(MouseButton::Left);
                 break;
             case WM_LBUTTONUP:
-                Platform::GetMouseUpEvent().Dispatch(MouseButton::Left);
+                BasePlatform::GetMouseUpEvent().Dispatch(MouseButton::Left);
                 break;
             case WM_RBUTTONDOWN:
-                Platform::GetMouseDownEvent().Dispatch(MouseButton::Right);
+                BasePlatform::GetMouseDownEvent().Dispatch(MouseButton::Right);
                 break;
             case WM_RBUTTONUP:
-                Platform::GetMouseUpEvent().Dispatch(MouseButton::Right);
+                BasePlatform::GetMouseUpEvent().Dispatch(MouseButton::Right);
                 break;
             case WM_MBUTTONDOWN:
-                Platform::GetMouseDownEvent().Dispatch(MouseButton::Middle);
+                BasePlatform::GetMouseDownEvent().Dispatch(MouseButton::Middle);
                 break;
             case WM_MBUTTONUP:
-                Platform::GetMouseUpEvent().Dispatch(MouseButton::Middle);
+                BasePlatform::GetMouseUpEvent().Dispatch(MouseButton::Middle);
                 break;
 
             case WM_MOUSEWHEEL:
-                Platform::GetMouseWheelEvent().Dispatch(GET_WHEEL_DELTA_WPARAM(wParam));
+                BasePlatform::GetMouseWheelEvent().Dispatch(GET_WHEEL_DELTA_WPARAM(wParam));
                 break;
 
             case WM_MOUSEMOVE:
@@ -368,7 +366,7 @@ namespace cube
                 ::GetCursorPos(&p);
                 ScreenToClient(hWnd, &p);
 
-                Platform::GetMousePositionEvent().Dispatch(p.x, p.y);
+                BasePlatform::GetMousePositionEvent().Dispatch(p.x, p.y);
                 break;
             }
             }

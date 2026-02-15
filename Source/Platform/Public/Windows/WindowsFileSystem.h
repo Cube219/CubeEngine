@@ -2,8 +2,8 @@
 
 #ifdef CUBE_PLATFORM_WINDOWS
 
-#include "FileSystem.h"
 #include "PlatformHeader.h"
+#include "FileSystem.h"
 
 #include <Windows.h>
 
@@ -11,45 +11,53 @@ namespace cube
 {
     namespace platform
     {
-        class WindowsFile : public File
+        class CUBE_PLATFORM_EXPORT WindowsFile : public BaseFile
         {
+            // === Base member functions ===
+        public:
+            Uint64 GetFileSize() const;
+            Time GetWriteTime() const;
+
+            void SetFilePointer(Uint64 offset);
+            void MoveFilePointer(Int64 distance);
+
+            Uint64 Read(void* pReadBuffer, Uint64 bufferSizeToRead);
+            void Write(void* pWriteBuffer, Uint64 bufferSize);
+            // === Base member functions ===
+
         public:
             WindowsFile(HANDLE fileHandle);
             ~WindowsFile();
-
-            Uint64 GetFileSizeImpl() const;
-            Time GetWriteTimeImpl() const;
-
-            void SetFilePointerImpl(Uint64 offset);
-            void MoveFilePointerImpl(Int64 distance);
-
-            Uint64 ReadImpl(void* pReadBuffer, Uint64 bufferSizeToRead);
-            void WriteImpl(void* pWriteBuffer, Uint64 bufferSize);
 
         private:
             HANDLE mFileHandle;
         };
 
-        class WindowsFileSystem : public FileSystem
+        class CUBE_PLATFORM_EXPORT WindowsFileSystem : public BaseFileSystem
         {
+            // === Base member functions ===
         public:
-            WindowsFileSystem() = delete;
-            ~WindowsFileSystem() = delete;
+            static bool IsExist(StringView path);
+            static bool IsDirectory(StringView path);
+            static bool IsFile(StringView path);
+            static Vector<String> GetList(StringView directoryPath);
 
-            static bool IsExistImpl(StringView path);
-            static bool IsDirectoryImpl(StringView path);
-            static bool IsFileImpl(StringView path);
-            static Vector<String> GetListImpl(StringView directoryPath);
+            static String GetCurrentDirectoryPath();
+            static Character GetSeparator();
 
-            static String GetCurrentDirectoryPathImpl();
-            static Character GetSeparatorImpl();
-
-            static SharedPtr<File> OpenFileImpl(StringView path, FileAccessModeFlags accessModeFlags, bool createIfNotExist = false);
-            static const char* SplitFileNameFromFullPathImpl(const char* fullPath);
+            static SharedPtr<WindowsFile> OpenFile(StringView path, FileAccessModeFlags accessModeFlags, bool createIfNotExist = false);
+            static const char* SplitFileNameFromFullPath(const char* fullPath);
+            // === Base member functions ===
 
         private:
             static DWORD GetDwDesiredAccess(FileAccessModeFlags accessModeFlags);
+
+        public:
+            WindowsFileSystem() = delete;
+            ~WindowsFileSystem() = delete;
         };
+        using File = WindowsFile;
+        using FileSystem = WindowsFileSystem;
     } // namespace platform
 } // namespace cube
 

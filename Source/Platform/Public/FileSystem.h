@@ -2,6 +2,7 @@
 
 #include "PlatformHeader.h"
 
+#include "Checker.h"
 #include "Flags.h"
 
 namespace cube
@@ -16,67 +17,47 @@ namespace cube
         using FileAccessModeFlags = Flags<FileAccessModeFlag>;
         FLAGS_OPERATOR(FileAccessModeFlag);
 
-        class CUBE_PLATFORM_EXPORT File
+        class CUBE_PLATFORM_EXPORT BaseFile
         {
         public:
-            File() = default;
-            ~File() = default;
+            BaseFile() = default;
+            ~BaseFile() = default;
 
-            Uint64 GetFileSize() const;
-            Time GetWriteTime() const;
+            Uint64 GetFileSize() const { NOT_IMPLEMENTED() return 0; }
+            Time GetWriteTime() const { NOT_IMPLEMENTED() return {}; }
 
-            void SetFilePointer(Uint64 offset);
-            void MoveFilePointer(Int64 distance);
+            void SetFilePointer(Uint64 offset) { NOT_IMPLEMENTED() }
+            void MoveFilePointer(Int64 distance) { NOT_IMPLEMENTED() }
 
-            Uint64 Read(void* pReadBuffer, Uint64 bufferSizeToRead);
-            void Write(void* pWriteBuffer, Uint64 bufferSize);
+            Uint64 Read(void* pReadBuffer, Uint64 bufferSizeToRead) { NOT_IMPLEMENTED() return 0; }
+            void Write(void* pWriteBuffer, Uint64 bufferSize) { NOT_IMPLEMENTED() }
 
         protected:
-            friend class FileSystem;
+            friend class BaseFileSystem;
         };
 
-#define FILE_CLASS_DEFINITIONS(ChildClass) \
-        Uint64 File::GetFileSize() const { return reinterpret_cast<const ChildClass*>(this)->GetFileSizeImpl(); } \
-        Time File::GetWriteTime() const { return reinterpret_cast<const ChildClass*>(this)->GetWriteTimeImpl(); } \
-        \
-        void File::SetFilePointer(Uint64 offset) { reinterpret_cast<ChildClass*>(this)->SetFilePointerImpl(offset); } \
-        void File::MoveFilePointer(Int64 distance) { reinterpret_cast<ChildClass*>(this)->MoveFilePointerImpl(distance); } \
-        \
-        Uint64 File::Read(void* pReadBuffer, Uint64 bufferSizeToRead) { return reinterpret_cast<ChildClass*>(this)->ReadImpl(pReadBuffer, bufferSizeToRead); } \
-        void File::Write(void* pWriteBuffer, Uint64 bufferSize) { return reinterpret_cast<ChildClass*>(this)->WriteImpl(pWriteBuffer, bufferSize); }
-
-        class CUBE_PLATFORM_EXPORT FileSystem
+        class CUBE_PLATFORM_EXPORT BaseFileSystem
         {
         public:
-            FileSystem() = delete;
-            ~FileSystem() = delete;
+            BaseFileSystem() = delete;
+            ~BaseFileSystem() = delete;
 
-            static bool IsExist(StringView path);
-            static bool IsDirectory(StringView path);
-            static bool IsFile(StringView path);
-            static Vector<String> GetList(StringView directoryPath);
+            static bool IsExist(StringView path) { NOT_IMPLEMENTED() return false; }
+            static bool IsDirectory(StringView path) { NOT_IMPLEMENTED() return false; }
+            static bool IsFile(StringView path) { NOT_IMPLEMENTED() return false; }
+            static Vector<String> GetList(StringView directoryPath) { NOT_IMPLEMENTED() return {}; }
 
-            static String GetCurrentDirectoryPath();
-            static Character GetSeparator();
+            static String GetCurrentDirectoryPath() { NOT_IMPLEMENTED() return {}; }
+            static Character GetSeparator() { NOT_IMPLEMENTED() return {}; }
 
-            static SharedPtr<File> OpenFile(StringView path, FileAccessModeFlags accessModeFlags, bool createIfNotExist = false);
-            static const char* SplitFileNameFromFullPath(const char* fullPath);
+            static SharedPtr<BaseFile> OpenFile(StringView path, FileAccessModeFlags accessModeFlags, bool createIfNotExist = false) { NOT_IMPLEMENTED() return nullptr; }
+            static const char* SplitFileNameFromFullPath(const char* fullPath) { NOT_IMPLEMENTED() return nullptr; }
         };
-
-#define FILE_SYSTEM_CLASS_DEFINITIONS(ChildClass) \
-        bool FileSystem::IsExist(StringView path) { return ChildClass::IsExistImpl(path); } \
-        bool FileSystem::IsDirectory(StringView path) { return ChildClass::IsDirectoryImpl(path); } \
-        bool FileSystem::IsFile(StringView path) { return ChildClass::IsFileImpl(path); } \
-        Vector<String> FileSystem::GetList(StringView directoryPath) { return ChildClass::GetListImpl(directoryPath); } \
-        \
-        String FileSystem::GetCurrentDirectoryPath() { return ChildClass::GetCurrentDirectoryPathImpl(); } \
-        Character FileSystem::GetSeparator() { return ChildClass::GetSeparatorImpl(); } \
-        \
-        SharedPtr<File> FileSystem::OpenFile(StringView path, FileAccessModeFlags accessModeFlags, bool createIfNotExist) { \
-            return ChildClass::OpenFileImpl(path, accessModeFlags, createIfNotExist); \
-        } \
-        const char* FileSystem::SplitFileNameFromFullPath(const char* fullPath) { \
-            return ChildClass::SplitFileNameFromFullPathImpl(fullPath); \
-        }
     } // namespace platform
 } // namespace cube
+
+#if defined(CUBE_PLATFORM_MACOS)
+#include "MacOS/MacOSFileSystem.h"
+#elif defined(CUBE_PLATFORM_WINDOWS)
+#include "Windows/WindowsFileSystem.h"
+#endif

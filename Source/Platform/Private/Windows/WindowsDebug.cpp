@@ -19,9 +19,7 @@ namespace cube
 {
     namespace platform
     {
-        PLATFORM_DEBUG_CLASS_DEFINITIONS(WindowsDebug)
-
-        void WindowsDebug::PrintToDebugConsoleImpl(StringView str, PrintColorCategory colorCategory)
+        void WindowsDebug::PrintToDebugConsole(StringView str, PrintColorCategory colorCategory)
         {
             // TODO: Use custom allocator (logger allocator?)
             WindowsString winStr = String_Convert<WindowsString>(str);
@@ -31,15 +29,15 @@ namespace cube
             OutputDebugString(WINDOWS_T("\n"));
         }
 
-        void WindowsDebug::ProcessFatalErrorImpl(StringView msg)
+        void WindowsDebug::ProcessFatalError(StringView msg)
         {
             // TODO: Use custom allocator (logger allocator?)
             ShowDebugMessageBox(WINDOWS_T("Fatal error"), String_Convert<WindowsString>(msg));
         }
 
-        void WindowsDebug::ProcessFailedCheckImpl(const char* fileName, int lineNum, StringView formattedMsg)
+        void WindowsDebug::ProcessFailedCheck(const char* fileName, int lineNum, StringView formattedMsg)
         {
-            if (!PlatformDebug::IsDebuggerAttached())
+            if (!WindowsDebug::IsDebuggerAttached())
             {
                 // TODO: Use custom allocator (logger allocator?)
                 ShowDebugMessageBox(WINDOWS_T("Check failed"), String_Convert<WindowsString>(formattedMsg));
@@ -49,7 +47,7 @@ namespace cube
         constexpr int MAX_NUM_FRAMES = 128;
         constexpr int MAX_NAME_LENGTH = 1024;
 
-        String WindowsDebug::DumpStackTraceImpl(bool removeBeforeProjectFolderPath)
+        String WindowsDebug::DumpStackTrace(bool removeBeforeProjectFolderPath)
         {
             HANDLE process = GetCurrentProcess();
 
@@ -78,17 +76,16 @@ namespace cube
             moduleInfo.SizeOfStruct = sizeof(IMAGEHLP_MODULE64);
 
             AnsiString str;
-            // Skip two stack frame
-            //     - WindowsDebug::DumpStackTraceImpl()
-            //     - PlatformDebug::DumpStackTrace()
-            for (WORD i = 2; i < NumFrames; ++i)
+            // Skip one stack frame
+            //     - WindowsDebug::DumpStackTrace()
+            for (WORD i = 1; i < NumFrames; ++i)
             {
                 UINT64 pc = (UINT64)backTrace[i];
 
                 AnsiString moduleName;
                 if (SymGetModuleInfo64(process, pc, &moduleInfo))
                 {
-                    moduleName = FileSystem::SplitFileNameFromFullPath(moduleInfo.ImageName);
+                    moduleName = WindowsFileSystem::SplitFileNameFromFullPath(moduleInfo.ImageName);
                 }
                 else
                 {
@@ -154,7 +151,7 @@ namespace cube
             return String_Convert<String>(str);
         }
 
-        bool WindowsDebug::IsDebuggerAttachedImpl()
+        bool WindowsDebug::IsDebuggerAttached()
         {
             return IsDebuggerPresent();
         }

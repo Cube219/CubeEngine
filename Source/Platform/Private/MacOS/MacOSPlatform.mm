@@ -213,7 +213,7 @@ namespace cube { namespace platform { namespace internal
     // Termination will be called after shutdown (in platform::Shutdown)
     if (!MacOSPlatform::IsApplicationClosed())
     {
-        cube::platform::Platform::GetClosingEvent().Dispatch();
+        cube::platform::BasePlatform::GetClosingEvent().Dispatch();
 
         return NSApplicationTerminateReply::NSTerminateCancel;
     }
@@ -239,13 +239,13 @@ namespace cube { namespace platform { namespace internal
 - (void) windowDidBecomeMain:(NSNotification* ) notification
 {
     using namespace cube::platform;
-    Platform::GetActivatedEvent().Dispatch(WindowActivatedState::Active);
+    BasePlatform::GetActivatedEvent().Dispatch(WindowActivatedState::Active);
 }
 
 - (void) windowDidResignMain:(NSNotification* ) notification
 {
     using namespace cube::platform;
-    Platform::GetActivatedEvent().Dispatch(WindowActivatedState::Inactive);
+    BasePlatform::GetActivatedEvent().Dispatch(WindowActivatedState::Inactive);
 }
 
 - (BOOL) windowShouldClose:(NSWindow* ) window
@@ -297,19 +297,17 @@ namespace cube
 {
     namespace platform
     {
-        Event<void(KeyCode)> Platform::mKeyDownEvent;
-        Event<void(KeyCode)> Platform::mKeyUpEvent;
-        Event<void(MouseButton)> Platform::mMouseDownEvent;
-        Event<void(MouseButton)> Platform::mMouseUpEvent;
-        Event<void(int)> Platform::mMouseWheelEvent;
-        Event<void(Int32, Int32)> Platform::mMousePositionEvent;
+        Event<void(KeyCode)> BasePlatform::mKeyDownEvent;
+        Event<void(KeyCode)> BasePlatform::mKeyUpEvent;
+        Event<void(MouseButton)> BasePlatform::mMouseDownEvent;
+        Event<void(MouseButton)> BasePlatform::mMouseUpEvent;
+        Event<void(int)> BasePlatform::mMouseWheelEvent;
+        Event<void(Int32, Int32)> BasePlatform::mMousePositionEvent;
 
-        Event<void()> Platform::mLoopEvent;
-        Event<void(Uint32, Uint32)> Platform::mResizeEvent;
-        Event<void(WindowActivatedState)> Platform::mActivatedEvent;
-        Event<void()> Platform::mClosingEvent;
-        
-        PLATFORM_CLASS_DEFINITIONS(MacOSPlatform)
+        Event<void()> BasePlatform::mLoopEvent;
+        Event<void(Uint32, Uint32)> BasePlatform::mResizeEvent;
+        Event<void(WindowActivatedState)> BasePlatform::mActivatedEvent;
+        Event<void()> BasePlatform::mClosingEvent;
 
         Array<KeyCode, MaxKeyCode> MacOSPlatform::mKeyCodeMapping;
 
@@ -344,7 +342,7 @@ namespace cube
         std::mutex MacOSPlatform::mEventQueueMutex;
         Vector<std::function<void()>> MacOSPlatform::mEventQueue;
 
-        void MacOSPlatform::InitializeImpl()
+        void MacOSPlatform::Initialize()
         {
             if (![NSThread isMainThread])
             {
@@ -378,7 +376,7 @@ namespace cube
             // Remain logic will not be executed after [NSApp run].
         }
 
-        void MacOSPlatform::ShutdownImpl()
+        void MacOSPlatform::Shutdown()
         {
             CHECK_NOT_MAIN_THREAD();
 
@@ -406,7 +404,7 @@ namespace cube
             });
         }
 
-        void MacOSPlatform::InitWindowImpl(StringView title, Uint32 width, Uint32 height, Int32 posX, Int32 posY)
+        void MacOSPlatform::InitWindow(StringView title, Uint32 width, Uint32 height, Int32 posX, Int32 posY)
         {
             MacOSUtility::DispatchToMainThreadAndWait([&]{
                 mWindowWidth = width;
@@ -436,63 +434,63 @@ namespace cube
             });
         }
 
-        void MacOSPlatform::ShowWindowImpl()
+        void MacOSPlatform::ShowWindow()
         {
             MacOSUtility::DispatchToMainThreadAndWait([&]{
                 [mWindow makeKeyAndOrderFront:nil];
             });
         }
 
-        void MacOSPlatform::ChangeWindowTitleImpl(StringView title)
+        void MacOSPlatform::ChangeWindowTitle(StringView title)
         {
             MacOSUtility::DispatchToMainThread([nsTitle = String_Convert<NSString*>(title)]() {
                 [mWindow setTitle:nsTitle];
             });
         }
 
-        void* MacOSPlatform::AllocateImpl(Uint64 size)
+        void* MacOSPlatform::Allocate(Uint64 size)
         {
             return malloc(size);
         }
 
-        void MacOSPlatform::FreeImpl(void* ptr)
+        void MacOSPlatform::Free(void* ptr)
         {
             free(ptr);
         }
 
-        void* MacOSPlatform::AllocateAlignedImpl(Uint64 size, Uint64 alignment)
+        void* MacOSPlatform::AllocateAligned(Uint64 size, Uint64 alignment)
         {
             return aligned_alloc(alignment, size);
         }
 
-        void MacOSPlatform::FreeAlignedImpl(void* ptr)
+        void MacOSPlatform::FreeAligned(void* ptr)
         {
             free(ptr);
         }
 
-        void MacOSPlatform::SetEngineInitializeFunctionImpl(std::function<void()> function)
+        void MacOSPlatform::SetEngineInitializeFunction(std::function<void()> function)
         {
             mEngineInitializeFunction = function;
         }
 
-        void MacOSPlatform::SetEngineShutdownFunctionImpl(std::function<void()> function)
+        void MacOSPlatform::SetEngineShutdownFunction(std::function<void()> function)
         {
             mEngineShutdownFunction = function;
         }
 
-        void MacOSPlatform::StartLoopImpl()
+        void MacOSPlatform::StartLoop()
         {
             mIsLoopStarted = true;
             mRunMainLoopSignal.Notify();
         }
 
-        void MacOSPlatform::FinishLoopImpl()
+        void MacOSPlatform::FinishLoop()
         {
             mIsLoopStarted = false;
             mIsLoopFinished = true;
         }
 
-        void MacOSPlatform::SleepImpl(float timeSec)
+        void MacOSPlatform::Sleep(float timeSec)
         {
             timespec ts;
             ts.tv_sec = static_cast<int>(timeSec);
@@ -500,7 +498,7 @@ namespace cube
             nanosleep(&ts, nullptr);
         }
 
-        void MacOSPlatform::ShowCursorImpl()
+        void MacOSPlatform::ShowCursor()
         {
             // Prevent call hide/unhide multiple times because they are stack-based.
             if (mIsMouseHidden)
@@ -510,7 +508,7 @@ namespace cube
             }
         }
 
-        void MacOSPlatform::HideCursorImpl()
+        void MacOSPlatform::HideCursor()
         {
             if (!mIsMouseHidden)
             {
@@ -519,7 +517,7 @@ namespace cube
             }
         }
 
-        void MacOSPlatform::MoveCursorImpl(int x, int y)
+        void MacOSPlatform::MoveCursor(int x, int y)
         {
             y = mWindow.contentView.frame.size.height - y; // Flip y
             NSPoint screenLocation = [mWindow convertPointToScreen:NSMakePoint(x, y)];
@@ -534,7 +532,7 @@ namespace cube
             CGAssociateMouseAndMouseCursorPosition(true);
         }
 
-        void MacOSPlatform::GetCursorPosImpl(int& x, int& y)
+        void MacOSPlatform::GetCursorPos(int& x, int& y)
         {
             NSPoint location = [mWindow convertPointFromScreen:[NSEvent mouseLocation]];
 
@@ -542,27 +540,27 @@ namespace cube
             y = static_cast<int>(mWindow.contentView.frame.size.height - location.y); // Flip y
         }
 
-        Uint32 MacOSPlatform::GetWindowWidthImpl()
+        Uint32 MacOSPlatform::GetWindowWidth()
         {
             return mWindowWidth;
         }
 
-        Uint32 MacOSPlatform::GetWindowHeightImpl()
+        Uint32 MacOSPlatform::GetWindowHeight()
         {
             return mWindowHeight;
         }
 
-        Int32 MacOSPlatform::GetWindowPositionXImpl()
+        Int32 MacOSPlatform::GetWindowPositionX()
         {
             return mWindowPositionX;
         }
 
-        Int32 MacOSPlatform::GetWindowPositionYImpl()
+        Int32 MacOSPlatform::GetWindowPositionY()
         {
             return mWindowPositionY;
         }
 
-        SharedPtr<DLib> MacOSPlatform::LoadDLibImpl(StringView path)
+        SharedPtr<MacOSDLib> MacOSPlatform::LoadDLib(StringView path)
         {
             auto res = std::make_shared<MacOSDLib>(path);
             if (res->GetHandle() == nullptr)
@@ -823,7 +821,7 @@ namespace cube
             }
 
             MacOSUtility::DispatchToMainThread([]{
-                Platform::StartLoop();
+                MacOSPlatform::StartLoop();
             });
 
             mRunMainLoopSignal.Wait();

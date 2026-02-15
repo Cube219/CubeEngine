@@ -9,8 +9,6 @@ namespace cube
 {
     namespace platform
     {
-        DLIB_CLASS_DEFINITIONS(WindowsDLib)
-
         WindowsDLib::WindowsDLib(StringView path)
         {
             WindowsString pathWithExtension = String_Convert<WindowsString>(path);
@@ -32,7 +30,7 @@ namespace cube
             }
         }
 
-        void* WindowsDLib::GetFunctionImpl(StringView name)
+        void* WindowsDLib::GetFunction(StringView name)
         {
             if (!mDLib)
             {

@@ -5,6 +5,7 @@
 #include "PlatformHeader.h"
 #include "PlatformDebug.h"
 
+#ifdef __OBJC__
 #include <AppKit/AppKit.h>
 
 #include "MacOSString.h"
@@ -20,24 +21,28 @@
 @interface CubeLoggerWindowDelegate : NSObject <NSWindowDelegate>
 
 @end
+#endif // __OBJC__
 
 namespace cube
 {
     namespace platform
     {
-        class MacOSDebug : public PlatformDebug
+        class MacOSDebug : public BaseDebug
         {
+            // === Base member functions ===
         public:
-            static void PrintToDebugConsoleImpl(StringView str, PrintColorCategory colorCategory);
+            static void PrintToDebugConsole(StringView str, PrintColorCategory colorCategory = PrintColorCategory::Default);
 
-            static void ProcessFatalErrorImpl(StringView msg);
+            static void ProcessFatalError(StringView msg);
 
-            static void ProcessFailedCheckImpl(const char* fileName, int lineNum, StringView formattedMsg);
+            static void ProcessFailedCheck(const char* fileName, int lineNum, StringView formattedMsg);
 
-            static String DumpStackTraceImpl(bool removeBeforeProjectFolderPath);
+            static String DumpStackTrace(bool removeBeforeProjectFolderPath = true);
 
-            static bool IsDebuggerAttachedImpl();
+            static bool IsDebuggerAttached();
+            // === Base member functions ===
 
+#ifdef __OBJC__
             static bool IsLoggerWindowCreated() { return mIsLoggerWindowCreated; }
             static void CreateAndShowLoggerWindow();
             static void AppendLogText(NSString* text, PrintColorCategory colorCategory);
@@ -46,7 +51,7 @@ namespace cube
         private:
             static void ShowDebugMessageAlert(StringView title, StringView msg);
             static void ShowDebugMessageAlert_MainThread(StringView title, StringView msg);
-        
+
             static CubeLoggerWindow* mLoggerWindow;
             static CubeLoggerWindowDelegate* mLoggerWindowDelegaate;
             static CubeLoggerTextView* mLoggerTextView;
@@ -55,7 +60,9 @@ namespace cube
 
             static bool mIsDebugBreakSetInDebugMessageAlert;
             static bool mIsForceTerminationSetInDebugMessageAlert;
+#endif // __OBJC__
         };
+        using Debug = MacOSDebug;
     } // namespace platform
 } // namespace cube
 

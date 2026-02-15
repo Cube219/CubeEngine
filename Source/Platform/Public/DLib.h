@@ -2,22 +2,26 @@
 
 #include "PlatformHeader.h"
 
+#include "Checker.h"
 #include "CubeString.h"
 
 namespace cube
 {
     namespace platform
     {
-        class CUBE_PLATFORM_EXPORT DLib
+        class CUBE_PLATFORM_EXPORT BaseDLib
         {
         public:
-            DLib() = default;
-            ~DLib() = default;
+            BaseDLib() = default;
+            ~BaseDLib() = default;
 
-            void* GetFunction(StringView name);
+            void* GetFunction(StringView name) { NOT_IMPLEMENTED() return nullptr; }
         };
-
-#define DLIB_CLASS_DEFINITIONS(ChildClass) \
-        void* DLib::GetFunction(StringView name) { return reinterpret_cast<ChildClass*>(this)->GetFunctionImpl(name); }
     } // namespace platform
 } // namespace cube
+
+#if defined(CUBE_PLATFORM_MACOS)
+#include "MacOS/MacOSDLib.h"
+#elif defined(CUBE_PLATFORM_WINDOWS)
+#include "Windows/WindowsDLib.h"
+#endif

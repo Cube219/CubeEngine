@@ -4,14 +4,11 @@
 
 #include <dxgidebug.h>
 
+#include "DLib.h"
+
 namespace cube
 {
     class DX12Device;
-
-    namespace platform
-    {
-        class DLib;
-    } // namespace platform
 
     class DX12Debug
     {

@@ -13,8 +13,6 @@ namespace cube
 {
     namespace platform
     {
-        FILE_CLASS_DEFINITIONS(MacOSFile)
-
         MacOSFile::MacOSFile(NSString* filePath, NSFileHandle* fileHandle)
             : mFilePath(filePath)
             , mFileHandle(fileHandle)
@@ -38,12 +36,12 @@ namespace cube
             [mFileHandle closeFile];
         }
 
-        Uint64 MacOSFile::GetFileSizeImpl() const
+        Uint64 MacOSFile::GetFileSize() const
         {
             return mSize;
         }
 
-        Time MacOSFile::GetWriteTimeImpl() const
+        Time MacOSFile::GetWriteTime() const
         { @autoreleasepool {
             NSError* error;
 
@@ -62,7 +60,7 @@ namespace cube
             return Time();
         }}
 
-        void MacOSFile::SetFilePointerImpl(Uint64 offset)
+        void MacOSFile::SetFilePointer(Uint64 offset)
         { @autoreleasepool {
             NSError* error;
             if (![mFileHandle seekToOffset:offset error:&error])
@@ -75,7 +73,7 @@ namespace cube
             }
         }}
 
-        void MacOSFile::MoveFilePointerImpl(Int64 distance)
+        void MacOSFile::MoveFilePointer(Int64 distance)
         { @autoreleasepool {
             NSError* error;
             if (![mFileHandle seekToOffset:(mCurrentOffset + distance) error:&error])
@@ -88,7 +86,7 @@ namespace cube
             }
         }}
 
-        Uint64 MacOSFile::ReadImpl(void* pReadBuffer, Uint64 bufferSizeToRead)
+        Uint64 MacOSFile::Read(void* pReadBuffer, Uint64 bufferSizeToRead)
         { @autoreleasepool {
             NSError* error;
             NSData* readData = [mFileHandle readDataUpToLength:bufferSizeToRead error:&error];
@@ -102,7 +100,7 @@ namespace cube
             return readData.length;
         }}
 
-        void MacOSFile::WriteImpl(void* pWriteBuffer, Uint64 bufferSize)
+        void MacOSFile::Write(void* pWriteBuffer, Uint64 bufferSize)
         { @autoreleasepool {
             NSError* error;
             if (![mFileHandle writeData:[NSData dataWithBytes:pWriteBuffer length:bufferSize] error:&error])
@@ -113,15 +111,13 @@ namespace cube
             mCurrentOffset += bufferSize;
         }}
 
-        FILE_SYSTEM_CLASS_DEFINITIONS(MacOSFileSystem)
-
-        bool MacOSFileSystem::IsExistImpl(StringView path)
+        bool MacOSFileSystem::IsExist(StringView path)
         { @autoreleasepool {
             NSString* nsPath = String_Convert<NSString*>(path);
             return [[NSFileManager defaultManager] fileExistsAtPath:nsPath];
         }}
 
-        bool MacOSFileSystem::IsDirectoryImpl(StringView path)
+        bool MacOSFileSystem::IsDirectory(StringView path)
         { @autoreleasepool {
             NSString* nsPath = String_Convert<NSString*>(path);
             BOOL isDirectory;
@@ -129,7 +125,7 @@ namespace cube
             return isDirectory;
         }}
 
-        bool MacOSFileSystem::IsFileImpl(StringView path)
+        bool MacOSFileSystem::IsFile(StringView path)
         { @autoreleasepool {
             NSString* nsPath = String_Convert<NSString*>(path);
             BOOL isDirectory;
@@ -137,7 +133,7 @@ namespace cube
             return !isDirectory;
         }}
 
-        Vector<String> MacOSFileSystem::GetListImpl(StringView directoryPath)
+        Vector<String> MacOSFileSystem::GetList(StringView directoryPath)
         {
             Vector<String> result;
             @autoreleasepool {
@@ -156,7 +152,7 @@ namespace cube
             return result;
         }
 
-        String MacOSFileSystem::GetCurrentDirectoryPathImpl()
+        String MacOSFileSystem::GetCurrentDirectoryPath()
         {
             String result;
             @autoreleasepool {
@@ -167,12 +163,12 @@ namespace cube
             return result;
         }
 
-        Character MacOSFileSystem::GetSeparatorImpl()
+        Character MacOSFileSystem::GetSeparator()
         {
             return CUBE_T('/');
         }
 
-        SharedPtr<File> MacOSFileSystem::OpenFileImpl(StringView path, FileAccessModeFlags accessModeFlags, bool createIfNotExist)
+        SharedPtr<MacOSFile> MacOSFileSystem::OpenFile(StringView path, FileAccessModeFlags accessModeFlags, bool createIfNotExist)
         {
             NSString* nsPath = String_Convert<NSString*>(path);
 
@@ -217,9 +213,9 @@ namespace cube
             return nullptr;
         }
 
-        const char* MacOSFileSystem::SplitFileNameFromFullPathImpl(const char* fullPath)
+        const char* MacOSFileSystem::SplitFileNameFromFullPath(const char* fullPath)
         {
-            const char* lastSeparator = strrchr(fullPath, GetSeparatorImpl());
+            const char* lastSeparator = strrchr(fullPath, GetSeparator());
 
             if (lastSeparator != nullptr)
             {

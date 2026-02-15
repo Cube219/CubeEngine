@@ -56,8 +56,6 @@ namespace cube
 {
     namespace platform
     {
-        PLATFORM_DEBUG_CLASS_DEFINITIONS(MacOSDebug)
-
         CubeLoggerWindow* MacOSDebug::mLoggerWindow;
         CubeLoggerWindowDelegate* MacOSDebug::mLoggerWindowDelegaate;
         CubeLoggerTextView* MacOSDebug::mLoggerTextView;
@@ -67,7 +65,7 @@ namespace cube
         bool MacOSDebug::mIsDebugBreakSetInDebugMessageAlert = false;
         bool MacOSDebug::mIsForceTerminationSetInDebugMessageAlert = false;
 
-        void MacOSDebug::PrintToDebugConsoleImpl(StringView str, PrintColorCategory colorCategory)
+        void MacOSDebug::PrintToDebugConsole(StringView str, PrintColorCategory colorCategory)
         {
             MacOSString osStr = String_Convert<MacOSString>(str);
 
@@ -82,14 +80,14 @@ namespace cube
             }
         }
 
-        void MacOSDebug::ProcessFatalErrorImpl(StringView msg)
+        void MacOSDebug::ProcessFatalError(StringView msg)
         {
             ShowDebugMessageAlert(CUBE_T("Fatal error!"), msg);
         }
 
-        void MacOSDebug::ProcessFailedCheckImpl(const char* fileName, int lineNum, StringView formattedMsg)
+        void MacOSDebug::ProcessFailedCheck(const char* fileName, int lineNum, StringView formattedMsg)
         {
-            if (!PlatformDebug::IsDebuggerAttached())
+            if (!MacOSDebug::IsDebuggerAttached())
             {
                 ShowDebugMessageAlert(CUBE_T("Check failed!"), formattedMsg);
             }
@@ -103,7 +101,7 @@ namespace cube
         constexpr int MAX_NUM_FRAMES = 128;
         constexpr int MAX_NAME_LENGTH = 1024;
 
-        String MacOSDebug::DumpStackTraceImpl(bool removeBeforeProjectFolderPath)
+        String MacOSDebug::DumpStackTrace(bool removeBeforeProjectFolderPath)
         { @autoreleasepool {
             void* callStack[MAX_NUM_FRAMES];
             int numFrames = backtrace(callStack, MAX_NUM_FRAMES);
@@ -217,11 +215,10 @@ namespace cube
                 }
             }
 
-            // Skip two stack frame
-            //     - MacOSDebug::DumpStackTraceImpl()
-            //     - PlatformDebug::DumpStackTrace()
+            // Skip one stack frame
+            //     - MacOSDebug::DumpStackTrace()
             String res;
-            for (int i = 2; i < numFrames; ++i)
+            for (int i = 1; i < numFrames; ++i)
             {
                 res += Format(CUBE_T("    {}\n"), stackFrames[i].str);
                 if (stackFrames[i].str.empty())
@@ -233,7 +230,7 @@ namespace cube
             return res;
         }}
 
-        bool MacOSDebug::IsDebuggerAttachedImpl()
+        bool MacOSDebug::IsDebuggerAttached()
         {
             // Set up the mib (Management Information Base)
             int mib[4];

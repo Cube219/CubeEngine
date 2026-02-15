@@ -199,7 +199,7 @@ namespace cube
         case D3D12_MESSAGE_SEVERITY_ERROR:
             CUBE_LOG(Error, DX12, "[DX12Debug]: {0}", pDescription);
 
-            if (platform::PlatformDebug::IsDebuggerAttached())
+            if (platform::Debug::IsDebuggerAttached())
             {
                 CUBE_DEBUG_BREAK
             }

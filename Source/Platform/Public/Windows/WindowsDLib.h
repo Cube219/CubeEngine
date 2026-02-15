@@ -11,19 +11,23 @@ namespace cube
 {
     namespace platform
     {
-        class WindowsDLib : public DLib
+        class CUBE_PLATFORM_EXPORT WindowsDLib : public BaseDLib
         {
+            // === Base member functions ===
+        public:
+            void* GetFunction(StringView name);
+            // === Base member functions ===
+
         public:
             WindowsDLib(StringView path);
             ~WindowsDLib();
-
-            void* GetFunctionImpl(StringView name);
 
             HMODULE GetModule() const { return mDLib; }
 
         private:
             HMODULE mDLib;
         };
+        using DLib = WindowsDLib;
     } // namespace platform
 } // namespace cube
 

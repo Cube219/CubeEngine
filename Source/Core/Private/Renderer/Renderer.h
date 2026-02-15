@@ -9,6 +9,7 @@
 #include "SamplerManager.h"
 #include "ShaderManager.h"
 #include "TextureManager.h"
+#include "DLib.h"
 #include "Vector.h"
 
 namespace cube
@@ -18,11 +19,6 @@ namespace cube
     class Mesh;
     class MeshData;
     class Shader;
-
-    namespace platform
-    {
-        class DLib;
-    } // namespace platform
 
     class GlobalShaderParameters : public ShaderParameters
     {

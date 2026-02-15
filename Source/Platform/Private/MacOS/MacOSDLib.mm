@@ -14,8 +14,6 @@ namespace cube
 {
     namespace platform
     {
-        DLIB_CLASS_DEFINITIONS(MacOSDLib)
-
         MacOSDLib::MacOSDLib(StringView path)
         {
             // TODO: Separate file name
@@ -36,7 +34,7 @@ namespace cube
             }
         }
 
-        void* MacOSDLib::GetFunctionImpl(StringView name)
+        void* MacOSDLib::GetFunction(StringView name)
         {
             if (!mHandle)
             {

@@ -5,6 +5,7 @@
 #include "PlatformHeader.h"
 #include "Platform.h"
 
+#ifdef __OBJC__
 #include <AppKit/AppKit.h>
 #include <thread>
 
@@ -23,50 +24,57 @@
 @interface CubeWindowDelegate : NSObject <NSWindowDelegate>
 
 @end
+#endif // __OBJC__
 
 namespace cube
 {
     namespace platform
     {
+#ifdef __OBJC__
         namespace internal
         {
             struct MacOSPlatformPrivateAccessor;
         } // namespace internal
+#endif // __OBJC__
 
-        class MacOSPlatform : public Platform
+        class MacOSPlatform : public BasePlatform
         {
+            // === Base member functions ===
         public:
-            static void InitializeImpl();
-            static void ShutdownImpl();
+            static void Initialize();
+            static void Shutdown();
 
-            static void InitWindowImpl(StringView title, Uint32 width, Uint32 height, Int32 posX, Int32 posY);
-            static void ShowWindowImpl();
-            static void ChangeWindowTitleImpl(StringView title);
+            static void InitWindow(StringView title, Uint32 width, Uint32 height, Int32 posX, Int32 posY);
+            static void ShowWindow();
+            static void ChangeWindowTitle(StringView title);
 
-            static void* AllocateImpl(Uint64 size);
-            static void FreeImpl(void* ptr);
-            static void* AllocateAlignedImpl(Uint64 size, Uint64 alignment);
-            static void FreeAlignedImpl(void* ptr);
+            static void* Allocate(Uint64 size);
+            static void Free(void* ptr);
+            static void* AllocateAligned(Uint64 size, Uint64 alignment);
+            static void FreeAligned(void* ptr);
 
-            static void SetEngineInitializeFunctionImpl(std::function<void()> function);
-            static void SetEngineShutdownFunctionImpl(std::function<void()> function);
-            static void StartLoopImpl();
-            static void FinishLoopImpl();
-            static void SleepImpl(float timeSec);
+            static void SetEngineInitializeFunction(std::function<void()> function);
+            static void SetEngineShutdownFunction(std::function<void()> function);
+            static void StartLoop();
+            static void FinishLoop();
+            static void Sleep(float timeSec);
 
-            static void ShowCursorImpl();
-            static void HideCursorImpl();
-            static void MoveCursorImpl(int x, int y);
-            static void GetCursorPosImpl(int& x, int& y);
+            static void ShowCursor();
+            static void HideCursor();
+            static void MoveCursor(int x, int y);
+            static void GetCursorPos(int& x, int& y);
 
-            static Uint32 GetWindowWidthImpl();
-            static Uint32 GetWindowHeightImpl();
-            static Int32 GetWindowPositionXImpl();
-            static Int32 GetWindowPositionYImpl();
+            static Uint32 GetWindowWidth();
+            static Uint32 GetWindowHeight();
+            static Int32 GetWindowPositionX();
+            static Int32 GetWindowPositionY();
 
-            static SharedPtr<DLib> LoadDLibImpl(StringView path);
+            static SharedPtr<MacOSDLib> LoadDLib(StringView path);
+            // === Base member functions ===
 
+#ifdef __OBJC__
             static CubeWindow* GetWindow();
+
             static bool IsMainWindowCreated();
             static void CloseMainWindow();
 
@@ -125,7 +133,9 @@ namespace cube
 
             MacOSPlatform() = delete;
             ~MacOSPlatform() = delete;
+#endif // __OBJC__
         };
+        using Platform = MacOSPlatform;
     } // namespace platform
 } // namespace cube
 

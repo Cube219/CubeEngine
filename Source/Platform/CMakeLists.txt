@@ -72,7 +72,7 @@ target_precompile_headers(CE-Platform
         ${PRECOMPILE_HEADER_FILES}
 )
 target_link_libraries(CE-Platform
-    PRIVATE
+    PUBLIC
         CE-Base
         CE-Logger
 )
