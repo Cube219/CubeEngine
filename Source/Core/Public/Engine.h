@@ -9,6 +9,7 @@ namespace cube
 {
     class Material;
     class MeshData;
+    struct MeshMetadata;
     class Renderer;
 
     class Engine
@@ -36,7 +37,7 @@ namespace cube
         CUBE_CORE_EXPORT static const String& GetRootDirectoryPath() { return mRootDirectoryPath; }
         CUBE_CORE_EXPORT static const String& GetShaderDirectoryPath() { return mShaderDirectoryPath; }
 
-        static void SetMesh(SharedPtr<MeshData> meshData);
+        static void SetMesh(SharedPtr<MeshData> meshData, const MeshMetadata& meshMeta);
         static void SetMaterials(const Vector<SharedPtr<Material>>& materials);
 
     private:

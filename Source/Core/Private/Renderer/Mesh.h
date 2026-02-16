@@ -24,6 +24,11 @@ namespace cube
         String debugName;
     };
 
+    struct MeshMetadata
+    {
+        bool useFloat16 = true;
+    };
+
     class MeshData
     {
     public:
@@ -57,19 +62,22 @@ namespace cube
     class Mesh
     {
     public:
-        static ArrayView<gapi::InputElement> GetInputElements();
+        static ArrayView<gapi::InputElement> GetInputElements(const MeshMetadata& meta);
 
-        Mesh(const SharedPtr<MeshData>& meshData);
+        Mesh(const SharedPtr<MeshData>& meshData, const MeshMetadata& meta);
         ~Mesh();
 
         SharedPtr<gapi::Buffer> GetVertexBuffer() const { return mVertexBuffer; }
         SharedPtr<gapi::Buffer> GetIndexBuffer() const { return mIndexBuffer; }
         const Vector<SubMesh>& GetSubMeshes() const { return mMeshData->GetSubMeshes(); }
 
+        const MeshMetadata& GetMeta() const { return mMeta; }
+
     private:
         friend class MeshHelper;
 
         SharedPtr<MeshData> mMeshData;
+        MeshMetadata mMeta;
 
         SharedPtr<gapi::Buffer> mVertexBuffer;
         SharedPtr<gapi::Buffer> mIndexBuffer;

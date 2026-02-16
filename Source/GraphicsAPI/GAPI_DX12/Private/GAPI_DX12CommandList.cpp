@@ -233,7 +233,7 @@ namespace cube
                 vertexBufferView = {
                     .BufferLocation = dx12Buffer->GetResource()->GetGPUVirtualAddress(),
                     .SizeInBytes = static_cast<UINT>(dx12Buffer->GetSize()),
-                    .StrideInBytes = sizeof(Vertex)
+                    .StrideInBytes = static_cast<UINT>(dx12Buffer->GetVertexStride())
                 };
 
                 CUBE_DX12_BOUND_OBJECT(buffers[i]);

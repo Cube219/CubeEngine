@@ -110,7 +110,12 @@ namespace cube
     {
     }
 
-    SharedPtr<GraphicsPipeline> MaterialShaderManager::GetOrCreateMaterialPipeline(SharedPtr<Material> material)
+    void MaterialShaderManager::ClearPipelineCache()
+    {
+        mMaterialPipelines.clear();
+    }
+
+    SharedPtr<GraphicsPipeline> MaterialShaderManager::GetOrCreateMaterialPipeline(SharedPtr<Material> material, const MeshMetadata& meshMeta)
     {
         const Uint64 materialHash = material->mMaterialHash;
          
@@ -178,7 +183,7 @@ namespace cube
             pipeline = mShaderManager.CreateGraphicsPipeline({
                 .vertexShader = vertexShader,
                 .pixelShader = pixelShader,
-                .inputLayouts = Mesh::GetInputElements(),
+                .inputLayouts = Mesh::GetInputElements(meshMeta),
                 .depthStencilState = {
                     .enableDepth = true,
                     .depthFunction = gapi::CompareFunction::Greater

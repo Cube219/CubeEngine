@@ -332,15 +332,24 @@ namespace cube
         }
     }
 
-    void Renderer::SetMesh(SharedPtr<MeshData> meshData)
+    void Renderer::SetMesh(SharedPtr<MeshData> meshData, const MeshMetadata& meshMeta)
     {
+        bool metaChanged = (mMeshMetadata.useFloat16 != meshMeta.useFloat16);
+        mMeshMetadata = meshMeta;
+
         if (meshData)
         {
-            mMesh = std::make_shared<Mesh>(meshData);
+            mMesh = std::make_shared<Mesh>(meshData, mMeshMetadata);
         }
         else
         {
-            mMesh = std::make_shared<Mesh>(MeshHelper::GenerateBoxMeshData());
+            mMesh = std::make_shared<Mesh>(MeshHelper::GenerateBoxMeshData(), mMeshMetadata);
+        }
+
+        if (metaChanged)
+        {
+            mBoxMesh = std::make_shared<Mesh>(MeshHelper::GenerateBoxMeshData(), mMeshMetadata);
+            mShaderManager.GetMaterialShaderManager().ClearPipelineCache();
         }
     }
 
@@ -451,7 +460,7 @@ namespace cube
 
                     if (currentMaterial != lastMaterial)
                     {
-                        SetGraphicsPipeline(mShaderManager.GetMaterialShaderManager().GetOrCreateMaterialPipeline(currentMaterial));
+                        SetGraphicsPipeline(mShaderManager.GetMaterialShaderManager().GetOrCreateMaterialPipeline(currentMaterial, mMeshMetadata));
                         SharedPtr<MaterialShaderParameters> materialShaderParameters = currentMaterial->GenerateShaderParameters(mCommandList.get());
                         mCommandList->SetShaderVariableConstantBuffer(2, materialShaderParameters->GetBuffer());
                     }
@@ -463,7 +472,7 @@ namespace cube
             {
                 GPU_EVENT_SCOPE(mCommandList, CUBE_T("Draw Axis"));
                 // Axis
-                SetGraphicsPipeline(mShaderManager.GetMaterialShaderManager().GetOrCreateMaterialPipeline(mDefaultMaterial));
+                SetGraphicsPipeline(mShaderManager.GetMaterialShaderManager().GetOrCreateMaterialPipeline(mDefaultMaterial, mMeshMetadata));
 
                 SharedPtr<gapi::Buffer> boxVertexBuffer = mBoxMesh->GetVertexBuffer();
                 mCommandList->BindVertexBuffers(0, { &boxVertexBuffer, 1 }, { &vertexBufferOffset, 1 });
@@ -516,8 +525,8 @@ namespace cube
 
     void Renderer::LoadResources()
     {
-        mBoxMesh = std::make_shared<Mesh>(MeshHelper::GenerateBoxMeshData());
-        SetMesh(nullptr); // Load default mesh
+        mBoxMesh = std::make_shared<Mesh>(MeshHelper::GenerateBoxMeshData(), mMeshMetadata);
+        SetMesh(nullptr, mMeshMetadata); // Load default mesh
 
         mDefaultMaterial = std::make_shared<Material>(CUBE_T("DefaultMaterial"));
 

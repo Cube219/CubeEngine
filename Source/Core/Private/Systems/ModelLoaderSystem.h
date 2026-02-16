@@ -55,5 +55,6 @@ namespace cube
         static int mCurrentSelectModelIndex;
 
         static float mModelScale;
+        static bool mUseFloat16Vertices;
     };
 } // namespace cube

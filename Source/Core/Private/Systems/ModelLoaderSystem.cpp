@@ -26,6 +26,7 @@ namespace cube
     int ModelLoaderSystem::mCurrentSelectModelIndex;
 
     float ModelLoaderSystem::mModelScale;
+    bool ModelLoaderSystem::mUseFloat16Vertices = true;
 
     void ModelLoaderSystem::Initialize()
     {
@@ -109,6 +110,12 @@ namespace cube
             ResetModelScale();
         }
 
+        ImGui::Separator();
+        if (ImGui::Checkbox("Float16 Vertices", &mUseFloat16Vertices))
+        {
+            LoadCurrentModelAndSet();
+        }
+
         ImGui::End();
     }
 
@@ -189,7 +196,9 @@ namespace cube
         const ModelPathInfo& info = mModelPathList[mCurrentSelectModelIndex];
 
         ModelResources resources = LoadModel(info);
-        Engine::SetMesh(resources.mesh);
+        MeshMetadata meshMeta;
+        meshMeta.useFloat16 = mUseFloat16Vertices;
+        Engine::SetMesh(resources.mesh, meshMeta);
         Engine::SetMaterials(resources.materials);
     }
 

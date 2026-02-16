@@ -12,6 +12,7 @@ namespace cube
     class Shader;
     class ShaderManager;
     class TextureResource;
+    struct MeshMetadata;
 
     namespace gapi
     {
@@ -73,7 +74,9 @@ namespace cube
         MaterialShaderManager(ShaderManager& shaderManager);
         ~MaterialShaderManager() = default;
 
-        SharedPtr<GraphicsPipeline> GetOrCreateMaterialPipeline(SharedPtr<Material> material);
+        SharedPtr<GraphicsPipeline> GetOrCreateMaterialPipeline(SharedPtr<Material> material, const MeshMetadata& meshMeta);
+
+        void ClearPipelineCache();
 
     private:
         friend class ShaderManager;

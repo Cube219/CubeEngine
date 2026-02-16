@@ -9,6 +9,7 @@
 #include "SamplerManager.h"
 #include "ShaderManager.h"
 #include "TextureManager.h"
+#include "Renderer/Mesh.h"
 #include "DLib.h"
 #include "Vector.h"
 
@@ -16,7 +17,6 @@ namespace cube
 {
     class GraphicsPipeline;
     class Material;
-    class Mesh;
     class MeshData;
     class Shader;
 
@@ -65,7 +65,7 @@ namespace cube
 
         float GetGPUTimeMS() const;
 
-        void SetMesh(SharedPtr<MeshData> meshData);
+        void SetMesh(SharedPtr<MeshData> meshData, const MeshMetadata& meshMeta);
         void SetMaterials(const Vector<SharedPtr<Material>>& materials);
 
     private:
@@ -106,6 +106,7 @@ namespace cube
         Vector3 mDirectionalLightDirection;
         Vector3 mDirectionalLightIntensity;
 
+        MeshMetadata mMeshMetadata;
         Matrix mModelMatrix;
         SharedPtr<Mesh> mMesh;
         Vector<SharedPtr<Material>> mMaterials;
