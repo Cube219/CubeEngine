@@ -129,7 +129,9 @@ namespace cube
             virtual void SetPrimitiveTopology(PrimitiveTopology primitiveTopology) = 0;
 
             virtual void SetGraphicsPipeline(SharedPtr<GraphicsPipeline> graphicsPipeline) = 0;
-            virtual void SetRenderTargets(ArrayView<ColorAttachment> colors, DepthStencilAttachment depthStencil) = 0;
+
+            virtual void BeginRenderPass(ArrayView<ColorAttachment> colors, DepthStencilAttachment depthStencil) = 0;
+            virtual void EndRenderPass() = 0;
 
             virtual void BindVertexBuffers(Uint32 startIndex, ArrayView<SharedPtr<Buffer>> buffers, ArrayView<Uint32> offsets) = 0;
             virtual void BindIndexBuffer(SharedPtr<Buffer> buffer, Uint32 offset) = 0;

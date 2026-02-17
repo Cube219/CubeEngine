@@ -17,51 +17,18 @@ namespace cube
             Vector<MTLScissorRect> scissors;
             MTLPrimitiveType primitiveType;
 
-            MTLTriangleFillMode fillMode;
-            MTLCullMode cullMode;
-            MTLWinding winding;
-            id<MTLRenderPipelineState> renderPipelineState;
-            id<MTLDepthStencilState> depthStencilState;
-
-            Vector<id<MTLBuffer>> vertexBuffers;
-            Vector<NSUInteger> vertexBufferOffsets;
-            id<MTLBuffer> indexBuffer;
-            NSUInteger indexBufferOffset;
-
-            id<MTLComputePipelineState> computePipelineState;
-            MTLSize computeThreadGroupSize;
-
             struct ConstantBuffer
             {
                 id<MTLBuffer> buffer;
                 bool isSet = false;
             };
             Map<int, ConstantBuffer> constantBuffers;
-            struct UsedResource
-            {
-                id<MTLResource> resource;
-                MTLResourceUsage  usage;
-            };
-            Vector<UsedResource> usedResources;
-
             void Clear()
             {
                 viewports.clear();
                 scissors.clear();
                 primitiveType = MTLPrimitiveTypeTriangle;
-                fillMode = MTLTriangleFillModeFill;
-                cullMode = MTLCullModeBack;
-                winding = MTLWindingCounterClockwise;
-                renderPipelineState = nil;
-                depthStencilState = nil;
-                vertexBuffers.clear();
-                vertexBufferOffsets.clear();
-                indexBuffer = nil;
-                indexBufferOffset = 0;
-                computePipelineState = nil;
-                computeThreadGroupSize = MTLSizeMake(0, 0, 0);
                 constantBuffers.clear();
-                usedResources.clear();
             }
 
             void SetViewports(ArrayView<Viewport> newViewports);
@@ -72,24 +39,9 @@ namespace cube
 
             void SetPrimitiveTopology(PrimitiveTopology newPrimitiveTopology);
 
-            void SetGraphicsPipeline(SharedPtr<GraphicsPipeline> newGraphicsPipeline);
-            void ApplyGraphicsPipeline(id<MTLRenderCommandEncoder> encoder);
-
-            void SetVertexBuffers(ArrayView<SharedPtr<Buffer>> buffers, ArrayView<Uint32> offsets);
-            void ApplyVertexBuffers(id<MTLRenderCommandEncoder> encoder);
-
-            void SetIndexBuffer(SharedPtr<Buffer> buffer, Uint32 offset);
-
-            void SetComputePipeline(SharedPtr<ComputePipeline> newComputePipeline);
-            void ApplyComputePipeline(id<MTLComputeCommandEncoder> encoder);
-
             void SetConstantBuffer(SharedPtr<Buffer> buffer, Uint32 index);
             void ApplyConstantBuffers(id<MTLRenderCommandEncoder> encoder, bool forceAll = false);
             void ApplyConstantBuffers(id<MTLComputeCommandEncoder> computeEncoder, bool forceAll = false);
-
-            void AddUsedResource(id<MTLResource> resource, MTLResourceUsage usage);
-            void ApplyAllUsedResource(id<MTLRenderCommandEncoder> encoder);
-            void ApplyAllUsedResource(id<MTLComputeCommandEncoder> computeEncoder);
 
             void ApplyAll(id<MTLRenderCommandEncoder> encoder);
             void ApplyAll(id<MTLComputeCommandEncoder> encoder);
@@ -113,7 +65,9 @@ namespace cube
             virtual void SetPrimitiveTopology(PrimitiveTopology primitiveTopology) override;
 
             virtual void SetGraphicsPipeline(SharedPtr<GraphicsPipeline> graphicsPipeline) override;
-            virtual void SetRenderTargets(ArrayView<ColorAttachment> colors, DepthStencilAttachment depthStencil) override;
+
+            virtual void BeginRenderPass(ArrayView<ColorAttachment> colors, DepthStencilAttachment depthStencil) override;
+            virtual void EndRenderPass() override;
 
             virtual void BindVertexBuffers(Uint32 startIndex, ArrayView<SharedPtr<Buffer>> buffers, ArrayView<Uint32> offsets) override;
             virtual void BindIndexBuffer(SharedPtr<Buffer> buffer, Uint32 offset) override;
@@ -138,18 +92,10 @@ namespace cube
         private:
             void AllocateNewCommandBuffer();
 
-            enum class EncoderType
-            {
-                Graphics,
-                Compute
-            };
-
             bool IsWriting() const { return mIsWriting; }
-            bool IsWritingInRenderEncoder() const { return mRenderEncoder != nil; }
+            bool IsInRenderPass() const { return mRenderEncoder != nil; }
 
-            void BeginEncoding(EncoderType type);
             void EndEncoding();
-            void UpdateEncoderIfNeeded(EncoderType type);
 
             MetalTimestampManager& mTimestampManager;
 
@@ -157,12 +103,13 @@ namespace cube
             id<MTLCommandBuffer> mCommandBuffer;
             bool mIsWriting;
 
-            bool mIsNeededRenderEncoderUpdating;
-
             MetalEncoderState mCurrentEncoderState;
-            MTLRenderPassDescriptor* mRenderPassDescriptor;
             id<MTLRenderCommandEncoder> mRenderEncoder;
             id<MTLComputeCommandEncoder> mComputeEncoder;
+
+            id<MTLBuffer> mIndexBuffer;
+            NSUInteger mIndexBufferOffset;
+            MTLSize mComputeThreadGroupSize;
 
             String mDebugName;
         };

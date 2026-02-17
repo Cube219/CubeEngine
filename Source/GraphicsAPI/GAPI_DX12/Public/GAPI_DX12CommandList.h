@@ -40,7 +40,9 @@ namespace cube
             void SetPrimitiveTopology(PrimitiveTopology primitiveTopology) override;
 
             void SetGraphicsPipeline(SharedPtr<GraphicsPipeline> graphicsPipeline) override;
-            void SetRenderTargets(ArrayView<ColorAttachment> colors, DepthStencilAttachment depthStencil) override;
+
+            virtual void BeginRenderPass(ArrayView<ColorAttachment> colors, DepthStencilAttachment depthStencil) override;
+            virtual void EndRenderPass() override;
 
             void BindVertexBuffers(Uint32 startIndex, ArrayView<SharedPtr<Buffer>> buffers, ArrayView<Uint32> offsets) override;
             void BindIndexBuffer(SharedPtr<Buffer> buffer, Uint32 offset) override;
@@ -63,6 +65,7 @@ namespace cube
             void Submit() override;
 
             bool IsWriting() const { return mState == State::Writing; }
+            bool IsInRenderPass() const { return mIsInRenderPass; }
 
         private:
             enum class State
@@ -87,6 +90,7 @@ namespace cube
             Uint32 mComputeThreadGroupSizeY;
             Uint32 mComputeThreadGroupSizeZ;
 
+            bool mIsInRenderPass = false;
             bool mHasTimestampQuery = false;
 
             Vector<AnsiString> mCurrentEventNameList;

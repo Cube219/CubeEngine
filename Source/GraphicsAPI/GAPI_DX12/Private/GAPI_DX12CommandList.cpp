@@ -163,15 +163,17 @@ namespace cube
         void DX12CommandList::SetGraphicsPipeline(SharedPtr<GraphicsPipeline> graphicsPipeline)
         {
             CHECK(IsWriting());
+            CHECK(IsInRenderPass());
 
             mCommandList->SetPipelineState(dynamic_cast<DX12GraphicsPipeline*>(graphicsPipeline.get())->GetPipelineState());
 
             CUBE_DX12_BOUND_OBJECT(graphicsPipeline);
         }
 
-        void DX12CommandList::SetRenderTargets(ArrayView<ColorAttachment> colors, DepthStencilAttachment depthStencil)
+        void DX12CommandList::BeginRenderPass(ArrayView<ColorAttachment> colors, DepthStencilAttachment depthStencil)
         {
             CHECK(IsWriting());
+            CHECK(!IsInRenderPass());
 
             FrameVector<D3D12_CPU_DESCRIPTOR_HANDLE> rtvHandles(colors.size());
             for (int i = 0; i < colors.size(); ++i)
@@ -215,11 +217,23 @@ namespace cube
                 CHECK(dx12DSV);
                 mCommandList->ClearDepthStencilView(dx12DSV->GetDescriptorHandle(), D3D12_CLEAR_FLAG_DEPTH, depthStencil.clearDepth, 0, 0, nullptr);
             }
+
+            mIsInRenderPass = true;
+        }
+
+        void DX12CommandList::EndRenderPass()
+        {
+            CHECK(IsWriting());
+            CHECK(IsInRenderPass());
+
+            mIsInRenderPass = false;
+            // DX12 does not have a render pass concept. Do nothing.
         }
 
         void DX12CommandList::BindVertexBuffers(Uint32 startIndex, ArrayView<SharedPtr<Buffer>> buffers, ArrayView<Uint32> offsets)
         {
             CHECK(IsWriting());
+            CHECK(IsInRenderPass());
             CHECK(buffers.size() == offsets.size());
 
             FrameVector<D3D12_VERTEX_BUFFER_VIEW> d3d12VertexBufferViews(buffers.size());
@@ -245,6 +259,7 @@ namespace cube
         void DX12CommandList::BindIndexBuffer(SharedPtr<Buffer> buffer, Uint32 offset)
         {
             CHECK(IsWriting());
+            CHECK(IsInRenderPass());
             CHECK(buffer->GetType() == BufferType::Index);
 
             const DX12Buffer* dx12Buffer = dynamic_cast<DX12Buffer*>(buffer.get());
@@ -263,6 +278,7 @@ namespace cube
         void DX12CommandList::Draw(Uint32 numVertices, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance)
         {
             CHECK(IsWriting());
+            CHECK(IsInRenderPass());
 
             mCommandList->DrawInstanced(numVertices, numInstances, baseVertex, baseInstance);
         }
@@ -270,6 +286,7 @@ namespace cube
         void DX12CommandList::DrawIndexed(Uint32 numIndices, Uint32 baseIndex, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance)
         {
             CHECK(IsWriting());
+            CHECK(IsInRenderPass());
 
             mCommandList->DrawIndexedInstanced(numIndices, numInstances, baseIndex, baseVertex, baseInstance);
         }
@@ -406,6 +423,7 @@ namespace cube
         void DX12CommandList::SetComputePipeline(SharedPtr<ComputePipeline> computePipeline)
         {
             CHECK(IsWriting());
+            CHECK(!IsInRenderPass());
 
             DX12ComputePipeline* dx12ComputePipeline = dynamic_cast<DX12ComputePipeline*>(computePipeline.get());
             CHECK(dx12ComputePipeline);

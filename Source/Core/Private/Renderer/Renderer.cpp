@@ -416,7 +416,7 @@ namespace cube
                 .storeOperation = gapi::StoreOperation::Store,
                 .clearDepth = 0.0f
             };
-            mCommandList->SetRenderTargets({ &colorAttachment, 1 }, depthStencilAttachment);
+            mCommandList->BeginRenderPass({ &colorAttachment, 1 }, depthStencilAttachment);
 
             SharedPtr<GlobalShaderParameters> globalShaderParameters = mShaderParametersManager.CreateShaderParameters<GlobalShaderParameters>();
             globalShaderParameters->viewPosition = mViewPosition;
@@ -516,6 +516,8 @@ namespace cube
                     mCommandList->DrawIndexed(subMesh.numIndices, subMesh.indexOffset, subMesh.vertexOffset);
                 }
             }
+
+            mCommandList->EndRenderPass();
 
             mCommandList->InsertTimestamp(CUBE_T("End"));
         }

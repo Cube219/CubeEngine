@@ -122,83 +122,6 @@ namespace cube
             primitiveType = ConvertToMTLPrimitiveType(newPrimitiveTopology);
         }
 
-        void MetalEncoderState::SetGraphicsPipeline(SharedPtr<GraphicsPipeline> newGraphicsPipeline)
-        {
-            MetalGraphicsPipeline* metalGraphicsPipeline = dynamic_cast<MetalGraphicsPipeline*>(newGraphicsPipeline.get());
-            CHECK(metalGraphicsPipeline);
-
-            fillMode = metalGraphicsPipeline->GetFillMode();
-            cullMode = metalGraphicsPipeline->GetCullMode();
-            winding = metalGraphicsPipeline->GetWinding();
-            renderPipelineState = metalGraphicsPipeline->GetMTLRenderPipelineState();
-            depthStencilState = metalGraphicsPipeline->GetMTLDepthStencilState();
-        }
-
-        void MetalEncoderState::ApplyGraphicsPipeline(id<MTLRenderCommandEncoder> encoder)
-        {
-            if (renderPipelineState != nil && depthStencilState != nil)
-            {
-                [encoder setTriangleFillMode:fillMode];
-                [encoder setCullMode:cullMode];
-                [encoder setFrontFacingWinding:winding];
-
-                [encoder setRenderPipelineState:renderPipelineState];
-                [encoder setDepthStencilState:depthStencilState];
-            }
-        }
-
-        void MetalEncoderState::SetVertexBuffers(ArrayView<SharedPtr<Buffer>> buffers, ArrayView<Uint32> offsets)
-        {
-            CHECK(buffers.size() == offsets.size());
-
-            vertexBuffers.resize(buffers.size());
-            vertexBufferOffsets.resize(buffers.size());
-            for (int i = 0; i < buffers.size(); ++i)
-            {
-                MetalBuffer* metalBuffer = dynamic_cast<MetalBuffer*>(buffers[i].get());
-                CHECK(metalBuffer);
-                CHECK(metalBuffer->GetType() == BufferType::Vertex);
-
-                vertexBuffers[i] = metalBuffer->GetMTLBuffer();
-                vertexBufferOffsets[i] = offsets[i];
-            }
-        }
-
-        void MetalEncoderState::ApplyVertexBuffers(id<MTLRenderCommandEncoder> encoder)
-        {
-            if (!vertexBuffers.empty())
-            {
-                [encoder setVertexBuffers:vertexBuffers.data() offsets:vertexBufferOffsets.data() withRange:NSMakeRange(MetalVertexBufferOffset, vertexBuffers.size())];
-            }
-        }
-
-        void MetalEncoderState::SetIndexBuffer(SharedPtr<Buffer> buffer, Uint32 offset)
-        {
-            MetalBuffer* metalBuffer = dynamic_cast<MetalBuffer*>(buffer.get());
-            CHECK(metalBuffer);
-            CHECK(metalBuffer->GetType() == BufferType::Index);
-
-            indexBuffer = metalBuffer->GetMTLBuffer();
-            indexBufferOffset = offset;
-        }
-
-        void MetalEncoderState::SetComputePipeline(SharedPtr<ComputePipeline> newComputePipeline)
-        {
-            MetalComputePipeline* metalComputePipeline = dynamic_cast<MetalComputePipeline*>(newComputePipeline.get());
-            CHECK(metalComputePipeline);
-
-            computePipelineState = metalComputePipeline->GetMTLComputePipelineState();
-            computeThreadGroupSize = metalComputePipeline->GetThreadGroupSize();
-        }
-
-        void MetalEncoderState::ApplyComputePipeline(id<MTLComputeCommandEncoder> encoder)
-        {
-            if (computePipelineState != nil)
-            {
-                [encoder setComputePipelineState:computePipelineState];
-            }
-        }
-
         void MetalEncoderState::SetConstantBuffer(SharedPtr<Buffer> buffer, Uint32 index)
         {
             MetalBuffer* metalBuffer = dynamic_cast<MetalBuffer*>(buffer.get());
@@ -235,56 +158,21 @@ namespace cube
             }
         }
 
-        void MetalEncoderState::AddUsedResource(id<MTLResource> resource, MTLResourceUsage usage)
-        {
-            usedResources.push_back({ resource, usage });
-        }
-
-        void MetalEncoderState::ApplyAllUsedResource(id<MTLRenderCommandEncoder> encoder)
-        {
-            for (auto [resource, usage] : usedResources)
-            {
-                [encoder
-                    useResource:resource
-                    usage:usage
-                    stages: MTLRenderStageVertex | MTLRenderStageFragment
-                ];
-            }
-        }
-
-        void MetalEncoderState::ApplyAllUsedResource(id<MTLComputeCommandEncoder> computeEncoder)
-        {
-            for (auto [resource, usage] : usedResources)
-            {
-                [computeEncoder
-                    useResource:resource
-                    usage:usage
-                ];
-            }
-        }
-
         void MetalEncoderState::ApplyAll(id<MTLRenderCommandEncoder> encoder)
         {
             ApplyViewports(encoder);
             ApplyScissors(encoder);
-            ApplyGraphicsPipeline(encoder);
-            ApplyVertexBuffers(encoder);
             ApplyConstantBuffers(encoder, true);
-            ApplyAllUsedResource(encoder);
         }
 
         void MetalEncoderState::ApplyAll(id<MTLComputeCommandEncoder> encoder)
         {
-            ApplyComputePipeline(encoder);
             ApplyConstantBuffers(encoder, true);
-            ApplyAllUsedResource(encoder);
         }
 
         MetalCommandList::MetalCommandList(const CommandListCreateInfo& info, MetalDevice& device)
             : mTimestampManager(device.GetTimestampManager())
             , mIsWriting(false)
-            , mIsNeededRenderEncoderUpdating(false)
-            , mRenderPassDescriptor(nullptr)
             , mRenderEncoder(nil)
             , mComputeEncoder(nil)
         {
@@ -305,11 +193,12 @@ namespace cube
         {
             CHECK(!IsWriting());
 
-            mRenderPassDescriptor = nil;
             mCurrentEncoderState.Clear();
             mRenderEncoder = nil;
             mComputeEncoder = nil;
-            mIsNeededRenderEncoderUpdating = false;
+            mIndexBuffer = nil;
+            mIndexBufferOffset = 0;
+            mComputeThreadGroupSize = MTLSizeMake(0, 0, 0);
 
             mIsWriting = true;
         }
@@ -320,11 +209,6 @@ namespace cube
 
             EndEncoding();
             mCurrentEncoderState.Clear();
-            if (mRenderPassDescriptor)
-            {
-                [mRenderPassDescriptor release];
-                mRenderPassDescriptor = nil;
-            }
 
             mIsWriting = false;
         }
@@ -341,8 +225,7 @@ namespace cube
             CHECK(IsWriting());
 
             mCurrentEncoderState.SetViewports(viewports);
-            UpdateEncoderIfNeeded(EncoderType::Graphics);
-            if (mRenderEncoder)
+            if (IsInRenderPass())
             {
                 mCurrentEncoderState.ApplyViewports(mRenderEncoder);
             }
@@ -353,8 +236,7 @@ namespace cube
             CHECK(IsWriting());
 
             mCurrentEncoderState.SetScissors(scissors);
-            UpdateEncoderIfNeeded(EncoderType::Graphics);
-            if (mRenderEncoder)
+            if (IsInRenderPass())
             {
                 mCurrentEncoderState.ApplyScissors(mRenderEncoder);
             }
@@ -370,23 +252,26 @@ namespace cube
         void MetalCommandList::SetGraphicsPipeline(SharedPtr<GraphicsPipeline> graphicsPipeline)
         {
             CHECK(IsWriting());
+            CHECK(IsInRenderPass());
 
-            mCurrentEncoderState.SetGraphicsPipeline(graphicsPipeline);
-            UpdateEncoderIfNeeded(EncoderType::Graphics);
-            if (mRenderEncoder)
-            {
-                mCurrentEncoderState.ApplyGraphicsPipeline(mRenderEncoder);
-            }
+            MetalGraphicsPipeline* metalGraphicsPipeline = dynamic_cast<MetalGraphicsPipeline*>(graphicsPipeline.get());
+            CHECK(metalGraphicsPipeline);
+
+            [mRenderEncoder setTriangleFillMode:metalGraphicsPipeline->GetFillMode()];
+            [mRenderEncoder setCullMode:metalGraphicsPipeline->GetCullMode()];
+            [mRenderEncoder setFrontFacingWinding:metalGraphicsPipeline->GetWinding()];
+            [mRenderEncoder setRenderPipelineState:metalGraphicsPipeline->GetMTLRenderPipelineState()];
+            [mRenderEncoder setDepthStencilState:metalGraphicsPipeline->GetMTLDepthStencilState()];
         }
 
-        void MetalCommandList::SetRenderTargets(ArrayView<ColorAttachment> colors, DepthStencilAttachment depthStencil)
+        void MetalCommandList::BeginRenderPass(ArrayView<ColorAttachment> colors, DepthStencilAttachment depthStencil)
         {
             CHECK(IsWriting());
+            CHECK(!IsInRenderPass());
 
-            if (!mRenderPassDescriptor)
-            {
-                mRenderPassDescriptor = [[MTLRenderPassDescriptor alloc] init];
-            }
+            EndEncoding();
+
+            MTLRenderPassDescriptor* renderPassDescriptor = [[MTLRenderPassDescriptor alloc] init];
 
             CHECK(colors.size() <= MAX_NUM_RENDER_TARGETS);
             for (int i = 0; i < colors.size(); ++i)
@@ -394,57 +279,84 @@ namespace cube
                 MetalTextureRTV* metalRTV = dynamic_cast<MetalTextureRTV*>(colors[i].rtv.get());
                 CHECK(metalRTV);
 
-                mRenderPassDescriptor.colorAttachments[i].texture = metalRTV->GetMTLTexture();
-                mRenderPassDescriptor.colorAttachments[i].loadAction = ConvertToMTLLoadAction(colors[i].loadOperation);
-                mRenderPassDescriptor.colorAttachments[i].storeAction = ConvertToMTLStoreAction(colors[i].storeOperation);
-                mRenderPassDescriptor.colorAttachments[i].clearColor = ConvertToMTLClearColor(colors[i].clearColor);
+                renderPassDescriptor.colorAttachments[i].texture = metalRTV->GetMTLTexture();
+                renderPassDescriptor.colorAttachments[i].loadAction = ConvertToMTLLoadAction(colors[i].loadOperation);
+                renderPassDescriptor.colorAttachments[i].storeAction = ConvertToMTLStoreAction(colors[i].storeOperation);
+                renderPassDescriptor.colorAttachments[i].clearColor = ConvertToMTLClearColor(colors[i].clearColor);
             }
             for (int i = (int)colors.size(); i < MAX_NUM_RENDER_TARGETS; ++i)
             {
-                mRenderPassDescriptor.colorAttachments[i] = nil;
+                renderPassDescriptor.colorAttachments[i] = nil;
             }
 
-            mRenderPassDescriptor.depthAttachment = nil;
-            mRenderPassDescriptor.stencilAttachment = nil;
+            renderPassDescriptor.depthAttachment = nil;
+            renderPassDescriptor.stencilAttachment = nil;
             if (depthStencil.dsv)
             {
                 MetalTextureDSV* metalDSV = dynamic_cast<MetalTextureDSV*>(depthStencil.dsv.get());
                 CHECK(metalDSV);
 
-                mRenderPassDescriptor.depthAttachment.texture = metalDSV->GetMTLTexture();
-                mRenderPassDescriptor.depthAttachment.loadAction = ConvertToMTLLoadAction(depthStencil.loadOperation);
-                mRenderPassDescriptor.depthAttachment.storeAction = ConvertToMTLStoreAction(depthStencil.storeOperation);
-                mRenderPassDescriptor.depthAttachment.clearDepth = depthStencil.clearDepth;
+                renderPassDescriptor.depthAttachment.texture = metalDSV->GetMTLTexture();
+                renderPassDescriptor.depthAttachment.loadAction = ConvertToMTLLoadAction(depthStencil.loadOperation);
+                renderPassDescriptor.depthAttachment.storeAction = ConvertToMTLStoreAction(depthStencil.storeOperation);
+                renderPassDescriptor.depthAttachment.clearDepth = depthStencil.clearDepth;
             }
 
-            mIsNeededRenderEncoderUpdating = true;
+            mRenderEncoder = [mCommandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
+            [renderPassDescriptor release];
+            mCurrentEncoderState.ApplyAll(mRenderEncoder);
+        }
+
+        void MetalCommandList::EndRenderPass()
+        {
+            CHECK(IsWriting());
+            CHECK(IsInRenderPass());
+
+            [mRenderEncoder endEncoding];
+            mRenderEncoder = nil;
+
+            mIndexBuffer = nil;
         }
 
         void MetalCommandList::BindVertexBuffers(Uint32 startIndex, ArrayView<SharedPtr<Buffer>> buffers, ArrayView<Uint32> offsets)
         {
             CHECK(IsWriting());
+            CHECK(IsInRenderPass());
+            CHECK(buffers.size() == offsets.size());
 
-            mCurrentEncoderState.SetVertexBuffers(buffers, offsets);
-            UpdateEncoderIfNeeded(EncoderType::Graphics);
-            if (mRenderEncoder)
+            FrameVector<id<MTLBuffer>> mtlBuffers(buffers.size());
+            FrameVector<NSUInteger> mtlOffsets(buffers.size());
+            for (int i = 0; i < buffers.size(); ++i)
             {
-                mCurrentEncoderState.ApplyVertexBuffers(mRenderEncoder);
+                MetalBuffer* metalBuffer = dynamic_cast<MetalBuffer*>(buffers[i].get());
+                CHECK(metalBuffer);
+                CHECK(metalBuffer->GetType() == BufferType::Vertex);
+
+                mtlBuffers[i] = metalBuffer->GetMTLBuffer();
+                mtlOffsets[i] = offsets[i];
             }
+
+            [mRenderEncoder setVertexBuffers:mtlBuffers.data() offsets:mtlOffsets.data() withRange:NSMakeRange(MetalVertexBufferOffset, mtlBuffers.size())];
         }
 
         void MetalCommandList::BindIndexBuffer(SharedPtr<Buffer> buffer, Uint32 offset)
         {
             CHECK(IsWriting());
+            CHECK(IsInRenderPass());
+            CHECK(buffer->GetType() == BufferType::Index);
 
-            mCurrentEncoderState.SetIndexBuffer(buffer, offset);
+            MetalBuffer* metalBuffer = dynamic_cast<MetalBuffer*>(buffer.get());
+            CHECK(metalBuffer);
+
+            mIndexBuffer = metalBuffer->GetMTLBuffer();
+            mIndexBufferOffset = offset;
         }
 
         void MetalCommandList::Draw(Uint32 numVertices, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance)
         {
             CHECK(IsWriting());
-            CHECK_FORMAT(mRenderEncoder, "Render encoder is null. Maybe render targets are not set.");
+            CHECK(IsInRenderPass());
 
-            UpdateEncoderIfNeeded(EncoderType::Graphics);
             [mRenderEncoder
                 drawPrimitives:mCurrentEncoderState.primitiveType
                 vertexStart:baseVertex
@@ -457,15 +369,13 @@ namespace cube
         void MetalCommandList::DrawIndexed(Uint32 numIndices, Uint32 baseIndex, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance)
         {
             CHECK(IsWriting());
-            CHECK_FORMAT(mRenderEncoder, "Render encoder is null. Maybe render targets are not set.");
+            CHECK(IsInRenderPass());
 
-            UpdateEncoderIfNeeded(EncoderType::Graphics);
-            mCurrentEncoderState.ApplyVertexBuffers(mRenderEncoder);
             [mRenderEncoder
                 drawIndexedPrimitives:mCurrentEncoderState.primitiveType
                 indexCount:numIndices
                 indexType:sizeof(Index) == 2 ? MTLIndexTypeUInt16 : MTLIndexTypeUInt32
-                indexBuffer:mCurrentEncoderState.indexBuffer
+                indexBuffer:mIndexBuffer
                 indexBufferOffset:baseIndex * sizeof(Index)
                 instanceCount:numInstances
                 baseVertex:baseVertex
@@ -478,7 +388,7 @@ namespace cube
             CHECK(IsWriting());
 
             mCurrentEncoderState.SetConstantBuffer(constantBuffer, index);
-            if (mRenderEncoder)
+            if (IsInRenderPass())
             {
                 mCurrentEncoderState.ApplyConstantBuffers(mRenderEncoder);
             }
@@ -496,8 +406,7 @@ namespace cube
             CHECK(metalTextureSRV);
 
             id<MTLResource> resource = metalTextureSRV->GetMTLTexture();
-            mCurrentEncoderState.AddUsedResource(resource, MTLResourceUsageRead);
-            if (mRenderEncoder)
+            if (IsInRenderPass())
             {
                 [mRenderEncoder
                     useResource:resource
@@ -522,8 +431,7 @@ namespace cube
             CHECK(metalTextureUAV);
 
             id<MTLResource> resource = metalTextureUAV->GetMTLTexture();
-            mCurrentEncoderState.AddUsedResource(resource, MTLResourceUsageRead | MTLResourceUsageWrite);
-            if (mRenderEncoder)
+            if (IsInRenderPass())
             {
                 [mRenderEncoder
                     useResource:resource
@@ -555,23 +463,29 @@ namespace cube
         void MetalCommandList::SetComputePipeline(SharedPtr<ComputePipeline> computePipeline)
         {
             CHECK(IsWriting());
+            CHECK(!IsInRenderPass());
 
-            mCurrentEncoderState.SetComputePipeline(computePipeline);
-            UpdateEncoderIfNeeded(EncoderType::Compute);
-            if (mComputeEncoder)
+            MetalComputePipeline* metalComputePipeline = dynamic_cast<MetalComputePipeline*>(computePipeline.get());
+            CHECK(metalComputePipeline);
+
+            if (mComputeEncoder == nil)
             {
-                mCurrentEncoderState.ApplyComputePipeline(mComputeEncoder);
+                mComputeEncoder = [mCommandBuffer computeCommandEncoder];
+                mCurrentEncoderState.ApplyAll(mComputeEncoder);
             }
+
+            [mComputeEncoder setComputePipelineState:metalComputePipeline->GetMTLComputePipelineState()];
+            mComputeThreadGroupSize = metalComputePipeline->GetThreadGroupSize();
         }
 
         void MetalCommandList::DispatchThreads(Uint32 numThreadsX, Uint32 numThreadsY, Uint32 numThreadsZ)
         {
             CHECK(IsWriting());
+            CHECK(mComputeEncoder != nil);
 
-            UpdateEncoderIfNeeded(EncoderType::Compute);
             [mComputeEncoder
                 dispatchThreads:MTLSizeMake(numThreadsX, numThreadsY, numThreadsZ)
-                threadsPerThreadgroup:mCurrentEncoderState.computeThreadGroupSize
+                threadsPerThreadgroup:mComputeThreadGroupSize
             ];
         }
 
@@ -619,30 +533,9 @@ namespace cube
             // mCommandBuffer = [mCommandQueueRef commandBuffer];
         }
 
-        void MetalCommandList::BeginEncoding(EncoderType type)
-        {
-            CHECK(mRenderEncoder == nil);
-            CHECK(mComputeEncoder == nil);
-
-            switch (type)
-            {
-            case EncoderType::Graphics:
-                if (mRenderPassDescriptor)
-                {
-                    mRenderEncoder = [mCommandBuffer renderCommandEncoderWithDescriptor:mRenderPassDescriptor];
-                    mCurrentEncoderState.ApplyAll(mRenderEncoder);
-                }
-                break;
-            case EncoderType::Compute:
-                mComputeEncoder = [mCommandBuffer computeCommandEncoder];
-                mCurrentEncoderState.ApplyAll(mComputeEncoder);
-                break;
-            }
-        }
-
         void MetalCommandList::EndEncoding()
         {
-            if (mRenderEncoder)
+            if (IsInRenderPass())
             {
                 [mRenderEncoder endEncoding];
                 mRenderEncoder = nil;
@@ -655,16 +548,5 @@ namespace cube
             }
         }
 
-        void MetalCommandList::UpdateEncoderIfNeeded(EncoderType type)
-        {
-            if ((type == EncoderType::Graphics && mIsNeededRenderEncoderUpdating) ||
-                (type == EncoderType::Compute && mComputeEncoder == nil))
-            {
-                EndEncoding();
-                BeginEncoding(type);
-            }
-
-            mIsNeededRenderEncoderUpdating = false;
-        }
     } // namespace gapi
 } // namespace cube
