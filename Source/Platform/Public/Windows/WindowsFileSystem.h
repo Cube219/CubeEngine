@@ -4,6 +4,7 @@
 
 #include "PlatformHeader.h"
 #include "FileSystem.h"
+#include "Windows/WindowsString.h"
 
 #include <Windows.h>
 
@@ -11,6 +12,45 @@ namespace cube
 {
     namespace platform
     {
+        class CUBE_PLATFORM_EXPORT WindowsFilePath : public BaseFilePath
+        {
+            // === Base member functions ===
+        public:
+            WindowsFilePath() = default;
+            ~WindowsFilePath() = default;
+
+            WindowsFilePath(StringView path);
+            WindowsFilePath(AnsiStringView path);
+
+            String ToString() const;
+            AnsiString ToAnsiString() const;
+
+            WindowsFilePath GetParent() const;
+            String GetFileName() const;
+            String GetExtension() const;
+            String GetStem() const;
+            bool IsEmpty() const;
+
+            WindowsFilePath operator/(const WindowsFilePath& rhs) const;
+            WindowsFilePath& operator/=(const WindowsFilePath& rhs);
+            WindowsFilePath operator/(StringView rhs) const;
+            WindowsFilePath& operator/=(StringView rhs);
+            WindowsFilePath operator/(AnsiStringView rhs) const;
+            WindowsFilePath& operator/=(AnsiStringView rhs);
+
+            bool operator==(const WindowsFilePath& rhs) const;
+            // === Base member functions ===
+
+        public:
+            WindowsFilePath(WindowsStringView nativePath);
+
+            WindowsStringView GetNativePath() const;
+
+        private:
+            WindowsString mPath;
+        };
+        using FilePath = WindowsFilePath;
+
         class CUBE_PLATFORM_EXPORT WindowsFile : public BaseFile
         {
             // === Base member functions ===
@@ -37,15 +77,15 @@ namespace cube
         {
             // === Base member functions ===
         public:
-            static bool IsExist(StringView path);
-            static bool IsDirectory(StringView path);
-            static bool IsFile(StringView path);
-            static Vector<String> GetList(StringView directoryPath);
+            static bool IsExist(const FilePath& path);
+            static bool IsDirectory(const FilePath& path);
+            static bool IsFile(const FilePath& path);
+            static Vector<String> GetList(const FilePath& directoryPath);
 
-            static String GetCurrentDirectoryPath();
+            static FilePath GetCurrentDirectoryPath();
             static Character GetSeparator();
 
-            static SharedPtr<WindowsFile> OpenFile(StringView path, FileAccessModeFlags accessModeFlags, bool createIfNotExist = false);
+            static SharedPtr<WindowsFile> OpenFile(const FilePath& path, FileAccessModeFlags accessModeFlags, bool createIfNotExist = false);
             static const char* SplitFileNameFromFullPath(const char* fullPath);
             // === Base member functions ===
 

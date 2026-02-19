@@ -154,7 +154,7 @@ namespace cube
         // Create shaders
         SharedPtr<Shader>& vertexShader = mMaterialVertexShaders[materialHash];
         {
-            String vertexShaderFilePath = String(Engine::GetShaderDirectoryPath()) + CUBE_T("/Main.slang");
+            platform::FilePath vertexShaderFilePath = Engine::GetShaderDirectoryPath() / CUBE_T("Main.slang");
             vertexShader = mShaderManager.CreateShader({
                 .type = gapi::ShaderType::Vertex,
                 .language = gapi::ShaderLanguage::Slang,
@@ -166,7 +166,7 @@ namespace cube
         SharedPtr<Shader>& pixelShader = mMaterialPixelShaders[materialHash];
         {
             // Currently dynamic linkage are used in pixel shader only
-            String pixelShaderFilePath = String(Engine::GetShaderDirectoryPath()) + CUBE_T("/Main.slang");
+            platform::FilePath pixelShaderFilePath = Engine::GetShaderDirectoryPath() / CUBE_T("Main.slang");
 
             pixelShader = mShaderManager.CreateShader({
                 .type = gapi::ShaderType::Pixel,

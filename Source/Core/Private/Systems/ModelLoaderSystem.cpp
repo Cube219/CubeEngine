@@ -140,7 +140,7 @@ namespace cube
         mModelPathList.clear();
 
         // glTF models.
-        FrameString resourceBasePath = FrameString(Engine::GetRootDirectoryPath()) + CUBE_T("/Resources/Models/glTFSampleAssets/Models/");
+        platform::FilePath resourceBasePath = Engine::GetRootDirectoryPath() / CUBE_T("Resources/Models/glTFSampleAssets/Models");
         static const Character* gltfLoadModels[] = {
             CUBE_T("DamagedHelmet"),
             CUBE_T("FlightHelmet"),
@@ -159,7 +159,7 @@ namespace cube
                     mModelPathList.push_back({
                         .type = ModelType::glTF,
                         .name = String_Convert<AnsiString>(e),
-                        .path = Format<String>(CUBE_T("{0}/{1}/glTF/{1}.gltf"), resourceBasePath, e)
+                        .path = resourceBasePath / Format<FrameString>(CUBE_T("{0}/glTF/{0}.gltf"), e)
                     });
                     break;
                 }
@@ -167,7 +167,7 @@ namespace cube
         }
 
         // obj models.
-        FrameString objBasePath = FrameString(Engine::GetRootDirectoryPath()) + CUBE_T("/Resources/Models/DefaultModels/");
+        platform::FilePath objBasePath = Engine::GetRootDirectoryPath() / CUBE_T("Resources/Models/DefaultModels");
         static const Character* objLoadModels[] = {
             CUBE_T("CornellBox"),
             CUBE_T("FireplaceRoom"),
@@ -183,7 +183,7 @@ namespace cube
                     mModelPathList.push_back({
                         .type = ModelType::Obj,
                         .name = String_Convert<AnsiString>(e),
-                        .path = Format<String>(CUBE_T("{0}{1}"), objBasePath, e)
+                        .path = objBasePath / e
                     });
                     break;
                 }
@@ -209,8 +209,7 @@ namespace cube
         AnsiString warning;
         tinygltf::TinyGLTF loader;
 
-        AnsiString pathStr;
-        String_ConvertAndAppend(pathStr, pathInfo.path);
+        AnsiString pathStr = pathInfo.path.ToAnsiString();
         bool res = loader.LoadASCIIFromFile(&model, &error, &warning, pathStr);
 
         if (!warning.empty())
@@ -641,7 +640,7 @@ namespace cube
 
         for (const String& objFile : objFiles)
         {
-            AnsiString objFilePathAnsi = Format<AnsiString>("{0}/{1}", pathInfo.path, objFile);
+            AnsiString objFilePathAnsi = (pathInfo.path / objFile).ToAnsiString();
 
             tinyobj::ObjReaderConfig readerConfig;
             tinyobj::ObjReader reader;
@@ -812,7 +811,7 @@ namespace cube
                             c = '/';
                         }
                     }
-                    AnsiString texturePath = Format<AnsiString>("{0}/{1}", pathInfo.path, objTextureNameAnsi);
+                    AnsiString texturePath = (pathInfo.path / objTextureNameAnsi).ToAnsiString();
 
                     int width, height, channels;
                     unsigned char* imageData = stbi_load(texturePath.data(), &width, &height, &channels, 4);

@@ -13,6 +13,193 @@ namespace cube
 {
     namespace platform
     {
+        // ===== MacOSFilePath =====
+
+        MacOSFilePath::MacOSFilePath()
+            : mPath(@"")
+        {
+        }
+
+        MacOSFilePath::~MacOSFilePath()
+        {
+            mPath = nil;
+        }
+
+        MacOSFilePath::MacOSFilePath(const MacOSFilePath& other)
+            : mPath([other.mPath copy])
+        {
+        }
+
+        // TODO: Use better way instead of copying?
+        MacOSFilePath::MacOSFilePath(MacOSFilePath&& other)
+            : mPath([other.mPath copy])
+        {
+            other.mPath = nil;
+        }
+
+        MacOSFilePath& MacOSFilePath::operator=(const MacOSFilePath& other)
+        {
+            if (this != &other)
+            {
+                mPath = [other.mPath copy];
+            }
+            return *this;
+        }
+
+        // TODO: Use better way instead of copying?
+        MacOSFilePath& MacOSFilePath::operator=(MacOSFilePath&& other)
+        {
+            if (this != &other)
+            {
+                mPath = [other.mPath copy];
+                other.mPath = nil;
+            }
+            return *this;
+        }
+
+        MacOSFilePath::MacOSFilePath(StringView path)
+        {
+            MacOSString macPath = String_Convert<MacOSString>(path);
+            for (MacOSCharacter& ch : macPath)
+            {
+                if (ch == MACOS_T('\\'))
+                {
+                    ch = MACOS_T('/');
+                }
+            }
+            if (macPath.size() > 1 && macPath.back() == MACOS_T('/'))
+            {
+                macPath.pop_back();
+            }
+            mPath = [NSString stringWithUTF8String:macPath.data()];
+        }
+
+        MacOSFilePath::MacOSFilePath(AnsiStringView path)
+        {
+            MacOSString macPath = String_Convert<MacOSString>(path);
+            for (MacOSCharacter& ch : macPath)
+            {
+                if (ch == MACOS_T('\\'))
+                {
+                    ch = MACOS_T('/');
+                }
+            }
+            if (macPath.size() > 1 && macPath.back() == MACOS_T('/'))
+            {
+                macPath.pop_back();
+            }
+            mPath = [NSString stringWithUTF8String:macPath.data()];
+        }
+
+        String MacOSFilePath::ToString() const
+        {
+            return String_Convert<String>(mPath);
+        }
+
+        AnsiString MacOSFilePath::ToAnsiString() const
+        {
+            return AnsiString([mPath UTF8String]);
+        }
+
+        MacOSFilePath::MacOSFilePath(NSString* nativePath)
+            : mPath([nativePath copy])
+        {
+        }
+
+        NSString* MacOSFilePath::GetNativePath() const
+        {
+            return mPath;
+        }
+
+        MacOSFilePath MacOSFilePath::GetParent() const
+        {
+            if ([mPath length] == 0)
+            {
+                return MacOSFilePath();
+            }
+            NSString* parent = [mPath stringByDeletingLastPathComponent];
+            if ([parent isEqualToString:mPath])
+            {
+                return MacOSFilePath();
+            }
+            MacOSFilePath result;
+            result.mPath = parent;
+            return result;
+        }
+
+        String MacOSFilePath::GetFileName() const
+        {
+            return String_Convert<String>([mPath lastPathComponent]);
+        }
+
+        String MacOSFilePath::GetExtension() const
+        {
+            NSString* ext = [mPath pathExtension];
+            if ([ext length] == 0)
+            {
+                return String();
+            }
+            NSString* dotExt = [@"." stringByAppendingString:ext];
+            return String_Convert<String>(dotExt);
+        }
+
+        String MacOSFilePath::GetStem() const
+        {
+            return String_Convert<String>([[mPath lastPathComponent] stringByDeletingPathExtension]);
+        }
+
+        bool MacOSFilePath::IsEmpty() const
+        {
+            return [mPath length] == 0;
+        }
+
+        MacOSFilePath MacOSFilePath::operator/(const MacOSFilePath& rhs) const
+        {
+            MacOSFilePath result(*this);
+            result /= rhs;
+            return result;
+        }
+
+        MacOSFilePath& MacOSFilePath::operator/=(const MacOSFilePath& rhs)
+        {
+            if ([mPath length] == 0)
+            {
+                mPath = [rhs.mPath copy];
+            }
+            else
+            {
+                mPath = [mPath stringByAppendingPathComponent:rhs.mPath];
+            }
+            return *this;
+        }
+
+        MacOSFilePath MacOSFilePath::operator/(StringView rhs) const
+        {
+            return *this / MacOSFilePath(rhs);
+        }
+
+        MacOSFilePath& MacOSFilePath::operator/=(StringView rhs)
+        {
+            return *this /= MacOSFilePath(rhs);
+        }
+
+        MacOSFilePath MacOSFilePath::operator/(AnsiStringView rhs) const
+        {
+            return *this / MacOSFilePath(rhs);
+        }
+
+        MacOSFilePath& MacOSFilePath::operator/=(AnsiStringView rhs)
+        {
+            return *this /= MacOSFilePath(rhs);
+        }
+
+        bool MacOSFilePath::operator==(const MacOSFilePath& rhs) const
+        {
+            return [mPath isEqualToString:rhs.mPath];
+        }
+
+        // ===== MacOSFile =====
+
         MacOSFile::MacOSFile(NSString* filePath, NSFileHandle* fileHandle)
             : mFilePath(filePath)
             , mFileHandle(fileHandle)
@@ -111,34 +298,30 @@ namespace cube
             mCurrentOffset += bufferSize;
         }}
 
-        bool MacOSFileSystem::IsExist(StringView path)
+        bool MacOSFileSystem::IsExist(const FilePath& path)
         { @autoreleasepool {
-            NSString* nsPath = String_Convert<NSString*>(path);
-            return [[NSFileManager defaultManager] fileExistsAtPath:nsPath];
+            return [[NSFileManager defaultManager] fileExistsAtPath:path.GetNativePath()];
         }}
 
-        bool MacOSFileSystem::IsDirectory(StringView path)
+        bool MacOSFileSystem::IsDirectory(const FilePath& path)
         { @autoreleasepool {
-            NSString* nsPath = String_Convert<NSString*>(path);
             BOOL isDirectory;
-            [[NSFileManager defaultManager] fileExistsAtPath:nsPath isDirectory:&isDirectory];
+            [[NSFileManager defaultManager] fileExistsAtPath:path.GetNativePath() isDirectory:&isDirectory];
             return isDirectory;
         }}
 
-        bool MacOSFileSystem::IsFile(StringView path)
+        bool MacOSFileSystem::IsFile(const FilePath& path)
         { @autoreleasepool {
-            NSString* nsPath = String_Convert<NSString*>(path);
             BOOL isDirectory;
-            [[NSFileManager defaultManager] fileExistsAtPath:nsPath isDirectory:&isDirectory];
+            [[NSFileManager defaultManager] fileExistsAtPath:path.GetNativePath() isDirectory:&isDirectory];
             return !isDirectory;
         }}
 
-        Vector<String> MacOSFileSystem::GetList(StringView directoryPath)
+        Vector<String> MacOSFileSystem::GetList(const FilePath& directoryPath)
         {
             Vector<String> result;
             @autoreleasepool {
-                NSString* nsPath = String_Convert<NSString*>(directoryPath);
-                NSArray* list = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:nsPath error:nil];
+                NSArray* list = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:directoryPath.GetNativePath() error:nil];
 
                 if (list)
                 {
@@ -152,15 +335,9 @@ namespace cube
             return result;
         }
 
-        String MacOSFileSystem::GetCurrentDirectoryPath()
+        FilePath MacOSFileSystem::GetCurrentDirectoryPath()
         {
-            String result;
-            @autoreleasepool {
-                NSString* path = [[NSFileManager defaultManager] currentDirectoryPath];
-                result = String_Convert<String>(path);
-            }
-
-            return result;
+            return FilePath([[NSFileManager defaultManager] currentDirectoryPath]);
         }
 
         Character MacOSFileSystem::GetSeparator()
@@ -168,9 +345,9 @@ namespace cube
             return CUBE_T('/');
         }
 
-        SharedPtr<MacOSFile> MacOSFileSystem::OpenFile(StringView path, FileAccessModeFlags accessModeFlags, bool createIfNotExist)
+        SharedPtr<MacOSFile> MacOSFileSystem::OpenFile(const FilePath& path, FileAccessModeFlags accessModeFlags, bool createIfNotExist)
         {
-            NSString* nsPath = String_Convert<NSString*>(path);
+            NSString* nsPath = path.GetNativePath();
 
             if (createIfNotExist)
             {
@@ -183,7 +360,7 @@ namespace cube
                     ];
                 }
             }
-            
+
             NSFileHandle* fileHandle = nil;
             const bool hasReadMode = accessModeFlags.IsSet(FileAccessModeFlag::Read);
             const bool hasWriteMode = accessModeFlags.IsSet(FileAccessModeFlag::Write);
@@ -208,7 +385,7 @@ namespace cube
             }
             else
             {
-                CUBE_LOG(Warning, MacOSFileSystem, "Failed to open a file. ({0})", path);
+                CUBE_LOG(Warning, MacOSFileSystem, "Failed to open a file. ({0})", path.ToString());
             }
             return nullptr;
         }

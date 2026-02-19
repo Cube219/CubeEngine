@@ -19,7 +19,7 @@ namespace cube
         mGAPI = gapi;
 
         {
-            String shaderFilePath = Format<String>(CUBE_T("{0}/Resources/Shaders/{1}"), Engine::GetRootDirectoryPath(), CUBE_T("GenerateMipmaps.slang"));
+            platform::FilePath shaderFilePath = Engine::GetShaderDirectoryPath() / CUBE_T("GenerateMipmaps.slang");
         
             mGenerateMipmapsShader = shaderManager.CreateShader({
                 .type = gapi::ShaderType::Compute,

@@ -6,6 +6,7 @@
 
 #include "Blob.h"
 #include "CubeString.h"
+#include "FileSystem.h"
 #include "Format.h"
 
 namespace cube
@@ -73,7 +74,7 @@ namespace cube
 
             struct ShaderCodeInfo
             {
-                StringView path;
+                const platform::FilePath& path;
                 BlobView code;
             };
             ArrayView<ShaderCodeInfo> shaderCodeInfos;
@@ -98,7 +99,7 @@ namespace cube
             Uint32 GetThreadGroupSizeY() const { return mThreadGroupSizeY; }
             Uint32 GetThreadGroupSizeZ() const { return mThreadGroupSizeZ; }
 
-            const Vector<String>& GetDependencyFilePaths() const { return mDependencyFilePaths; }
+            const Vector<platform::FilePath>& GetDependencyFilePaths() const { return mDependencyFilePaths; }
 
         protected:
             bool mCreated;
@@ -109,7 +110,7 @@ namespace cube
             Uint32 mThreadGroupSizeY;
             Uint32 mThreadGroupSizeZ;
 
-            Vector<String> mDependencyFilePaths;
+            Vector<platform::FilePath> mDependencyFilePaths;
         };
 
         struct ShaderCompileResult
@@ -117,7 +118,7 @@ namespace cube
             bool isSuccess;
             String warning;
             String error;
-            Vector<String> dependencyFilePaths;
+            Vector<platform::FilePath> dependencyFilePaths;
 
             void Reset()
             {

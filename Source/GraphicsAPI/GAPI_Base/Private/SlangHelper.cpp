@@ -6,8 +6,8 @@
 #include "Allocator/FrameAllocator.h"
 #include "Checker.h"
 #include "Engine.h"
+#include "FileSystem.h"
 #include "GAPI_Shader.h"
-#include "PathHelper.h"
 
 using Slang::ComPtr;
 
@@ -80,7 +80,7 @@ namespace cube
     {
         CUBE_SLANG_CHECK(slang::createGlobalSession(mGlobalSession.writeRef()));
 
-        mShaderSearchPath = Format<FrameAnsiString>(CUBE_ANSI_T("{0}/Shaders"), Engine::GetRootDirectoryPath());
+        mShaderSearchPath = Engine::GetShaderDirectoryPath().ToAnsiString();
     }
 
     void SlangHelperPrivate::Shutdown()
@@ -170,8 +170,8 @@ namespace cube
         // Load modules
         for (const auto& shaderCodeInfo : info.shaderCodeInfos)
         {
-            FrameAnsiString name = String_Convert<FrameAnsiString>(PathHelper::GetFileNameFromPath(shaderCodeInfo.path));
-            FrameAnsiString path = String_Convert<FrameAnsiString>(shaderCodeInfo.path);
+            FrameAnsiString name = String_Convert<FrameAnsiString>(shaderCodeInfo.path.GetFileName());
+            AnsiString path = shaderCodeInfo.path.ToAnsiString();
             FrameAnsiString source;
             {
                 source.resize(shaderCodeInfo.code.GetSize() + 1);
@@ -275,15 +275,15 @@ namespace cube
                 SlangInt32 dependencyFileCount = loadedModule->getDependencyFileCount();
                 for (SlangInt32 i = 0; i < dependencyFileCount; ++i)
                 {
-                    const char* dependencyFilePath = loadedModule->getDependencyFilePath(i);
-                    if (dependencyFilePath && dependencyFilePath[0] != '\0')
+                    const char* dependencyFilePathStr = loadedModule->getDependencyFilePath(i);
+                    if (dependencyFilePathStr && dependencyFilePathStr[0] != '\0')
                     {
-                        String dependencyFilePathStr = String_Convert<String>(AnsiStringView(dependencyFilePath));
+                        platform::FilePath dependencyFilePath(dependencyFilePathStr);
                         // Deduplicate
                         bool isExisted = false;
-                        for (const String& existing : compileResult.dependencyFilePaths)
+                        for (const platform::FilePath& existing : compileResult.dependencyFilePaths)
                         {
-                            if (existing == dependencyFilePathStr)
+                            if (existing == dependencyFilePath)
                             {
                                 isExisted = true;
                                 break;
@@ -291,7 +291,7 @@ namespace cube
                         }
                         if (!isExisted)
                         {
-                            compileResult.dependencyFilePaths.push_back(std::move(dependencyFilePathStr));
+                            compileResult.dependencyFilePaths.push_back(std::move(dependencyFilePath));
                         }
                     }
                 }

@@ -15,7 +15,7 @@ namespace cube
         gapi::ShaderLanguage language;
 
         // Only slang can support multiple shader code and material shader code.
-        ArrayView<String> filePaths;
+        ArrayView<platform::FilePath> filePaths;
         StringView materialShaderCode;
         AnsiStringView entryPoint;
 
@@ -27,7 +27,7 @@ namespace cube
     struct ShaderFileInfo
     {
         bool isGeneratedShader = false;
-        String path;
+        platform::FilePath path;
         Time lastModifiedTimes = 0;
     };
 

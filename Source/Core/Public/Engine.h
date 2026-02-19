@@ -3,6 +3,7 @@
 #include "CoreHeader.h"
 
 #include "Event.h"
+#include "FileSystem.h"
 #include "GAPI.h"
 
 namespace cube
@@ -34,8 +35,8 @@ namespace cube
 
         static Renderer* GetRenderer() { return mRenderer.get(); }
 
-        CUBE_CORE_EXPORT static const String& GetRootDirectoryPath() { return mRootDirectoryPath; }
-        CUBE_CORE_EXPORT static const String& GetShaderDirectoryPath() { return mShaderDirectoryPath; }
+        CUBE_CORE_EXPORT static const platform::FilePath& GetRootDirectoryPath() { return mRootDirectoryPath; }
+        CUBE_CORE_EXPORT static const platform::FilePath& GetShaderDirectoryPath() { return mShaderDirectoryPath; }
 
         static void SetMesh(SharedPtr<MeshData> meshData, const MeshMetadata& meshMeta);
         static void SetMaterials(const Vector<SharedPtr<Material>>& materials);
@@ -62,8 +63,8 @@ namespace cube
         static ImGUIContext mImGUIContext;
         static bool mImGUIShowDemoWindow;
 
-        static String mRootDirectoryPath;
-        static String mShaderDirectoryPath;
+        static platform::FilePath mRootDirectoryPath;
+        static platform::FilePath mShaderDirectoryPath;
 
         static Uint64 mStartTime;
         static Uint64 mLastTime;

@@ -3,17 +3,16 @@
 #include "Allocator/FrameAllocator.h"
 #include "Engine.h"
 #include "FileSystem.h"
-#include "PathHelper.h"
 #include "Renderer.h"
 
 namespace cube
 {
-    static void GetShaderFileInfosAndCodes(ArrayView<String> filePaths, StringView materialShaderCode, FrameVector<ShaderFileInfo>& outFileInfos, FrameVector<Blob>& outCodes)
+    static void GetShaderFileInfosAndCodes(ArrayView<platform::FilePath> filePaths, StringView materialShaderCode, FrameVector<ShaderFileInfo>& outFileInfos, FrameVector<Blob>& outCodes)
     {
         outFileInfos.clear();
         outCodes.clear();
 
-        for (const String& filePath : filePaths)
+        for (const platform::FilePath& filePath : filePaths)
         {
             outFileInfos.push_back({});
             ShaderFileInfo& fileInfo = outFileInfos.back();
@@ -39,7 +38,7 @@ namespace cube
             outFileInfos.push_back({});
             ShaderFileInfo& fileInfo = outFileInfos.back();
             fileInfo.isGeneratedShader = true;
-            fileInfo.path = Engine::GetShaderDirectoryPath() + CUBE_T("/MaterialShaderCode_gen.slang");
+            fileInfo.path = Engine::GetShaderDirectoryPath() / CUBE_T("MaterialShaderCode_gen.slang");
             fileInfo.lastModifiedTimes = 0;
 
             FrameAnsiString ansiCode = String_Convert<FrameAnsiString>(materialShaderCode);
@@ -47,11 +46,11 @@ namespace cube
         }
     }
 
-    static FrameVector<ShaderFileInfo> GetDependencyFileInfos(ArrayView<const String> dependencyFilePaths, ArrayView<const ShaderFileInfo> excludeFileInfos)
+    static FrameVector<ShaderFileInfo> GetDependencyFileInfos(ArrayView<const platform::FilePath> dependencyFilePaths, ArrayView<const ShaderFileInfo> excludeFileInfos)
     {
         FrameVector<ShaderFileInfo> dependencyFileInfos;
 
-        for (const String& dependencyFilePath : dependencyFilePaths)
+        for (const platform::FilePath& dependencyFilePath : dependencyFilePaths)
         {
             bool isExcluded = false;
             for (const ShaderFileInfo& excludeFileInfo : excludeFileInfos)
@@ -84,11 +83,11 @@ namespace cube
         String result;
         if (mMetaData.fileInfos.size() > 0)
         {
-            result = mMetaData.fileInfos[0].path;
+            result = mMetaData.fileInfos[0].path.ToString();
         }
         for (int i = 1; i < mMetaData.fileInfos.size(); ++i)
         {
-            result += Format<FrameString>(CUBE_T(";{0}"), mMetaData.fileInfos[i].path);
+            result += Format<FrameString>(CUBE_T(";{0}"), mMetaData.fileInfos[i].path.ToString());
         }
 
         return result;
@@ -159,7 +158,7 @@ namespace cube
             CUBE_LOG(Error, Shader, "Try to recompile shader but not applied recompiled shader exist. Overwrite it.");
         }
 
-        FrameVector<String> shaderFilePaths;
+        FrameVector<platform::FilePath> shaderFilePaths;
         for (const ShaderFileInfo& shaderFileInfo : mMetaData.fileInfos)
         {
             if (!shaderFileInfo.isGeneratedShader)
@@ -171,7 +170,7 @@ namespace cube
         FrameVector<ShaderFileInfo> shaderFileInfos;
         GetShaderFileInfosAndCodes(shaderFilePaths, mMetaData.materialShaderCode, shaderFileInfos, shaderCodes);
 
-        FrameVector<String> dependencyFilePaths;
+        FrameVector<platform::FilePath> dependencyFilePaths;
         for (const ShaderFileInfo& dependencyFileInfo : mMetaData.dependencyFileInfos)
         {
             dependencyFilePaths.push_back(dependencyFileInfo.path);
@@ -198,7 +197,7 @@ namespace cube
                     const ShaderFileInfo& shaderFileInfo = shaderFileInfos[i];
                     //                         Files:
                     failedFilePaths += CUBE_T("       ");
-                    failedFilePaths += shaderFileInfo.path;
+                    failedFilePaths += shaderFileInfo.path.ToString();
                 }
             }
 

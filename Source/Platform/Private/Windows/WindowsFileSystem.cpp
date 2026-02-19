@@ -11,6 +11,165 @@ namespace cube
 {
     namespace platform
     {
+        // ===== WindowsFilePath =====
+
+        WindowsFilePath::WindowsFilePath(StringView path)
+        {
+            mPath = String_Convert<WindowsString>(path);
+            for (WindowsCharacter& ch : mPath)
+            {
+                if (ch == WINDOWS_T('/'))
+                {
+                    ch = WINDOWS_T('\\');
+                }
+            }
+            if (mPath.size() > 1 && mPath.back() == WINDOWS_T('\\'))
+            {
+                mPath.pop_back();
+            }
+        }
+
+        WindowsFilePath::WindowsFilePath(AnsiStringView path)
+        {
+            mPath = String_Convert<WindowsString>(path);
+            for (WindowsCharacter& ch : mPath)
+            {
+                if (ch == WINDOWS_T('/'))
+                {
+                    ch = WINDOWS_T('\\');
+                }
+            }
+            if (mPath.size() > 1 && mPath.back() == WINDOWS_T('\\'))
+            {
+                mPath.pop_back();
+            }
+        }
+
+        WindowsFilePath::WindowsFilePath(WindowsStringView nativePath)
+            : mPath(nativePath)
+        {
+            if (mPath.size() > 1 && mPath.back() == WINDOWS_T('\\'))
+            {
+                mPath.pop_back();
+            }
+        }
+
+        String WindowsFilePath::ToString() const
+        {
+            String result = String_Convert<String>(WindowsStringView(mPath));
+            for (Character& ch : result)
+            {
+                if (ch == CUBE_T('\\'))
+                {
+                    ch = CUBE_T('/');
+                }
+            }
+            return result;
+        }
+
+        AnsiString WindowsFilePath::ToAnsiString() const
+        {
+            return String_Convert<AnsiString>(WindowsStringView(mPath));
+        }
+
+        WindowsStringView WindowsFilePath::GetNativePath() const
+        {
+            return WindowsStringView(mPath);
+        }
+
+        WindowsFilePath WindowsFilePath::GetParent() const
+        {
+            SizeType pos = mPath.rfind(WINDOWS_T('\\'));
+            if (pos == WindowsString::npos || pos == 0)
+            {
+                if (pos == 0)
+                {
+                    return WindowsFilePath(WindowsStringView(WINDOWS_T("\\")));
+                }
+                return WindowsFilePath();
+            }
+            return WindowsFilePath(WindowsStringView(mPath.data(), pos));
+        }
+
+        String WindowsFilePath::GetFileName() const
+        {
+            SizeType pos = mPath.rfind(WINDOWS_T('\\'));
+            if (pos == WindowsString::npos)
+            {
+                return String_Convert<String>(WindowsStringView(mPath));
+            }
+            return String_Convert<String>(WindowsStringView(mPath.data() + pos + 1, mPath.size() - pos - 1));
+        }
+
+        String WindowsFilePath::GetExtension() const
+        {
+            SizeType sepPos = mPath.rfind(WINDOWS_T('\\'));
+            SizeType dotPos = mPath.rfind(WINDOWS_T('.'));
+            if (dotPos == WindowsString::npos || (sepPos != WindowsString::npos && dotPos < sepPos))
+            {
+                return String();
+            }
+            return String_Convert<String>(WindowsStringView(mPath.data() + dotPos, mPath.size() - dotPos));
+        }
+
+        String WindowsFilePath::GetStem() const
+        {
+            SizeType sepPos = mPath.rfind(WINDOWS_T('\\'));
+            SizeType nameStart = (sepPos == WindowsString::npos) ? 0 : sepPos + 1;
+            SizeType dotPos = mPath.rfind(WINDOWS_T('.'));
+            SizeType nameEnd = (dotPos == WindowsString::npos || dotPos < nameStart) ? mPath.size() : dotPos;
+            return String_Convert<String>(WindowsStringView(mPath.data() + nameStart, nameEnd - nameStart));
+        }
+
+        bool WindowsFilePath::IsEmpty() const
+        {
+            return mPath.empty();
+        }
+
+        WindowsFilePath WindowsFilePath::operator/(const WindowsFilePath& rhs) const
+        {
+            WindowsFilePath result(*this);
+            result /= rhs;
+            return result;
+        }
+
+        WindowsFilePath& WindowsFilePath::operator/=(const WindowsFilePath& rhs)
+        {
+            if (!mPath.empty() && mPath.back() != WINDOWS_T('\\'))
+            {
+                mPath += WINDOWS_T('\\');
+            }
+            mPath += rhs.mPath;
+            return *this;
+        }
+
+        WindowsFilePath WindowsFilePath::operator/(StringView rhs) const
+        {
+            return *this / WindowsFilePath(rhs);
+        }
+
+        WindowsFilePath& WindowsFilePath::operator/=(StringView rhs)
+        {
+            return *this /= WindowsFilePath(rhs);
+        }
+
+        WindowsFilePath WindowsFilePath::operator/(AnsiStringView rhs) const
+        {
+            return *this / WindowsFilePath(rhs);
+        }
+
+        WindowsFilePath& WindowsFilePath::operator/=(AnsiStringView rhs)
+        {
+            return *this /= WindowsFilePath(rhs);
+        }
+
+        bool WindowsFilePath::operator==(const WindowsFilePath& rhs) const
+        {
+            return mPath == rhs.mPath;
+        }
+
+        // ===== WindowsFile =====
+
         WindowsFile::WindowsFile(HANDLE fileHandle) :
             mFileHandle(fileHandle)
         {}
@@ -76,35 +235,29 @@ namespace cube
             CHECK_FORMAT(res, "Failed to write the file. (ErrorCode: {0})", GetLastError());
         }
 
-        bool WindowsFileSystem::IsExist(StringView path)
+        bool WindowsFileSystem::IsExist(const FilePath& path)
         {
-            WindowsString WinPath = String_Convert<WindowsString>(path);
-
-            DWORD res = GetFileAttributes(WinPath.c_str());
+            DWORD res = GetFileAttributes(path.GetNativePath().data());
             return res != INVALID_FILE_ATTRIBUTES;
         }
 
-        bool WindowsFileSystem::IsDirectory(StringView path)
+        bool WindowsFileSystem::IsDirectory(const FilePath& path)
         {
-            WindowsString WinPath = String_Convert<WindowsString>(path);
-
-            DWORD res = GetFileAttributes(WinPath.c_str());
+            DWORD res = GetFileAttributes(path.GetNativePath().data());
             return res != INVALID_FILE_ATTRIBUTES && !!(res & FILE_ATTRIBUTE_DIRECTORY);
         }
 
-        bool WindowsFileSystem::IsFile(StringView path)
+        bool WindowsFileSystem::IsFile(const FilePath& path)
         {
-            WindowsString WinPath = String_Convert<WindowsString>(path);
-
-            DWORD res = GetFileAttributes(WinPath.c_str());
+            DWORD res = GetFileAttributes(path.GetNativePath().data());
             return res != INVALID_FILE_ATTRIBUTES && !(res & FILE_ATTRIBUTE_DIRECTORY);
         }
 
-        Vector<String> WindowsFileSystem::GetList(StringView directoryPath)
+        Vector<String> WindowsFileSystem::GetList(const FilePath& directoryPath)
         {
             Vector<String> res;
 
-            WindowsString winPath = Format<WindowsString>(WINDOWS_T("{}/*.*"), directoryPath);
+            WindowsString winPath = WindowsString(directoryPath.GetNativePath()) + WINDOWS_T("\\*.*");
             WIN32_FIND_DATA data;
 
             HANDLE handle = FindFirstFile(winPath.c_str(), &data);
@@ -120,7 +273,7 @@ namespace cube
             return res;
         }
 
-        String WindowsFileSystem::GetCurrentDirectoryPath()
+        FilePath WindowsFileSystem::GetCurrentDirectoryPath()
         {
             DWORD len = GetCurrentDirectory(0, NULL);
             WindowsString winPath;
@@ -128,13 +281,13 @@ namespace cube
 
             if (GetCurrentDirectory(len, winPath.data()))
             {
-                return String_Convert<String>(winPath);
+                return FilePath(WindowsStringView(winPath));
             }
             else
             {
                 DWORD err = GetLastError();
                 CUBE_LOG(Error, WindowsFileSystem, "Failed to get the current directory path. (ErrorCode: {0})", err);
-                return CUBE_T("");
+                return FilePath();
             }
         }
 
@@ -143,12 +296,11 @@ namespace cube
             return CUBE_T('\\');
         }
 
-        SharedPtr<WindowsFile> WindowsFileSystem::OpenFile(StringView path, FileAccessModeFlags accessModeFlags, bool createIfNotExist)
+        SharedPtr<WindowsFile> WindowsFileSystem::OpenFile(const FilePath& path, FileAccessModeFlags accessModeFlags, bool createIfNotExist)
         {
             DWORD desiredAccess = GetDwDesiredAccess(accessModeFlags);
-            WindowsString pPath = String_Convert<WindowsString>(path);
 
-            HANDLE file = CreateFile(pPath.c_str(), desiredAccess, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+            HANDLE file = CreateFile(path.GetNativePath().data(), desiredAccess, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
             if (file != INVALID_HANDLE_VALUE)
             {
@@ -159,14 +311,17 @@ namespace cube
 
             if (err == ERROR_FILE_NOT_FOUND && createIfNotExist == true)
             {
-                file = CreateFile(pPath.c_str(), desiredAccess, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+                file = CreateFile(path.GetNativePath().data(), desiredAccess, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 
-                if (file != INVALID_HANDLE_VALUE) return std::make_shared<WindowsFile>(file);
+                if (file != INVALID_HANDLE_VALUE)
+                {
+                    return std::make_shared<WindowsFile>(file);
+                }
 
                 err = GetLastError();
             }
 
-            CUBE_LOG(Warning, WindowsFileSystem, "Failed to open a file. ({0}) (ErrorCode: {1})", path, err);
+            CUBE_LOG(Warning, WindowsFileSystem, "Failed to open a file. ({0}) (ErrorCode: {1})", path.ToString(), err);
             return nullptr;
         }
 
@@ -186,9 +341,15 @@ namespace cube
         {
             DWORD d = 0;
 
-            if (accessModeFlags.IsSet(FileAccessModeFlag::Read)) d |= GENERIC_READ;
+            if (accessModeFlags.IsSet(FileAccessModeFlag::Read))
+            {
+                d |= GENERIC_READ;
+            }
 
-            if (accessModeFlags.IsSet(FileAccessModeFlag::Write)) d |= GENERIC_WRITE;
+            if (accessModeFlags.IsSet(FileAccessModeFlag::Write))
+            {
+                d |= GENERIC_WRITE;
+            }
 
             return d;
         }

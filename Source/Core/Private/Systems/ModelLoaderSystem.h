@@ -3,6 +3,7 @@
 #include "CoreHeader.h"
 
 #include "CubeString.h"
+#include "FileSystem.h"
 
 namespace cube
 {
@@ -19,7 +20,7 @@ namespace cube
     {
         ModelType type;
         AnsiString name;
-        String path;
+        platform::FilePath path;
     };
 
     struct ModelResources

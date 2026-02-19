@@ -7,7 +7,6 @@ set(PUBLIC_FILES
     Public/Renderer/ShaderParameter.h
     Public/CoreHeader.h
     Public/Engine.h
-    Public/PathHelper.h
 )
 set(PRIVATE_FILES
     Private/Allocator/FrameAllocator.cpp
@@ -41,7 +40,6 @@ set(PRIVATE_FILES
     Private/Systems/StatsSystem.cpp
     Private/Systems/StatsSystem.h
     Private/Engine.cpp
-    Private/PathHelper.cpp
 )
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${PUBLIC_FILES} ${PRIVATE_FILES})

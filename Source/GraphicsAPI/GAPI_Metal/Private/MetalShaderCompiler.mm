@@ -119,7 +119,7 @@ namespace cube
                 {
                     pathList.push_back(CUBE_T('\n'));
                 }
-                pathList += codeInfo.path;
+                pathList += codeInfo.path.ToString();
             }
             FrameAnsiString shaderCode((const char*)shader.GetData(), shader.GetSize() / sizeof(char));
             CUBE_LOG(Info, DX12, "Compiled Metal code from\n\t{0}:\n{1}", pathList, shaderCode);

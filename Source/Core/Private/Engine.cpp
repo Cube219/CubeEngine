@@ -8,7 +8,6 @@
 #include "Checker.h"
 #include "FileSystem.h"
 #include "Logger.h"
-#include "PathHelper.h"
 #include "Platform.h"
 #include "PlatformDebug.h"
 #include "Renderer/Renderer.h"
@@ -83,8 +82,8 @@ namespace cube
     ImGUIContext Engine::mImGUIContext;
     bool Engine::mImGUIShowDemoWindow = true;
 
-    String Engine::mRootDirectoryPath;
-    String Engine::mShaderDirectoryPath;
+    platform::FilePath Engine::mRootDirectoryPath;
+    platform::FilePath Engine::mShaderDirectoryPath;
 
     Uint64 Engine::mStartTime;
     Uint64 Engine::mLastTime;
@@ -109,8 +108,6 @@ namespace cube
         Checker::RegisterExtension<EngineCheckerExtension>();
 
         CUBE_LOG(Info, Engine, "Initialize CubeEngine.");
-
-        PathHelper::Initialize();
 
         SearchAndSetRootDirectory();
         SetOtherDirectories();
@@ -190,8 +187,6 @@ namespace cube
         platform::Platform::GetClosingEvent().RemoveListener(mOnClosingEventFunc);
         platform::Platform::GetLoopEvent().RemoveListener(mOnLoopEventFunc);
 
-        PathHelper::Shutdown();
-
         GetMyThreadFrameAllocator().Shutdown();
 
         platform::Platform::Shutdown();
@@ -261,45 +256,32 @@ namespace cube
 
     void Engine::SearchAndSetRootDirectory()
     {
-        FrameString path(platform::FileSystem::GetCurrentDirectoryPath());
+        platform::FilePath path = platform::FileSystem::GetCurrentDirectoryPath();
 
         // Find the CubeEngine directory
-        const Character sep = platform::FileSystem::GetSeparator();
         while (1)
         {
             Vector<String> list = platform::FileSystem::GetList(path);
             if (std::find(list.begin(), list.end(), CUBE_T("Resources")) != list.end())
             {
                 mRootDirectoryPath = path;
-                CUBE_LOG(Info, Engine, "Found the root directory path: {0}", mRootDirectoryPath);
+                CUBE_LOG(Info, Engine, "Found the root directory path: {0}", mRootDirectoryPath.ToString());
                 return;
             }
 
-            int i;
-            for (i = path.size() - 1; i >= 0; --i)
-            {
-                if (path[i] == sep)
-                {
-                    break;
-                }
-            }
-
-            if (i >= 1)
-            {
-                // Move to parent
-                path = path.substr(0, i);
-            }
-            else
+            platform::FilePath parent = path.GetParent();
+            if (parent.IsEmpty())
             {
                 mRootDirectoryPath = platform::FileSystem::GetCurrentDirectoryPath();
-                CUBE_LOG(Error, Engine, "Failed to find the root directory path. Use the current directory path: {0}", mRootDirectoryPath);
+                CUBE_LOG(Error, Engine, "Failed to find the root directory path. Use the current directory path: {0}", mRootDirectoryPath.ToString());
                 break;
             }
+            path = parent;
         }
     }
 
     void Engine::SetOtherDirectories()
     {
-        mShaderDirectoryPath = mRootDirectoryPath + CUBE_T("/Resources/Shaders");
+        mShaderDirectoryPath = mRootDirectoryPath / CUBE_T("Resources/Shaders");
     }
 } // namespace cube

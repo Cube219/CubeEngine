@@ -11,7 +11,7 @@ namespace cube
 {
     namespace gapi
     {
-        MetalShader::MetalShader(const MetalShaderCompileResult& result, StringView warningMessage, StringView errorMessage, Vector<String>&& dependencyFilePaths) :
+        MetalShader::MetalShader(const MetalShaderCompileResult& result, StringView warningMessage, StringView errorMessage, Vector<platform::FilePath>&& dependencyFilePaths) :
             mLibrary(result.library),
             mFunction(result.function)
         {

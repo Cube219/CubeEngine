@@ -9,6 +9,34 @@ namespace cube
 {
     namespace platform
     {
+        class CUBE_PLATFORM_EXPORT BaseFilePath
+        {
+        public:
+            BaseFilePath() = default;
+            ~BaseFilePath() = default;
+
+            BaseFilePath(StringView path) { NOT_IMPLEMENTED() }
+            BaseFilePath(AnsiStringView path) { NOT_IMPLEMENTED() }
+
+            String ToString() const { NOT_IMPLEMENTED() return {}; }
+            AnsiString ToAnsiString() const { NOT_IMPLEMENTED() return {}; }
+
+            BaseFilePath GetParent() const { NOT_IMPLEMENTED() return {}; }
+            String GetFileName() const { NOT_IMPLEMENTED() return {}; }
+            String GetExtension() const { NOT_IMPLEMENTED() return {}; }
+            String GetStem() const { NOT_IMPLEMENTED() return {}; }
+            bool IsEmpty() const { NOT_IMPLEMENTED() return true; }
+
+            BaseFilePath operator/(const BaseFilePath& rhs) const { NOT_IMPLEMENTED() return {}; }
+            BaseFilePath& operator/=(const BaseFilePath& rhs) { NOT_IMPLEMENTED() return *this; }
+            BaseFilePath operator/(StringView rhs) const { NOT_IMPLEMENTED() return {}; }
+            BaseFilePath& operator/=(StringView rhs) { NOT_IMPLEMENTED() return *this; }
+            BaseFilePath operator/(AnsiStringView rhs) const { NOT_IMPLEMENTED() return {}; }
+            BaseFilePath& operator/=(AnsiStringView rhs) { NOT_IMPLEMENTED() return *this; }
+
+            bool operator==(const BaseFilePath& rhs) const { NOT_IMPLEMENTED() return false; }
+        };
+
         enum class FileAccessModeFlag
         {
             Read = 1,
@@ -42,15 +70,15 @@ namespace cube
             BaseFileSystem() = delete;
             ~BaseFileSystem() = delete;
 
-            static bool IsExist(StringView path) { NOT_IMPLEMENTED() return false; }
-            static bool IsDirectory(StringView path) { NOT_IMPLEMENTED() return false; }
-            static bool IsFile(StringView path) { NOT_IMPLEMENTED() return false; }
-            static Vector<String> GetList(StringView directoryPath) { NOT_IMPLEMENTED() return {}; }
+            static bool IsExist(const BaseFilePath& path) { NOT_IMPLEMENTED() return false; }
+            static bool IsDirectory(const BaseFilePath& path) { NOT_IMPLEMENTED() return false; }
+            static bool IsFile(const BaseFilePath& path) { NOT_IMPLEMENTED() return false; }
+            static Vector<String> GetList(const BaseFilePath& directoryPath) { NOT_IMPLEMENTED() return {}; }
 
-            static String GetCurrentDirectoryPath() { NOT_IMPLEMENTED() return {}; }
+            static BaseFilePath GetCurrentDirectoryPath() { NOT_IMPLEMENTED() return {}; }
             static Character GetSeparator() { NOT_IMPLEMENTED() return {}; }
 
-            static SharedPtr<BaseFile> OpenFile(StringView path, FileAccessModeFlags accessModeFlags, bool createIfNotExist = false) { NOT_IMPLEMENTED() return nullptr; }
+            static SharedPtr<BaseFile> OpenFile(const BaseFilePath& path, FileAccessModeFlags accessModeFlags, bool createIfNotExist = false) { NOT_IMPLEMENTED() return nullptr; }
             static const char* SplitFileNameFromFullPath(const char* fullPath) { NOT_IMPLEMENTED() return nullptr; }
         };
     } // namespace platform
