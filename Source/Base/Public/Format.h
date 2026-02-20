@@ -20,8 +20,14 @@ namespace cube
         } // namespace internal
     } // namespace format
 
+    // Set visibility hidden in format template functions to prevent weak symbol coalescing in dyld.
+    // Format use thread_local (thlFormatMemoryBlock), so each dylib has its own copy and should be called
+    // in same dylib.
+    // Without hidden visibility, the dynamic linker coalesces weak symbols across dylibs, so they can be called
+    // in different dylibs. If AllocateFormat and DiscardFormatAllocations are called in different dylibs, it will
+    // produce memory leak.
     template <typename T>
-    class FormatAllocator
+    class CUBE_DLL_HIDDEN FormatAllocator
     {
     public:
         using value_type = T;
@@ -53,7 +59,7 @@ namespace cube
                 requires
                     (!string_internal::Converter<std::basic_string<DstChar>, SrcType>::Available) ||
                     (!string_internal::Converter<std::basic_string<DstChar>, SrcType>::NeedConvert)
-            const SrcType& ConvertIfStringTypeIsDifferent(const SrcType& value)
+            CUBE_DLL_HIDDEN const SrcType& ConvertIfStringTypeIsDifferent(const SrcType& value)
             {
                 return value;
             }
@@ -63,7 +69,7 @@ namespace cube
                 requires
                     string_internal::Converter<std::basic_string<DstChar>, SrcType>::Available &&
                     string_internal::Converter<std::basic_string<DstChar>, SrcType>::NeedConvert
-            fmt::basic_string_view<DstChar> ConvertIfStringTypeIsDifferent(const SrcType& value)
+            CUBE_DLL_HIDDEN fmt::basic_string_view<DstChar> ConvertIfStringTypeIsDifferent(const SrcType& value)
             {
                 // temp string will be deallocated when DiscardFormatAllocations() is called.
                 // (At the end of formatting)
@@ -82,7 +88,7 @@ namespace cube
 
             // fmt::vformat that support custom character and allocator
             template <typename Char, typename StringAllocator, typename... Args>
-            inline std::basic_string<Char, std::char_traits<Char>, StringAllocator> cube_vformat(
+            CUBE_DLL_HIDDEN inline std::basic_string<Char, std::char_traits<Char>, StringAllocator> cube_vformat(
                 fmt::basic_string_view<Char> format_str,
                 const Args&... args)
             {
@@ -100,7 +106,7 @@ namespace cube
 
     // ----- Format that can use in various characters -----
     template <typename OutputString = String, typename... Args>
-    inline OutputString Format(
+    CUBE_DLL_HIDDEN inline OutputString Format(
         std::basic_string_view<typename OutputString::value_type> formatStr,
         const Args&... args)
     {
@@ -112,7 +118,7 @@ namespace cube
 
     // ----- Custom formatter that can use in various characters -----
     template <typename Char>
-    struct cube_formatter
+    struct CUBE_DLL_HIDDEN cube_formatter
     {
         template <typename ParseContext>
         constexpr auto parse(ParseContext& ctx) { return ctx.begin(); }

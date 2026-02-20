@@ -30,6 +30,10 @@
 #define CUBE_DLL_IMPORT
 #endif
 
+#ifndef CUBE_DLL_HIDDEN
+#define CUBE_DLL_HIDDEN
+#endif
+
 #ifndef CUBE_DEBUG_BREAK
 #define CUBE_DEBUG_BREAK
 #endif
