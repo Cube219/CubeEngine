@@ -2,7 +2,7 @@
 
 #include "GAPIHeader.h"
 
-#include "GAPI_Resource.h"
+#include "CubeString.h"
 
 namespace cube
 {

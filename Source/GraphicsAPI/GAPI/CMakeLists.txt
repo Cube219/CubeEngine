@@ -35,8 +35,6 @@ target_include_directories(CE-GAPI
 )
 target_link_libraries(CE-GAPI
     PUBLIC
-        CE-Platform
-    PRIVATE
         CE-Base
-        CE-Logger
+        CE-Platform
 )

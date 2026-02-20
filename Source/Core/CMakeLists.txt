@@ -56,14 +56,15 @@ target_include_directories(CE-Core
         Private
 )
 target_link_libraries(CE-Core
-    PRIVATE
-        imgui
-        tinygltf
-        tinyobjloader
+    PUBLIC
         CE-Base
         CE-Logger
         CE-Platform
         CE-GAPI
+    PRIVATE
+        imgui
+        tinygltf
+        tinyobjloader
 )
 target_compile_definitions(CE-Core
     PRIVATE

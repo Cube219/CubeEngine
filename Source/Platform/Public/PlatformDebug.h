@@ -3,7 +3,6 @@
 #include "PlatformHeader.h"
 
 #include "Checker.h"
-#include "Format.h"
 
 namespace cube
 {

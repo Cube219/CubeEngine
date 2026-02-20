@@ -4,7 +4,6 @@
 
 #include "GAPI.h"
 
-#include "DLib.h"
 #include "DX12Device.h"
 
 namespace cube

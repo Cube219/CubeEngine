@@ -24,7 +24,7 @@ target_include_directories(CE-Logger
         Private
 )
 target_link_libraries(CE-Logger
-    PRIVATE
+    PUBLIC
         CE-Base
 )
 target_compile_definitions(CE-Logger

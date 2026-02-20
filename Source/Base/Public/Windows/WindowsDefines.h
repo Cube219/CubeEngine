@@ -9,7 +9,6 @@
 
 // Include debug related headers to use CUBE_DEBUG_BREAK in other source files
 #include <Windows.h>
-#include <DbgHelp.h> // Must be included after Windows.h
 #define CUBE_DEBUG_BREAK DebugBreak();
 
 #else

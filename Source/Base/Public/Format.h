@@ -7,8 +7,6 @@
 #include "CubeString.h"
 #include "Types.h"
 
-#include <iterator> // std::back_inserter
-
 namespace cube
 {
     namespace format

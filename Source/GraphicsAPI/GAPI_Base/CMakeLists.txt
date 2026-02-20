@@ -23,13 +23,14 @@ target_include_directories(CE-GAPI_Base
         Private
 )
 target_link_libraries(CE-GAPI_Base
-    PRIVATE
-        slang
+    PUBLIC
         CE-Base
-        CE-Logger
-        CE-Platform
         CE-GAPI
         CE-Core
+    PRIVATE
+        slang
+        CE-Logger
+        CE-Platform
 )
 
 # Copy third-party DLibs

@@ -3,7 +3,6 @@
 #include "GAPIHeader.h"
 
 #include "GAPI_Resource.h"
-#include "Logger.h"
 
 namespace cube
 {

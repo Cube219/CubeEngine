@@ -4,8 +4,6 @@
 
 #include "PlatformHeader.h"
 
-#include "CubeString.h"
-
 namespace cube
 {
 #define WINDOWS_T(text) L ## text

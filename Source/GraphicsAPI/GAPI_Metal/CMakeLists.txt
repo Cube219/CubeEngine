@@ -52,13 +52,14 @@ target_include_directories(CE-GAPI_Metal
         Private
 )
 target_link_libraries(CE-GAPI_Metal
+    PUBLIC
+        CE-Base
     PRIVATE
         "-framework AppKit"
         "-framework GameController"
         "-framework Metal"
         "-framework MetalKit"
         imgui
-        CE-Base
         CE-Logger
         CE-Platform
         CE-GAPI

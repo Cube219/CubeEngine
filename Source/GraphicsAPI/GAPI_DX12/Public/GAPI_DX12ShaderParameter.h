@@ -4,9 +4,6 @@
 
 #include "GAPI_ShaderParameter.h"
 
-#include "DX12APIObject.h"
-#include "GAPI_DX12Buffer.h"
-
 namespace cube
 {
     class DX12Device;

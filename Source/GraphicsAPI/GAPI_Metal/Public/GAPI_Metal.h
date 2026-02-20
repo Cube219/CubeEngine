@@ -4,8 +4,6 @@
 
 #include "GAPI.h"
 
-#include "Platform.h"
-
 @interface CubeImGUIMTKView : MTKView <MTKViewDelegate>
 
 @end
