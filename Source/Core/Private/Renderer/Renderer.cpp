@@ -166,16 +166,24 @@ namespace cube
             }
         }
 
-        ImGui::SeparatorText("Shader");
-
-        if (ImGui::Checkbox("Shader Debug Mode", &mShaderManager.mUseDebugMode))
+        if (ImGui::CollapsingHeader("Shader", ImGuiTreeNodeFlags_DefaultOpen))
         {
-            mShaderManager.RecompileShaders(true);
+            if (ImGui::Checkbox("Shader Debug Mode", &mShaderManager.mUseDebugMode))
+            {
+                mShaderManager.RecompileShaders(true);
+            }
+
+            if (ImGui::Button("RecompileShader"))
+            {
+                mShaderManager.RecompileShaders(false);
+            }
         }
 
-        if (ImGui::Button("RecompileShader"))
+        if (ImGui::CollapsingHeader("Debug", ImGuiTreeNodeFlags_DefaultOpen))
         {
-            mShaderManager.RecompileShaders(false);
+            ImGui::SeparatorText("Gizmos");
+
+            ImGui::Checkbox("Show Axis", &mShowAxis);
         }
 
         ImGui::End();
@@ -469,6 +477,7 @@ namespace cube
                 }
             }
 
+            if (mShowAxis)
             {
                 GPU_EVENT_SCOPE(mCommandList, CUBE_T("Draw Axis"));
                 // Axis
