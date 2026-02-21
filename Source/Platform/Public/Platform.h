@@ -34,6 +34,7 @@ namespace cube
 
             static void SetEngineInitializeFunction(std::function<void()> function) { NOT_IMPLEMENTED() }
             static void SetEngineShutdownFunction(std::function<void()> function) { NOT_IMPLEMENTED() }
+            static void SetPostLoopMainThreadFunction(std::function<void()> function) { NOT_IMPLEMENTED() }
             static void StartLoop() { NOT_IMPLEMENTED() }
             static void FinishLoop() { NOT_IMPLEMENTED() }
             static void Sleep(float timeSec) { NOT_IMPLEMENTED() }

@@ -31,6 +31,7 @@ namespace cube
 
             static void SetEngineInitializeFunction(std::function<void()> function);
             static void SetEngineShutdownFunction(std::function<void()> function);
+            static void SetPostLoopMainThreadFunction(std::function<void()> function);
             static void StartLoop();
             static void FinishLoop();
             static void Sleep(float timeSec);

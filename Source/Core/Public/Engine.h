@@ -27,7 +27,8 @@ namespace cube
             bool drawImGUI = true;
             // Some platform cannot execute loop logic in the main thread. (Ex. MacOS)
             // So, run initialize and shutdown logic in platform loop function which runs another thread.
-            bool runInitializeAndShutdownInLoopFunction = false;
+            bool runLoopInOtherThread = false;
+            bool isInMainThread = true;
         };
         CUBE_CORE_EXPORT static void Initialize(const EngineInitializeInfo& initInfo);
         CUBE_CORE_EXPORT static void StartLoop();

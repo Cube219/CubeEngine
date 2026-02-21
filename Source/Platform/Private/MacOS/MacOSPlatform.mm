@@ -334,6 +334,7 @@ namespace cube
 
         std::function<void()> MacOSPlatform::mEngineInitializeFunction;
         std::function<void()> MacOSPlatform::mEngineShutdownFunction;
+        std::function<void()> MacOSPlatform::mPostLoopMainThreadFunction;
         Signal MacOSPlatform::mRunMainLoopSignal;
         std::thread MacOSPlatform::mMainLoopThread;
         bool MacOSPlatform::mIsLoopStarted = false;
@@ -476,6 +477,11 @@ namespace cube
         void MacOSPlatform::SetEngineShutdownFunction(std::function<void()> function)
         {
             mEngineShutdownFunction = function;
+        }
+
+        void MacOSPlatform::SetPostLoopMainThreadFunction(std::function<void()> function)
+        {
+            mPostLoopMainThreadFunction = function;
         }
 
         void MacOSPlatform::StartLoop()
@@ -845,6 +851,11 @@ namespace cube
                 }
 
                 mLoopEvent.Dispatch();
+
+                if (mPostLoopMainThreadFunction)
+                {
+                    MacOSUtility::DispatchToMainThread(mPostLoopMainThreadFunction);
+                }
             }}
 
             if (mEngineShutdownFunction)

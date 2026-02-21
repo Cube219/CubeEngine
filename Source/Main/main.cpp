@@ -37,11 +37,11 @@ int main(int argc, const char* argv[])
         .argc = argc,
         .argv = argv,
         .gapi = cube::GAPIName::Metal,
-        .runInitializeAndShutdownInLoopFunction = true
+        .runLoopInOtherThread = true,
     };
     platform::Platform::SetEngineInitializeFunction([initInfo](){
         Engine::EngineInitializeInfo info2 = initInfo;        
-        info2.runInitializeAndShutdownInLoopFunction = false;
+        info2.isInMainThread = false;
         Engine::Initialize(info2);
     });
     platform::Platform::SetEngineShutdownFunction(&Engine::Shutdown);

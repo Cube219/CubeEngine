@@ -137,12 +137,17 @@ namespace cube
 
         void WindowsPlatform::SetEngineInitializeFunction(std::function<void()> function)
         {
-            // Do nothing
+            // Do nothing. Windows run loop in main thread.
         }
 
         void WindowsPlatform::SetEngineShutdownFunction(std::function<void()> function)
         {
-            // Do nothing
+            // Do nothing. Windows run loop in main thread.
+        }
+
+        void WindowsPlatform::SetPostLoopMainThreadFunction(std::function<void()> function)
+        {
+            // Do nothing. Windows run loop in main thread.
         }
 
         void WindowsPlatform::StartLoop()

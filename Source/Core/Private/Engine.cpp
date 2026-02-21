@@ -17,21 +17,21 @@
 
 namespace cube
 {
-    class STDAllocator : public IAllocator
+    class FrameAllocatorAdapter : public IAllocator
     {
     public:
         void* Allocate(SizeType n) override
         {
-            return malloc(n);
+            return GetMyThreadFrameAllocator().Allocate(n);
         }
 
         void Free(void* ptr, SizeType n) override
         {
-            free(ptr);
+            GetMyThreadFrameAllocator().Free(ptr);
         }
     };
 
-    STDAllocator tempAllocator; // TODO: Use frame allocator
+    FrameAllocatorAdapter frameAllocatorAdapter;
 
     class EngineLoggerExtension : public ILoggerExtension
     {
@@ -91,19 +91,31 @@ namespace cube
 
     void Engine::Initialize(const EngineInitializeInfo& initInfo)
     {
+        if (initInfo.runLoopInOtherThread && initInfo.isInMainThread)
+        {
+            // Initialize frame allocator at platform main thread if the loop function does not run in main thread.
+            // Some platform dispatch events in platform main thread. (e.g. MacOS)
+            // Discard allocation will be executed in PostLoopFunction.
+            GetMyThreadFrameAllocator().Initialize("Platform main thread frame allocator", 1 * 1024 * 1024); // 1 MiB
+        }
+
         platform::Platform::Initialize();
 
-        if (initInfo.runInitializeAndShutdownInLoopFunction)
+        if (initInfo.runLoopInOtherThread && initInfo.isInMainThread)
         {
-            // Initialization logic will be executed in another main loop thread.
+            // Initialization logic was already executed in another loop thread.
             return;
         }
 
         GetMyThreadFrameAllocator().Initialize("Main thread frame allocator", 100u * 1024 * 1024); // 100 MiB
 
-        Logger::Init(&tempAllocator);
+        Logger::Init(&frameAllocatorAdapter);
         Logger::SetFilePathSeparator(platform::FileSystem::GetSeparator());
         Logger::RegisterExtension<EngineLoggerExtension>();
+
+        platform::Platform::SetPostLoopMainThreadFunction([]() {
+            GetMyThreadFrameAllocator().DiscardAllocations();
+        });
 
         Checker::RegisterExtension<EngineCheckerExtension>();
 
