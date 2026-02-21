@@ -4,6 +4,10 @@
 
 #include "Format.h"
 
+#ifndef CUBE_VECTOR_USE_AVX2
+#define CUBE_VECTOR_USE_AVX2 0
+#endif
+
 #ifndef CUBE_VECTOR_USE_SSE
 #define CUBE_VECTOR_USE_SSE 0
 #endif
@@ -12,7 +16,7 @@
 #define CUBE_VECTOR_USE_NEON 0
 #endif
 
-#if CUBE_VECTOR_USE_SSE
+#if CUBE_VECTOR_USE_AVX2 || CUBE_VECTOR_USE_SSE
 #include <immintrin.h>
 namespace cube
 {
@@ -218,7 +222,9 @@ namespace fmt
 // Include inline function definition
 #ifndef CUBE_VECTOR_IMPLEMENTATION
 
-#if CUBE_VECTOR_USE_SSE
+#if CUBE_VECTOR_USE_AVX2
+#include "VectorImpl/VectorAVX2.inl"
+#elif CUBE_VECTOR_USE_SSE
 #include "VectorImpl/VectorSSE.inl"
 #elif CUBE_VECTOR_USE_NEON
 #include "VectorImpl/VectorNEON.inl"
