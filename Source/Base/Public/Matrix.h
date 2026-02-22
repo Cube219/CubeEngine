@@ -63,6 +63,8 @@ namespace cube
 
 #if CUBE_VECTOR_USE_SSE
 #include "MatrixImpl/MatrixSSE.inl"
+#elif CUBE_VECTOR_USE_NEON
+#include "MatrixImpl/MatrixNEON.inl"
 #else
 #include "MatrixImpl/MatrixArray.inl"
 #endif

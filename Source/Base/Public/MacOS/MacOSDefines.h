@@ -6,8 +6,8 @@
 
 #define CUBE_DLL_HIDDEN __attribute__((visibility("hidden")))
 
-// TODO: Support SSE
 #define CUBE_VECTOR_USE_SSE 0
+#define CUBE_VECTOR_USE_NEON 1
 
 #ifdef CUBE_DEBUG
 

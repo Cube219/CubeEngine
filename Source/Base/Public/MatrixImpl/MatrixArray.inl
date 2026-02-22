@@ -302,15 +302,14 @@ namespace cube
         {
             for (int j = 0; j < 4; ++j)
             {
-                res.mRows[i].mData[j] = subMatrixDet[i][j] * rDet;
+                res.mRows[i].mData[j] = subMatrixDet[j][i] * rDet;
                 if ((i + j) % 2 == 1)
                 {
                     res.mRows[i].mData[j] *= -1;
                 }
             }
         }
-        res.Transpose();
-        
+
         return res;
     }
     

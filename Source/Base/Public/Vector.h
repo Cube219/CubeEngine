@@ -5,7 +5,11 @@
 #include "Format.h"
 
 #ifndef CUBE_VECTOR_USE_SSE
-#define CUBE_VECTOR_USE_SSE 1
+#define CUBE_VECTOR_USE_SSE 0
+#endif
+
+#ifndef CUBE_VECTOR_USE_NEON
+#define CUBE_VECTOR_USE_NEON 0
 #endif
 
 #if CUBE_VECTOR_USE_SSE
@@ -14,6 +18,13 @@ namespace cube
 {
     template <int N>
     using VectorData = __m128;
+} // namespace cube
+#elif CUBE_VECTOR_USE_NEON
+#include <arm_neon.h>
+namespace cube
+{
+    template <int N>
+    using VectorData = float32x4_t;
 } // namespace cube
 #else
 namespace cube
@@ -212,6 +223,8 @@ namespace fmt
 
 #if CUBE_VECTOR_USE_SSE
 #include "VectorImpl/VectorSSE.inl"
+#elif CUBE_VECTOR_USE_NEON
+#include "VectorImpl/VectorNEON.inl"
 #else
 #include "VectorImpl/VectorArray.inl"
 #endif

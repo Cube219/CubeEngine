@@ -1,5 +1,7 @@
 #pragma once
 
+#define CUBE_VECTOR_USE_SSE 1
+
 #define FORCE_INLINE __forceinline
 
 #define CUBE_DLL_EXPORT __declspec(dllexport)
