@@ -57,6 +57,7 @@ set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Binaries/${CMAKE_BUILD
 set (CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Binaries/${CMAKE_BUILD_TYPE})
 set (CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Binaries/${CMAKE_BUILD_TYPE})
 
+add_subdirectory("ThirdParty/googletest")
 add_subdirectory("ThirdParty/fmt")
 add_subdirectory("ThirdParty/imgui")
 add_subdirectory("ThirdParty/slang")
@@ -78,3 +79,6 @@ add_subdirectory("Source/Platform")
 add_subdirectory("Source/GraphicsAPI")
 add_subdirectory("Source/Core")
 add_subdirectory("Source/Main")
+
+enable_testing()
+add_subdirectory("Tests")
