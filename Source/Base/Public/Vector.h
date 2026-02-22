@@ -13,7 +13,7 @@
 #endif
 
 #if CUBE_VECTOR_USE_SSE
-#include <xmmintrin.h>
+#include <immintrin.h>
 namespace cube
 {
     template <int N>

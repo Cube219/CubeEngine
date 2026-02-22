@@ -157,15 +157,15 @@ namespace cube
         __m128 r1 = r0;
         __m128 r2 = r0;
 
-        // x / x / x / x
+        // (x, x, x, x)
         __m128 t = _mm_shuffle_ps(axis.mData, axis.mData, _MM_SHUFFLE(0, 0, 0, 0));
         r0 = _mm_mul_ps(r0, t);
 
-        // y / y / y / y
+        // (y, y, y, y)
         t = _mm_shuffle_ps(axis.mData, axis.mData, _MM_SHUFFLE(1, 1, 1, 1));
         r1 = _mm_mul_ps(r1, t);
 
-        // z / z / z / z
+        // (z, z, z, z)
         t = _mm_shuffle_ps(axis.mData, axis.mData, _MM_SHUFFLE(2, 2, 2, 2));
         r2 = _mm_mul_ps(r2, t);
 
@@ -206,9 +206,9 @@ namespace cube
         Matrix m = Matrix::Identity();
 
         Vector4 one = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
-        // z / z / 1 / 1
+        // (z, z, 1, 1)
         __m128 temp = _mm_shuffle_ps(vec.mData, one.mData, _MM_SHUFFLE(0, 0, 2, 2));
-        // x / y / z / 1
+        // (x, y, z, 1)
         m[3].mData = _mm_shuffle_ps(vec.mData, temp, _MM_SHUFFLE(2, 0, 1, 0));
 
         return m;
@@ -268,14 +268,14 @@ namespace cube
         __m128 d1 = Vector3::DotV(eyePos, v).mData;
         __m128 d2 = Vector3::DotV(eyePos, w).mData;
 
-        // d1 / d1 / d2 / d2
+        // (d1, d1, d2, d2)
         __m128 t = _mm_shuffle_ps(d1, d2, _MM_SHUFFLE(0, 0, 0, 0));
-        // 0 / d1 / d2 / 0
+        // (0, d1, d2, 0)
         t = _mm_and_ps(t, vectorMaskYZ);
 
-        // d0 / 0 / 0 / 0
+        // (d0, 0, 0, 0)
         d0 = _mm_and_ps(d0, vectorMaskX);
-        // d0 / d1 / d2 / 0
+        // (d0, d1, d2, 0)
         t = _mm_add_ps(t, d0);
 
         m[3] = Vector4(0.0f, 0.0f, 0.0f, 1.0f);

@@ -242,40 +242,20 @@ namespace cube
     {
         Vector4 col;
 
-        __m128 t0, t1, t2, t3;
+        __m128 t0 = mRows[0].mData;
+        __m128 t1 = mRows[1].mData;
+        __m128 t2 = mRows[2].mData;
+        __m128 t3 = mRows[3].mData;
+
+        _MM_TRANSPOSE4_PS(t0, t1, t2, t3);
 
         switch (index)
         {
-        case 0:
-            t0 = _mm_shuffle_ps(mRows[0].mData, mRows[0].mData, _MM_SHUFFLE(0, 0, 0, 0));
-            t1 = _mm_shuffle_ps(mRows[1].mData, mRows[1].mData, _MM_SHUFFLE(0, 0, 0, 0));
-            t2 = _mm_shuffle_ps(mRows[2].mData, mRows[2].mData, _MM_SHUFFLE(0, 0, 0, 0));
-            t3 = _mm_shuffle_ps(mRows[3].mData, mRows[3].mData, _MM_SHUFFLE(0, 0, 0, 0));
-            break;
-        case 1:
-            t0 = _mm_shuffle_ps(mRows[0].mData, mRows[0].mData, _MM_SHUFFLE(1, 1, 1, 1));
-            t1 = _mm_shuffle_ps(mRows[1].mData, mRows[1].mData, _MM_SHUFFLE(1, 1, 1, 1));
-            t2 = _mm_shuffle_ps(mRows[2].mData, mRows[2].mData, _MM_SHUFFLE(1, 1, 1, 1));
-            t3 = _mm_shuffle_ps(mRows[3].mData, mRows[3].mData, _MM_SHUFFLE(1, 1, 1, 1));
-            break;
-        case 2:
-            t0 = _mm_shuffle_ps(mRows[0].mData, mRows[0].mData, _MM_SHUFFLE(2, 2, 2, 2));
-            t1 = _mm_shuffle_ps(mRows[1].mData, mRows[1].mData, _MM_SHUFFLE(2, 2, 2, 2));
-            t2 = _mm_shuffle_ps(mRows[2].mData, mRows[2].mData, _MM_SHUFFLE(2, 2, 2, 2));
-            t3 = _mm_shuffle_ps(mRows[3].mData, mRows[3].mData, _MM_SHUFFLE(2, 2, 2, 2));
-            break;
-        case 3:
-            t0 = _mm_shuffle_ps(mRows[0].mData, mRows[0].mData, _MM_SHUFFLE(3, 3, 3, 3));
-            t1 = _mm_shuffle_ps(mRows[1].mData, mRows[1].mData, _MM_SHUFFLE(3, 3, 3, 3));
-            t2 = _mm_shuffle_ps(mRows[2].mData, mRows[2].mData, _MM_SHUFFLE(3, 3, 3, 3));
-            t3 = _mm_shuffle_ps(mRows[3].mData, mRows[3].mData, _MM_SHUFFLE(3, 3, 3, 3));
-            break;
+        case 0: col.mData = t0; break;
+        case 1: col.mData = t1; break;
+        case 2: col.mData = t2; break;
+        case 3: col.mData = t3; break;
         }
-
-        t3 = _mm_move_ss(t3, t2);
-        t1 = _mm_move_ss(t1, t0);
-
-        col.mData = _mm_movelh_ps(t1, t3);
 
         return col;
     }
@@ -470,11 +450,10 @@ namespace cube
         __m128 cof2 = CalculateColCofactor(c0, c1, c3);
         __m128 cof3 = CalculateColCofactor(c0, c1, c2);
 
-        __m128 pmpm = _mm_set_ps(1.0f, -1.0f, 1.0f, -1.0f);
-        __m128 mpmp = _mm_set_ps(-1.0f, 1.0f, -1.0f, 1.0f);
+        __m128 pmpm = _mm_set_ps(-1.0f, 1.0f, -1.0f, 1.0f);
+        __m128 mpmp = _mm_set_ps(1.0f, -1.0f, 1.0f, -1.0f);
 
-        __m128 det = _mm_mul_ps(_mm_mul_ps(c0, pmpm), cof0);
-        det = SSE::internal::GetSum<4>(det);
+        __m128 det = _mm_dp_ps(_mm_mul_ps(c0, pmpm), cof0, 0xFF);
         __m128 invDet = _mm_div_ps(_mm_set1_ps(1.0f), det);
 
         __m128 v0 = _mm_mul_ps(_mm_mul_ps(cof0, pmpm), invDet);
