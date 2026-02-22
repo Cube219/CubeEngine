@@ -182,25 +182,51 @@ namespace cube
     inline Matrix MatrixUtility::GetTranslation(float x, float y, float z)
     {
         /*
-          0  0  0  0
-          0  0  0  0
-          0  0  0  0
+          1  0  0  0
+          0  1  0  0
+          0  0  1  0
           x  y  z  1
         */
         return Matrix{
-            0.0f, 0.0f, 0.0f, 0.0f,
-            0.0f, 0.0f, 0.0f, 0.0f,
-            0.0f, 0.0f, 0.0f, 0.0f,
+            1.0f, 0.0f, 0.0f, 0.0f,
+            0.0f, 1.0f, 0.0f, 0.0f,
+            0.0f, 0.0f, 1.0f, 0.0f,
             x, y, z, 1.0f
         };
     }
 
     inline Matrix MatrixUtility::GetTranslation(const Vector3& vec)
     {
-        Matrix m = Matrix::Zero();
+        Matrix m = Matrix::Identity();
 
         // Build {x, y, z, 1} from vec
         m[3].mData = vsetq_lane_f32(1.0f, vec.mData, 3);
+
+        return m;
+    }
+
+    inline Matrix MatrixUtility::GetTranslation_Add(float x, float y, float z)
+    {
+        /*
+          0  0  0  0
+          0  0  0  0
+          0  0  0  0
+          x  y  z  0
+        */
+        return Matrix{
+            0.0f, 0.0f, 0.0f, 0.0f,
+            0.0f, 0.0f, 0.0f, 0.0f,
+            0.0f, 0.0f, 0.0f, 0.0f,
+            x, y, z, 0.0f
+        };
+    }
+
+    inline Matrix MatrixUtility::GetTranslation_Add(const Vector3& vec)
+    {
+        Matrix m = Matrix::Zero();
+
+        // Convert to Vector4 to set w component 0.
+        m[3].mData = Vector4(vec).mData;
 
         return m;
     }

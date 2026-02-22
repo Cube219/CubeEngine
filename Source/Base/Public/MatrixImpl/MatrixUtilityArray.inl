@@ -126,8 +126,8 @@ namespace cube
         float revCA = 1 - cA;
 
         float x = axis.mData[0];
-        float y = axis.mData[0];
-        float z = axis.mData[0];
+        float y = axis.mData[1];
+        float z = axis.mData[2];
 
         return Matrix{
             cA + revCA * x * x, revCA * x * y + z * sA, revCA * x * z - y * sA, 0.0f,
@@ -138,6 +138,27 @@ namespace cube
     }
 
     inline Matrix MatrixUtility::GetTranslation(float x, float y, float z)
+    {
+        /*
+          1  0  0  0
+          0  1  0  0
+          0  0  1  0
+          x  y  z  1
+        */
+        return Matrix{
+            1.0f, 0.0f, 0.0f, 0.0f,
+            0.0f, 1.0f, 0.0f, 0.0f,
+            0.0f, 0.0f, 1.0f, 0.0f,
+            x, y, z, 1.0f
+        };
+    }
+
+    inline Matrix MatrixUtility::GetTranslation(const Vector3& vec)
+    {
+        return GetTranslation(vec.mData[0], vec.mData[1], vec.mData[2]);
+    }
+
+    inline Matrix MatrixUtility::GetTranslation_Add(float x, float y, float z)
     {
         /*
           0  0  0  0
@@ -153,9 +174,9 @@ namespace cube
         };
     }
 
-    inline Matrix MatrixUtility::GetTranslation(const Vector3& vec)
+    inline Matrix MatrixUtility::GetTranslation_Add(const Vector3& vec)
     {
-        return GetTranslation(vec.mData[0], vec.mData[1], vec.mData[2]);
+        return GetTranslation_Add(vec.mData[0], vec.mData[1], vec.mData[2]);
     }
 
     inline Matrix MatrixUtility::GetLookAt(const Vector3& eyePos, const Vector3& targetPos, const Vector3& upDir)

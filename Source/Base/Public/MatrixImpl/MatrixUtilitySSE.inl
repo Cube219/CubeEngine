@@ -188,28 +188,54 @@ namespace cube
     inline Matrix MatrixUtility::GetTranslation(float x, float y, float z)
     {
         /*
-          0  0  0  0
-          0  0  0  0
-          0  0  0  0
+          1  0  0  0
+          0  1  0  0
+          0  0  1  0
           x  y  z  1
         */
         return Matrix{
-            0.0f, 0.0f, 0.0f, 0.0f,
-            0.0f, 0.0f, 0.0f, 0.0f,
-            0.0f, 0.0f, 0.0f, 0.0f,
+            1.0f, 0.0f, 0.0f, 0.0f,
+            0.0f, 1.0f, 0.0f, 0.0f,
+            0.0f, 0.0f, 1.0f, 0.0f,
             x, y, z, 1.0f
         };
     }
 
     inline Matrix MatrixUtility::GetTranslation(const Vector3& vec)
     {
-        Matrix m = Matrix::Zero();
+        Matrix m = Matrix::Identity();
 
         Vector4 one = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
         // z / z / 1 / 1
         __m128 temp = _mm_shuffle_ps(vec.mData, one.mData, _MM_SHUFFLE(0, 0, 2, 2));
         // x / y / z / 1
         m[3].mData = _mm_shuffle_ps(vec.mData, temp, _MM_SHUFFLE(2, 0, 1, 0));
+
+        return m;
+    }
+
+    inline Matrix MatrixUtility::GetTranslation_Add(float x, float y, float z)
+    {
+        /*
+          0  0  0  0
+          0  0  0  0
+          0  0  0  0
+          x  y  z  0
+        */
+        return Matrix{
+            0.0f, 0.0f, 0.0f, 0.0f,
+            0.0f, 0.0f, 0.0f, 0.0f,
+            0.0f, 0.0f, 0.0f, 0.0f,
+            x, y, z, 0.0f
+        };
+    }
+
+    inline Matrix MatrixUtility::GetTranslation_Add(const Vector3& vec)
+    {
+        Matrix m = Matrix::Zero();
+
+        // Convert to Vector4 to set w component 0.
+        m[3].mData = Vector4(vec).mData;
 
         return m;
     }

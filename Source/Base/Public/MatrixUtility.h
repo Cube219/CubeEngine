@@ -19,6 +19,8 @@ namespace cube
 
         static Matrix GetTranslation(float x, float y, float z);
         static Matrix GetTranslation(const Vector3& vec);
+        static Matrix GetTranslation_Add(float x, float y, float z);
+        static Matrix GetTranslation_Add(const Vector3& vec);
 
         static Matrix GetLookAt(const Vector3& eyePos, const Vector3& targetPos, const Vector3& upDir);
         static Matrix GetPerspectiveFov(float fovAngleY, float aspectRatio, float nearZ, float farZ);

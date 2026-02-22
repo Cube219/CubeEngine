@@ -294,7 +294,7 @@ namespace cube
 
     void Renderer::SetObjectModelMatrix(const Vector3& position, const Vector3& rotation, const Vector3& scale)
     {
-        mModelMatrix = MatrixUtility::GetScale(scale) * MatrixUtility::GetRotationXYZ(rotation) + MatrixUtility::GetTranslation(position);
+        mModelMatrix = MatrixUtility::GetScale(scale) * MatrixUtility::GetRotationXYZ(rotation) + MatrixUtility::GetTranslation_Add(position);
     }
 
     void Renderer::SetViewMatrix(const Vector3& eye, const Vector3& target, const Vector3& upDir)
@@ -542,15 +542,15 @@ namespace cube
         mDefaultMaterial = std::make_shared<Material>(CUBE_T("DefaultMaterial"));
 
         {
-            mXAxisModelMatrix = MatrixUtility::GetScale(4.0f, 0.2f, 0.2f) + MatrixUtility::GetTranslation(2, 0, 0);
+            mXAxisModelMatrix = MatrixUtility::GetScale(4.0f, 0.2f, 0.2f) + MatrixUtility::GetTranslation_Add(2, 0, 0);
             mXAxisMaterial = std::make_shared<Material>(CUBE_T("XAxisMaterial"));
             mXAxisMaterial->SetBaseColor({ 1.0f, 0.0f, 0.0f, 1.0f });
 
-            mYAxisModelMatrix = MatrixUtility::GetScale(0.2f, 4.0f, 0.2f) + MatrixUtility::GetTranslation(0, 2, 0);
+            mYAxisModelMatrix = MatrixUtility::GetScale(0.2f, 4.0f, 0.2f) + MatrixUtility::GetTranslation_Add(0, 2, 0);
             mYAxisMaterial = std::make_shared<Material>(CUBE_T("YAxisMaterial"));
             mYAxisMaterial->SetBaseColor({ 0.0f, 1.0f, 0.0f, 1.0f });
 
-            mZAxisModelMatrix = MatrixUtility::GetScale(0.2f, 0.2f, 4.0f) + MatrixUtility::GetTranslation(0, 0, 2);
+            mZAxisModelMatrix = MatrixUtility::GetScale(0.2f, 0.2f, 4.0f) + MatrixUtility::GetTranslation_Add(0, 0, 2);
             mZAxisMaterial = std::make_shared<Material>(CUBE_T("ZAxisMaterial"));
             mZAxisMaterial->SetBaseColor({ 0.0f, 0.0f, 1.0f, 1.0f });
         }
