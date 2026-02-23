@@ -83,6 +83,20 @@ TEST(MatrixTest, ConstructFromRows)
         {13, 14, 15, 16}
     };
     ExpectMatrixNear(m, expected);
+
+    Vector4 s0(-1.0f, 0.5f, 3.0f, -2.0f);
+    Vector4 s1(0.0f, 7.0f, -4.0f, 1.0f);
+    Vector4 s2(10.0f, -10.0f, 0.0f, 5.0f);
+    Vector4 s3(-3.0f, 2.0f, 8.0f, -6.0f);
+    Matrix m2(s0, s1, s2, s3);
+
+    float expected2[4][4] = {
+        {-1, 0.5f, 3, -2},
+        {0, 7, -4, 1},
+        {10, -10, 0, 5},
+        {-3, 2, 8, -6}
+    };
+    ExpectMatrixNear(m2, expected2);
 }
 
 TEST(MatrixTest, ConstructFromArray)
@@ -102,6 +116,21 @@ TEST(MatrixTest, ConstructFromArray)
         {13, 14, 15, 16}
     };
     ExpectMatrixNear(m, expected);
+
+    float arr2[16] = {
+        -1, 0.5f, 3, -2,
+        0, 7, -4, 1,
+        10, -10, 0, 5,
+        -3, 2, 8, -6
+    };
+    Matrix m2(arr2);
+    float expected2[4][4] = {
+        {-1, 0.5f, 3, -2},
+        {0, 7, -4, 1},
+        {10, -10, 0, 5},
+        {-3, 2, 8, -6}
+    };
+    ExpectMatrixNear(m2, expected2);
 }
 
 TEST(MatrixTest, ConstructFrom16Floats)
@@ -120,6 +149,20 @@ TEST(MatrixTest, ConstructFrom16Floats)
         {13, 14, 15, 16}
     };
     ExpectMatrixNear(m, expected);
+
+    Matrix m2(
+        -1, 0.5f, 3, -2,
+        0, 7, -4, 1,
+        10, -10, 0, 5,
+        -3, 2, 8, -6
+    );
+    float expected2[4][4] = {
+        {-1, 0.5f, 3, -2},
+        {0, 7, -4, 1},
+        {10, -10, 0, 5},
+        {-3, 2, 8, -6}
+    };
+    ExpectMatrixNear(m2, expected2);
 }
 
 TEST(MatrixTest, CopyConstruction)
@@ -132,6 +175,15 @@ TEST(MatrixTest, CopyConstruction)
     );
     Matrix b(a);
     ExpectMatrixNear(a, b);
+
+    Matrix c(
+        -1, 0.5f, 3, -2,
+        0, 7, -4, 1,
+        10, -10, 0, 5,
+        -3, 2, 8, -6
+    );
+    Matrix d(c);
+    ExpectMatrixNear(c, d);
 }
 
 TEST(MatrixTest, CopyAssignment)
@@ -145,6 +197,16 @@ TEST(MatrixTest, CopyAssignment)
     Matrix b;
     b = a;
     ExpectMatrixNear(a, b);
+
+    Matrix c(
+        -1, 0.5f, 3, -2,
+        0, 7, -4, 1,
+        10, -10, 0, 5,
+        -3, 2, 8, -6
+    );
+    Matrix d;
+    d = c;
+    ExpectMatrixNear(c, d);
 }
 
 // ===== Element Access =====
@@ -165,6 +227,24 @@ TEST(MatrixTest, OperatorBracket)
     Float4 r2 = m[2].GetFloat4();
     EXPECT_NEAR(r2.x, 9.0f, kEps);
     EXPECT_NEAR(r2.w, 12.0f, kEps);
+
+    Float4 r3 = m[3].GetFloat4();
+    EXPECT_NEAR(r3.x, 13.0f, kEps);
+    EXPECT_NEAR(r3.y, 14.0f, kEps);
+    EXPECT_NEAR(r3.z, 15.0f, kEps);
+    EXPECT_NEAR(r3.w, 16.0f, kEps);
+
+    Matrix m2(
+        -1, 0.5f, 3, -2,
+        0, 7, -4, 1,
+        10, -10, 0, 5,
+        -3, 2, 8, -6
+    );
+    Float4 s1 = m2[1].GetFloat4();
+    EXPECT_NEAR(s1.x, 0.0f, kEps);
+    EXPECT_NEAR(s1.y, 7.0f, kEps);
+    EXPECT_NEAR(s1.z, -4.0f, kEps);
+    EXPECT_NEAR(s1.w, 1.0f, kEps);
 }
 
 TEST(MatrixTest, GetRow)
@@ -182,6 +262,20 @@ TEST(MatrixTest, GetRow)
     EXPECT_NEAR(f.y, 6.0f, kEps);
     EXPECT_NEAR(f.z, 7.0f, kEps);
     EXPECT_NEAR(f.w, 8.0f, kEps);
+
+    Vector4 row3 = m.GetRow(3);
+    Float4 f2 = row3.GetFloat4();
+    EXPECT_NEAR(f2.x, 13.0f, kEps);
+    EXPECT_NEAR(f2.y, 14.0f, kEps);
+    EXPECT_NEAR(f2.z, 15.0f, kEps);
+    EXPECT_NEAR(f2.w, 16.0f, kEps);
+
+    Vector4 row0 = m.GetRow(0);
+    Float4 f3 = row0.GetFloat4();
+    EXPECT_NEAR(f3.x, 1.0f, kEps);
+    EXPECT_NEAR(f3.y, 2.0f, kEps);
+    EXPECT_NEAR(f3.z, 3.0f, kEps);
+    EXPECT_NEAR(f3.w, 4.0f, kEps);
 }
 
 TEST(MatrixTest, GetCol)
@@ -199,6 +293,20 @@ TEST(MatrixTest, GetCol)
     EXPECT_NEAR(f.y, 6.0f, kEps);
     EXPECT_NEAR(f.z, 10.0f, kEps);
     EXPECT_NEAR(f.w, 14.0f, kEps);
+
+    Vector4 col0 = m.GetCol(0);
+    Float4 f2 = col0.GetFloat4();
+    EXPECT_NEAR(f2.x, 1.0f, kEps);
+    EXPECT_NEAR(f2.y, 5.0f, kEps);
+    EXPECT_NEAR(f2.z, 9.0f, kEps);
+    EXPECT_NEAR(f2.w, 13.0f, kEps);
+
+    Vector4 col3 = m.GetCol(3);
+    Float4 f3 = col3.GetFloat4();
+    EXPECT_NEAR(f3.x, 4.0f, kEps);
+    EXPECT_NEAR(f3.y, 8.0f, kEps);
+    EXPECT_NEAR(f3.z, 12.0f, kEps);
+    EXPECT_NEAR(f3.w, 16.0f, kEps);
 }
 
 TEST(MatrixTest, SetRow)
@@ -210,6 +318,20 @@ TEST(MatrixTest, SetRow)
     EXPECT_NEAR(f.y, 10.0f, kEps);
     EXPECT_NEAR(f.z, 11.0f, kEps);
     EXPECT_NEAR(f.w, 12.0f, kEps);
+
+    m.SetRow(0, Vector4(-1.0f, 0.5f, 3.0f, -2.0f));
+    Float4 f2 = m.GetRow(0).GetFloat4();
+    EXPECT_NEAR(f2.x, -1.0f, kEps);
+    EXPECT_NEAR(f2.y, 0.5f, kEps);
+    EXPECT_NEAR(f2.z, 3.0f, kEps);
+    EXPECT_NEAR(f2.w, -2.0f, kEps);
+
+    m.SetRow(3, Vector4(100.0f, -200.0f, 300.0f, -400.0f));
+    Float4 f3 = m.GetRow(3).GetFloat4();
+    EXPECT_NEAR(f3.x, 100.0f, kEps);
+    EXPECT_NEAR(f3.y, -200.0f, kEps);
+    EXPECT_NEAR(f3.z, 300.0f, kEps);
+    EXPECT_NEAR(f3.w, -400.0f, kEps);
 }
 
 TEST(MatrixTest, SetCol)
@@ -222,6 +344,20 @@ TEST(MatrixTest, SetCol)
     EXPECT_NEAR(f.y, 6.0f, kEps);
     EXPECT_NEAR(f.z, 10.0f, kEps);
     EXPECT_NEAR(f.w, 14.0f, kEps);
+
+    m.SetCol(3, Vector4(-1.0f, -2.0f, -3.0f, -4.0f));
+    Float4 f2 = m.GetCol(3).GetFloat4();
+    EXPECT_NEAR(f2.x, -1.0f, kEps);
+    EXPECT_NEAR(f2.y, -2.0f, kEps);
+    EXPECT_NEAR(f2.z, -3.0f, kEps);
+    EXPECT_NEAR(f2.w, -4.0f, kEps);
+
+    m.SetCol(0, Vector4(100.0f, 200.0f, 300.0f, 400.0f));
+    Float4 f3 = m.GetCol(0).GetFloat4();
+    EXPECT_NEAR(f3.x, 100.0f, kEps);
+    EXPECT_NEAR(f3.y, 200.0f, kEps);
+    EXPECT_NEAR(f3.z, 300.0f, kEps);
+    EXPECT_NEAR(f3.w, 400.0f, kEps);
 }
 
 // ===== Arithmetic =====
@@ -248,6 +384,21 @@ TEST(MatrixTest, Addition)
         {17, 17, 17, 17}
     };
     ExpectMatrixNear(c, expected);
+
+    Matrix d(
+        -1, 0.5f, 3, -2,
+        0, 7, -4, 1,
+        10, -10, 0, 5,
+        -3, 2, 8, -6
+    );
+    Matrix e(
+        1, -0.5f, -3, 2,
+        0, -7, 4, -1,
+        -10, 10, 0, -5,
+        3, -2, -8, 6
+    );
+    Matrix f = d + e;
+    ExpectMatrixNear(f, Matrix::Zero());
 }
 
 TEST(MatrixTest, Subtraction)
@@ -272,6 +423,36 @@ TEST(MatrixTest, Subtraction)
         {117, 126, 135, 144}
     };
     ExpectMatrixNear(c, expected);
+
+    Matrix d(
+        5, -3, 7, 2,
+        -1, 4, 0, 8,
+        6, -2, 9, -5,
+        3, 1, -4, 7
+    );
+    Matrix e = d - d;
+    ExpectMatrixNear(e, Matrix::Zero());
+
+    Matrix f(
+        -1, 0.5f, 3, -2,
+        0, 7, -4, 1,
+        10, -10, 0, 5,
+        -3, 2, 8, -6
+    );
+    Matrix g(
+        1, -0.5f, -3, 2,
+        0, -7, 4, -1,
+        -10, 10, 0, -5,
+        3, -2, -8, 6
+    );
+    Matrix h = f - g;
+    float expected2[4][4] = {
+        {-2, 1, 6, -4},
+        {0, 14, -8, 2},
+        {20, -20, 0, 10},
+        {-6, 4, 16, -12}
+    };
+    ExpectMatrixNear(h, expected2);
 }
 
 TEST(MatrixTest, ScalarMultiply)
@@ -290,6 +471,24 @@ TEST(MatrixTest, ScalarMultiply)
         {26, 28, 30, 32}
     };
     ExpectMatrixNear(b, expected);
+
+    Matrix c = a * -1.0f;
+    float expected2[4][4] = {
+        {-1, -2, -3, -4},
+        {-5, -6, -7, -8},
+        {-9, -10, -11, -12},
+        {-13, -14, -15, -16}
+    };
+    ExpectMatrixNear(c, expected2);
+
+    Matrix d = a * 0.5f;
+    float expected3[4][4] = {
+        {0.5f, 1, 1.5f, 2},
+        {2.5f, 3, 3.5f, 4},
+        {4.5f, 5, 5.5f, 6},
+        {6.5f, 7, 7.5f, 8}
+    };
+    ExpectMatrixNear(d, expected3);
 }
 
 TEST(MatrixTest, ScalarMultiplyLhs)
@@ -308,6 +507,15 @@ TEST(MatrixTest, ScalarMultiplyLhs)
         {26, 28, 30, 32}
     };
     ExpectMatrixNear(b, expected);
+
+    Matrix c = -0.5f * a;
+    float expected2[4][4] = {
+        {-0.5f, -1, -1.5f, -2},
+        {-2.5f, -3, -3.5f, -4},
+        {-4.5f, -5, -5.5f, -6},
+        {-6.5f, -7, -7.5f, -8}
+    };
+    ExpectMatrixNear(c, expected2);
 }
 
 TEST(MatrixTest, ScalarDivide)
@@ -326,6 +534,21 @@ TEST(MatrixTest, ScalarDivide)
         {13, 14, 15, 16}
     };
     ExpectMatrixNear(b, expected);
+
+    Matrix c(
+        -9, 15, -21, 3,
+        6, -12, 18, -24,
+        30, 0, -27, 33,
+        -6, 9, -3, 12
+    );
+    Matrix d = c / 3.0f;
+    float expected2[4][4] = {
+        {-3, 5, -7, 1},
+        {2, -4, 6, -8},
+        {10, 0, -9, 11},
+        {-2, 3, -1, 4}
+    };
+    ExpectMatrixNear(d, expected2);
 }
 
 TEST(MatrixTest, MatrixMultiply)
@@ -344,6 +567,10 @@ TEST(MatrixTest, MatrixMultiply)
     // B * Identity = B
     Matrix d = b * a;
     ExpectMatrixNear(d, b);
+
+    // Zero * B = Zero
+    Matrix z = Matrix::Zero() * b;
+    ExpectMatrixNear(z, Matrix::Zero());
 }
 
 TEST(MatrixTest, MatrixMultiplyNonTrivial)
@@ -361,9 +588,6 @@ TEST(MatrixTest, MatrixMultiplyNonTrivial)
         29, 30, 31, 32
     );
     Matrix c = a * b;
-    // Row 0: (1*17+2*21+3*25+4*29, 1*18+2*22+3*26+4*30, ...)
-    // = (17+42+75+116, 18+44+78+120, 19+46+81+124, 20+48+84+128)
-    // = (250, 260, 270, 280)
     float expected[4][4] = {
         {250, 260, 270, 280},
         {618, 644, 670, 696},
@@ -371,6 +595,32 @@ TEST(MatrixTest, MatrixMultiplyNonTrivial)
         {1354, 1412, 1470, 1528}
     };
     ExpectMatrixNear(c, expected);
+
+    // Another non-trivial product with different values
+    Matrix d(
+        2, 0, 1, 0,
+        0, 3, 0, 1,
+        1, 0, 2, 0,
+        0, 1, 0, 3
+    );
+    Matrix e(
+        1, 2, 0, 0,
+        0, 1, 2, 0,
+        0, 0, 1, 2,
+        2, 0, 0, 1
+    );
+    Matrix f = d * e;
+    // Row0: 2*1+0+1*0+0, 2*2+0+1*0+0, 0+0+1*1+0, 0+0+1*2+0 = 2,4,1,2
+    // Row1: 0+0+0+2, 0+3+0+0, 0+6+0+0, 0+0+0+1 = 2,3,6,1
+    // Row2: 1+0+0+0, 2+0+0+0, 0+0+2+0, 0+0+4+0 = 1,2,2,4
+    // Row3: 0+0+0+6, 0+1+0+0, 0+2+0+0, 0+0+0+3 = 6,1,2,3
+    float expected2[4][4] = {
+        {2, 4, 1, 2},
+        {2, 3, 6, 1},
+        {1, 2, 2, 4},
+        {6, 1, 2, 3}
+    };
+    ExpectMatrixNear(f, expected2);
 }
 
 // ===== Compound Assignment =====
@@ -387,6 +637,21 @@ TEST(MatrixTest, CompoundAddition)
         {0, 0, 0, 2}
     };
     ExpectMatrixNear(a, expected);
+
+    Matrix c(
+        1, 2, 3, 4,
+        5, 6, 7, 8,
+        9, 10, 11, 12,
+        13, 14, 15, 16
+    );
+    Matrix d(
+        -1, -2, -3, -4,
+        -5, -6, -7, -8,
+        -9, -10, -11, -12,
+        -13, -14, -15, -16
+    );
+    c += d;
+    ExpectMatrixNear(c, Matrix::Zero());
 }
 
 TEST(MatrixTest, CompoundSubtraction)
@@ -395,6 +660,27 @@ TEST(MatrixTest, CompoundSubtraction)
     Matrix b = Matrix::Identity();
     a -= b;
     ExpectMatrixNear(a, Matrix::Zero());
+
+    Matrix c(
+        10, 20, 30, 40,
+        50, 60, 70, 80,
+        90, 100, 110, 120,
+        130, 140, 150, 160
+    );
+    Matrix d(
+        1, 2, 3, 4,
+        5, 6, 7, 8,
+        9, 10, 11, 12,
+        13, 14, 15, 16
+    );
+    c -= d;
+    float expected[4][4] = {
+        {9, 18, 27, 36},
+        {45, 54, 63, 72},
+        {81, 90, 99, 108},
+        {117, 126, 135, 144}
+    };
+    ExpectMatrixNear(c, expected);
 }
 
 TEST(MatrixTest, CompoundScalarMultiply)
@@ -408,6 +694,21 @@ TEST(MatrixTest, CompoundScalarMultiply)
         {0, 0, 0, 3}
     };
     ExpectMatrixNear(a, expected);
+
+    Matrix b(
+        1, 2, 3, 4,
+        5, 6, 7, 8,
+        9, 10, 11, 12,
+        13, 14, 15, 16
+    );
+    b *= -1.0f;
+    float expected2[4][4] = {
+        {-1, -2, -3, -4},
+        {-5, -6, -7, -8},
+        {-9, -10, -11, -12},
+        {-13, -14, -15, -16}
+    };
+    ExpectMatrixNear(b, expected2);
 }
 
 TEST(MatrixTest, CompoundMatrixMultiply)
@@ -427,6 +728,22 @@ TEST(MatrixTest, CompoundMatrixMultiply)
         {13, 14, 15, 16}
     };
     ExpectMatrixNear(a, expected);
+
+    Matrix c(
+        2, 0, 1, 0,
+        0, 3, 0, 1,
+        1, 0, 2, 0,
+        0, 1, 0, 3
+    );
+    Matrix d(
+        1, 0, 0, 2,
+        0, 1, 2, 0,
+        0, 2, 1, 0,
+        2, 0, 0, 1
+    );
+    Matrix cd = c * d;
+    c *= d;
+    ExpectMatrixNear(c, cd);
 }
 
 TEST(MatrixTest, CompoundScalarDivide)
@@ -445,6 +762,21 @@ TEST(MatrixTest, CompoundScalarDivide)
         {13, 14, 15, 16}
     };
     ExpectMatrixNear(a, expected);
+
+    Matrix b(
+        -9, 15, -21, 3,
+        6, -12, 18, -24,
+        30, 0, -27, 33,
+        -6, 9, -3, 12
+    );
+    b /= -3.0f;
+    float expected2[4][4] = {
+        {3, -5, 7, -1},
+        {-2, 4, -6, 8},
+        {-10, 0, 9, -11},
+        {2, -3, 1, -4}
+    };
+    ExpectMatrixNear(b, expected2);
 }
 
 // ===== Transpose =====
@@ -465,6 +797,21 @@ TEST(MatrixTest, Transpose)
         {4, 8, 12, 16}
     };
     ExpectMatrixNear(m, expected);
+
+    Matrix m2(
+        -1, 0.5f, 3, -2,
+        0, 7, -4, 1,
+        10, -10, 0, 5,
+        -3, 2, 8, -6
+    );
+    m2.Transpose();
+    float expected2[4][4] = {
+        {-1, 0, 10, -3},
+        {0.5f, 7, -10, 2},
+        {3, -4, 0, 8},
+        {-2, 1, 5, -6}
+    };
+    ExpectMatrixNear(m2, expected2);
 }
 
 TEST(MatrixTest, Transposed)
@@ -492,6 +839,21 @@ TEST(MatrixTest, Transposed)
         {13, 14, 15, 16}
     };
     ExpectMatrixNear(m, origExpected);
+
+    Matrix m2(
+        -1, 0.5f, 3, -2,
+        0, 7, -4, 1,
+        10, -10, 0, 5,
+        -3, 2, 8, -6
+    );
+    Matrix t2 = m2.Transposed();
+    float expected2[4][4] = {
+        {-1, 0, 10, -3},
+        {0.5f, 7, -10, 2},
+        {3, -4, 0, 8},
+        {-2, 1, 5, -6}
+    };
+    ExpectMatrixNear(t2, expected2);
 }
 
 TEST(MatrixTest, TransposeIdentity)
@@ -511,6 +873,15 @@ TEST(MatrixTest, DoubleTranspose)
     );
     Matrix t = m.Transposed().Transposed();
     ExpectMatrixNear(t, m);
+
+    Matrix m2(
+        -1, 0.5f, 3, -2,
+        0, 7, -4, 1,
+        10, -10, 0, 5,
+        -3, 2, 8, -6
+    );
+    Matrix t2 = m2.Transposed().Transposed();
+    ExpectMatrixNear(t2, m2);
 }
 
 // ===== Inverse =====
@@ -534,6 +905,26 @@ TEST(MatrixTest, InverseTimesOriginal)
     Matrix inv = m.Inversed();
     Matrix product = m * inv;
     ExpectMatrixNear(product, Matrix::Identity(), 1e-4f);
+
+    // Another diagonal matrix
+    Matrix m2(
+        5, 0, 0, 0,
+        0, 0.5f, 0, 0,
+        0, 0, -2, 0,
+        0, 0, 0, 10
+    );
+    Matrix inv2 = m2.Inversed();
+    Matrix product2 = m2 * inv2;
+    ExpectMatrixNear(product2, Matrix::Identity(), 1e-4f);
+
+    // Verify actual inverse values for the diagonal
+    float expected2[4][4] = {
+        {0.2f, 0, 0, 0},
+        {0, 2.0f, 0, 0},
+        {0, 0, -0.5f, 0},
+        {0, 0, 0, 0.1f}
+    };
+    ExpectMatrixNear(inv2, expected2, 1e-4f);
 }
 
 TEST(MatrixTest, InverseNonTrivial)
@@ -547,6 +938,26 @@ TEST(MatrixTest, InverseNonTrivial)
     Matrix inv = m.Inversed();
     Matrix product = m * inv;
     ExpectMatrixNear(product, Matrix::Identity(), 1e-4f);
+
+    Matrix m2(
+        1, 2, 3, 0,
+        0, 1, 4, 0,
+        5, 6, 0, 0,
+        0, 0, 0, 1
+    );
+    Matrix inv2 = m2.Inversed();
+    Matrix product2 = m2 * inv2;
+    ExpectMatrixNear(product2, Matrix::Identity(), 1e-4f);
+
+    Matrix m3(
+        3, 0, 2, -1,
+        1, 2, 0, -2,
+        4, 0, 6, -3,
+        5, 0, 2, 0
+    );
+    Matrix inv3 = m3.Inversed();
+    Matrix product3 = m3 * inv3;
+    ExpectMatrixNear(product3, Matrix::Identity(), 1e-4f);
 }
 
 TEST(MatrixTest, InverseMutating)
@@ -561,6 +972,17 @@ TEST(MatrixTest, InverseMutating)
     m.Inverse();
     Matrix product = original * m;
     ExpectMatrixNear(product, Matrix::Identity(), 1e-4f);
+
+    Matrix m2(
+        3, 0, 2, -1,
+        1, 2, 0, -2,
+        4, 0, 6, -3,
+        5, 0, 2, 0
+    );
+    Matrix original2(m2);
+    m2.Inverse();
+    Matrix product2 = original2 * m2;
+    ExpectMatrixNear(product2, Matrix::Identity(), 1e-4f);
 }
 
 // ===== Vector * Matrix =====
@@ -575,6 +997,14 @@ TEST(MatrixTest, VectorTimesMatrix)
     EXPECT_NEAR(f.y, 2.0f, kEps);
     EXPECT_NEAR(f.z, 3.0f, kEps);
     EXPECT_NEAR(f.w, 4.0f, kEps);
+
+    Vector4 v2(-5.0f, 10.0f, -15.0f, 20.0f);
+    Vector4 result2 = v2 * m;
+    Float4 f2 = result2.GetFloat4();
+    EXPECT_NEAR(f2.x, -5.0f, kEps);
+    EXPECT_NEAR(f2.y, 10.0f, kEps);
+    EXPECT_NEAR(f2.z, -15.0f, kEps);
+    EXPECT_NEAR(f2.w, 20.0f, kEps);
 }
 
 TEST(MatrixTest, VectorTimesMatrixNonTrivial)
@@ -596,4 +1026,135 @@ TEST(MatrixTest, VectorTimesMatrixNonTrivial)
     EXPECT_NEAR(f.y, 100.0f, kEps);
     EXPECT_NEAR(f.z, 110.0f, kEps);
     EXPECT_NEAR(f.w, 120.0f, kEps);
+
+    // v2 = (-1, 0, 2, -3)
+    // result.x = -1*1 + 0*5 + 2*9 + -3*13 = -1+0+18-39 = -22
+    // result.y = -1*2 + 0*6 + 2*10 + -3*14 = -2+0+20-42 = -24
+    // result.z = -1*3 + 0*7 + 2*11 + -3*15 = -3+0+22-45 = -26
+    // result.w = -1*4 + 0*8 + 2*12 + -3*16 = -4+0+24-48 = -28
+    Vector4 v2(-1.0f, 0.0f, 2.0f, -3.0f);
+    Float4 f2 = (v2 * m).GetFloat4();
+    EXPECT_NEAR(f2.x, -22.0f, kEps);
+    EXPECT_NEAR(f2.y, -24.0f, kEps);
+    EXPECT_NEAR(f2.z, -26.0f, kEps);
+    EXPECT_NEAR(f2.w, -28.0f, kEps);
+
+    // Diagonal matrix: v * diag = element-wise multiply
+    Matrix diag(
+        2, 0, 0, 0,
+        0, 3, 0, 0,
+        0, 0, 4, 0,
+        0, 0, 0, 5
+    );
+    Vector4 v3(10.0f, 20.0f, 30.0f, 40.0f);
+    Float4 f3 = (v3 * diag).GetFloat4();
+    EXPECT_NEAR(f3.x, 20.0f, kEps);
+    EXPECT_NEAR(f3.y, 60.0f, kEps);
+    EXPECT_NEAR(f3.z, 120.0f, kEps);
+    EXPECT_NEAR(f3.w, 200.0f, kEps);
+}
+
+// ===== Complex Algebraic Properties =====
+
+TEST(MatrixTest, TransposeOfProduct)
+{
+    // (A * B)^T = B^T * A^T
+    Matrix a(
+        2, 1, 0, 3,
+        1, 0, 2, 1,
+        0, 3, 1, 2,
+        1, 2, 3, 0
+    );
+    Matrix b(
+        1, 0, 3, 2,
+        0, 2, 1, 3,
+        3, 1, 0, 2,
+        2, 3, 2, 1
+    );
+
+    Matrix abT = (a * b).Transposed();
+    Matrix bTaT = b.Transposed() * a.Transposed();
+    ExpectMatrixNear(abT, bTaT);
+}
+
+TEST(MatrixTest, InverseOfProduct)
+{
+    // (A * B)^-1 = B^-1 * A^-1
+    Matrix a(
+        2, 1, 0, 3,
+        1, 0, 2, 1,
+        0, 3, 1, 2,
+        1, 2, 3, 0
+    );
+    Matrix b(
+        1, 0, 3, 2,
+        0, 2, 1, 3,
+        3, 1, 0, 2,
+        2, 3, 2, 1
+    );
+
+    Matrix abInv = (a * b).Inversed();
+    Matrix bInvAInv = b.Inversed() * a.Inversed();
+    ExpectMatrixNear(abInv, bInvAInv, 1e-3f);
+}
+
+TEST(MatrixTest, MultiplyAssociativity)
+{
+    // (A * B) * C = A * (B * C)
+    Matrix a(
+        2, 1, 0, 3,
+        1, 0, 2, 1,
+        0, 3, 1, 2,
+        1, 2, 3, 0
+    );
+    Matrix b(
+        1, 0, 3, 2,
+        0, 2, 1, 3,
+        3, 1, 0, 2,
+        2, 3, 2, 1
+    );
+    Matrix c(
+        0, 1, 2, 3,
+        3, 2, 1, 0,
+        1, 3, 0, 2,
+        2, 0, 3, 1
+    );
+
+    Matrix lhs = (a * b) * c;
+    Matrix rhs = a * (b * c);
+    ExpectMatrixNear(lhs, rhs);
+}
+
+TEST(MatrixTest, InverseOfTransposeEqualsTransposeOfInverse)
+{
+    // (A^T)^-1 = (A^-1)^T
+    Matrix a(
+        2, 1, 0, 3,
+        1, 0, 2, 1,
+        0, 3, 1, 2,
+        1, 2, 3, 0
+    );
+
+    Matrix atInv = a.Transposed().Inversed();
+    Matrix aInvT = a.Inversed().Transposed();
+    ExpectMatrixNear(atInv, aInvT, 1e-4f);
+}
+
+TEST(MatrixTest, InverseNonTrivialWithKnownResult)
+{
+    Matrix a(
+        2, 1, 0, 0,
+        1, 1, 0, 0,
+        0, 0, 3, 1,
+        0, 0, 1, 1
+    );
+    Matrix inv = a.Inversed();
+
+    float expected[4][4] = {
+        { 1.0f, -1.0f,  0.0f,  0.0f},
+        {-1.0f,  2.0f,  0.0f,  0.0f},
+        { 0.0f,  0.0f,  0.5f, -0.5f},
+        { 0.0f,  0.0f, -0.5f,  1.5f}
+    };
+    ExpectMatrixNear(inv, expected);
 }
