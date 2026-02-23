@@ -172,9 +172,9 @@ namespace cube
         m[2] = Vector4(f3.y * sinA, -f3.x * sinA, cosA, 0.0f);
         m[3] = Vector4(0.0f, 0.0f, 0.0f, 1.0f);
 
-        m[0].mData = vfmaq_laneq_f32(m[0].mData, revCosAxis, revCosAxis, 0);
-        m[1].mData = vfmaq_laneq_f32(m[1].mData, revCosAxis, revCosAxis, 1);
-        m[2].mData = vfmaq_laneq_f32(m[2].mData, revCosAxis, revCosAxis, 2);
+        m[0].mData = vfmaq_laneq_f32(m[0].mData, revCosAxis, axis.mData, 0);
+        m[1].mData = vfmaq_laneq_f32(m[1].mData, revCosAxis, axis.mData, 1);
+        m[2].mData = vfmaq_laneq_f32(m[2].mData, revCosAxis, axis.mData, 2);
 
         return m;
     }
