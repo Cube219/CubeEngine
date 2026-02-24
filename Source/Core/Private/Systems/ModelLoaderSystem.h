@@ -48,7 +48,7 @@ namespace cube
 
     private:
         static void LoadModelList();
-        static void LoadCurrentModelAndSet();
+        static void LoadCurrentModelAndSet(bool resetTransform = true);
 
         static ModelResources LoadModel_glTF(const ModelPathInfo& pathInfo);
         static ModelResources LoadModel_Obj(const ModelPathInfo& pathInfo);

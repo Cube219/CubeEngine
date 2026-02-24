@@ -127,7 +127,7 @@ namespace cube
 
         if (ImGui::Checkbox("Float16 Vertices", &mUseFloat16Vertices))
         {
-            LoadCurrentModelAndSet();
+            LoadCurrentModelAndSet(false);
         }
 
         ImGui::End();
@@ -249,11 +249,14 @@ namespace cube
         }
     }
 
-    void ModelLoaderSystem::LoadCurrentModelAndSet()
+    void ModelLoaderSystem::LoadCurrentModelAndSet(bool resetTransform)
     {
         const ModelPathInfo& info = mModelPathList[mCurrentSelectModelIndex];
 
-        ResetModelTransform();
+        if (resetTransform)
+        {
+            ResetModelTransform();
+        }
 
         ModelResources resources = LoadModel(info);
         MeshMetadata meshMeta;
