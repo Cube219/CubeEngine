@@ -60,14 +60,6 @@ namespace cube
     class Matrix;
 
     template <int N>
-    class VectorBase;
-
-    template <int N>
-    VectorBase<N> operator* (float lhs, const VectorBase<N>& rhs);
-    template <int N>
-    VectorBase<N> operator/ (float lhs, const VectorBase<N>& rhs);
-
-    template <int N>
     class VectorBase
     {
         static_assert(2 <= N && N <= 4, "Only 2, 3 and 4 dimension can be used.");
@@ -141,8 +133,10 @@ namespace cube
     
         VectorData<N> mData;
     
-        friend VectorBase operator*<> (float lhs, const VectorBase& rhs);
-        friend VectorBase operator/<> (float lhs, const VectorBase& rhs);
+        template <int M>
+        friend VectorBase<M> operator* (float lhs, const VectorBase<M>& rhs);
+        template <int M>
+        friend VectorBase<M> operator/ (float lhs, const VectorBase<M>& rhs);
         friend VectorBase<4> operator* (const VectorBase<4>& lhs, const Matrix& rhs);
     };
 
