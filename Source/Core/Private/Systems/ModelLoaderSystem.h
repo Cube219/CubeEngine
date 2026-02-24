@@ -4,6 +4,7 @@
 
 #include "CubeString.h"
 #include "FileSystem.h"
+#include "Vector.h"
 
 namespace cube
 {
@@ -21,6 +22,9 @@ namespace cube
         ModelType type;
         AnsiString name;
         platform::FilePath path;
+        Vector3 position = Vector3::Zero();
+        Vector3 rotation = Vector3::Zero();
+        Vector3 scale = Vector3(1.0f, 1.0f, 1.0f);
     };
 
     struct ModelResources
@@ -50,11 +54,13 @@ namespace cube
         static ModelResources LoadModel_Obj(const ModelPathInfo& pathInfo);
 
         static void UpdateModelMatrix();
-        static void ResetModelScale();
+        static void ResetModelTransform();
 
         static Vector<ModelPathInfo> mModelPathList;
         static int mCurrentSelectModelIndex;
 
+        static Float3 mModelPosition;
+        static Float3 mModelRotation;
         static float mModelScale;
         static bool mUseFloat16Vertices;
     };

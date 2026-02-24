@@ -10,6 +10,7 @@
 
 #include "Allocator/FrameAllocator.h"
 #include "Checker.h"
+#include "CubeMath.h"
 #include "CubeString.h"
 #include "Engine.h"
 #include "FileSystem.h"
@@ -25,13 +26,15 @@ namespace cube
     Vector<ModelPathInfo> ModelLoaderSystem::mModelPathList;
     int ModelLoaderSystem::mCurrentSelectModelIndex;
 
+    Float3 ModelLoaderSystem::mModelPosition;
+    Float3 ModelLoaderSystem::mModelRotation;
     float ModelLoaderSystem::mModelScale;
     bool ModelLoaderSystem::mUseFloat16Vertices = true;
 
     void ModelLoaderSystem::Initialize()
     {
         mCurrentSelectModelIndex = -1;
-        ResetModelScale();
+        ResetModelTransform();
     }
 
     void ModelLoaderSystem::Shutdown()
@@ -95,22 +98,33 @@ namespace cube
             modelDropdownExpandedLastFrame = false;
         }
 
-        ImGui::PushItemWidth(60.0f);
-        const float lastModelScale = mModelScale;
-        ImGui::DragFloat("Model Scale", &mModelScale, 0.1f);
-        ImGui::PopItemWidth();
-        if (lastModelScale != mModelScale)
+        ImGui::Separator();
+
+        ImGui::PushItemWidth(200.0f);
+        if (ImGui::DragFloat3("Position", &mModelPosition.x, 0.1f))
         {
             UpdateModelMatrix();
         }
+        if (ImGui::DragFloat3("Rotation", &mModelRotation.x, 1.0f))
+        {
+            UpdateModelMatrix();
+        }
+        ImGui::PopItemWidth();
 
-        ImGui::NewLine();
+        ImGui::PushItemWidth(65.0f);
+        if (ImGui::DragFloat("Scale", &mModelScale, 0.1f))
+        {
+            UpdateModelMatrix();
+        }
+        ImGui::PopItemWidth();
+
         if (ImGui::Button("Reset"))
         {
-            ResetModelScale();
+            ResetModelTransform();
         }
 
         ImGui::Separator();
+
         if (ImGui::Checkbox("Float16 Vertices", &mUseFloat16Vertices))
         {
             LoadCurrentModelAndSet();
@@ -139,27 +153,56 @@ namespace cube
     {
         mModelPathList.clear();
 
+        struct ModelLoadInfo
+        {
+            const Character* name;
+            Vector3 position = Vector3::Zero();
+            Vector3 rotation = Vector3::Zero();
+            Vector3 scale = Vector3(1.0f, 1.0f, 1.0f);
+        };
+
         // glTF models.
         platform::FilePath resourceBasePath = Engine::GetRootDirectoryPath() / CUBE_T("Resources/Models/glTFSampleAssets/Models");
-        static const Character* gltfLoadModels[] = {
-            CUBE_T("DamagedHelmet"),
-            CUBE_T("FlightHelmet"),
-            CUBE_T("MetalRoughSpheres"),
-            CUBE_T("MetalRoughSpheresNoTextures"),
-            CUBE_T("Sponza"),
-            CUBE_T("Suzanne"),
+        static const ModelLoadInfo gltfLoadModelInfos[] = {
+            {
+                .name = CUBE_T("DamagedHelmet"),
+                .rotation = Vector3(0.0f, -90.0f, 90.0f),
+                .scale = Vector3(2.5f)
+            },
+            {
+                .name = CUBE_T("FlightHelmet"),
+                .rotation = Vector3(0, -90.0f, 0.0f),
+                .scale = Vector3(7.0f)
+            },
+            {
+                .name = CUBE_T("MetalRoughSpheres"),
+                .position = Vector3(-1.5f, 0.0f, 0.0f),
+                .rotation = Vector3(0, 90.0f, 90.0f),
+                .scale = Vector3(0.5f)
+            },
+            {
+                .name = CUBE_T("Sponza"),
+            },
+            {
+                .name = CUBE_T("Suzanne"),
+                .rotation = Vector3(0, -90.0f),
+                .scale = Vector3(2.0f)
+            },
         };
         Vector<String> gltfList = platform::FileSystem::GetList(resourceBasePath);
-        for (const Character* modelName : gltfLoadModels)
+        for (const ModelLoadInfo& modelInfo : gltfLoadModelInfos)
         {
             for (const String& e : gltfList)
             {
-                if (e == modelName)
+                if (e == modelInfo.name)
                 {
                     mModelPathList.push_back({
                         .type = ModelType::glTF,
                         .name = String_Convert<AnsiString>(e),
-                        .path = resourceBasePath / Format<FrameString>(CUBE_T("{0}/glTF/{0}.gltf"), e)
+                        .path = resourceBasePath / Format<FrameString>(CUBE_T("{0}/glTF/{0}.gltf"), e),
+                        .position = modelInfo.position,
+                        .rotation = modelInfo.rotation,
+                        .scale = modelInfo.scale
                     });
                     break;
                 }
@@ -168,22 +211,37 @@ namespace cube
 
         // obj models.
         platform::FilePath objBasePath = Engine::GetRootDirectoryPath() / CUBE_T("Resources/Models/DefaultModels");
-        static const Character* objLoadModels[] = {
-            CUBE_T("CornellBox"),
-            CUBE_T("FireplaceRoom"),
-            CUBE_T("LivingRoom"),
+        static const ModelLoadInfo objLoadModels[] = {
+            {
+                .name = CUBE_T("CornellBox"),
+                .rotation = Vector3(0.0f, -90.0f, 0.0f),
+                .scale = Vector3(2.0f)
+            },
+            {
+                .name = CUBE_T("FireplaceRoom"),
+                .position = Vector3(-5.8f, 0.0f, 5.1f),
+                .scale = Vector3(3.0f)
+            },
+            {
+                .name = CUBE_T("LivingRoom"),
+                .position = Vector3(0.0f, 0.0f, -12.0f),
+                .scale = Vector3(3.0f)
+            }
         };
         Vector<String> objList = platform::FileSystem::GetList(objBasePath);
-        for (const Character* modelName : objLoadModels)
+        for (const ModelLoadInfo& modelInfo : objLoadModels)
         {
             for (const String& e : objList)
             {
-                if (e == modelName)
+                if (e == modelInfo.name)
                 {
                     mModelPathList.push_back({
                         .type = ModelType::Obj,
                         .name = String_Convert<AnsiString>(e),
-                        .path = objBasePath / e
+                        .path = objBasePath / e,
+                        .position = modelInfo.position,
+                        .rotation = modelInfo.rotation,
+                        .scale = modelInfo.scale
                     });
                     break;
                 }
@@ -194,6 +252,8 @@ namespace cube
     void ModelLoaderSystem::LoadCurrentModelAndSet()
     {
         const ModelPathInfo& info = mModelPathList[mCurrentSelectModelIndex];
+
+        ResetModelTransform();
 
         ModelResources resources = LoadModel(info);
         MeshMetadata meshMeta;
@@ -881,12 +941,31 @@ namespace cube
 
     void ModelLoaderSystem::UpdateModelMatrix()
     {
-        Engine::GetRenderer()->SetObjectModelMatrix(Vector3::Zero(), Vector3::Zero(), Vector3(mModelScale, mModelScale, mModelScale));
+        Vector3 position(mModelPosition.x, mModelPosition.y, mModelPosition.z);
+        Vector3 rotation(
+            Math::Deg2Rad(mModelRotation.x),
+            Math::Deg2Rad(mModelRotation.y),
+            Math::Deg2Rad(mModelRotation.z));
+        Vector3 scale(mModelScale, mModelScale, mModelScale);
+        Engine::GetRenderer()->SetObjectModelMatrix(position, rotation, scale);
     }
 
-    void ModelLoaderSystem::ResetModelScale()
+    void ModelLoaderSystem::ResetModelTransform()
     {
-        mModelScale = 1.0f;
+        if (mCurrentSelectModelIndex != -1)
+        {
+            const ModelPathInfo& info = mModelPathList[mCurrentSelectModelIndex];
+
+            mModelPosition = info.position.GetFloat3();
+            mModelRotation = info.rotation.GetFloat3();
+            mModelScale = info.scale.GetFloat3().x;
+        }
+        else
+        {
+            mModelPosition = { 0.0f, 0.0f, 0.0f };
+            mModelRotation = { 0.0f, 0.0f, 0.0f };
+            mModelScale = 1.0f;
+        }
         UpdateModelMatrix();
     }
 } // namespace cube
