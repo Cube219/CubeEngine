@@ -48,6 +48,11 @@ namespace cube
         void Inverse();
         Matrix Inversed() const;
 
+        bool IsAffine() const;
+
+        void AffineInverse();
+        Matrix AffineInversed() const;
+
     private:
         Vector4 mRows[4];
 

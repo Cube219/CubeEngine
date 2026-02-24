@@ -475,6 +475,95 @@ namespace cube
         return res;
     }
 
+    inline bool Matrix::IsAffine() const
+    {
+        __m128 t0 = mRows[0].mData;
+        __m128 t1 = mRows[1].mData;
+        __m128 t2 = mRows[2].mData;
+        __m128 t3 = mRows[3].mData;
+        _MM_TRANSPOSE4_PS(t0, t1, t2, t3);
+
+        __m128 expected = _mm_set_ps(1.0f, 0.0f, 0.0f, 0.0f);
+        __m128 diff = _mm_sub_ps(t3, expected);
+        __m128 dot = _mm_dp_ps(diff, diff, 0xFF);
+        constexpr float kEps = 1e-6f;
+        return _mm_comilt_ss(dot, _mm_set_ss(kEps * kEps));
+    }
+
+    inline void Matrix::AffineInverse()
+    {
+        __m128 row0 = mRows[0].mData;
+        __m128 row1 = mRows[1].mData;
+        __m128 row2 = mRows[2].mData;
+        __m128 row3 = mRows[3].mData;
+
+        // Compute cofactors of 3x3 block
+        // cofRow0 = (a11*a22-a12*a21, a12*a20-a10*a22, a10*a21-a11*a20, 0)
+        __m128 r1_yzx = _mm_shuffle_ps(row1, row1, _MM_SHUFFLE(3, 0, 2, 1));
+        __m128 r2_zxy = _mm_shuffle_ps(row2, row2, _MM_SHUFFLE(3, 1, 0, 2));
+        __m128 r1_zxy = _mm_shuffle_ps(row1, row1, _MM_SHUFFLE(3, 1, 0, 2));
+        __m128 r2_yzx = _mm_shuffle_ps(row2, row2, _MM_SHUFFLE(3, 0, 2, 1));
+        __m128 cofRow0 = _mm_sub_ps(_mm_mul_ps(r1_yzx, r2_zxy), _mm_mul_ps(r1_zxy, r2_yzx));
+
+        // Determinant: dot(row0, cofRow0) xyz only
+        __m128 det = _mm_dp_ps(row0, cofRow0, 0x7F);
+        __m128 invDet = _mm_div_ps(_mm_set1_ps(1.0f), det);
+
+        // cofRow1 = (a02*a21-a01*a22, a00*a22-a02*a20, a01*a20-a00*a21, 0)
+        __m128 r0_zxy = _mm_shuffle_ps(row0, row0, _MM_SHUFFLE(3, 1, 0, 2));
+        __m128 r0_yzx = _mm_shuffle_ps(row0, row0, _MM_SHUFFLE(3, 0, 2, 1));
+        __m128 cofRow1 = _mm_sub_ps(_mm_mul_ps(r0_zxy, r2_yzx), _mm_mul_ps(r0_yzx, r2_zxy));
+
+        // cofRow2 = (a01*a12-a02*a11, a02*a10-a00*a12, a00*a11-a01*a10, 0)
+        __m128 cofRow2 = _mm_sub_ps(_mm_mul_ps(r0_yzx, r1_zxy), _mm_mul_ps(r0_zxy, r1_yzx));
+
+        // Scale by invDet (adjugate rows are already transposed cofactors)
+        __m128 invRow0 = _mm_mul_ps(cofRow0, invDet);
+        __m128 invRow1 = _mm_mul_ps(cofRow1, invDet);
+        __m128 invRow2 = _mm_mul_ps(cofRow2, invDet);
+
+        // Transpose 3x3 to get inverted 3x3 in row-major
+        // We have invRow0 = col0 of inverse, etc. Need to transpose.
+        __m128 tmp0 = _mm_unpacklo_ps(invRow0, invRow1);  // (i00, i10, i01, i11)
+        __m128 tmp1 = _mm_unpackhi_ps(invRow0, invRow1);  // (i02, i12, -, -)
+        __m128 tmp2 = _mm_unpacklo_ps(invRow2, _mm_setzero_ps()); // (i20, 0, i21, 0)
+        __m128 tmp3 = _mm_unpackhi_ps(invRow2, _mm_setzero_ps()); // (i22, 0, -, -)
+
+        __m128 iRow0 = _mm_movelh_ps(tmp0, tmp2); // (i00, i10, i20, 0)
+        __m128 iRow1 = _mm_movehl_ps(tmp2, tmp0); // (i01, i11, i21, 0)
+        __m128 iRow2 = _mm_movelh_ps(tmp1, tmp3); // (i02, i12, i22, 0)
+
+        // Compute new translation: t' = -(tx*iRow0 + ty*iRow1 + tz*iRow2)
+        __m128 tx = _mm_shuffle_ps(row3, row3, _MM_SHUFFLE(0, 0, 0, 0));
+        __m128 ty = _mm_shuffle_ps(row3, row3, _MM_SHUFFLE(1, 1, 1, 1));
+        __m128 tz = _mm_shuffle_ps(row3, row3, _MM_SHUFFLE(2, 2, 2, 2));
+
+        __m128 newTrans = _mm_mul_ps(tx, iRow0);
+        newTrans = _mm_add_ps(newTrans, _mm_mul_ps(ty, iRow1));
+        newTrans = _mm_add_ps(newTrans, _mm_mul_ps(tz, iRow2));
+        newTrans = _mm_sub_ps(_mm_setzero_ps(), newTrans);
+
+        // Set w component of translation row to 1
+        __m128 one = _mm_set_ps(1.0f, 0.0f, 0.0f, 0.0f);
+        newTrans = _mm_or_ps(_mm_andnot_ps(_mm_set_ps(0xFFFFFFFF, 0, 0, 0), newTrans),
+                             _mm_and_ps(_mm_set_ps(0xFFFFFFFF, 0, 0, 0), one));
+
+        // Use blend to set w=1 in translation row
+        newTrans = _mm_blend_ps(newTrans, _mm_set1_ps(1.0f), 0x8);
+
+        mRows[0].mData = iRow0;
+        mRows[1].mData = iRow1;
+        mRows[2].mData = iRow2;
+        mRows[3].mData = newTrans;
+    }
+
+    inline Matrix Matrix::AffineInversed() const
+    {
+        Matrix res(*this);
+        res.AffineInverse();
+        return res;
+    }
+
     inline Matrix operator* (float lhs, const Matrix& rhs)
     {
         Matrix r(rhs);

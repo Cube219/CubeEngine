@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 
 #include "Matrix.h"
+#include "MatrixUtility.h"
+#include "CubeMath.h"
 
 using namespace cube;
 
@@ -1157,4 +1159,88 @@ TEST(MatrixTest, InverseNonTrivialWithKnownResult)
         { 0.0f,  0.0f, -0.5f,  1.5f}
     };
     ExpectMatrixNear(inv, expected);
+}
+
+// ===== IsAffine =====
+
+TEST(MatrixTest, IsAffine_Identity)
+{
+    EXPECT_TRUE(Matrix::Identity().IsAffine());
+}
+
+TEST(MatrixTest, IsAffine_AffineMatrix)
+{
+    Matrix scale = MatrixUtility::GetScale(2.0f, 3.0f, 0.5f);
+    Matrix rot = MatrixUtility::GetRotationXYZ(Math::Deg2Rad(30.0f), Math::Deg2Rad(45.0f), Math::Deg2Rad(60.0f));
+    Matrix trans = MatrixUtility::GetTranslation(10.0f, -5.0f, 3.0f);
+    Matrix srt = scale * rot * trans;
+    EXPECT_TRUE(srt.IsAffine());
+}
+
+TEST(MatrixTest, IsAffine_NonAffineMatrix)
+{
+    Matrix m(
+        1, 0, 0, 0.5f,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1
+    );
+    EXPECT_FALSE(m.IsAffine());
+}
+
+TEST(MatrixTest, IsAffine_PerspectiveMatrix)
+{
+    Matrix persp = MatrixUtility::GetPerspectiveFov(Math::Deg2Rad(60.0f), 16.0f / 9.0f, 0.1f, 100.0f);
+    EXPECT_FALSE(persp.IsAffine());
+}
+
+// ===== AffineInverse =====
+
+TEST(MatrixTest, AffineInversed_Identity)
+{
+    Matrix inv = Matrix::Identity().AffineInversed();
+    ExpectMatrixNear(inv, Matrix::Identity());
+}
+
+TEST(MatrixTest, AffineInversed_Scale)
+{
+    Matrix scale = MatrixUtility::GetScale(2.0f, 3.0f, 0.5f);
+    Matrix inv = scale.AffineInversed();
+    Matrix product = scale * inv;
+    ExpectMatrixNear(product, Matrix::Identity(), 1e-4f);
+}
+
+TEST(MatrixTest, AffineInversed_SRT)
+{
+    Matrix scale = MatrixUtility::GetScale(2.0f, 0.5f, 3.0f);
+    Matrix rot = MatrixUtility::GetRotationXYZ(Math::Deg2Rad(30.0f), Math::Deg2Rad(45.0f), Math::Deg2Rad(60.0f));
+    Matrix trans = MatrixUtility::GetTranslation(10.0f, -5.0f, 3.0f);
+    Matrix srt = scale * rot * trans;
+    Matrix inv = srt.AffineInversed();
+    Matrix product = srt * inv;
+    ExpectMatrixNear(product, Matrix::Identity(), 1e-4f);
+}
+
+TEST(MatrixTest, AffineInversed_MatchesGeneralInverse)
+{
+    Matrix scale = MatrixUtility::GetScale(2.0f, 0.5f, 3.0f);
+    Matrix rot = MatrixUtility::GetRotationXYZ(Math::Deg2Rad(30.0f), Math::Deg2Rad(45.0f), Math::Deg2Rad(60.0f));
+    Matrix trans = MatrixUtility::GetTranslation(10.0f, -5.0f, 3.0f);
+    Matrix srt = scale * rot * trans;
+
+    Matrix affineInv = srt.AffineInversed();
+    Matrix generalInv = srt.Inversed();
+    ExpectMatrixNear(affineInv, generalInv, 1e-4f);
+}
+
+TEST(MatrixTest, AffineInverse_Mutating)
+{
+    Matrix scale = MatrixUtility::GetScale(2.0f, 3.0f, 0.5f);
+    Matrix rot = MatrixUtility::GetRotationY(Math::Deg2Rad(45.0f));
+    Matrix trans = MatrixUtility::GetTranslation(5.0f, -2.0f, 8.0f);
+    Matrix srt = scale * rot * trans;
+    Matrix original(srt);
+    srt.AffineInverse();
+    Matrix product = original * srt;
+    ExpectMatrixNear(product, Matrix::Identity(), 1e-4f);
 }

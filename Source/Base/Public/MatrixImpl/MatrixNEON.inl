@@ -393,6 +393,77 @@ namespace cube
         return res;
     }
 
+    inline bool Matrix::IsAffine() const
+    {
+        float32x4x2_t t01 = vtrnq_f32(mRows[0].mData, mRows[1].mData);
+        float32x4x2_t t23 = vtrnq_f32(mRows[2].mData, mRows[3].mData);
+        float32x4_t col3 = vcombine_f32(vget_high_f32(t01.val[1]), vget_high_f32(t23.val[1]));
+
+        float32x4_t expected = {0.0f, 0.0f, 0.0f, 1.0f};
+        float32x4_t diff = vsubq_f32(col3, expected);
+        float32x4_t sq = vmulq_f32(diff, diff);
+        float dot = vaddvq_f32(sq);
+        constexpr float kEps = 1e-6f;
+        return dot < kEps * kEps;
+    }
+
+    inline void Matrix::AffineInverse()
+    {
+        float32x4_t row0 = mRows[0].mData;
+        float32x4_t row1 = mRows[1].mData;
+        float32x4_t row2 = mRows[2].mData;
+        float32x4_t row3 = mRows[3].mData;
+
+        // Compute cofactors of 3x3 block using cross-product pattern
+        float32x4_t r1_yzx = __builtin_shufflevector(row1, row1, 1, 2, 0, 3);
+        float32x4_t r2_zxy = __builtin_shufflevector(row2, row2, 2, 0, 1, 3);
+        float32x4_t r1_zxy = __builtin_shufflevector(row1, row1, 2, 0, 1, 3);
+        float32x4_t r2_yzx = __builtin_shufflevector(row2, row2, 1, 2, 0, 3);
+        float32x4_t cofRow0 = vfmsq_f32(vmulq_f32(r1_yzx, r2_zxy), r1_zxy, r2_yzx);
+
+        // Determinant: dot(row0, cofRow0) xyz only
+        float32x4_t detV = vmulq_f32(row0, cofRow0);
+        float det = vaddvq_f32(vsetq_lane_f32(0.0f, detV, 3));
+        float32x4_t invDet = vdupq_n_f32(1.0f / det);
+
+        float32x4_t r0_zxy = __builtin_shufflevector(row0, row0, 2, 0, 1, 3);
+        float32x4_t r0_yzx = __builtin_shufflevector(row0, row0, 1, 2, 0, 3);
+        float32x4_t cofRow1 = vfmsq_f32(vmulq_f32(r0_zxy, r2_yzx), r0_yzx, r2_zxy);
+        float32x4_t cofRow2 = vfmsq_f32(vmulq_f32(r0_yzx, r1_zxy), r0_zxy, r1_yzx);
+
+        float32x4_t invRow0 = vmulq_f32(cofRow0, invDet);
+        float32x4_t invRow1 = vmulq_f32(cofRow1, invDet);
+        float32x4_t invRow2 = vmulq_f32(cofRow2, invDet);
+
+        // Transpose 3x3 (invRow0/1/2 are columns of result, need rows)
+        float32x4x2_t t01 = vtrnq_f32(invRow0, invRow1);
+        float32x4_t zero = vdupq_n_f32(0.0f);
+        float32x4x2_t t2z = vtrnq_f32(invRow2, zero);
+
+        float32x4_t iRow0 = vcombine_f32(vget_low_f32(t01.val[0]), vget_low_f32(t2z.val[0]));
+        float32x4_t iRow1 = vcombine_f32(vget_low_f32(t01.val[1]), vget_low_f32(t2z.val[1]));
+        float32x4_t iRow2 = vcombine_f32(vget_high_f32(t01.val[0]), vget_high_f32(t2z.val[0]));
+
+        // New translation: t' = -(tx*iRow0 + ty*iRow1 + tz*iRow2)
+        float32x4_t newTrans = vmulq_laneq_f32(iRow0, row3, 0);
+        newTrans = vfmaq_laneq_f32(newTrans, iRow1, row3, 1);
+        newTrans = vfmaq_laneq_f32(newTrans, iRow2, row3, 2);
+        newTrans = vnegq_f32(newTrans);
+        newTrans = vsetq_lane_f32(1.0f, newTrans, 3);
+
+        mRows[0].mData = iRow0;
+        mRows[1].mData = iRow1;
+        mRows[2].mData = iRow2;
+        mRows[3].mData = newTrans;
+    }
+
+    inline Matrix Matrix::AffineInversed() const
+    {
+        Matrix res(*this);
+        res.AffineInverse();
+        return res;
+    }
+
     inline Matrix operator* (float lhs, const Matrix& rhs)
     {
         Matrix r(rhs);
