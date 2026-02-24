@@ -46,6 +46,15 @@ namespace cube
         Vector2 uv;
     };
 
+    struct VertexFP32
+    {
+        Float3 position; // xyz
+        Float4 color;    // rgba
+        Float3 normal;   // xyz
+        Float4 tangent;  // xyzw
+        Float2 uv;       // uv
+    };
+
     struct VertexFP16
     {
         Uint16 position[4]; // xyz + w=1.0
@@ -54,6 +63,24 @@ namespace cube
         Uint16 tangent[4];  // xyzw
         Uint16 uv[2];       // uv
     };
+
+    inline VertexFP32 ConvertVertexToFP32(const Vertex& v)
+    {
+        Float3 pos = v.position.GetFloat3();
+        Float4 col = v.color.GetFloat4();
+        Float3 nrm = v.normal.GetFloat3();
+        Float4 tan = v.tangent.GetFloat4();
+        Float2 tex = v.uv.GetFloat2();
+
+        VertexFP32 fp32;
+        fp32.position = pos;
+        fp32.color = col;
+        fp32.normal = nrm;
+        fp32.tangent = tan;
+        fp32.uv = tex;
+
+        return fp32;
+    }
 
     inline VertexFP16 ConvertVertexToFP16(const Vertex& v)
     {

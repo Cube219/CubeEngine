@@ -74,10 +74,10 @@ namespace cube
         }
 
         constexpr int positionOffset = 0;
-        constexpr int colorOffset = positionOffset + sizeof(Vertex::position);
-        constexpr int normalOffset = colorOffset + sizeof(Vertex::color);
-        constexpr int tangentOffset = normalOffset + sizeof(Vertex::normal);
-        constexpr int uvOffset = tangentOffset + sizeof(Vertex::tangent);
+        constexpr int colorOffset = positionOffset + sizeof(VertexFP32::position);
+        constexpr int normalOffset = colorOffset + sizeof(VertexFP32::color);
+        constexpr int tangentOffset = normalOffset + sizeof(VertexFP32::normal);
+        constexpr int uvOffset = tangentOffset + sizeof(VertexFP32::tangent);
 
         static gapi::InputElement inputLayout[] = {
             {
@@ -132,8 +132,8 @@ namespace cube
             }
             else
             {
-                vertexBufferSize = sizeof(Vertex) * meshData->GetNumVertices();
-                vertexStride = sizeof(Vertex);
+                vertexBufferSize = sizeof(VertexFP32) * meshData->GetNumVertices();
+                vertexStride = sizeof(VertexFP32);
             }
 
             FrameString vbDebugName = Format<FrameString>(CUBE_T("[{0}] VertexBuffer"), meshData->GetDebugName());
@@ -169,7 +169,12 @@ namespace cube
             else
             {
                 BlobView vertexData = meshData->GetVertexData();
-                memcpy(pVertexBufferData, vertexData.GetData(), vertexData.GetSize());
+                const Vertex* vertices = reinterpret_cast<const Vertex*>(vertexData.GetData());
+                VertexFP32* fp32Vertices = reinterpret_cast<VertexFP32*>(pVertexBufferData);
+                for (Uint64 i = 0; i < meshData->GetNumVertices(); ++i)
+                {
+                    fp32Vertices[i] = ConvertVertexToFP32(vertices[i]);
+                }
             }
             mVertexBuffer->Unmap();
 
