@@ -28,14 +28,14 @@ namespace cube
         mCurrentRenderingFrame = 0;
 
         // GAPI init
-        const Character* dLibName = CUBE_T("");
+        platform::FilePath dLibPath;
         switch (gAPIName)
         {
         case GAPIName::DX12:
-            dLibName = CUBE_T("CE-GAPI_DX12");
+            dLibPath = platform::FilePath(CUBE_T("CE-GAPI_DX12"));
             break;
         case GAPIName::Metal:
-            dLibName = CUBE_T("CE-GAPI_Metal");
+            dLibPath = platform::FilePath(CUBE_T("CE-GAPI_Metal"));
             break;
 
         case GAPIName::Unknown:
@@ -44,8 +44,8 @@ namespace cube
             break;
         }
 
-        mGAPI_DLib = platform::Platform::LoadDLib(dLibName);
-        CHECK_FORMAT(mGAPI_DLib, "Cannot load GAPI library! (Name: {})", dLibName);
+        mGAPI_DLib = platform::Platform::LoadDLib(dLibPath);
+        CHECK_FORMAT(mGAPI_DLib, "Cannot load GAPI library! (Name: {})", dLibPath.ToString());
 
         using CreateGAPIFunction = GAPI* (*)();
         auto createGAPIFunc = reinterpret_cast<CreateGAPIFunction>(mGAPI_DLib->GetFunction(CUBE_T("CreateGAPI")));

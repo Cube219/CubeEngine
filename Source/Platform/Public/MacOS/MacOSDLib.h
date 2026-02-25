@@ -4,6 +4,7 @@
 
 #include "PlatformHeader.h"
 #include "DLib.h"
+#include "FileSystem.h"
 
 namespace cube
 {
@@ -18,7 +19,7 @@ namespace cube
 
 #ifdef __OBJC__
         public:
-            MacOSDLib(StringView path);
+            MacOSDLib(const FilePath& path);
             ~MacOSDLib();
 
             void* GetHandle() const { return mHandle; }

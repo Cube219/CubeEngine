@@ -566,7 +566,7 @@ namespace cube
             return mWindowPositionY;
         }
 
-        SharedPtr<MacOSDLib> MacOSPlatform::LoadDLib(StringView path)
+        SharedPtr<MacOSDLib> MacOSPlatform::LoadDLib(const FilePath& path)
         {
             auto res = std::make_shared<MacOSDLib>(path);
             if (res->GetHandle() == nullptr)

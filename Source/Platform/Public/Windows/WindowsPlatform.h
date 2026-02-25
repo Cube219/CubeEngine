@@ -46,7 +46,7 @@ namespace cube
             static Int32 GetWindowPositionX();
             static Int32 GetWindowPositionY();
 
-            static SharedPtr<WindowsDLib> LoadDLib(StringView path);
+            static SharedPtr<WindowsDLib> LoadDLib(const FilePath& path);
             // === Base member functions ===
 
         public:

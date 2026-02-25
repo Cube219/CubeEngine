@@ -70,7 +70,7 @@ namespace cube
             static Int32 GetWindowPositionX();
             static Int32 GetWindowPositionY();
 
-            static SharedPtr<MacOSDLib> LoadDLib(StringView path);
+            static SharedPtr<MacOSDLib> LoadDLib(const FilePath& path);
             // === Base member functions ===
 
 #ifdef __OBJC__

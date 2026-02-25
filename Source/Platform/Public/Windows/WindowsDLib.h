@@ -4,6 +4,7 @@
 
 #include "PlatformHeader.h"
 #include "DLib.h"
+#include "FileSystem.h"
 
 #include <Windows.h>
 
@@ -19,7 +20,7 @@ namespace cube
             // === Base member functions ===
 
         public:
-            WindowsDLib(StringView path);
+            WindowsDLib(const FilePath& path);
             ~WindowsDLib();
 
             HMODULE GetModule() const { return mDLib; }

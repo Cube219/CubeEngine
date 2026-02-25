@@ -9,15 +9,14 @@ namespace cube
 {
     namespace platform
     {
-        WindowsDLib::WindowsDLib(StringView path)
+        WindowsDLib::WindowsDLib(const FilePath& path)
         {
-            WindowsString pathWithExtension = String_Convert<WindowsString>(path);
-            pathWithExtension.append(L".dll");
+            WindowsString fullPath = Format<WindowsString>(WINDOWS_T("{0}.dll"), path.GetNativePath());
 
-            mDLib = LoadLibrary(pathWithExtension.c_str());
+            mDLib = LoadLibrary(fullPath.c_str());
             if (mDLib == nullptr)
             {
-                CUBE_LOG(Warning, WindowsDLib, "Failed to load a DLib. ({0}.dll) (ErrorCode: {1})", path, GetLastError());
+                CUBE_LOG(Warning, WindowsDLib, "Failed to load a DLib. ({0}.dll) (ErrorCode: {1})", path.ToString(), GetLastError());
             }
         }
 

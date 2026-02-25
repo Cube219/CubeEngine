@@ -14,15 +14,14 @@ namespace cube
 {
     namespace platform
     {
-        MacOSDLib::MacOSDLib(StringView path)
+        MacOSDLib::MacOSDLib(const FilePath& path)
         {
-            // TODO: Separate file name
-            MacOSString u8Path = Format<MacOSString>("lib{}.dylib", path);
-            mHandle = dlopen(u8Path.data(), RTLD_NOW);
+            NSString* fullPath = [NSString stringWithFormat:@"lib%@.dylib", path.GetNativePath()];
+            mHandle = dlopen([fullPath UTF8String], RTLD_NOW);
 
             if (mHandle == nullptr)
             {
-                CUBE_LOG(Warning, MacOSDLib, "Failed to load a DLib. (lib{0}.dylib)", path);
+                CUBE_LOG(Warning, MacOSDLib, "Failed to load a DLib. ({})", [fullPath UTF8String]);
             }
         }
 

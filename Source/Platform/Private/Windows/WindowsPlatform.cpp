@@ -239,7 +239,7 @@ namespace cube
             return mWindowPosY;
         }
 
-        SharedPtr<WindowsDLib> WindowsPlatform::LoadDLib(StringView path)
+        SharedPtr<WindowsDLib> WindowsPlatform::LoadDLib(const FilePath& path)
         {
             auto res = std::make_shared<WindowsDLib>(path);
             if (res->GetModule() == nullptr)

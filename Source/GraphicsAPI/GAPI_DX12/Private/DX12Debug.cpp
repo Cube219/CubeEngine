@@ -31,7 +31,7 @@ namespace cube
             CUBE_LOG(Info, DX12, "Enabled DX12 debug layer.");
         }
 
-        mDXGIDebugDLib = platform::Platform::LoadDLib(CUBE_T("dxgidebug"));
+        mDXGIDebugDLib = platform::Platform::LoadDLib(platform::FilePath(CUBE_T("dxgidebug")));
         if (mDXGIDebugDLib)
         {
             using DXGIGetDebugInterfaceFunction = HRESULT(*)(REFIID, void**);

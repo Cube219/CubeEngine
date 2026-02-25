@@ -5,6 +5,7 @@
 #include "Checker.h"
 #include "DLib.h"
 #include "Event.h"
+#include "FileSystem.h"
 #include "KeyCode.h"
 #include "Mouse.h"
 
@@ -49,7 +50,7 @@ namespace cube
             static Int32 GetWindowPositionX() { NOT_IMPLEMENTED() return 0; }
             static Int32 GetWindowPositionY() { NOT_IMPLEMENTED() return 0; }
 
-            static SharedPtr<BaseDLib> LoadDLib(StringView path) { NOT_IMPLEMENTED() return nullptr; }
+            static SharedPtr<BaseDLib> LoadDLib(const BaseFilePath& path) { NOT_IMPLEMENTED() return nullptr; }
 
             static Event<void(KeyCode)>& GetKeyDownEvent() { return mKeyDownEvent; }
             static Event<void(KeyCode)>& GetKeyUpEvent() { return mKeyUpEvent; }
