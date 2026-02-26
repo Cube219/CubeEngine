@@ -6,6 +6,7 @@
 #include "GAPI.h"
 #include "GAPI_CommandList.h"
 #include "GAPI_Pipeline.h"
+#include "RenderGraph.h"
 #include "RenderProfiling.h"
 #include "Renderer.h"
 #include "Shader.h"
@@ -58,13 +59,9 @@ namespace cube
             return;
         }
 
-        mCommandList->Reset();
-        mCommandList->Begin();
-
+        RGBuilder builder;
         {
-            GPU_EVENT_SCOPE(mCommandList, CUBE_T("GenerateMipmaps"));
-            
-            mCommandList->SetComputePipeline(mGenerateMipmapsPipeline->GetGAPIComputePipeline());
+            RG_GPU_EVENT_SCOPE(builder, CUBE_T("GenerateMipmaps"));
 
             Uint32 width = texture->GetWidth();
             Uint32 height = texture->GetHeight();
@@ -86,8 +83,6 @@ namespace cube
             ShaderParametersManager& shaderParametersManager = Engine::GetRenderer()->GetShaderParametersManager();
             for (Uint32 mipIndex = 1; mipIndex < texture->GetMipLevels(); ++mipIndex)
             {
-                GPU_EVENT_SCOPE(mCommandList, Format<FrameString>(CUBE_T("GenerateMipmaps ({0}->{1})"), mipIndex - 1, mipIndex));
-
                 width = std::max(1u, width >> 1);
                 height = std::max(1u, height >> 1);
 
@@ -95,47 +90,57 @@ namespace cube
 
                 parameters->srcTexture.id = srvs[mipIndex - 1]->GetBindlessId();
                 parameters->dstTexture.id = uavs[mipIndex]->GetBindlessId();
-                mCommandList->UseResource(srvs[mipIndex - 1]);
-                mCommandList->UseResource(uavs[mipIndex]);
                 parameters->WriteAllParametersToBuffer();
-                mCommandList->SetShaderVariableConstantBuffer(0, parameters->GetBuffer());
 
-                Array<gapi::TransitionState, 2> transitions;
-                transitions[0].resourceType = gapi::TransitionState::ResourceType::SRV;
-                transitions[0].srv = srvs[mipIndex - 1];
-                transitions[0].src = (mipIndex - 1 == 0) ? gapi::ResourceStateFlag::Common : gapi::ResourceStateFlag::UAV;
-                transitions[0].dst = gapi::ResourceStateFlag::SRV_NonPixel;
+                builder.AddPass(Format<FrameString>(CUBE_T("GenerateMipmaps ({0}->{1})"), mipIndex - 1, mipIndex),
+                [pipeline = mGenerateMipmapsPipeline, parameters, width, height, mipIndex, srv = srvs[mipIndex - 1], uav = uavs[mipIndex]](gapi::CommandList& commandList)
+                {
+                    commandList.SetComputePipeline(pipeline->GetGAPIComputePipeline());
 
-                transitions[1].resourceType = gapi::TransitionState::ResourceType::UAV;
-                transitions[1].uav = uavs[mipIndex];
-                transitions[1].src = gapi::ResourceStateFlag::Common;
-                transitions[1].dst = gapi::ResourceStateFlag::UAV;
+                    commandList.UseResource(srv);
+                    commandList.UseResource(uav);
+                    commandList.SetShaderVariableConstantBuffer(0, parameters->GetBuffer());
 
-                mCommandList->ResourceTransition(transitions);
+                    Array<gapi::TransitionState, 2> transitions;
+                    transitions[0].resourceType = gapi::TransitionState::ResourceType::SRV;
+                    transitions[0].srv = srv;
+                    transitions[0].src = (mipIndex - 1 == 0) ? gapi::ResourceStateFlag::Common : gapi::ResourceStateFlag::UAV;
+                    transitions[0].dst = gapi::ResourceStateFlag::SRV_NonPixel;
 
-                mCommandList->DispatchThreads(width, height, 1);
-            }
+                    transitions[1].resourceType = gapi::TransitionState::ResourceType::UAV;
+                    transitions[1].uav = uav;
+                    transitions[1].src = gapi::ResourceStateFlag::Common;
+                    transitions[1].dst = gapi::ResourceStateFlag::UAV;
 
-            FrameVector<gapi::TransitionState> endTransitions;
-            for (Uint32 i = 0; i < int(mipLevels) - 1; ++i)
-            {
-                endTransitions.push_back({
-                    .resourceType = gapi::TransitionState::ResourceType::SRV,
-                    .srv = srvs[i],
-                    .src = gapi::ResourceStateFlag::SRV_NonPixel,
-                    .dst = gapi::ResourceStateFlag::Common
+                    commandList.ResourceTransition(transitions);
+
+                    commandList.DispatchThreads(width, height, 1);
                 });
             }
-            endTransitions.push_back({
-                .resourceType = gapi::TransitionState::ResourceType::SRV,
-                .srv = srvs[mipLevels - 1],
-                .src = gapi::ResourceStateFlag::UAV,
-                .dst = gapi::ResourceStateFlag::Common
+
+            builder.AddPass(CUBE_T("GenerateMipmaps EndTransition"),
+            [mipLevels, srvs](gapi::CommandList& commandList)
+            {
+                FrameVector<gapi::TransitionState> endTransitions;
+                for (Uint32 i = 0; i < int(mipLevels) - 1; ++i)
+                {
+                    endTransitions.push_back({
+                        .resourceType = gapi::TransitionState::ResourceType::SRV,
+                        .srv = srvs[i],
+                        .src = gapi::ResourceStateFlag::SRV_NonPixel,
+                        .dst = gapi::ResourceStateFlag::Common
+                    });
+                }
+                endTransitions.push_back({
+                    .resourceType = gapi::TransitionState::ResourceType::SRV,
+                    .srv = srvs[mipLevels - 1],
+                    .src = gapi::ResourceStateFlag::UAV,
+                    .dst = gapi::ResourceStateFlag::Common
+                });
+                commandList.ResourceTransition(endTransitions);
             });
-            mCommandList->ResourceTransition(endTransitions);
         }
 
-        mCommandList->End();
-        mCommandList->Submit();
+        builder.ExecuteAndSubmit(*mCommandList);
     }
 } // namespace cube

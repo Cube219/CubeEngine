@@ -130,7 +130,7 @@ namespace cube
 
             virtual void SetGraphicsPipeline(SharedPtr<GraphicsPipeline> graphicsPipeline) = 0;
 
-            virtual void BeginRenderPass(ArrayView<ColorAttachment> colors, DepthStencilAttachment depthStencil) = 0;
+            virtual void BeginRenderPass(ArrayView<const ColorAttachment> colors, DepthStencilAttachment depthStencil) = 0;
             virtual void EndRenderPass() = 0;
 
             virtual void BindVertexBuffers(Uint32 startIndex, ArrayView<SharedPtr<Buffer>> buffers, ArrayView<Uint32> offsets) = 0;

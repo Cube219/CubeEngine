@@ -9,21 +9,21 @@ namespace cube
 	class GPUEventScope
 	{
 	public:
-		GPUEventScope(SharedPtr<gapi::CommandList> commandList, StringView name)
+		GPUEventScope(gapi::CommandList& commandList, StringView name)
 		    : mCurrentCommandList(commandList)
 		{
-		    mCurrentCommandList->BeginEvent(name);
+		    mCurrentCommandList.BeginEvent(name);
 		}
 		~GPUEventScope()
 		{
-		    mCurrentCommandList->EndEvent();
+		    mCurrentCommandList.EndEvent();
 		}
 
 		GPUEventScope(const GPUEventScope& other) = delete;
 		GPUEventScope& operator=(const GPUEventScope& rhs) = delete;
 
 	private:
-		SharedPtr<gapi::CommandList> mCurrentCommandList;
+		gapi::CommandList& mCurrentCommandList;
 	};
 
 #define GPU_EVENT_SCOPE(commandList, name) GPUEventScope CUBE_MACRO_JOIN(_eventScope, __LINE__)(commandList, name)

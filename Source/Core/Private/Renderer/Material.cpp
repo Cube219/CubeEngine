@@ -57,7 +57,7 @@ namespace cube
         mSamplerId = samplerId;
     }
 
-    SharedPtr<MaterialShaderParameters> Material::GenerateShaderParameters(gapi::CommandList* commandList) const
+    SharedPtr<MaterialShaderParameters> Material::GenerateShaderParameters(gapi::CommandList& commandList) const
     {
         ShaderParametersManager& shaderParametersManager = Engine::GetRenderer()->GetShaderParametersManager();
 
@@ -68,31 +68,31 @@ namespace cube
         {
             parameters->textureSlot0.textureId = mTextures[0]->GetDefaultSRV()->GetBindlessId();
             parameters->textureSlot0.samplerId = mSamplerId;
-            commandList->UseResource(mTextures[0]->GetDefaultSRV());
+            commandList.UseResource(mTextures[0]->GetDefaultSRV());
         }
         if (mTextures[1])
         {
             parameters->textureSlot1.textureId = mTextures[1]->GetDefaultSRV()->GetBindlessId();
             parameters->textureSlot1.samplerId = mSamplerId;
-            commandList->UseResource(mTextures[1]->GetDefaultSRV());
+            commandList.UseResource(mTextures[1]->GetDefaultSRV());
         }
         if (mTextures[2])
         {
             parameters->textureSlot2.textureId = mTextures[2]->GetDefaultSRV()->GetBindlessId();
             parameters->textureSlot2.samplerId = mSamplerId;
-            commandList->UseResource(mTextures[2]->GetDefaultSRV());
+            commandList.UseResource(mTextures[2]->GetDefaultSRV());
         }
         if (mTextures[3])
         {
             parameters->textureSlot3.textureId = mTextures[3]->GetDefaultSRV()->GetBindlessId();
             parameters->textureSlot3.samplerId = mSamplerId;
-            commandList->UseResource(mTextures[3]->GetDefaultSRV());
+            commandList.UseResource(mTextures[3]->GetDefaultSRV());
         }
         if (mTextures[4])
         {
             parameters->textureSlot4.textureId = mTextures[4]->GetDefaultSRV()->GetBindlessId();
             parameters->textureSlot4.samplerId = mSamplerId;
-            commandList->UseResource(mTextures[4]->GetDefaultSRV());
+            commandList.UseResource(mTextures[4]->GetDefaultSRV());
         }
 
         parameters->WriteAllParametersToBuffer();

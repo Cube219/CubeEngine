@@ -264,7 +264,7 @@ namespace cube
             [mRenderEncoder setDepthStencilState:metalGraphicsPipeline->GetMTLDepthStencilState()];
         }
 
-        void MetalCommandList::BeginRenderPass(ArrayView<ColorAttachment> colors, DepthStencilAttachment depthStencil)
+        void MetalCommandList::BeginRenderPass(ArrayView<const ColorAttachment> colors, DepthStencilAttachment depthStencil)
         {
             CHECK(IsWriting());
             CHECK(!IsInRenderPass());

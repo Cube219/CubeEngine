@@ -66,7 +66,7 @@ namespace cube
 
             virtual void SetGraphicsPipeline(SharedPtr<GraphicsPipeline> graphicsPipeline) override;
 
-            virtual void BeginRenderPass(ArrayView<ColorAttachment> colors, DepthStencilAttachment depthStencil) override;
+            virtual void BeginRenderPass(ArrayView<const ColorAttachment> colors, DepthStencilAttachment depthStencil) override;
             virtual void EndRenderPass() override;
 
             virtual void BindVertexBuffers(Uint32 startIndex, ArrayView<SharedPtr<Buffer>> buffers, ArrayView<Uint32> offsets) override;

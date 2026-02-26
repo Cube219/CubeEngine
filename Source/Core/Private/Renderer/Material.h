@@ -49,7 +49,7 @@ namespace cube
 
         void SetSampler(Uint64 samplerId);
 
-        SharedPtr<MaterialShaderParameters> GenerateShaderParameters(gapi::CommandList* commandList) const;
+        SharedPtr<MaterialShaderParameters> GenerateShaderParameters(gapi::CommandList& commandList) const;
 
         StringView GetDebugName() const { return mDebugName; }
 

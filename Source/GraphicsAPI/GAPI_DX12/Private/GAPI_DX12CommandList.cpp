@@ -170,7 +170,7 @@ namespace cube
             CUBE_DX12_BOUND_OBJECT(graphicsPipeline);
         }
 
-        void DX12CommandList::BeginRenderPass(ArrayView<ColorAttachment> colors, DepthStencilAttachment depthStencil)
+        void DX12CommandList::BeginRenderPass(ArrayView<const ColorAttachment> colors, DepthStencilAttachment depthStencil)
         {
             CHECK(IsWriting());
             CHECK(!IsInRenderPass());

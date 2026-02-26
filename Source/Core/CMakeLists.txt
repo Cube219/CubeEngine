@@ -18,6 +18,8 @@ set(PRIVATE_FILES
     Private/Renderer/MeshHelper.h
     Private/Renderer/Renderer.cpp
     Private/Renderer/Renderer.h
+    Private/Renderer/RenderGraph.cpp
+    Private/Renderer/RenderGraph.h
     Private/Renderer/RenderObject.cpp
     Private/Renderer/RenderObject.h
     Private/Renderer/RenderProfiling.cpp
