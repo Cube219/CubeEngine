@@ -421,6 +421,10 @@ namespace cube
                     usage:MTLResourceUsageRead
                 ];
             }
+            else
+            {
+                CHECK_FORMAT(false, "You must set render pass or compute pipeline before UseResource");
+            }
         }
 
         void MetalCommandList::UseResource(SharedPtr<TextureUAV> uav)
@@ -454,7 +458,7 @@ namespace cube
             // Metal automatically translate resource state.
         }
 
-        void MetalCommandList::ResourceTransition(ArrayView<TransitionState> states)
+        void MetalCommandList::ResourceTransition(ArrayView<const TransitionState> states)
         {
             CHECK(IsWriting());
             // Metal automatically translate resource state.
@@ -468,11 +472,10 @@ namespace cube
             MetalComputePipeline* metalComputePipeline = dynamic_cast<MetalComputePipeline*>(computePipeline.get());
             CHECK(metalComputePipeline);
 
-            if (mComputeEncoder == nil)
-            {
-                mComputeEncoder = [mCommandBuffer computeCommandEncoder];
-                mCurrentEncoderState.ApplyAll(mComputeEncoder);
-            }
+            EndEncoding();
+
+            mComputeEncoder = [mCommandBuffer computeCommandEncoder];
+            mCurrentEncoderState.ApplyAll(mComputeEncoder);
 
             [mComputeEncoder setComputePipelineState:metalComputePipeline->GetMTLComputePipelineState()];
             mComputeThreadGroupSize = metalComputePipeline->GetThreadGroupSize();

@@ -168,17 +168,11 @@ namespace cube
                 FrameString debugName = Format<FrameString>(CUBE_T("SwapChainBackbuffer_{0}"), i);
                 backbufferCreateInfo.debugName = debugName;
                 mBackbufferTextures[i] = std::make_shared<DX12BackbufferTexture>(backbufferCreateInfo, backbuffer, mDevice);
-                mBackbufferRTVs[i] = mBackbufferTextures[i]->CreateRTV({});
             }
         }
 
         void DX12SwapChain::ClearBackbuffers()
         {
-            for (SharedPtr<TextureRTV>& rtv : mBackbufferRTVs)
-            {
-                rtv = nullptr;
-            }
-
             for (SharedPtr<DX12BackbufferTexture>& texture : mBackbufferTextures)
             {
                 texture = nullptr;

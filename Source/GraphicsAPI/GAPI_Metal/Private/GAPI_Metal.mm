@@ -99,7 +99,7 @@ namespace cube
     {
     }
 
-    void GAPI_Metal::OnBeforePresent(gapi::TextureRTV* backbufferRTV)
+    void GAPI_Metal::OnBeforePresent(gapi::Texture* backbuffer)
     {
         if (mImGUIContext.context)
         {

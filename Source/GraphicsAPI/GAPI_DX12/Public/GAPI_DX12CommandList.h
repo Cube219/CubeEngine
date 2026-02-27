@@ -55,7 +55,7 @@ namespace cube
             virtual void UseResource(SharedPtr<TextureUAV> uav) override;
 
             void ResourceTransition(TransitionState state) override;
-            void ResourceTransition(ArrayView<TransitionState> states) override;
+            void ResourceTransition(ArrayView<const TransitionState> states) override;
 
             void SetComputePipeline(SharedPtr<ComputePipeline> computePipeline) override;
             virtual void DispatchThreads(Uint32 numThreadsX, Uint32 numThreadsY, Uint32 numThreadsZ) override;

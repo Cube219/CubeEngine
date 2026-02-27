@@ -15,7 +15,6 @@
 namespace cube
 {
     class DX12Device;
-    class DX12TextureRTV;
     class DX12TextureDSV;
 
     namespace gapi
@@ -53,9 +52,9 @@ namespace cube
             virtual void Resize(Uint32 width, Uint32 height) override;
             virtual void SetVsync(bool vsync) override;
 
-            virtual SharedPtr<TextureRTV> GetCurrentBackbufferRTV() const override
+            virtual SharedPtr<Texture> GetCurrentBackbuffer() const override
             {
-                return mBackbufferRTVs[mCurrentIndex];
+                return mBackbufferTextures[mCurrentIndex];
             }
 
         private:
@@ -69,7 +68,6 @@ namespace cube
             ElementFormat mFormat;
             DXGI_FORMAT mSwapChainFormat;
             Array<SharedPtr<DX12BackbufferTexture>, MAX_BACKBUFFER_SIZE> mBackbufferTextures;
-            Array<SharedPtr<TextureRTV>, MAX_BACKBUFFER_SIZE> mBackbufferRTVs;
 
             Uint32 mWidth;
             Uint32 mHeight;

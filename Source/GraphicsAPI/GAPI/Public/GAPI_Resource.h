@@ -51,7 +51,7 @@ namespace cube
             CopyDst = (1 << 10),
             ResolveSrc = (1 << 11),
             ResolveDst = (1 << 12),
-            Present = (1 << 15)
+            Present = (1 << 15),
         };
         using ResourceStateFlags = Flags<ResourceStateFlag>;
         FLAGS_OPERATOR(ResourceStateFlag);

@@ -87,7 +87,7 @@ namespace cube
 
         virtual void OnBeforeRender() = 0;
         virtual void OnAfterRender() = 0;
-        virtual void OnBeforePresent(gapi::TextureRTV* backbufferRTV) = 0;
+        virtual void OnBeforePresent(gapi::Texture* backbuffer) = 0;
         virtual void OnAfterPresent() = 0;
 
         virtual void BeginRenderingFrame() = 0;

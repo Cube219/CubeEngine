@@ -90,20 +90,6 @@ namespace cube
             .debugName = CUBE_T("MainDepthStencilTexture")
         });
         mDSV = mDepthStencilTexture->CreateDSV({});
-        mCommandList->Reset();
-        {
-            mCommandList->Begin();
-
-            mCommandList->ResourceTransition({
-                .resourceType =  gapi::TransitionState::ResourceType::DSV,
-                .dsv = mDSV,
-                .src = gapi::ResourceStateFlag::Common,
-                .dst = gapi::ResourceStateFlag::DepthWrite
-            });
-
-            mCommandList->End();
-            mCommandList->Submit();
-        }
 
         mDirectionalLightDirection = Vector3(1.0f, 1.0f, 1.0f).Normalized();
         mDirectionalLightIntensity = Vector3(3.0f, 3.0f, 3.0f);
@@ -121,7 +107,7 @@ namespace cube
 
         mDSV = nullptr;
         mDepthStencilTexture = nullptr;
-        mCurrentBackbufferRTV = nullptr;
+        mCurrentBackbuffer = nullptr;
         mSwapChain = nullptr;
 
         mCommandList = nullptr;
@@ -199,16 +185,22 @@ namespace cube
         SetGlobalConstantBuffers();
 
         mSwapChain->AcquireNextImage();
-        mCurrentBackbufferRTV = mSwapChain->GetCurrentBackbufferRTV();
+        mCurrentBackbuffer = mSwapChain->GetCurrentBackbuffer();
         mCommandList->Reset();
         {
             mCommandList->Begin();
             
             mCommandList->ResourceTransition({
-                .resourceType =  gapi::TransitionState::ResourceType::RTV,
-                .rtv = mCurrentBackbufferRTV,
+                .resourceType = gapi::TransitionState::ResourceType::Texture,
+                .texture = mCurrentBackbuffer,
+                .subresourceRange = {
+                    .firstMipLevel = 0,
+                    .mipLevels = 1,
+                    .firstArrayIndex = 0,
+                    .arraySize = 1
+                },
                 .src = gapi::ResourceStateFlag::Present,
-                .dst = gapi::ResourceStateFlag::RenderTarget
+                .dst = gapi::ResourceStateFlag::Common
             });
 
             mCommandList->End();
@@ -226,14 +218,20 @@ namespace cube
             ImGui::Render();
         }
 
-        mGAPI->OnBeforePresent(mCurrentBackbufferRTV.get());
+        mGAPI->OnBeforePresent(mCurrentBackbuffer.get());
         mCommandList->Reset();
         {
             mCommandList->Begin();
 
             mCommandList->ResourceTransition({
-                .resourceType =  gapi::TransitionState::ResourceType::RTV,
-                .rtv = mCurrentBackbufferRTV,
+                .resourceType = gapi::TransitionState::ResourceType::Texture,
+                .texture = mCurrentBackbuffer,
+                .subresourceRange = {
+                    .firstMipLevel = 0,
+                    .mipLevels = 1,
+                    .firstArrayIndex = 0,
+                    .arraySize = 1
+                },
                 .src = gapi::ResourceStateFlag::RenderTarget,
                 .dst = gapi::ResourceStateFlag::Present
             });
@@ -243,8 +241,6 @@ namespace cube
         }
         mSwapChain->Present();
         mGAPI->OnAfterPresent();
-
-        mCurrentBackbufferRTV = nullptr;
 
         mGAPI->EndRenderingFrame();
     }
@@ -258,7 +254,6 @@ namespace cube
 
         if (mSwapChain)
         {
-            mCurrentBackbufferRTV = nullptr;
             mSwapChain->Resize(width, height);
         }
 
@@ -277,19 +272,6 @@ namespace cube
                 .debugName = CUBE_T("MainDepthStencilTexture")
             });
             mDSV = mDepthStencilTexture->CreateDSV({});
-
-            mCommandList->Reset();
-            mCommandList->Begin();
-
-            mCommandList->ResourceTransition({
-                .resourceType = gapi::TransitionState::ResourceType::DSV,
-                .dsv = mDSV,
-                .src = gapi::ResourceStateFlag::Common,
-                .dst = gapi::ResourceStateFlag::DepthWrite
-            });
-
-            mCommandList->End();
-            mCommandList->Submit();
         }
     }
 
@@ -408,19 +390,6 @@ namespace cube
                 .height = mViewportHeight
             };
             
-            gapi::ColorAttachment colorAttachment = {
-                .rtv = mCurrentBackbufferRTV,
-                .loadOperation = gapi::LoadOperation::Clear,
-                .storeOperation = gapi::StoreOperation::Store,
-                .clearColor = { 0.2f, 0.2f, 0.2f, 1.0f }
-            };
-            gapi::DepthStencilAttachment depthStencilAttachment = {
-                .dsv = mDSV,
-                .loadOperation = gapi::LoadOperation::Clear,
-                .storeOperation = gapi::StoreOperation::Store,
-                .clearDepth = 0.0f
-            };
-
             SharedPtr<GlobalShaderParameters> globalShaderParameters = mShaderParametersManager.CreateShaderParameters<GlobalShaderParameters>();
             globalShaderParameters->viewPosition = mViewPosition;
             globalShaderParameters->viewProjection = mViewPerspectiveMatirx;
@@ -428,7 +397,23 @@ namespace cube
             globalShaderParameters->directionalLightIntensity = mDirectionalLightIntensity;
             globalShaderParameters->WriteAllParametersToBuffer();
 
-            builder.BeginRenderPass({ &colorAttachment, 1 }, depthStencilAttachment);
+            RGTexture* color = builder.RegisterTexture(mCurrentBackbuffer, 0);
+            RGTexture* depthStencil = builder.RegisterTexture(mDepthStencilTexture, 0);
+
+            RGBuilder::RenderPassInfo renderPassInfo;
+            renderPassInfo.colors.push_back({
+                .color = color,
+                .loadOperation = gapi::LoadOperation::Clear,
+                .storeOperation = gapi::StoreOperation::Store,
+                .clearColor = { 0.2f, 0.2f, 0.2f, 1.0f }
+            });
+            renderPassInfo.depthstencil = {
+                .dsv = depthStencil,
+                .loadOperation = gapi::LoadOperation::Clear,
+                .storeOperation = gapi::StoreOperation::Store,
+                .clearDepth = 0.0f
+            };
+            builder.BeginRenderPass(renderPassInfo);
 
             builder.AddPass(CUBE_T("Init global settings"), [viewport, scissor, globalShaderParameters](gapi::CommandList& commandList)
             {

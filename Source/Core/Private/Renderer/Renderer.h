@@ -99,7 +99,7 @@ namespace cube
         Uint32 mViewportWidth;
         Uint32 mViewportHeight;
         SharedPtr<gapi::SwapChain> mSwapChain;
-        SharedPtr<gapi::TextureRTV> mCurrentBackbufferRTV;
+        SharedPtr<gapi::Texture> mCurrentBackbuffer;
         SharedPtr<gapi::Texture> mDepthStencilTexture;
         SharedPtr<gapi::TextureDSV> mDSV;
 

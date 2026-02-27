@@ -210,19 +210,30 @@ namespace cube
     {
     }
 
-    void GAPI_DX12::OnBeforePresent(gapi::TextureRTV* backbufferRTV)
+    void GAPI_DX12::OnBeforePresent(gapi::Texture* backbuffer)
     {
         if (mImGUIContext.context)
         {
             mImGUIRenderCommandList->Reset(mMainDevice->GetCommandListManager().GetCurrentAllocator(), nullptr);
 
-            gapi::DX12TextureRTV* dx12BackbufferRTV = dynamic_cast<gapi::DX12TextureRTV*>(backbufferRTV);
+            SharedPtr<gapi::TextureRTV> backbufferRTV = backbuffer->CreateRTV({});
+            gapi::DX12TextureRTV* dx12BackbufferRTV = dynamic_cast<gapi::DX12TextureRTV*>(backbufferRTV.get());
             CHECK(dx12BackbufferRTV);
             D3D12_CPU_DESCRIPTOR_HANDLE currentRTVDescriptor = dx12BackbufferRTV->GetDescriptorHandle();
             
             // Render Dear ImGui graphics
             // const float clear_color_with_alpha[4] = { 0.2f, 0.2f, 0.2f, 1.0f };
             // mImGUIRenderCommandList->ClearRenderTargetView(currentRTVDescriptor, clear_color_with_alpha, 0, nullptr);
+            D3D12_RESOURCE_BARRIER barrier = {
+                .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
+                .Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
+                .Transition = {
+                    .pResource = dx12BackbufferRTV->GetDX12Texture()->GetResource(),
+                    .StateBefore = D3D12_RESOURCE_STATE_COMMON,
+                    .StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET
+                }
+            };
+            mImGUIRenderCommandList->ResourceBarrier(1, &barrier);
             mImGUIRenderCommandList->OMSetRenderTargets(1, &currentRTVDescriptor, FALSE, nullptr);
             ID3D12DescriptorHeap* heap = gImGUISRVHeap.mHeap.Get();
             mImGUIRenderCommandList->SetDescriptorHeaps(1, &heap);

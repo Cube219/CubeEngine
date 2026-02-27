@@ -170,6 +170,7 @@ namespace cube
             , mDevice(device)
             , mResource(resource)
         {
+            SET_DEBUG_NAME(resource, info.debugName);
         }
 
         DX12TextureSRV::DX12TextureSRV(const TextureSRVCreateInfo& createInfo, SharedPtr<Texture> texture, DX12Device& device) :

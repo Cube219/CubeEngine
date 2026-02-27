@@ -1,6 +1,7 @@
 #include "GAPI_MetalSwapChain.h"
 
-#include "GAPI_MetalTexture.h"
+#include "Checker.h"
+#include "Logger.h"
 #include "MacOS/MacOSPlatform.h"
 #include "MacOS/MacOSUtility.h"
 #include "MetalDevice.h"
@@ -21,6 +22,61 @@ namespace cube
 {
     namespace gapi
     {
+        // MetalBackbufferTexture
+
+        MetalBackbufferTexture::MetalBackbufferTexture(const TextureCreateInfo& createInfo, MetalDevice& device)
+            : Texture(createInfo)
+            , mDevice(device)
+            , mDrawableTexture(nil)
+        {
+        }
+
+        MetalBackbufferTexture::~MetalBackbufferTexture()
+        {
+        }
+
+        void* MetalBackbufferTexture::Map()
+        {
+            CHECK_FORMAT(false, "Cannot map backbuffer texture.");
+            return nullptr;
+        }
+
+        void MetalBackbufferTexture::Unmap()
+        {
+            CHECK_FORMAT(false, "Cannot unmap backbuffer texture.");
+        }
+
+        SharedPtr<TextureSRV> MetalBackbufferTexture::CreateSRV(const TextureSRVCreateInfo& createInfo)
+        {
+            CHECK_FORMAT(false, "Cannot create SRV for backbuffer texture.");
+            return nullptr;
+        }
+
+        SharedPtr<TextureUAV> MetalBackbufferTexture::CreateUAV(const TextureUAVCreateInfo& createInfo)
+        {
+            CHECK_FORMAT(false, "Cannot create UAV for backbuffer texture.");
+            return nullptr;
+        }
+
+        SharedPtr<TextureRTV> MetalBackbufferTexture::CreateRTV(const TextureRTVCreateInfo& createInfo)
+        {
+            CHECK(mDrawableTexture);
+            
+            if (createInfo.mipLevel != 0 || createInfo.firstArrayIndex != 0 || createInfo.firstDepthIndex != 0)
+            {
+                CUBE_LOG(Warning, MetalSwapChain, "Try to create RTV for backbuffer which is not base view (mipLevel=0, arrayIndex=0, depthIndex=0). Ignore that and use base view.");
+            }
+            return std::make_shared<MetalTextureRTV>(mDrawableTexture, mDevice);
+        }
+
+        SharedPtr<TextureDSV> MetalBackbufferTexture::CreateDSV(const TextureDSVCreateInfo& createInfo)
+        {
+            CHECK_FORMAT(false, "Cannot create DSV for backbuffer texture.");
+            return nullptr;
+        }
+
+        // MetalSwapChain
+
         MetalSwapChain::MetalSwapChain(MetalDevice& device, CubeImGUIMTKView* imGUIView, const SwapChainCreateInfo& createInfo)
             : mDevice(device)
         {
@@ -44,12 +100,20 @@ namespace cube
                 mView.colorPixelFormat = MTLPixelFormatRGBA8Unorm;
                 [window.contentView addSubview:mView positioned:NSWindowBelow relativeTo:imGUIView];
             });
+
+            TextureCreateInfo texInfo;
+            texInfo.usage = ResourceUsage::GPUOnly;
+            texInfo.format = ElementFormat::RGBA8_UNorm;
+            texInfo.type = TextureType::Texture2D;
+            texInfo.flags = TextureFlag::RenderTarget;
+            texInfo.width = createInfo.width;
+            texInfo.height = createInfo.height;
+            texInfo.debugName = CUBE_T("Backbuffer");
+            mBackbufferTexture = std::make_shared<MetalBackbufferTexture>(texInfo, mDevice);
         }
 
         MetalSwapChain::~MetalSwapChain()
         {
-            mCurrentBackbufferRTV = nullptr;
-
             platform::MacOSUtility::DispatchToMainThreadAndWait([this] {
                 [mView release];
             });
@@ -57,15 +121,12 @@ namespace cube
 
         void MetalSwapChain::AcquireNextImage()
         {
-            mCurrentBackbufferRTV = nullptr;
-
             do
             {
                 mBackbufferDescriptor = mView.currentRenderPassDescriptor;
             } while (mBackbufferDescriptor == nil);
 
-            id<MTLTexture> backbuffer = mBackbufferDescriptor.colorAttachments[0].texture;
-            mCurrentBackbufferRTV = std::make_shared<MetalTextureRTV>(backbuffer, mDevice);
+            mBackbufferTexture->UpdateDrawableTexture(mView.currentDrawable.texture);
         }
 
         void MetalSwapChain::Present()

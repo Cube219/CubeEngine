@@ -6,7 +6,7 @@ namespace cube
 {
     namespace gapi
     {
-        class TextureRTV;
+        class Texture;
 
         struct SwapChainCreateInfo
         {
@@ -31,7 +31,7 @@ namespace cube
             virtual void Resize(Uint32 width, Uint32 height) = 0;
             virtual void SetVsync(bool vsync) = 0;
 
-            virtual SharedPtr<TextureRTV> GetCurrentBackbufferRTV() const = 0;
+            virtual SharedPtr<Texture> GetCurrentBackbuffer() const = 0;
         };
     } // namespace gapi
 } // namespace cube

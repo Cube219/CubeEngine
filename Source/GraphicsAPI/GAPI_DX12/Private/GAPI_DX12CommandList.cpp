@@ -328,7 +328,7 @@ namespace cube
             ResourceTransition({ &state, 1 });
         }
 
-        void DX12CommandList::ResourceTransition(ArrayView<TransitionState> states)
+        void DX12CommandList::ResourceTransition(ArrayView<const TransitionState> states)
         {
             CHECK(IsWriting());
 
@@ -358,6 +358,10 @@ namespace cube
                         .StateBefore = ConvertToDX12ResourceStates(state.src),
                         .StateAfter = ConvertToDX12ResourceStates(state.dst) }
                 };
+                if (barrier.Transition.StateBefore == barrier.Transition.StateAfter)
+                {
+                    continue;
+                }
 
                 switch (state.resourceType)
                 {
@@ -371,44 +375,13 @@ namespace cube
                     CUBE_DX12_BOUND_OBJECT(state.buffer);
                     break;
                 }
-                case TransitionState::ResourceType::SRV:
+                case TransitionState::ResourceType::Texture:
                 {
-                    const DX12TextureSRV* dx12SRV = dynamic_cast<DX12TextureSRV*>(state.srv.get());
-                    const DX12Texture* dx12Texture = dx12SRV->GetDX12Texture();
+                    const DX12Texture* dx12Texture = dynamic_cast<DX12Texture*>(state.texture.get());
                     barrier.Transition.pResource = dx12Texture->GetResource();
-                    AddTextureSubresourceBarriers(dx12Texture, dx12SRV->GetSubresourceRange(), barrier);
+                    AddTextureSubresourceBarriers(dx12Texture, state.subresourceRange, barrier);
 
-                    CUBE_DX12_BOUND_OBJECT(state.srv);
-                    break;
-                }
-                case TransitionState::ResourceType::UAV:
-                {
-                    const DX12TextureUAV* dx12UAV = dynamic_cast<DX12TextureUAV*>(state.uav.get());
-                    const DX12Texture* dx12Texture = dx12UAV->GetDX12Texture();
-                    barrier.Transition.pResource = dx12UAV->GetDX12Texture()->GetResource();
-                    AddTextureSubresourceBarriers(dx12Texture, dx12UAV->GetSubresourceRange(), barrier);
-
-                    CUBE_DX12_BOUND_OBJECT(state.uav);
-                    break;
-                }
-                case TransitionState::ResourceType::RTV:
-                {
-                    const DX12TextureRTV* dx12RTV = dynamic_cast<DX12TextureRTV*>(state.rtv.get());
-                    const DX12Texture* dx12Texture = dx12RTV->GetDX12Texture();
-                    barrier.Transition.pResource = dx12RTV->GetDX12Texture()->GetResource();
-                    AddTextureSubresourceBarriers(dx12Texture, dx12RTV->GetSubresourceRange(), barrier);
-
-                    CUBE_DX12_BOUND_OBJECT(state.rtv);
-                    break;
-                }
-                case TransitionState::ResourceType::DSV:
-                {
-                    const DX12TextureDSV* dx12DSV = dynamic_cast<DX12TextureDSV*>(state.dsv.get());
-                    const DX12Texture* dx12Texture = dx12DSV->GetDX12Texture();
-                    barrier.Transition.pResource = dx12DSV->GetDX12Texture()->GetResource();
-                    AddTextureSubresourceBarriers(dx12Texture, dx12DSV->GetSubresourceRange(), barrier);
-
-                    CUBE_DX12_BOUND_OBJECT(state.dsv);
+                    CUBE_DX12_BOUND_OBJECT(state.texture);
                     break;
                 }
                 default:
@@ -417,7 +390,10 @@ namespace cube
                 }
             }
 
-            mCommandList->ResourceBarrier(barriers.size(), barriers.data());
+            if (!barriers.empty())
+            {
+                mCommandList->ResourceBarrier(barriers.size(), barriers.data());
+            }
         }
 
         void DX12CommandList::SetComputePipeline(SharedPtr<ComputePipeline> computePipeline)

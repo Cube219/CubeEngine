@@ -89,18 +89,13 @@ namespace cube
             enum class ResourceType
             {
                 Buffer,
-                SRV,
-                UAV,
-                RTV,
-                DSV
+                Texture
             };
             ResourceType resourceType;
 
             SharedPtr<Buffer> buffer = nullptr;
-            SharedPtr<TextureSRV> srv = nullptr;
-            SharedPtr<TextureUAV> uav = nullptr;
-            SharedPtr<TextureRTV> rtv = nullptr;
-            SharedPtr<TextureDSV> dsv = nullptr;
+            SharedPtr<Texture> texture = nullptr;
+            SubresourceRange subresourceRange = {};
 
             ResourceStateFlags src;
             ResourceStateFlags dst;
@@ -144,7 +139,7 @@ namespace cube
             virtual void UseResource(SharedPtr<TextureUAV> uav) = 0;
 
             virtual void ResourceTransition(TransitionState state) = 0;
-            virtual void ResourceTransition(ArrayView<TransitionState> states) = 0;
+            virtual void ResourceTransition(ArrayView<const TransitionState> states) = 0;
 
             virtual void SetComputePipeline(SharedPtr<ComputePipeline> computePipeline) = 0;
             virtual void DispatchThreads(Uint32 numThreadsX, Uint32 numThreadsY, Uint32 numThreadsZ) = 0;

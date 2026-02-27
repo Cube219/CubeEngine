@@ -24,7 +24,7 @@ namespace cube
 
         virtual void OnBeforeRender() override;
         virtual void OnAfterRender() override;
-        virtual void OnBeforePresent(gapi::TextureRTV* backbufferRTV) override;
+        virtual void OnBeforePresent(gapi::Texture* backbuffer) override;
         virtual void OnAfterPresent() override;
 
         virtual void BeginRenderingFrame() override;
