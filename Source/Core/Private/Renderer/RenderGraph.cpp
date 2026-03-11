@@ -37,7 +37,7 @@ namespace cube
         , mRGTexture(rgTexture)
         , mMipLevel(mipLevel)
     {
-        mSubresourceHashKey = reinterpret_cast<Uint64>(mRGTexture) + ((Uint64)mMipLevel << 20);
+        mSubresourceHashKey = HashCombine(reinterpret_cast<Uint64>(mRGTexture), mMipLevel);
     }
 
     RGTextureView::~RGTextureView()

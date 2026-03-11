@@ -72,4 +72,32 @@ namespace cube
     // Currently just copy OS-specific time data because it is used for comparison only.
     // Modify it if detail time data is needed.
     using Time = Uint64;
+
+    // MurmurHash3
+    inline Uint64 HashMix(Uint64 v)
+    {
+        v ^= v >> 33;
+        v *= 0xff51afd7ed558ccdLLU;
+        v ^= v >> 33;
+        v *= 0xc4ceb9fe1a85ec53LLU;
+        v ^= v >> 33;
+
+        return v;
+    }
+
+    inline Uint64 HashCombine(Uint64 a)
+    {
+        return a;
+    }
+
+    inline Uint64 HashCombine(Uint64 a, Uint64 b)
+    {
+        return HashMix(a ^ (b + 0x9e3779b9 + (a << 6) + (a >> 2)));
+    }
+
+    template <typename... T>
+    inline Uint64 HashCombine(Uint64 lhs, T... values)
+    {
+        return HashCombine(lhs, HashCombine(values...));
+    }
 } // namespace cube
