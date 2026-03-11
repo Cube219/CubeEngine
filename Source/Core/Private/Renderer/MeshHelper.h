@@ -14,7 +14,7 @@ namespace cube
     public:
         static SharedPtr<MeshData> GenerateBoxMeshData();
         static SharedPtr<MeshData> GenerateCylinderMeshData();
-        static SharedPtr<MeshData> GenerateCapsuleMeshData(); // TODO
+        static SharedPtr<MeshData> GenerateCapsuleMeshData();
         static SharedPtr<MeshData> GenerateSphereMeshData();
         static SharedPtr<MeshData> GeneratePlaneMeshData();
 

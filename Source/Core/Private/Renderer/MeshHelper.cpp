@@ -153,7 +153,172 @@ namespace cube
 
     SharedPtr<MeshData> MeshHelper::GenerateCapsuleMeshData()
     {
-        return nullptr;
+        constexpr int sliceCount = 20;
+        constexpr int stacksPerCap = 10;
+        constexpr float radius = 0.5f;
+        constexpr float halfHeight = 0.5f;
+
+        FrameVector<Vertex> vertices;
+        FrameVector<Index> indices;
+
+        float dTheta = 2.0f * Math::Pi / sliceCount;
+
+        Vertex v;
+        v.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+        v.uv = { 0.0f, 0.0f };
+
+        // Top pole (index 0)
+        v.position = { 0.0f, halfHeight + radius, 0.0f, 1.0f };
+        v.normal = { 0.0f, 1.0f, 0.0f, 0.0f };
+        vertices.push_back(v);
+
+        // Top hemisphere rings (ring 1 to stacksPerCap)
+        for (int i = 1; i <= stacksPerCap; ++i)
+        {
+            float phi = (Math::Pi / 2.0f) * i / stacksPerCap;
+            float sinPhi = Math::Sin(phi);
+            float cosPhi = Math::Cos(phi);
+            float y = halfHeight + radius * cosPhi;
+            float ringRadius = radius * sinPhi;
+
+            for (int j = 0; j < sliceCount; ++j)
+            {
+                float theta = dTheta * j;
+                float cosTheta = Math::Cos(theta);
+                float sinTheta = Math::Sin(theta);
+
+                v.position = { ringRadius * cosTheta, y, ringRadius * sinTheta, 1.0f };
+                v.normal = { sinPhi * cosTheta, cosPhi, sinPhi * sinTheta, 0.0f };
+                vertices.push_back(v);
+            }
+        }
+
+        // Bottom hemisphere rings (ring 0 to stacksPerCap - 1)
+        for (int i = 0; i < stacksPerCap; ++i)
+        {
+            float phi = (Math::Pi / 2.0f) + (Math::Pi / 2.0f) * i / stacksPerCap;
+            float sinPhi = Math::Sin(phi);
+            float cosPhi = Math::Cos(phi);
+            float y = -halfHeight + radius * cosPhi;
+            float ringRadius = radius * sinPhi;
+
+            for (int j = 0; j < sliceCount; ++j)
+            {
+                float theta = dTheta * j;
+                float cosTheta = Math::Cos(theta);
+                float sinTheta = Math::Sin(theta);
+
+                v.position = { ringRadius * cosTheta, y, ringRadius * sinTheta, 1.0f };
+                v.normal = { sinPhi * cosTheta, cosPhi, sinPhi * sinTheta, 0.0f };
+                vertices.push_back(v);
+            }
+        }
+
+        // Bottom pole
+        Index bottomPoleIndex = static_cast<Index>(vertices.size());
+        v.position = { 0.0f, -halfHeight - radius, 0.0f, 1.0f };
+        v.normal = { 0.0f, -1.0f, 0.0f, 0.0f };
+        vertices.push_back(v);
+
+        // Index offsets
+        // topHemiRing(ring, slice) = 1 + (ring - 1) * sliceCount + slice,  ring=1..stacksPerCap
+        // bottomHemiRing(ring, slice) = 1 + stacksPerCap * sliceCount + ring * sliceCount + slice,  ring=0..stacksPerCap-1
+        Index topHemiBase = 1;
+        Index bottomHemiBase = 1 + stacksPerCap * sliceCount;
+
+        // Top pole triangles
+        for (int j = 0; j < sliceCount; ++j)
+        {
+            int jNext = (j + 1) % sliceCount;
+            indices.push_back(0);
+            indices.push_back(topHemiBase + jNext);
+            indices.push_back(topHemiBase + j);
+        }
+
+        // Top hemisphere ring-to-ring
+        for (int i = 1; i < stacksPerCap; ++i)
+        {
+            Index ringUp = topHemiBase + (i - 1) * sliceCount;
+            Index ringDown = topHemiBase + i * sliceCount;
+
+            for (int j = 0; j < sliceCount; ++j)
+            {
+                int jNext = (j + 1) % sliceCount;
+
+                indices.push_back(ringDown + j);
+                indices.push_back(ringUp + j);
+                indices.push_back(ringDown + jNext);
+
+                indices.push_back(ringDown + jNext);
+                indices.push_back(ringUp + j);
+                indices.push_back(ringUp + jNext);
+            }
+        }
+
+        // Cylinder body (top equator to bottom equator)
+        {
+            Index topEquator = topHemiBase + (stacksPerCap - 1) * sliceCount;
+            Index bottomEquator = bottomHemiBase;
+
+            for (int j = 0; j < sliceCount; ++j)
+            {
+                int jNext = (j + 1) % sliceCount;
+
+                indices.push_back(bottomEquator + j);
+                indices.push_back(topEquator + j);
+                indices.push_back(bottomEquator + jNext);
+
+                indices.push_back(bottomEquator + jNext);
+                indices.push_back(topEquator + j);
+                indices.push_back(topEquator + jNext);
+            }
+        }
+
+        // Bottom hemisphere ring-to-ring
+        for (int i = 0; i < stacksPerCap - 1; ++i)
+        {
+            Index ringUp = bottomHemiBase + i * sliceCount;
+            Index ringDown = bottomHemiBase + (i + 1) * sliceCount;
+
+            for (int j = 0; j < sliceCount; ++j)
+            {
+                int jNext = (j + 1) % sliceCount;
+
+                indices.push_back(ringDown + j);
+                indices.push_back(ringUp + j);
+                indices.push_back(ringDown + jNext);
+
+                indices.push_back(ringDown + jNext);
+                indices.push_back(ringUp + j);
+                indices.push_back(ringUp + jNext);
+            }
+        }
+
+        // Bottom pole triangles
+        {
+            Index lastRing = bottomHemiBase + (stacksPerCap - 1) * sliceCount;
+
+            for (int j = 0; j < sliceCount; ++j)
+            {
+                int jNext = (j + 1) % sliceCount;
+                indices.push_back(bottomPoleIndex);
+                indices.push_back(lastRing + j);
+                indices.push_back(lastRing + jNext);
+            }
+        }
+
+        SetApproxTangentVector(vertices);
+
+        SubMesh subMeshes[] = {
+            {
+                .vertexOffset = 0,
+                .indexOffset = 0,
+                .numIndices = indices.size(),
+                .materialIndex = 0,
+            }
+        };
+
+        return std::make_shared<MeshData>(vertices, indices, subMeshes, CUBE_T("BaseCapsuleMesh"));
     }
 
     SharedPtr<MeshData> MeshHelper::GenerateSphereMeshData()
