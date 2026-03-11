@@ -2,6 +2,7 @@
 
 #include "CoreHeader.h"
 
+#include "GAPI_Pipeline.h"
 #include "Renderer/RenderTypes.h"
 #include "Renderer/ShaderParameter.h"
 #include "Vector.h"
@@ -85,7 +86,7 @@ namespace cube
         MaterialShaderManager(ShaderManager& shaderManager);
         ~MaterialShaderManager() = default;
 
-        SharedPtr<GraphicsPipeline> GetOrCreateMaterialPipeline(SharedPtr<Material> material, const MeshMetadata& meshMeta);
+        SharedPtr<GraphicsPipeline> GetOrCreateMaterialPipeline(SharedPtr<Material> material, const MeshMetadata& meshMeta, gapi::RasterizerState::FillMode fillMode = gapi::RasterizerState::FillMode::Solid);
 
         void ClearPipelineCache();
 

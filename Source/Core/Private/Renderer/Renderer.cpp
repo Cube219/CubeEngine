@@ -184,6 +184,7 @@ namespace cube
             ImGui::SeparatorText("Gizmos");
 
             ImGui::Checkbox("Show Axis", &mShowAxis);
+            ImGui::Checkbox("Wireframe", &mWireframe);
         }
 
         ImGui::End();
@@ -379,6 +380,10 @@ namespace cube
 
     void Renderer::RenderImpl()
     {
+        gapi::RasterizerState::FillMode fillMode = mWireframe
+            ? gapi::RasterizerState::FillMode::Line
+            : gapi::RasterizerState::FillMode::Solid;
+
         GraphicsPipeline* currentGraphicsPipeline = nullptr;
         auto SetGraphicsPipeline = [this, &currentGraphicsPipeline](SharedPtr<GraphicsPipeline> graphicsPipeline)
         {
@@ -469,7 +474,7 @@ namespace cube
 
                     if (currentMaterial != lastMaterial)
                     {
-                        SetGraphicsPipeline(mShaderManager.GetMaterialShaderManager().GetOrCreateMaterialPipeline(currentMaterial, mMeshMetadata));
+                        SetGraphicsPipeline(mShaderManager.GetMaterialShaderManager().GetOrCreateMaterialPipeline(currentMaterial, mMeshMetadata, fillMode));
                         SharedPtr<MaterialShaderParameters> materialShaderParameters = currentMaterial->GenerateShaderParameters(mCommandList.get());
                         mCommandList->SetShaderVariableConstantBuffer(2, materialShaderParameters->GetBuffer());
                     }
@@ -482,7 +487,7 @@ namespace cube
             {
                 GPU_EVENT_SCOPE(mCommandList, CUBE_T("Draw Axis"));
                 // Axis
-                SetGraphicsPipeline(mShaderManager.GetMaterialShaderManager().GetOrCreateMaterialPipeline(mDefaultMaterial, mMeshMetadata));
+                SetGraphicsPipeline(mShaderManager.GetMaterialShaderManager().GetOrCreateMaterialPipeline(mDefaultMaterial, mMeshMetadata, fillMode));
 
                 SharedPtr<gapi::Buffer> boxVertexBuffer = mBoxMesh->GetVertexBuffer();
                 mCommandList->BindVertexBuffers(0, { &boxVertexBuffer, 1 }, { &vertexBufferOffset, 1 });
