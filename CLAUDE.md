@@ -110,7 +110,7 @@ Test mode (`--test`) enables automatic testing by modifying platform behavior:
 
 ## Git Commit Conventions
 - Always use `--no-gpg-sign` flag
-- Always prefix commit message with `*AGENT: `
+- Always prefix commit message with `AGENT: `
 
 ## Other Coding Conventions
 - Not use auto keyword except the length of type name is long. (e.g. iterator in STL container...)
