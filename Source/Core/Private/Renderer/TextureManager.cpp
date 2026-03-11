@@ -66,45 +66,44 @@ namespace cube
             Uint32 height = texture->GetHeight();
             Uint32 mipLevels = texture->GetMipLevels();
 
-            FrameVector<RGTexture*> rgTextures(mipLevels);
-            for (Uint32 i = 0; i < mipLevels; ++i)
-            {
-                rgTextures[i] = builder.RegisterTexture(texture, i);
-            }
+            RGTexture* rgTexture = builder.RegisterTexture(texture);
 
             for (Uint32 mipIndex = 1; mipIndex < mipLevels; ++mipIndex)
             {
                 width = std::max(1u, width >> 1);
                 height = std::max(1u, height >> 1);
 
+                RGTextureSRV* srcSRV = builder.CreateSRV(rgTexture, mipIndex - 1);
+                RGTextureUAV* dstUAV = builder.CreateUAV(rgTexture, mipIndex);
+
                 builder.AddPass(Format<FrameString>(CUBE_T("GenerateMipmaps ({0}->{1})"), mipIndex - 1, mipIndex),
-                [pipeline = mGenerateMipmapsPipeline, width, height, mipIndex, rgTextures](gapi::CommandList& commandList)
+                [pipeline = mGenerateMipmapsPipeline, width, height, srcSRV, dstUAV](gapi::CommandList& commandList)
                 {
                     ShaderParametersManager& shaderParametersManager = Engine::GetRenderer()->GetShaderParametersManager();
                     SharedPtr<GenerateMipmapsShaderParameters> parameters = shaderParametersManager.CreateShaderParameters<GenerateMipmapsShaderParameters>();
 
-                    SharedPtr<gapi::TextureSRV> srv = rgTextures[mipIndex-1]->GetSRV();
-                    SharedPtr<gapi::TextureUAV> uav = rgTextures[mipIndex]->GetUAV();
+                    SharedPtr<gapi::TextureSRV> src = srcSRV->GetSRV();
+                    SharedPtr<gapi::TextureUAV> dst = dstUAV->GetUAV();
 
-                    parameters->srcTexture.id = srv->GetBindlessId();
-                    parameters->dstTexture.id = uav->GetBindlessId();
+                    parameters->srcTexture.id = src->GetBindlessId();
+                    parameters->dstTexture.id = dst->GetBindlessId();
                     parameters->WriteAllParametersToBuffer();
 
                     commandList.SetComputePipeline(pipeline->GetGAPIComputePipeline());
 
                     // TODO: Move to RenderGraph in the future. Currently UseResource should be called
                     // after set compute piepline.
-                    commandList.UseResource(srv);
-                    commandList.UseResource(uav);
+                    commandList.UseResource(src);
+                    commandList.UseResource(dst);
 
                     commandList.SetShaderVariableConstantBuffer(0, parameters->GetBuffer());
 
                     commandList.DispatchThreads(width, height, 1);
                 },
-                [rgTextures, mipIndex](RGBuilder& builder)
+                [srcSRV, dstUAV](RGBuilder& builder)
                 {
-                    builder.UseSRV(rgTextures[mipIndex - 1]);
-                    builder.UseUAV(rgTextures[mipIndex]);
+                    builder.UseResource(srcSRV);
+                    builder.UseResource(dstUAV);
                 });
             }
         }

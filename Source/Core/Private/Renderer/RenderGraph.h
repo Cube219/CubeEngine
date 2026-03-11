@@ -29,6 +29,7 @@ namespace cube
         virtual ~RGResource();
 
         bool mIsTransient;
+
         int mIndex;
         int mBeginPass;
         int mEndPass;
@@ -36,24 +37,101 @@ namespace cube
 
     class RGTexture : public RGResource
     {
+    protected:
+        friend class RGBuilder;
+
+        RGTexture(int index, SharedPtr<gapi::Texture> texture);
+        virtual ~RGTexture();
+
+        SharedPtr<gapi::Texture> mTexture;
+    };
+
+    class RGTextureView : public RGResource
+    {
     public:
-        SharedPtr<gapi::TextureSRV> GetSRV() const { CHECK(mSRV); return mSRV; }
-        SharedPtr<gapi::TextureUAV> GetUAV() const { CHECK(mUAV); return mUAV; }
-        SharedPtr<gapi::TextureRTV> GetRTV() const { CHECK(mRTV); return mRTV; }
-        SharedPtr<gapi::TextureDSV> GetDSV() const { CHECK(mDSV); return mDSV; }
+        Uint64 GetSubresourceHashKey() const { return mSubresourceHashKey; }
 
     protected:
         friend class RGBuilder;
 
-        RGTexture(int index, SharedPtr<gapi::Texture> texture, Uint32 mipLevel);
-        virtual ~RGTexture();
+        RGTextureView(int index, RGTexture* rgTexture, Uint32 mipLevel);
+        virtual ~RGTextureView();
 
-        SharedPtr<gapi::Texture> mTexture;
-        SharedPtr<gapi::TextureSRV> mSRV;
-        SharedPtr<gapi::TextureUAV> mUAV;
-        SharedPtr<gapi::TextureRTV> mRTV;
-        SharedPtr<gapi::TextureDSV> mDSV;
+        RGTexture* mRGTexture;
         Uint32 mMipLevel;
+        Uint64 mSubresourceHashKey;
+    };
+
+    class RGTextureSRV : public RGTextureView
+    {
+    public:
+        SharedPtr<gapi::TextureSRV> GetSRV() const
+        {
+            CHECK(mSRV);
+            return mSRV;
+        }
+
+    private:
+        friend class RGBuilder;
+
+        RGTextureSRV(int index, RGTexture* rgTexture, Uint32 mipLevel);
+        virtual ~RGTextureSRV();
+
+        SharedPtr<gapi::TextureSRV> mSRV;
+    };
+
+    class RGTextureUAV : public RGTextureView
+    {
+    public:
+        SharedPtr<gapi::TextureUAV> GetUAV() const
+        {
+            CHECK(mUAV);
+            return mUAV;
+        }
+
+    private:
+        friend class RGBuilder;
+
+        RGTextureUAV(int index, RGTexture* rgTexture, Uint32 mipLevel);
+        virtual ~RGTextureUAV();
+
+        SharedPtr<gapi::TextureUAV> mUAV;
+    };
+
+    class RGTextureRTV : public RGTextureView
+    {
+    public:
+        SharedPtr<gapi::TextureRTV> GetRTV() const
+        {
+            CHECK(mRTV);
+            return mRTV;
+        }
+
+    private:
+        friend class RGBuilder;
+
+        RGTextureRTV(int index, RGTexture* rgTexture, Uint32 mipLevel);
+        virtual ~RGTextureRTV();
+
+        SharedPtr<gapi::TextureRTV> mRTV;
+    };
+
+    class RGTextureDSV : public RGTextureView
+    {
+    public:
+        SharedPtr<gapi::TextureDSV> GetDSV() const
+        {
+            CHECK(mDSV);
+            return mDSV;
+        }
+
+    private:
+        friend class RGBuilder;
+
+        RGTextureDSV(int index, RGTexture* rgTexture, Uint32 mipLevel);
+        virtual ~RGTextureDSV();
+
+        SharedPtr<gapi::TextureDSV> mDSV;
     };
 
     // ===== Builder =====
@@ -70,14 +148,19 @@ namespace cube
 
         // void CreateTexture();
         // void CreateShaderParameter();
-        RGTexture* RegisterTexture(SharedPtr<gapi::Texture> texture, Uint32 mipLevel);
+        RGTextureSRV* CreateSRV(RGTexture* rgTexture, Uint32 mipLevel);
+        RGTextureUAV* CreateUAV(RGTexture* rgTexture, Uint32 mipLevel);
+        RGTextureRTV* CreateRTV(RGTexture* rgTexture, Uint32 mipLevel);
+        RGTextureDSV* CreateDSV(RGTexture* rgTexture, Uint32 mipLevel);
+
+        RGTexture* RegisterTexture(SharedPtr<gapi::Texture> texture);
 
         // TODO: Automatically collect attachments before executing.
         struct RenderPassInfo
         {
             struct ColorAttachment
             {
-                RGTexture* color = nullptr;
+                RGTextureRTV* color = nullptr;
                 gapi::LoadOperation loadOperation = gapi::LoadOperation::Load;
                 gapi::StoreOperation storeOperation = gapi::StoreOperation::Store;
                 Float4 clearColor;
@@ -85,7 +168,7 @@ namespace cube
             Vector<ColorAttachment> colors;
             struct DepthAttachment
             {
-                RGTexture* dsv = nullptr;
+                RGTextureDSV* dsv = nullptr;
                 gapi::LoadOperation loadOperation = gapi::LoadOperation::Load;
                 gapi::StoreOperation storeOperation = gapi::StoreOperation::Store;
                 float clearDepth;
@@ -98,10 +181,10 @@ namespace cube
         void AddPass(StringView name, PassFunction&& passFunction, UseResourceFunction&& useResourceFunction = [](RGBuilder&){}, bool isCompute = false);
 
         // TODO: Automatically collect use resource based on shader parameter.
-        void UseSRV(RGTexture* texture);
-        void UseUAV(RGTexture* texture);
-        void UseRTV(RGTexture* texture);
-        void UseDSV(RGTexture* texture);
+        void UseResource(RGTextureSRV* rgSRV);
+        void UseResource(RGTextureUAV* rgUAV);
+        void UseResource(RGTextureRTV* rgRTV);
+        void UseResource(RGTextureDSV* rgDSV);
 
         void ExecuteAndSubmit(gapi::CommandList& commandList);
 

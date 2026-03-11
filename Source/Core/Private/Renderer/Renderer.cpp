@@ -397,18 +397,21 @@ namespace cube
             globalShaderParameters->directionalLightIntensity = mDirectionalLightIntensity;
             globalShaderParameters->WriteAllParametersToBuffer();
 
-            RGTexture* color = builder.RegisterTexture(mCurrentBackbuffer, 0);
-            RGTexture* depthStencil = builder.RegisterTexture(mDepthStencilTexture, 0);
+            RGTexture* color = builder.RegisterTexture(mCurrentBackbuffer);
+            RGTexture* depthStencil = builder.RegisterTexture(mDepthStencilTexture);
+
+            RGTextureRTV* colorRTV = builder.CreateRTV(color, 0);
+            RGTextureDSV* depthStencilDSV = builder.CreateDSV(depthStencil, 0);
 
             RGBuilder::RenderPassInfo renderPassInfo;
             renderPassInfo.colors.push_back({
-                .color = color,
+                .color = colorRTV,
                 .loadOperation = gapi::LoadOperation::Clear,
                 .storeOperation = gapi::StoreOperation::Store,
                 .clearColor = { 0.2f, 0.2f, 0.2f, 1.0f }
             });
             renderPassInfo.depthstencil = {
-                .dsv = depthStencil,
+                .dsv = depthStencilDSV,
                 .loadOperation = gapi::LoadOperation::Clear,
                 .storeOperation = gapi::StoreOperation::Store,
                 .clearDepth = 0.0f

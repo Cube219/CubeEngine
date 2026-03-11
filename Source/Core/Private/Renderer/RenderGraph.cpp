@@ -21,14 +21,9 @@ namespace cube
     {
     }
 
-    RGTexture::RGTexture(int index, SharedPtr<gapi::Texture> texture, Uint32 mipLevel)
+    RGTexture::RGTexture(int index, SharedPtr<gapi::Texture> texture)
         : RGResource(index)
         , mTexture(texture)
-        , mSRV(nullptr)
-        , mUAV(nullptr)
-        , mRTV(nullptr)
-        , mDSV(nullptr)
-        , mMipLevel(mipLevel)
     {
         mIsTransient = false;
     }
@@ -37,20 +32,104 @@ namespace cube
     {
     }
 
+    RGTextureView::RGTextureView(int index, RGTexture* rgTexture, Uint32 mipLevel)
+        : RGResource(index)
+        , mRGTexture(rgTexture)
+        , mMipLevel(mipLevel)
+    {
+        mSubresourceHashKey = reinterpret_cast<Uint64>(mRGTexture) + ((Uint64)mMipLevel << 20);
+    }
+
+    RGTextureView::~RGTextureView()
+    {
+    }
+
+    RGTextureSRV::RGTextureSRV(int index, RGTexture* rgTexture, Uint32 mipLevel)
+        : RGTextureView(index, rgTexture, mipLevel)
+        , mSRV(nullptr)
+    {
+    }
+    
+    RGTextureSRV::~RGTextureSRV()
+    {
+    }
+    
+    RGTextureUAV::RGTextureUAV(int index, RGTexture* rgTexture, Uint32 mipLevel)
+        : RGTextureView(index, rgTexture, mipLevel)
+        , mUAV(nullptr)
+    {
+    }
+    
+    RGTextureUAV::~RGTextureUAV()
+    {
+    }
+    
+    RGTextureRTV::RGTextureRTV(int index, RGTexture* rgTexture, Uint32 mipLevel)
+        : RGTextureView(index, rgTexture, mipLevel)
+        , mRTV(nullptr)
+    {
+    }
+    
+    RGTextureRTV::~RGTextureRTV()
+    {
+    }
+    
+    RGTextureDSV::RGTextureDSV(int index, RGTexture* rgTexture, Uint32 mipLevel)
+        : RGTextureView(index, rgTexture, mipLevel)
+        , mDSV(nullptr)
+    {
+    }
+
+    RGTextureDSV::~RGTextureDSV()
+    {
+    }
+
     // ===== Builder =====
 
-    RGTexture* RGBuilder::RegisterTexture(SharedPtr<gapi::Texture> texture, Uint32 mipLevel)
+    RGBuilder::~RGBuilder()
+    {
+        Reset();
+    }
+
+    RGTexture* RGBuilder::RegisterTexture(SharedPtr<gapi::Texture> texture)
     {
         // TODO: Check duplication
-        RGTexture* rgTexture = new RGTexture(mResources.size(), texture, mipLevel);
+        RGTexture* rgTexture = new RGTexture(mResources.size(), texture);
         mResources.push_back(rgTexture);
 
         return rgTexture;
     }
 
-    RGBuilder::~RGBuilder()
+    RGTextureSRV* RGBuilder::CreateSRV(RGTexture* rgTexture, Uint32 mipLevel)
     {
-        Reset();
+        RGTextureSRV* rgSRV = new RGTextureSRV(mResources.size(), rgTexture, mipLevel);
+        mResources.push_back(rgSRV);
+
+        return rgSRV;
+    }
+    
+    RGTextureUAV* RGBuilder::CreateUAV(RGTexture* rgTexture, Uint32 mipLevel)
+    {
+        RGTextureUAV* rgUAV = new RGTextureUAV(mResources.size(), rgTexture, mipLevel);
+        mResources.push_back(rgUAV);
+
+        return rgUAV;
+    }
+    
+    RGTextureRTV* RGBuilder::CreateRTV(RGTexture* rgTexture, Uint32 mipLevel)
+    {
+        RGTextureRTV* rgRTV = new RGTextureRTV(mResources.size(), rgTexture, mipLevel);
+        mResources.push_back(rgRTV);
+
+        return rgRTV;
+    }
+    
+    RGTextureDSV* RGBuilder::CreateDSV(RGTexture* rgTexture, Uint32 mipLevel)
+    {
+        RGTextureDSV* rgDSV = new RGTextureDSV(mResources.size(), rgTexture, mipLevel);
+        mResources.push_back(rgDSV);
+
+        return rgDSV;
     }
 
     void RGBuilder::BeginRenderPass(const RenderPassInfo& info)
@@ -83,11 +162,11 @@ namespace cube
         {
             for (const RenderPassInfo::ColorAttachment& color : info.colors)
             {
-                builder.UseRTV(color.color);
+                builder.UseResource(color.color);
             }
             if (info.depthstencil.dsv)
             {
-                builder.UseDSV(info.depthstencil.dsv);
+                builder.UseResource(info.depthstencil.dsv);
             }
         });
 
@@ -115,75 +194,75 @@ namespace cube
         mUseResourceFunction.emplace_back(std::move(useResourceFunction));
     }
 
-    void RGBuilder::UseSRV(RGTexture* texture)
+    void RGBuilder::UseResource(RGTextureSRV* rgSRV)
     {
         CHECK(!mIsExecuting);
 
-        if (texture->mSRV == nullptr)
+        if (rgSRV->mSRV == nullptr)
         {
-            texture->mSRV = texture->mTexture->CreateSRV({
-                .firstMipLevel = texture->mMipLevel,
+            rgSRV->mSRV = rgSRV->mRGTexture->mTexture->CreateSRV({
+                .firstMipLevel = rgSRV->mMipLevel,
                 .mipLevels = 1
             });
         }
 
         PassInfo& pass = mPasses[mCurrentPassIndex];
         pass.useStates.push_back({
-            .resourceIndex = texture->mIndex,
+            .resourceIndex = rgSRV->mIndex,
             .state = pass.isCompute ? gapi::ResourceStateFlag::SRV_NonPixel : gapi::ResourceStateFlag::SRV_Pixel
         });
     }
 
-    void RGBuilder::UseUAV(RGTexture* texture)
+    void RGBuilder::UseResource(RGTextureUAV* rgUAV)
     {
         CHECK(!mIsExecuting);
 
-        if (texture->mUAV == nullptr)
+        if (rgUAV->mUAV == nullptr)
         {
-            texture->mUAV = texture->mTexture->CreateUAV({
-                .mipLevel = texture->mMipLevel
+            rgUAV->mUAV = rgUAV->mRGTexture->mTexture->CreateUAV({
+                .mipLevel = rgUAV->mMipLevel
             });
         }
 
         PassInfo& pass = mPasses[mCurrentPassIndex];
         pass.useStates.push_back({
-            .resourceIndex = texture->mIndex,
+            .resourceIndex = rgUAV->mIndex,
             .state = gapi::ResourceStateFlag::UAV
         });
     }
 
-    void RGBuilder::UseRTV(RGTexture* texture)
+    void RGBuilder::UseResource(RGTextureRTV* rgRTV)
     {
         CHECK(!mIsExecuting);
 
-        if (texture->mRTV == nullptr)
+        if (rgRTV->mRTV == nullptr)
         {
-            texture->mRTV = texture->mTexture->CreateRTV({
-                .mipLevel = texture->mMipLevel
+            rgRTV->mRTV = rgRTV->mRGTexture->mTexture->CreateRTV({
+                .mipLevel = rgRTV->mMipLevel
             });
         }
 
         PassInfo& pass = mPasses[mCurrentPassIndex];
         pass.useStates.push_back({
-            .resourceIndex = texture->mIndex,
+            .resourceIndex = rgRTV->mIndex,
             .state = gapi::ResourceStateFlag::RenderTarget
         });
     }
 
-    void RGBuilder::UseDSV(RGTexture* texture)
+    void RGBuilder::UseResource(RGTextureDSV* rgDSV)
     {
         CHECK(!mIsExecuting);
 
-        if (texture->mDSV == nullptr)
+        if (rgDSV->mDSV == nullptr)
         {
-            texture->mDSV = texture->mTexture->CreateDSV({
-                .mipLevel = texture->mMipLevel
+            rgDSV->mDSV = rgDSV->mRGTexture->mTexture->CreateDSV({
+                .mipLevel = rgDSV->mMipLevel
             });
         }
 
         PassInfo& pass = mPasses[mCurrentPassIndex];
         pass.useStates.push_back({
-            .resourceIndex = texture->mIndex,
+            .resourceIndex = rgDSV->mIndex,
             .state = gapi::ResourceStateFlag::DepthWrite
         });
     }
@@ -246,7 +325,7 @@ namespace cube
         int numPasses = mPasses.size();
         CHECK(numPasses == mUseResourceFunction.size());
 
-        FrameVector<gapi::ResourceStateFlags> currentResourceStates(mResources.size(), gapi::ResourceStateFlag::Common);
+        FrameMap<Uint64, gapi::ResourceStateFlags> currentSubresourceStates;
 
         for (int i = 0; i < numPasses; ++i)
         {
@@ -255,25 +334,43 @@ namespace cube
 
             mUseResourceFunction[i](*this);
 
-            for (const PassInfo::UseState& useState : pass.useStates)
+            for (const PassInfo::UseState& useStateInPass : pass.useStates)
             {
-                if (currentResourceStates[useState.resourceIndex] != useState.state)
+                RGResource* resource = mResources[useStateInPass.resourceIndex];
+
+                if (RGTextureView* textureView = dynamic_cast<RGTextureView*>(resource))
                 {
-                    RGTexture* texture = dynamic_cast<RGTexture*>(mResources[useState.resourceIndex]);
+                    Uint64 subresourceHashKey = textureView->GetSubresourceHashKey();
+                    CHECK(subresourceHashKey != 0);
+                    auto currentStateIt = currentSubresourceStates.find(subresourceHashKey);
+                    if (currentStateIt == currentSubresourceStates.end())
+                    {
+                        currentStateIt = currentSubresourceStates.insert({ subresourceHashKey, gapi::ResourceStateFlag::Common }).first;
+                    }
+                    gapi::ResourceStateFlags currentState = currentStateIt->second;
 
-                    gapi::TransitionState& transition = pass.transitions.emplace_back();
-                    transition.resourceType = gapi::TransitionState::ResourceType::Texture;
-                    transition.texture = texture->mTexture;
-                    transition.subresourceRange = {
-                        .firstMipLevel = texture->mMipLevel,
-                        .mipLevels = 1,
-                        .firstArrayIndex = 0,
-                        .arraySize = texture->mTexture->GetArraySize()
-                    };
-                    transition.src = currentResourceStates[useState.resourceIndex];
-                    transition.dst = useState.state;
+                    if (currentState != useStateInPass.state)
+                    {
+                        RGTexture* texture = textureView->mRGTexture;
 
-                    currentResourceStates[useState.resourceIndex] = useState.state;
+                        gapi::TransitionState& transition = pass.transitions.emplace_back();
+                        transition.resourceType = gapi::TransitionState::ResourceType::Texture;
+                        transition.texture = texture->mTexture;
+                        transition.subresourceRange = {
+                            .firstMipLevel = textureView->mMipLevel,
+                            .mipLevels = 1,
+                            .firstArrayIndex = 0,
+                            .arraySize = texture->mTexture->GetArraySize()
+                        };
+                        transition.src = currentState;
+                        transition.dst = useStateInPass.state;
+                    }
+
+                    currentStateIt->second = useStateInPass.state;
+                }
+                else
+                {
+                    CHECK_FORMAT(false, "Transition is not supported in this RGResource.");
                 }
             }
         }
@@ -287,17 +384,13 @@ namespace cube
 
         for (RGResource* resource : mResources)
         {
-            if (RGTexture* texture = dynamic_cast<RGTexture*>(resource))
+            if (RGTextureView* textureView = dynamic_cast<RGTextureView*>(resource))
             {
                 PassInfo& pass = mPasses[mCurrentPassIndex];
                 pass.useStates.push_back({
-                    .resourceIndex = texture->mIndex,
+                    .resourceIndex = textureView->mIndex,
                     .state = gapi::ResourceStateFlag::Common
                 });
-            }
-            else
-            {
-                NOT_IMPLEMENTED();
             }
         }
     }
