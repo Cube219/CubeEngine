@@ -41,7 +41,6 @@ namespace cube
         CUBE_CORE_EXPORT static const platform::FilePath& GetShaderDirectoryPath() { return mShaderDirectoryPath; }
 
         CUBE_CORE_EXPORT static AnsiStringView GetCommandLineParam(AnsiStringView name);
-        CUBE_CORE_EXPORT static bool HasCommandLineParam(AnsiStringView name);
 
         static void SetMesh(SharedPtr<MeshData> meshData, const MeshMetadata& meshMeta);
         static void SetMaterials(const Vector<SharedPtr<Material>>& materials);

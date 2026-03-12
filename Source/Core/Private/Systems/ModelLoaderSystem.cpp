@@ -37,45 +37,43 @@ namespace cube
         mCurrentSelectModelIndex = -1;
         ResetModelTransform();
 
-        if (Engine::HasCommandLineParam("model"))
+        // Load model at initialization using parameter.
+        if (AnsiStringView modelParam = Engine::GetCommandLineParam("model"); !modelParam.empty())
         {
-            AnsiStringView modelParam = Engine::GetCommandLineParam("model");
-            AnsiString modelParamStr(modelParam);
-
             // Parse format: <type>_<index> (e.g., gltf_0, default_2)
-            SizeType underscorePos = modelParamStr.rfind('_');
-            if (underscorePos == AnsiString::npos || underscorePos == 0 || underscorePos == modelParamStr.size() - 1)
+            SizeType underscorePos = modelParam.rfind('_');
+            if (underscorePos == AnsiStringView::npos || underscorePos == 0 || underscorePos == modelParam.size() - 1)
             {
-                CUBE_LOG(Error, ModelLoaderSystem, "Invalid --model format '{}'. Expected <type>_<index> (e.g., gltf_0, default_1).", modelParamStr);
+                CUBE_LOG(Error, ModelLoaderSystem, "Invalid --model format ({0}). Expected <type>_<index>.", modelParam);
                 return;
             }
 
-            AnsiString typeStr = modelParamStr.substr(0, underscorePos);
-            AnsiString indexStr = modelParamStr.substr(underscorePos + 1);
+            AnsiStringView modelTypeStr = modelParam.substr(0, underscorePos);
+            AnsiStringView indexStr = modelParam.substr(underscorePos + 1);
 
-            int targetIndex = -1;
+            int index = -1;
             try
             {
-                targetIndex = std::stoi(indexStr);
+                index = std::stoi(indexStr.data());
             }
             catch (...)
             {
-                CUBE_LOG(Error, ModelLoaderSystem, "Invalid --model index '{}'. Must be an integer.", indexStr);
+                CUBE_LOG(Error, ModelLoaderSystem, "Invalid --model index ({0}). Must be an integer.", indexStr);
                 return;
             }
 
-            ModelType targetType;
-            if (typeStr == "gltf")
+            ModelType type;
+            if (modelTypeStr == "gltf")
             {
-                targetType = ModelType::glTF;
+                type = ModelType::glTF;
             }
-            else if (typeStr == "default")
+            else if (modelTypeStr == "default")
             {
-                targetType = ModelType::Obj;
+                type = ModelType::Obj;
             }
             else
             {
-                CUBE_LOG(Error, ModelLoaderSystem, "Invalid --model type '{}'. Must be 'gltf' or 'default'.", typeStr);
+                CUBE_LOG(Error, ModelLoaderSystem, "Invalid --model type ({0}). Must be 'gltf' or 'default'.", modelTypeStr);
                 return;
             }
 
@@ -84,12 +82,12 @@ namespace cube
             int typeCount = 0;
             for (int i = 0; i < static_cast<int>(mModelPathList.size()); ++i)
             {
-                if (mModelPathList[i].type == targetType)
+                if (mModelPathList[i].type == type)
                 {
-                    if (typeCount == targetIndex)
+                    if (typeCount == index)
                     {
                         mCurrentSelectModelIndex = i;
-                        CUBE_LOG(Info, ModelLoaderSystem, "Loading model from command line: {}", mModelPathList[i].name);
+                        CUBE_LOG(Info, ModelLoaderSystem, "Loading model from command line: {0}", mModelPathList[i].name);
                         LoadCurrentModelAndSet();
                         return;
                     }
@@ -97,7 +95,7 @@ namespace cube
                 }
             }
 
-            CUBE_LOG(Error, ModelLoaderSystem, "Model index {} out of range for type '{}' (found {} models).", targetIndex, typeStr, typeCount);
+            CUBE_LOG(Error, ModelLoaderSystem, "Model index {0} out of range for type ({1}) (size: {2}).", index, modelTypeStr, typeCount);
         }
     }
 

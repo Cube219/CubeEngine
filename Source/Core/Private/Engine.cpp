@@ -127,16 +127,15 @@ namespace cube
 
         if (!mCommandLineArgs.empty())
         {
-            AnsiString params;
+            FrameAnsiString params;
             for (const auto& [key, value] : mCommandLineArgs)
             {
-                if (!params.empty())
-                {
-                    params += ", ";
-                }
-                params += key + "=" + value;
+                params += key;
+                params += "=";
+                params += value;
+                params += " ";
             }
-            CUBE_LOG(Info, Engine, "Command line parameters: {}", params);
+            CUBE_LOG(Info, Engine, "Command line parameters: {0}", params);
         }
 
         SearchAndSetRootDirectory();
@@ -365,10 +364,5 @@ namespace cube
             return AnsiStringView(it->second);
         }
         return AnsiStringView();
-    }
-
-    bool Engine::HasCommandLineParam(AnsiStringView name)
-    {
-        return mCommandLineArgs.find(AnsiString(name)) != mCommandLineArgs.end();
     }
 } // namespace cube
