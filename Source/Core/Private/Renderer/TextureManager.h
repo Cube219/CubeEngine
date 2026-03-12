@@ -40,8 +40,8 @@ namespace cube
         class GenerateMipmapsShaderParameters : public ShaderParameters
         {
             CUBE_BEGIN_SHADER_PARAMETERS(GenerateMipmapsShaderParameters)
-                CUBE_SHADER_PARAMETER(BindlessTexture, srcTexture)
-                CUBE_SHADER_PARAMETER(BindlessTexture, dstTexture)
+                CUBE_SHADER_PARAMETER(RGTextureSRV*, srcTexture)
+                CUBE_SHADER_PARAMETER(RGTextureUAV*, dstTexture)
             CUBE_END_SHADER_PARAMETERS
         };
 

@@ -15,6 +15,7 @@
 #include "MatrixUtility.h"
 #include "MeshHelper.h"
 #include "Platform.h"
+#include "Renderer/RenderGraphTypes.h"
 #include "RenderGraph.h"
 #include "RenderProfiling.h"
 #include "Shader.h"

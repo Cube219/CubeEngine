@@ -1,4 +1,4 @@
-#include "RenderGraph.h"
+#include "Renderer/RenderGraph.h"
 
 #include "Allocator/FrameAllocator.h"
 #include "Checker.h"
@@ -17,19 +17,11 @@ namespace cube
     {
     }
 
-    RGResource::~RGResource()
-    {
-    }
-
     RGTexture::RGTexture(int index, SharedPtr<gapi::Texture> texture)
         : RGResource(index)
         , mTexture(texture)
     {
         mIsTransient = false;
-    }
-
-    RGTexture::~RGTexture()
-    {
     }
 
     RGTextureView::RGTextureView(int index, RGTexture* rgTexture, Uint32 mipLevel)
@@ -40,17 +32,9 @@ namespace cube
         mSubresourceHashKey = HashCombine(reinterpret_cast<Uint64>(mRGTexture), mMipLevel);
     }
 
-    RGTextureView::~RGTextureView()
-    {
-    }
-
     RGTextureSRV::RGTextureSRV(int index, RGTexture* rgTexture, Uint32 mipLevel)
         : RGTextureView(index, rgTexture, mipLevel)
         , mSRV(nullptr)
-    {
-    }
-    
-    RGTextureSRV::~RGTextureSRV()
     {
     }
     
@@ -60,27 +44,15 @@ namespace cube
     {
     }
     
-    RGTextureUAV::~RGTextureUAV()
-    {
-    }
-    
     RGTextureRTV::RGTextureRTV(int index, RGTexture* rgTexture, Uint32 mipLevel)
         : RGTextureView(index, rgTexture, mipLevel)
         , mRTV(nullptr)
     {
     }
     
-    RGTextureRTV::~RGTextureRTV()
-    {
-    }
-    
     RGTextureDSV::RGTextureDSV(int index, RGTexture* rgTexture, Uint32 mipLevel)
         : RGTextureView(index, rgTexture, mipLevel)
         , mDSV(nullptr)
-    {
-    }
-
-    RGTextureDSV::~RGTextureDSV()
     {
     }
 
@@ -134,6 +106,7 @@ namespace cube
 
     void RGBuilder::BeginRenderPass(const RenderPassInfo& info)
     {
+        CHECK(mState == State::Init);
         CHECK(!mIsInRenderPass);
 
         AddPass(CUBE_T("##BeginRenderPass"), [info](gapi::CommandList& commandList)
@@ -175,6 +148,7 @@ namespace cube
 
     void RGBuilder::EndRenderPass()
     {
+        CHECK(mState == State::Init);
         CHECK(mIsInRenderPass);
 
         AddPass(CUBE_T("##EndRenderPass"), [](gapi::CommandList& commandList)
@@ -187,16 +161,16 @@ namespace cube
 
     void RGBuilder::AddPass(StringView name, PassFunction&& passFunction, UseResourceFunction&& useResourceFunction, bool isCompute)
     {
-        CHECK(!mIsExecuting);
+        CHECK(mState == State::Init);
 
         int index = static_cast<int>(mPasses.size());
-        mPasses.emplace_back(String(name), index, std::move(passFunction), isCompute);
+        mPasses.emplace_back(String(name), index, nullptr, nullptr, std::move(passFunction));
         mUseResourceFunction.emplace_back(std::move(useResourceFunction));
     }
 
     void RGBuilder::UseResource(RGTextureSRV* rgSRV)
     {
-        CHECK(!mIsExecuting);
+        CHECK(mState == State::ResourceTracking);
 
         if (rgSRV->mSRV == nullptr)
         {
@@ -215,7 +189,7 @@ namespace cube
 
     void RGBuilder::UseResource(RGTextureUAV* rgUAV)
     {
-        CHECK(!mIsExecuting);
+        CHECK(mState == State::ResourceTracking);
 
         if (rgUAV->mUAV == nullptr)
         {
@@ -233,7 +207,7 @@ namespace cube
 
     void RGBuilder::UseResource(RGTextureRTV* rgRTV)
     {
-        CHECK(!mIsExecuting);
+        CHECK(mState == State::ResourceTracking);
 
         if (rgRTV->mRTV == nullptr)
         {
@@ -251,7 +225,7 @@ namespace cube
 
     void RGBuilder::UseResource(RGTextureDSV* rgDSV)
     {
-        CHECK(!mIsExecuting);
+        CHECK(mState == State::ResourceTracking);
 
         if (rgDSV->mDSV == nullptr)
         {
@@ -269,6 +243,7 @@ namespace cube
 
     void RGBuilder::ExecuteAndSubmit(gapi::CommandList& commandList)
     {
+        CHECK(mState == State::Init);
         CHECK(!mIsInRenderPass);
 
         {
@@ -279,9 +254,11 @@ namespace cube
             });
         }
 
+        mState = State::ResourceTracking;
+
         ResolveTransitions();
 
-        mIsExecuting = true;
+        mState = State::Executing;
 
         commandList.Reset();
         commandList.Begin();
@@ -315,9 +292,42 @@ namespace cube
         commandList.End();
         commandList.Submit();
 
-        mIsExecuting = false;
+        mState = State::Submitted;
 
         Reset();
+    }
+
+    void RGBuilder::AddPassInternal(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, SharedPtr<ComputePipeline> computePipeline, RGShaderParameters* parameters, const Vector<ShaderParameterInfo>& parameterInfos, PassFunction&& passFunction)
+    {
+        CHECK(mState == State::Init);
+
+        CHECK(!graphicsPipeline || !computePipeline);
+
+        int index = static_cast<int>(mPasses.size());
+        mPasses.emplace_back(String(name), index, std::move(graphicsPipeline), std::move(computePipeline), std::move(passFunction));
+        mUseResourceFunction.emplace_back([parameters, &parameterInfos](RGBuilder& builder)
+        {
+            for (const ShaderParameterInfo& parameterInfo : parameterInfos)
+            {
+                Byte* src = reinterpret_cast<Byte*>(parameters) + parameterInfo.offsetInCPU;
+
+                switch (parameterInfo.type)
+                {
+                case ShaderParameterType::RGTextureSRV:
+                {
+                    RGTextureSRV* srv = reinterpret_cast<RGTextureSRV*>(src);
+                    builder.UseResource(srv);
+                    break;
+                }
+                case ShaderParameterType::RGTextureUAV:
+                {
+                    RGTextureUAV* uav = reinterpret_cast<RGTextureUAV*>(src);
+                    builder.UseResource(uav);
+                    break;
+                }
+                }
+            }
+        });
     }
 
     void RGBuilder::ResolveTransitions()
@@ -341,7 +351,7 @@ namespace cube
                 if (RGTextureView* textureView = dynamic_cast<RGTextureView*>(resource))
                 {
                     Uint64 subresourceHashKey = textureView->GetSubresourceHashKey();
-                    CHECK(subresourceHashKey != 0);
+                    CHECK(subresourceHashKey);
                     auto currentStateIt = currentSubresourceStates.find(subresourceHashKey);
                     if (currentStateIt == currentSubresourceStates.end())
                     {
@@ -380,7 +390,7 @@ namespace cube
 
     void RGBuilder::RollbackResourceStates()
     {
-        CHECK(!mIsExecuting);
+        CHECK(mState == State::Init);
 
         for (RGResource* resource : mResources)
         {
@@ -406,6 +416,7 @@ namespace cube
         mResources.clear();
 
         mIsInRenderPass = false;
-        mIsExecuting = false;
+
+        mState = State::Init;
     }
 } // namespace cube

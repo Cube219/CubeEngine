@@ -7,7 +7,8 @@
 #include "GAPI.h"
 #include "GAPI_CommandList.h"
 #include "GAPI_Pipeline.h"
-#include "RenderGraph.h"
+#include "Renderer/RenderGraph.h"
+#include "Renderer/RenderGraphTypes.h"
 #include "Renderer.h"
 #include "Shader.h"
 #include "Texture.h"
@@ -76,19 +77,13 @@ namespace cube
                 RGTextureSRV* srcSRV = builder.CreateSRV(rgTexture, mipIndex - 1);
                 RGTextureUAV* dstUAV = builder.CreateUAV(rgTexture, mipIndex);
 
+                TRGShaderParameters<GenerateMipmapsShaderParameters>* params = builder.CreateShaderParameters<GenerateMipmapsShaderParameters>();
+                params->Get()->srcTexture = srcSRV;
+                params->Get()->dstTexture = dstUAV;
+
                 builder.AddPass(Format<FrameString>(CUBE_T("GenerateMipmaps ({0}->{1})"), mipIndex - 1, mipIndex),
-                [pipeline = mGenerateMipmapsPipeline, width, height, srcSRV, dstUAV](gapi::CommandList& commandList)
+                params, [pipeline = mGenerateMipmapsPipeline, width, height, srcSRV, dstUAV](gapi::CommandList& commandList)
                 {
-                    ShaderParametersManager& shaderParametersManager = Engine::GetRenderer()->GetShaderParametersManager();
-                    SharedPtr<GenerateMipmapsShaderParameters> parameters = shaderParametersManager.CreateShaderParameters<GenerateMipmapsShaderParameters>();
-
-                    SharedPtr<gapi::TextureSRV> src = srcSRV->GetSRV();
-                    SharedPtr<gapi::TextureUAV> dst = dstUAV->GetUAV();
-
-                    parameters->srcTexture.id = src->GetBindlessId();
-                    parameters->dstTexture.id = dst->GetBindlessId();
-                    parameters->WriteAllParametersToBuffer();
-
                     commandList.SetComputePipeline(pipeline->GetGAPIComputePipeline());
 
                     // TODO: Move to RenderGraph in the future. Currently UseResource should be called
@@ -99,11 +94,6 @@ namespace cube
                     commandList.SetShaderVariableConstantBuffer(0, parameters->GetBuffer());
 
                     commandList.DispatchThreads(width, height, 1);
-                },
-                [srcSRV, dstUAV](RGBuilder& builder)
-                {
-                    builder.UseResource(srcSRV);
-                    builder.UseResource(dstUAV);
                 });
             }
         }

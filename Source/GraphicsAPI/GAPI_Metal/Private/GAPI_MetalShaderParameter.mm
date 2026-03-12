@@ -1,6 +1,8 @@
 #include "GAPI_MetalShaderParameter.h"
 
 #include "Allocator/AllocatorUtility.h"
+#include "GAPI_Texture.h"
+#include "Renderer/RenderGraph.h"
 #include "Renderer/ShaderParameter.h"
 
 namespace cube
@@ -56,6 +58,8 @@ namespace cube
                     break;
                 case ShaderParameterType::BindlessTexture:
                 case ShaderParameterType::BindlessSampler:
+                case ShaderParameterType::RGTextureSRV:
+                case ShaderParameterType::RGTextureUAV:
                     size = sizeof(Uint64);
                     alignment = sizeof(Uint64);
                     break;
@@ -160,6 +164,20 @@ namespace cube
                     ids[0] = bindlessCombinedTextureSampler->textureId;
                     ids[1] = bindlessCombinedTextureSampler->samplerId;
                     memcpy(dst, ids, sizeof(ids));
+                    break;
+                }
+                case ShaderParameterType::RGTextureSRV:
+                {
+                    const RGTextureSRV* src = reinterpret_cast<const RGTextureSRV*>(src);
+                    Uint64 id = src->GetSRV()->GetBindlessId();
+                    memcpy(dst, &id, sizeof(Uint64));
+                    break;
+                }
+                case ShaderParameterType::RGTextureUAV:
+                {
+                    const RGTextureUAV* src = reinterpret_cast<const RGTextureUAV*>(src);
+                    Uint64 id = src->GetUAV()->GetBindlessId();
+                    memcpy(dst, &id, sizeof(Uint64));
                     break;
                 }
                 case ShaderParameterType::Int:
