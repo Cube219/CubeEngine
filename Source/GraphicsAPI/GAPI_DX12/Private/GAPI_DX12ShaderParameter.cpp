@@ -4,6 +4,7 @@
 #include "Allocator/AllocatorUtility.h"
 #include "DX12ShaderCompiler.h"
 #include "GAPI_Shader.h"
+#include "Renderer/RenderGraph.h"
 #include "Renderer/ShaderParameter.h"
 
 namespace cube
@@ -113,6 +114,8 @@ namespace cube
                 case ShaderParameterType::BindlessTexture:
                 case ShaderParameterType::BindlessSampler:
                 case ShaderParameterType::BindlessCombinedTextureSampler:
+                case ShaderParameterType::RGTextureSRV:
+                case ShaderParameterType::RGTextureUAV:
                     // uint2
                     size = sizeof(Uint32) * 2;
                     alignment = sizeof(Uint32);
@@ -218,6 +221,15 @@ namespace cube
                     const BindlessCombinedTextureSampler* data = reinterpret_cast<const BindlessCombinedTextureSampler*>(src);
                     Uint32 uint2[2] = { static_cast<Uint32>(data->textureId), static_cast<Uint32>(data->samplerId) };
                     memcpy(dst, uint2, sizeof(uint2));
+                    break;
+                }
+                case ShaderParameterType::RGTextureSRV:
+                {
+                    const RGTextureSRV* srv = reinterpret_cast<const RGTextureSRV*>(src);
+                    break;
+                }
+                case ShaderParameterType::RGTextureUAV:
+                {
                     break;
                 }
                 case ShaderParameterType::Int:

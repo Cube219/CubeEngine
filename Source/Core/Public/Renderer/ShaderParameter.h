@@ -27,6 +27,8 @@ namespace cube
         class Buffer;
     } // namespace gapi
 
+    class RGTextureSRV;
+    class RGTextureUAV;
     class ShaderParametersManager;
 
     // ===== ParameterTypeInfo =====
@@ -42,7 +44,9 @@ namespace cube
         Matrix,
         BindlessTexture,
         BindlessSampler,
-        BindlessCombinedTextureSampler
+        BindlessCombinedTextureSampler,
+        RGTextureSRV,
+        RGTextureUAV
     };
 
     template <typename T>
@@ -111,6 +115,20 @@ namespace cube
     {
         static constexpr ShaderParameterType type = ShaderParameterType::BindlessCombinedTextureSampler;
         static constexpr Uint32 size = sizeof(BindlessCombinedTextureSampler);
+    };
+
+    template <>
+    struct ShaderParameterTypeInfo<RGTextureSRV*>
+    {
+        static constexpr ShaderParameterType type = ShaderParameterType::RGTextureSRV;
+        static constexpr Uint32 size = sizeof(RGTextureSRV*);
+    };
+
+    template <>
+    struct ShaderParameterTypeInfo<RGTextureUAV*>
+    {
+        static constexpr ShaderParameterType type = ShaderParameterType::RGTextureUAV;
+        static constexpr Uint32 size = sizeof(RGTextureUAV*);
     };
 
     // ===== ShaderParameters =====
