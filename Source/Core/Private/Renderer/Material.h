@@ -26,6 +26,9 @@ namespace cube
     {
         CUBE_BEGIN_SHADER_PARAMETERS(MaterialShaderParameters)
             CUBE_SHADER_PARAMETER(Vector4, baseColor)
+            CUBE_SHADER_PARAMETER(Vector4, diffuseColor)
+            CUBE_SHADER_PARAMETER(Vector4, specularColor)
+            CUBE_SHADER_PARAMETER(float, shininess)
 
             CUBE_SHADER_PARAMETER(BindlessCombinedTextureSampler, textureSlot0)
             CUBE_SHADER_PARAMETER(BindlessCombinedTextureSampler, textureSlot1)
@@ -44,6 +47,10 @@ namespace cube
         void SetChannelMappingCode(StringView channelMappingCode);
 
         void SetBaseColor(Vector4 color);
+        void SetDiffuseColor(Vector4 color);
+        void SetSpecularColor(Vector4 color);
+        void SetShininess(float shininess);
+        void SetIsPBR(bool isPBR);
 
         void SetTexture(int slotIndex, SharedPtr<TextureResource> texture);
 
@@ -61,7 +68,11 @@ namespace cube
         Uint64 mMaterialHash;
         String mChannelMappingCode;
 
+        bool mIsPBR = true;
         Vector4 mConstantBaseColor;
+        Vector4 mConstantDiffuseColor;
+        Vector4 mConstantSpecularColor;
+        float mConstantShininess = 0.0f;
         Array<SharedPtr<TextureResource>, 5> mTextures;
         Uint64 mSamplerId;
 

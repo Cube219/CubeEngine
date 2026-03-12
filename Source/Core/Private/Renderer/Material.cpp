@@ -45,6 +45,27 @@ namespace cube
         mConstantBaseColor = color;
     }
 
+    void Material::SetDiffuseColor(Vector4 color)
+    {
+        mConstantDiffuseColor = color;
+    }
+
+    void Material::SetSpecularColor(Vector4 color)
+    {
+        mConstantSpecularColor = color;
+    }
+
+    void Material::SetShininess(float shininess)
+    {
+        mConstantShininess = shininess;
+    }
+
+    void Material::SetIsPBR(bool isPBR)
+    {
+        mIsPBR = isPBR;
+        CalculateMaterialHash();
+    }
+
     void Material::SetTexture(int slotIndex, SharedPtr<TextureResource> texture)
     {
         CHECK_FORMAT(0 <= slotIndex && slotIndex < 5, "Texture slot out of range! ({0})", slotIndex);
@@ -64,6 +85,9 @@ namespace cube
         SharedPtr<MaterialShaderParameters> parameters = shaderParametersManager.CreateShaderParameters<MaterialShaderParameters>();
 
         parameters->baseColor = mConstantBaseColor;
+        parameters->diffuseColor = mConstantDiffuseColor;
+        parameters->specularColor = mConstantSpecularColor;
+        parameters->shininess = mConstantShininess;
         if (mTextures[0])
         {
             parameters->textureSlot0.textureId = mTextures[0]->GetDefaultSRV()->GetBindlessId();
@@ -103,6 +127,11 @@ namespace cube
     void Material::CalculateMaterialHash()
     {
         mMaterialHash = std::hash<String>{}(mChannelMappingCode);
+        // Mix in isPBR flag so PBR and non-PBR materials get separate pipelines
+        if (!mIsPBR)
+        {
+            mMaterialHash ^= 0x9e3779b97f4a7c15ULL;
+        }
     }
 
     MaterialShaderManager::MaterialShaderManager(ShaderManager& shaderManager)
@@ -152,6 +181,13 @@ namespace cube
         );
 
         // Create shaders
+        gapi::PreprocessorDefine pbrDefine = { "MATERIAL_PBR", "1" };
+        ArrayView<gapi::PreprocessorDefine> shaderDefines;
+        if (material->mIsPBR)
+        {
+            shaderDefines = { &pbrDefine, 1 };
+        }
+
         SharedPtr<Shader>& vertexShader = mMaterialVertexShaders[materialHash];
         {
             platform::FilePath vertexShaderFilePath = Engine::GetShaderDirectoryPath() / CUBE_T("Main.slang");
@@ -160,6 +196,7 @@ namespace cube
                 .language = gapi::ShaderLanguage::Slang,
                 .filePaths = { &vertexShaderFilePath, 1 },
                 .entryPoint = "VSMain",
+                .defines = shaderDefines,
                 .debugName = Format<FrameString>(CUBE_T("MaterialVS ({0})"), materialHash)
             });
         }
@@ -174,6 +211,7 @@ namespace cube
                 .filePaths = { &pixelShaderFilePath, 1 },
                 .materialShaderCode = materialShaderCode,
                 .entryPoint = "PSMain",
+                .defines = shaderDefines,
                 .debugName = Format<FrameString>(CUBE_T("MaterialPS ({0})"), materialHash)
             });
         }

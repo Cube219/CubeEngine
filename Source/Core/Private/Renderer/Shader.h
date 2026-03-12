@@ -19,6 +19,8 @@ namespace cube
         StringView materialShaderCode;
         AnsiStringView entryPoint;
 
+        ArrayView<gapi::PreprocessorDefine> defines;
+
         StringView debugName;
     };
 
@@ -62,6 +64,12 @@ namespace cube
 
         SharedPtr<gapi::Shader> mGAPIShader;
 
+        struct StoredPreprocessorDefine
+        {
+            AnsiString name;
+            AnsiString value;
+        };
+
         struct MetaData
         {
             gapi::ShaderType type;
@@ -71,6 +79,8 @@ namespace cube
             Vector<ShaderFileInfo> dependencyFileInfos;
             String materialShaderCode;
             AnsiString entryPoint;
+
+            Vector<StoredPreprocessorDefine> defines;
 
             String debugName;
         };

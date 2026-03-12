@@ -61,7 +61,7 @@ namespace cube
                     break;
                 case ShaderParameterType::BindlessCombinedTextureSampler:
                     size = sizeof(Uint64) * 2;
-                    alignment = sizeof(Uint64) * 2;
+                    alignment = sizeof(Uint64);
                     break;
                 default:
                     NOT_IMPLEMENTED();

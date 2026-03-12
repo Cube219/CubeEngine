@@ -126,6 +126,13 @@ namespace cube
             .name = "CUBE_SLANG_METAL",
             .value = (options.target == gapi::ShaderLanguage::Metal || options.target == gapi::ShaderLanguage::MetalLib) ? "1" : "0"
         });
+        for (const gapi::PreprocessorDefine& define : info.preprocessorDefines)
+        {
+            macros.push_back({
+                .name = define.name.data(),
+                .value = define.value.data()
+            });
+        }
 
         FrameVector<slang::CompilerOptionEntry> compilerOptions;
         if (options.withDebugSymbol)
