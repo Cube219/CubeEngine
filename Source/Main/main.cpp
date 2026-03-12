@@ -14,10 +14,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
 {
     using namespace cube;
 
-    // TODO: argc / argv
     Engine::EngineInitializeInfo initInfo = {
-        .argc = 0,
-        .argv = nullptr,
+        .argc = __argc,
+        .argv = const_cast<const char**>(__argv),
         .gapi = cube::GAPIName::DX12,
     };
     Engine::Initialize(initInfo);

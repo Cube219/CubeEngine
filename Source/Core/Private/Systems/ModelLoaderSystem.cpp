@@ -13,6 +13,7 @@
 #include "CubeMath.h"
 #include "CubeString.h"
 #include "Engine.h"
+#include "Logger.h"
 #include "FileSystem.h"
 #include "GAPI_Texture.h"
 #include "Renderer/Material.h"
@@ -35,6 +36,69 @@ namespace cube
     {
         mCurrentSelectModelIndex = -1;
         ResetModelTransform();
+
+        if (Engine::HasCommandLineParam("model"))
+        {
+            AnsiStringView modelParam = Engine::GetCommandLineParam("model");
+            AnsiString modelParamStr(modelParam);
+
+            // Parse format: <type>_<index> (e.g., gltf_0, default_2)
+            SizeType underscorePos = modelParamStr.rfind('_');
+            if (underscorePos == AnsiString::npos || underscorePos == 0 || underscorePos == modelParamStr.size() - 1)
+            {
+                CUBE_LOG(Error, ModelLoaderSystem, "Invalid --model format '{}'. Expected <type>_<index> (e.g., gltf_0, default_1).", modelParamStr);
+                return;
+            }
+
+            AnsiString typeStr = modelParamStr.substr(0, underscorePos);
+            AnsiString indexStr = modelParamStr.substr(underscorePos + 1);
+
+            int targetIndex = -1;
+            try
+            {
+                targetIndex = std::stoi(indexStr);
+            }
+            catch (...)
+            {
+                CUBE_LOG(Error, ModelLoaderSystem, "Invalid --model index '{}'. Must be an integer.", indexStr);
+                return;
+            }
+
+            ModelType targetType;
+            if (typeStr == "gltf")
+            {
+                targetType = ModelType::glTF;
+            }
+            else if (typeStr == "default")
+            {
+                targetType = ModelType::Obj;
+            }
+            else
+            {
+                CUBE_LOG(Error, ModelLoaderSystem, "Invalid --model type '{}'. Must be 'gltf' or 'default'.", typeStr);
+                return;
+            }
+
+            LoadModelList();
+
+            int typeCount = 0;
+            for (int i = 0; i < static_cast<int>(mModelPathList.size()); ++i)
+            {
+                if (mModelPathList[i].type == targetType)
+                {
+                    if (typeCount == targetIndex)
+                    {
+                        mCurrentSelectModelIndex = i;
+                        CUBE_LOG(Info, ModelLoaderSystem, "Loading model from command line: {}", mModelPathList[i].name);
+                        LoadCurrentModelAndSet();
+                        return;
+                    }
+                    ++typeCount;
+                }
+            }
+
+            CUBE_LOG(Error, ModelLoaderSystem, "Model index {} out of range for type '{}' (found {} models).", targetIndex, typeStr, typeCount);
+        }
     }
 
     void ModelLoaderSystem::Shutdown()
