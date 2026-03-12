@@ -2,9 +2,9 @@ import Light;
 import MainInterface;
 import Material;
 
-ParameterBlock<GlobalData_CB> globalCB;
-ParameterBlock<PerObjectData_CB> perObjectCB;
-ParameterBlock<MaterialData_CB> materialCB;
+ParameterBlock<GlobalShaderParameters> globalParams;
+ParameterBlock<ObjectShaderParameters> perObjectParams;
+ParameterBlock<MaterialShaderParameters> materialParams;
 
 extern struct Material : IMaterial;
 
@@ -18,10 +18,10 @@ PSInput VSMain(VSInput input)
 {
     PSInput output;
 
-    output.position = mul(mul(float4(input.position, 1), perObjectCB.model), globalCB.viewProjection);
-    output.worldPosition = mul(float4(input.position, 1), perObjectCB.model);
-    output.normal = normalize(mul(input.normal, (float3x3)perObjectCB.modelInverseTranspose));
-    output.tangent.xyz = normalize(mul(input.tangent.xyz, (float3x3)perObjectCB.model));
+    output.position = mul(mul(float4(input.position, 1), perObjectParams.model), globalParams.viewProjection);
+    output.worldPosition = mul(float4(input.position, 1), perObjectParams.model);
+    output.normal = normalize(mul(input.normal, (float3x3)perObjectParams.modelInverseTranspose));
+    output.tangent.xyz = normalize(mul(input.tangent.xyz, (float3x3)perObjectParams.model));
     output.tangent.w = input.tangent.w;
     output.uv = input.uv;
 
@@ -32,7 +32,7 @@ PSInput VSMain(VSInput input)
 PSOutput PSMain(PSInput input) : SV_TARGET
 {
     Material material;
-    MaterialValue materialValue = material.GetMaterialValue(materialCB, input);
+    MaterialValue materialValue = material.GetMaterialValue(materialParams, input);
 
     float3 normal = input.normal;
     float3 tangent = input.tangent.xyz;
@@ -41,9 +41,9 @@ PSOutput PSMain(PSInput input) : SV_TARGET
     float3x3 TBN = float3x3(tangent, bitangent, normal);
     normal = normalize(mul(materialValue.normal, TBN));
 
-    float3 view = normalize(globalCB.cameraPosition - input.worldPosition.xyz);
+    float3 view = normalize(globalParams.cameraPosition - input.worldPosition.xyz);
 
-    ILight directionalLight = DirectionalLight(normalize(globalCB.directionalLightDirection), globalCB.directionalLightIntensity);
+    ILight directionalLight = DirectionalLight(normalize(globalParams.directionalLightDirection), globalParams.directionalLightIntensity);
     float3 color = directionalLight.CalculateLight(view, normal, materialValue);
 
     PSOutput output;

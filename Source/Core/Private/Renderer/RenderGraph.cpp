@@ -1,8 +1,9 @@
-#include "RenderGraph.h"
+#include "Renderer/RenderGraph.h"
 
 #include "Allocator/FrameAllocator.h"
 #include "Checker.h"
 #include "GAPI_CommandList.h"
+#include "Shader.h"
 #include "Texture.h"
 
 namespace cube
@@ -17,10 +18,6 @@ namespace cube
     {
     }
 
-    RGResource::~RGResource()
-    {
-    }
-
     RGTexture::RGTexture(int index, SharedPtr<gapi::Texture> texture)
         : RGResource(index)
         , mTexture(texture)
@@ -28,112 +25,140 @@ namespace cube
         mIsTransient = false;
     }
 
-    RGTexture::~RGTexture()
-    {
-    }
-
-    RGTextureView::RGTextureView(int index, RGTexture* rgTexture, Uint32 mipLevel)
+    RGTextureView::RGTextureView(int index, RGTexture* rgTexture)
         : RGResource(index)
         , mRGTexture(rgTexture)
-        , mMipLevel(mipLevel)
-    {
-        mSubresourceHashKey = HashCombine(reinterpret_cast<Uint64>(mRGTexture), mMipLevel);
-    }
-
-    RGTextureView::~RGTextureView()
+        , mSubresourceHashKey(0)
     {
     }
 
-    RGTextureSRV::RGTextureSRV(int index, RGTexture* rgTexture, Uint32 mipLevel)
-        : RGTextureView(index, rgTexture, mipLevel)
-        , mSRV(nullptr)
+    RGTextureSRV::RGTextureSRV(int index, RGTexture* rgTexture, Uint32 firstMipLevel, Int32 mipLevels)
+        : RGTextureView(index, rgTexture)
     {
-    }
-    
-    RGTextureSRV::~RGTextureSRV()
-    {
+        mSRV = rgTexture->mTexture->CreateSRV({
+            .firstMipLevel = firstMipLevel,
+            .mipLevels = mipLevels
+        });
+        mSubresourceRange = mSRV->GetSubresourceRange();
+        mSubresourceHashKey = HashCombine(reinterpret_cast<Uint64>(rgTexture->mTexture.get()), mSubresourceRange.GetHash());
     }
     
     RGTextureUAV::RGTextureUAV(int index, RGTexture* rgTexture, Uint32 mipLevel)
-        : RGTextureView(index, rgTexture, mipLevel)
-        , mUAV(nullptr)
+        : RGTextureView(index, rgTexture)
     {
-    }
-    
-    RGTextureUAV::~RGTextureUAV()
-    {
+        mUAV = rgTexture->mTexture->CreateUAV({
+            .mipLevel = mipLevel
+        });
+        mSubresourceRange = mUAV->GetSubresourceRange();
+        mSubresourceHashKey = HashCombine(reinterpret_cast<Uint64>(rgTexture->mTexture.get()), mSubresourceRange.GetHash());
     }
     
     RGTextureRTV::RGTextureRTV(int index, RGTexture* rgTexture, Uint32 mipLevel)
-        : RGTextureView(index, rgTexture, mipLevel)
-        , mRTV(nullptr)
+        : RGTextureView(index, rgTexture)
     {
-    }
-    
-    RGTextureRTV::~RGTextureRTV()
-    {
+        mRTV = rgTexture->mTexture->CreateRTV({
+            .mipLevel = mipLevel
+        });
+        mSubresourceRange = mRTV->GetSubresourceRange();
+        mSubresourceHashKey = HashCombine(reinterpret_cast<Uint64>(rgTexture->mTexture.get()), mSubresourceRange.GetHash());
     }
     
     RGTextureDSV::RGTextureDSV(int index, RGTexture* rgTexture, Uint32 mipLevel)
-        : RGTextureView(index, rgTexture, mipLevel)
-        , mDSV(nullptr)
+        : RGTextureView(index, rgTexture)
     {
+        mDSV = rgTexture->mTexture->CreateDSV({
+            .mipLevel = mipLevel
+        });
+        mSubresourceRange = mDSV->GetSubresourceRange();
+        mSubresourceHashKey = HashCombine(reinterpret_cast<Uint64>(rgTexture->mTexture.get()), mSubresourceRange.GetHash());
     }
 
-    RGTextureDSV::~RGTextureDSV()
+    RGShaderParametersBase::RGShaderParametersBase(int index, const Character* name, const Vector<cube::ShaderParameterInfo>& parameterInfos, SharedPtr<cube::ShaderParameters> params)
+        : RGResource(index)
+        , mName(name)
+        , mParameterInfos(parameterInfos)
+        , mParams(std::move(params))
     {
     }
 
     // ===== Builder =====
+
+    RGBuilder::RGBuilder(Renderer& renderer)
+        : mRenderer(renderer)
+    {
+    }
 
     RGBuilder::~RGBuilder()
     {
         Reset();
     }
 
-    RGTexture* RGBuilder::RegisterTexture(SharedPtr<gapi::Texture> texture)
+    RGTextureHandle RGBuilder::RegisterTexture(SharedPtr<gapi::Texture> texture)
     {
         // TODO: Check duplication
         RGTexture* rgTexture = new RGTexture(mResources.size(), texture);
         mResources.push_back(rgTexture);
 
-        return rgTexture;
+        return RGTextureHandle(rgTexture);
     }
 
-    RGTextureSRV* RGBuilder::CreateSRV(RGTexture* rgTexture, Uint32 mipLevel)
+    RGTextureSRVHandle RGBuilder::CreateSRV(RGTextureHandle rgTexture, Uint32 firstMipLevel, Int32 mipLevels)
     {
-        RGTextureSRV* rgSRV = new RGTextureSRV(mResources.size(), rgTexture, mipLevel);
+        RGTextureSRV* rgSRV = new RGTextureSRV(mResources.size(), rgTexture.mResource, firstMipLevel, mipLevels);
         mResources.push_back(rgSRV);
 
-        return rgSRV;
+        return RGTextureSRVHandle(rgSRV);
     }
-    
-    RGTextureUAV* RGBuilder::CreateUAV(RGTexture* rgTexture, Uint32 mipLevel)
+
+    RGTextureUAVHandle RGBuilder::CreateUAV(RGTextureHandle rgTexture, Uint32 mipLevel)
     {
-        RGTextureUAV* rgUAV = new RGTextureUAV(mResources.size(), rgTexture, mipLevel);
+        RGTextureUAV* rgUAV = new RGTextureUAV(mResources.size(), rgTexture.mResource, mipLevel);
         mResources.push_back(rgUAV);
 
-        return rgUAV;
+        return RGTextureUAVHandle(rgUAV);
     }
-    
-    RGTextureRTV* RGBuilder::CreateRTV(RGTexture* rgTexture, Uint32 mipLevel)
+
+    RGTextureRTVHandle RGBuilder::CreateRTV(RGTextureHandle rgTexture, Uint32 mipLevel)
     {
-        RGTextureRTV* rgRTV = new RGTextureRTV(mResources.size(), rgTexture, mipLevel);
+        RGTextureRTV* rgRTV = new RGTextureRTV(mResources.size(), rgTexture.mResource, mipLevel);
         mResources.push_back(rgRTV);
 
-        return rgRTV;
+        return RGTextureRTVHandle(rgRTV);
     }
-    
-    RGTextureDSV* RGBuilder::CreateDSV(RGTexture* rgTexture, Uint32 mipLevel)
+
+    RGTextureDSVHandle RGBuilder::CreateDSV(RGTextureHandle rgTexture, Uint32 mipLevel)
     {
-        RGTextureDSV* rgDSV = new RGTextureDSV(mResources.size(), rgTexture, mipLevel);
+        RGTextureDSV* rgDSV = new RGTextureDSV(mResources.size(), rgTexture.mResource, mipLevel);
         mResources.push_back(rgDSV);
 
-        return rgDSV;
+        return RGTextureDSVHandle(rgDSV);
+    }
+
+    RGTextureSRVHandle RGBuilder::GetDummyBlackTexture()
+    {
+        if (!mDummyBlackTexture.IsValid())
+        {
+            RGTextureHandle rgTexture = RegisterTexture(mRenderer.GetDummyBlackTexture());
+            mDummyBlackTexture = CreateSRV(rgTexture);
+        }
+
+        return mDummyBlackTexture;
+    }
+
+    RGTextureSRVHandle RGBuilder::GetDummyWhiteTexture()
+    {
+        if (!mDummyWhiteTexture.IsValid())
+        {
+            RGTextureHandle rgTexture = RegisterTexture(mRenderer.GetDummyWhiteTexture());
+            mDummyWhiteTexture = CreateSRV(rgTexture);
+        }
+
+        return mDummyWhiteTexture;
     }
 
     void RGBuilder::BeginRenderPass(const RenderPassInfo& info)
     {
+        CHECK(mState == State::Init);
         CHECK(!mIsInRenderPass);
 
         AddPass(CUBE_T("##BeginRenderPass"), [info](gapi::CommandList& commandList)
@@ -150,7 +175,7 @@ namespace cube
             }
 
             gapi::DepthStencilAttachment depthStencil = {
-                .dsv = info.depthstencil.dsv ? info.depthstencil.dsv->GetDSV() : nullptr,
+                .dsv = info.depthstencil.dsv.IsValid() ? info.depthstencil.dsv->GetDSV() : nullptr,
                 .loadOperation = info.depthstencil.loadOperation,
                 .storeOperation = info.depthstencil.storeOperation,
                 .clearDepth = info.depthstencil.clearDepth
@@ -164,17 +189,20 @@ namespace cube
             {
                 builder.UseResource(color.color);
             }
-            if (info.depthstencil.dsv)
+            if (info.depthstencil.dsv.IsValid())
             {
                 builder.UseResource(info.depthstencil.dsv);
             }
         });
 
         mIsInRenderPass = true;
+        // TODO: Extend resource usage lifetime until ending render pass?
+        // TODO: Check if the resources bounded in render pass is used in other usage.
     }
 
     void RGBuilder::EndRenderPass()
     {
+        CHECK(mState == State::Init);
         CHECK(mIsInRenderPass);
 
         AddPass(CUBE_T("##EndRenderPass"), [](gapi::CommandList& commandList)
@@ -185,124 +213,144 @@ namespace cube
         mIsInRenderPass = false;
     }
 
-    void RGBuilder::AddPass(StringView name, PassFunction&& passFunction, UseResourceFunction&& useResourceFunction, bool isCompute)
+    void RGBuilder::AddDrawMeshPass(StringView name, ArrayView<DrawMeshInfo> drawMeshInfos)
     {
-        CHECK(!mIsExecuting);
+        CHECK(mState == State::Init);
 
-        int index = static_cast<int>(mPasses.size());
-        mPasses.emplace_back(String(name), index, std::move(passFunction), isCompute);
-        mUseResourceFunction.emplace_back(std::move(useResourceFunction));
+        for (const DrawMeshInfo& drawMeshInfo : drawMeshInfos)
+        {
+            RGShaderParametersHandle<ObjectShaderParameters> objectShaderParameters = CreateShaderParameters<ObjectShaderParameters>();
+            objectShaderParameters->Get()->model = drawMeshInfo.model;
+            objectShaderParameters->Get()->modelInverse = drawMeshInfo.model.Inversed();
+            objectShaderParameters->Get()->modelInverseTranspose = drawMeshInfo.model.Inversed().Transposed();
+            objectShaderParameters->Get()->WriteAllParametersToGPUBuffer();
+
+            AddPassInternal(CUBE_T("##DrawMeshPass - Bind Vertex/Index buffer and object shader parameters"), nullptr, nullptr, objectShaderParameters,
+            [mesh = drawMeshInfo.mesh](gapi::CommandList& commandList){
+                Uint32 vertexBufferOffset = 0;
+                SharedPtr<gapi::Buffer> vertexBuffer = mesh->GetVertexBuffer();
+                commandList.BindVertexBuffers(0, { &vertexBuffer, 1 }, { &vertexBufferOffset, 1 });
+                commandList.BindIndexBuffer(mesh->GetIndexBuffer(), 0);
+            },
+            nullptr);
+
+            const Vector<SubMesh>& subMeshes = drawMeshInfo.mesh->GetSubMeshes();
+            for (const SubMesh& subMesh : subMeshes)
+            {
+                SharedPtr<Material> material;
+                if (subMesh.materialIndex < drawMeshInfo.materials.size())
+                {
+                    material = drawMeshInfo.materials[subMesh.materialIndex];
+                }
+                else
+                {
+                    material = mRenderer.GetDefaultMaterial();
+                }
+                SharedPtr<GraphicsPipeline> pipeline = mRenderer.GetShaderManager().GetMaterialShaderManager().GetOrCreateMaterialPipeline(material, drawMeshInfo.meshMetaData, drawMeshInfo.fillMode);
+                RGShaderParametersHandle<MaterialShaderParameters> materialShaderParameters = material->GenerateShaderParameters(*this);
+
+                AddPassInternal(Format<FrameString>(CUBE_T("Mesh: {0}, Material: {1}"),
+                    subMesh.debugName, material->GetDebugName()), pipeline, nullptr, materialShaderParameters,
+                [subMesh](gapi::CommandList& commandList) {
+                    commandList.DrawIndexed(subMesh.numIndices, subMesh.indexOffset, subMesh.vertexOffset);
+                },
+                nullptr);
+            }
+        }
     }
 
-    void RGBuilder::UseResource(RGTextureSRV* rgSRV)
+    void RGBuilder::UseResource(RGTextureSRVHandle rgSRV)
     {
-        CHECK(!mIsExecuting);
-
-        if (rgSRV->mSRV == nullptr)
-        {
-            rgSRV->mSRV = rgSRV->mRGTexture->mTexture->CreateSRV({
-                .firstMipLevel = rgSRV->mMipLevel,
-                .mipLevels = 1
-            });
-        }
+        CHECK(mState == State::ResourceTracking);
+        CHECK(rgSRV->mSRV);
 
         PassInfo& pass = mPasses[mCurrentPassIndex];
-        pass.useStates.push_back({
-            .resourceIndex = rgSRV->mIndex,
-            .state = pass.isCompute ? gapi::ResourceStateFlag::SRV_NonPixel : gapi::ResourceStateFlag::SRV_Pixel
+        pass.resourceUseInfos.push_back({
+            .rgResourceIndex = rgSRV->mIndex,
+            .state = (!pass.graphicsPipeline) ? gapi::ResourceStateFlag::SRV_NonPixel : gapi::ResourceStateFlag::SRV_Pixel
         });
     }
 
-    void RGBuilder::UseResource(RGTextureUAV* rgUAV)
+    void RGBuilder::UseResource(RGTextureUAVHandle rgUAV)
     {
-        CHECK(!mIsExecuting);
-
-        if (rgUAV->mUAV == nullptr)
-        {
-            rgUAV->mUAV = rgUAV->mRGTexture->mTexture->CreateUAV({
-                .mipLevel = rgUAV->mMipLevel
-            });
-        }
+        CHECK(mState == State::ResourceTracking);
+        CHECK(rgUAV->mUAV);
 
         PassInfo& pass = mPasses[mCurrentPassIndex];
-        pass.useStates.push_back({
-            .resourceIndex = rgUAV->mIndex,
+        pass.resourceUseInfos.push_back({
+            .rgResourceIndex = rgUAV->mIndex,
             .state = gapi::ResourceStateFlag::UAV
         });
     }
 
-    void RGBuilder::UseResource(RGTextureRTV* rgRTV)
+    void RGBuilder::UseResource(RGTextureRTVHandle rgRTV)
     {
-        CHECK(!mIsExecuting);
-
-        if (rgRTV->mRTV == nullptr)
-        {
-            rgRTV->mRTV = rgRTV->mRGTexture->mTexture->CreateRTV({
-                .mipLevel = rgRTV->mMipLevel
-            });
-        }
+        CHECK(mState == State::ResourceTracking);
+        CHECK(rgRTV->mRTV);
 
         PassInfo& pass = mPasses[mCurrentPassIndex];
-        pass.useStates.push_back({
-            .resourceIndex = rgRTV->mIndex,
+        pass.resourceUseInfos.push_back({
+            .rgResourceIndex = rgRTV->mIndex,
             .state = gapi::ResourceStateFlag::RenderTarget
         });
     }
 
-    void RGBuilder::UseResource(RGTextureDSV* rgDSV)
+    void RGBuilder::UseResource(RGTextureDSVHandle rgDSV)
     {
-        CHECK(!mIsExecuting);
-
-        if (rgDSV->mDSV == nullptr)
-        {
-            rgDSV->mDSV = rgDSV->mRGTexture->mTexture->CreateDSV({
-                .mipLevel = rgDSV->mMipLevel
-            });
-        }
+        CHECK(mState == State::ResourceTracking);
+        CHECK(rgDSV->mDSV);
 
         PassInfo& pass = mPasses[mCurrentPassIndex];
-        pass.useStates.push_back({
-            .resourceIndex = rgDSV->mIndex,
+        pass.resourceUseInfos.push_back({
+            .rgResourceIndex = rgDSV->mIndex,
             .state = gapi::ResourceStateFlag::DepthWrite
         });
     }
 
     void RGBuilder::ExecuteAndSubmit(gapi::CommandList& commandList)
     {
+        CHECK(mState == State::Init);
         CHECK(!mIsInRenderPass);
 
+        AddPass(CUBE_T("##Last Pass"), [](gapi::CommandList& commandList) {},
+        [](RGBuilder& builder)
         {
-            AddPass(CUBE_T("##Last Pass"), [](gapi::CommandList& commandList) {},
-            [](RGBuilder& builder)
-            {
-                builder.RollbackResourceStates();
-            });
-        }
+            builder.RollbackResourceStates();
+        });
 
+        mState = State::ResourceTracking;
+
+        UpdateResourceUsagesInShaderParameters();
         ResolveTransitions();
 
-        mIsExecuting = true;
+        mState = State::Executing;
 
         commandList.Reset();
         commandList.Begin();
 
         commandList.InsertTimestamp(CUBE_T("Begin RGBuilder"));
 
-        for (const PassInfo& pass : mPasses)
+        for (PassInfo& pass : mPasses)
         {
-            bool addGPUEvent = !pass.name.starts_with(CUBE_T("##"));
+            const bool addGPUEvent = !pass.name.starts_with(CUBE_T("##"));
 
             if (addGPUEvent)
             {
                 commandList.BeginEvent(pass.name);
             }
 
+            ResolveShaderParametersAndPipeline(pass, commandList);
+            MarkUseResources(pass, commandList);
+
             if (!pass.transitions.empty())
             {
                 commandList.ResourceTransition(pass.transitions);
             }
 
-            pass.passFunction(commandList);
+            if (pass.passFunction)
+            {
+                pass.passFunction(commandList);
+            }
 
             if (addGPUEvent)
             {
@@ -315,33 +363,203 @@ namespace cube
         commandList.End();
         commandList.Submit();
 
-        mIsExecuting = false;
+        mState = State::Submitted;
 
         Reset();
     }
 
+    void RGBuilder::BindShaderParametersInternal(StringView name, RGShaderParametersBaseHandle parameters)
+    {
+        CHECK(mState == State::Init);
+
+        // Add pass that just store parameters. Resources in the parameters will be tracked automatically.
+        AddPassInternal(Format<String>(CUBE_T("##BindShaderParameters: {0}"), parameters->mName),
+            nullptr, nullptr, parameters, nullptr, nullptr);
+    }
+
+    void RGBuilder::AddPassInternal(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, SharedPtr<ComputePipeline> computePipeline, RGShaderParametersBaseHandle parameters, PassFunction&& passFunction, UseResourceFunction&& useResourceFunction)
+    {
+        CHECK(mState == State::Init);
+
+        CHECK(!graphicsPipeline || !computePipeline);
+        CHECK_FORMAT(!computePipeline || !mIsInRenderPass, "Cannot add compute pass in render pass.");
+
+        int index = static_cast<int>(mPasses.size());
+        mPasses.push_back({
+            .name = String(name),
+            .index = index,
+            .shaderParameters = parameters,
+            .graphicsPipeline = std::move(graphicsPipeline),
+            .computePipeline = std::move(computePipeline),
+            .passFunction = std::move(passFunction),
+            .useResourceFunction = std::move(useResourceFunction)
+        });
+    }
+
+    void RGBuilder::ResolveShaderParametersAndPipeline(PassInfo& pass, gapi::CommandList& commandList)
+    {
+        CHECK(mState == State::Executing);
+
+        // Register shader parameters in the pass.
+        if (pass.shaderParameters.IsValid())
+        {
+            const Character* name = pass.shaderParameters->mName;
+            auto findIt = mShaderParametersBindInfos.find(name);
+            if (findIt == mShaderParametersBindInfos.end())
+            {
+                findIt = mShaderParametersBindInfos.insert({ name, {} }).first;
+            }
+
+            SharedPtr<ShaderParameters> params = pass.shaderParameters->mParams;
+            // Reset bind index because it is a new buffer.
+            findIt->second = { params->GetBuffer(), -1 };
+        }
+
+        // Resolve shader parameter bind index.
+        const gapi::ShaderReflection* pReflection = nullptr;
+        if (pass.graphicsPipeline)
+        {
+            pReflection = &pass.graphicsPipeline->GetMergedShaderReflection();
+        }
+        else if (pass.computePipeline)
+        {
+            pReflection = &pass.computePipeline->GetShaderReflection();
+        }
+        if (pReflection)
+        {
+            for (const gapi::ShaderParameterBlockReflection& block : pReflection->blocks)
+            {
+                if (auto findIt = mShaderParametersBindInfos.find(block.typeName); findIt != mShaderParametersBindInfos.end())
+                {
+                    if (findIt->second.bindIndex != block.index)
+                    {
+                        commandList.SetShaderVariableConstantBuffer(block.index, findIt->second.GPUBuffer);
+                        findIt->second.bindIndex = block.index;
+                    }
+                }
+                else
+                {
+                    CUBE_LOG(Error, RenderGraph, "Shader parameter '{0}' is needed in shader '{1}' but not bounded!", block.typeName, pReflection->name);
+                    CHECK(false);
+                }
+            }
+        }
+
+        // Bind pipeline.
+        if (pass.graphicsPipeline)
+        {
+            if (mCurrentBoundGraphicsPipeline != pass.graphicsPipeline)
+            {
+                mCurrentBoundGraphicsPipeline = pass.graphicsPipeline;
+                mCurrentBoundComputePipeline = nullptr;
+
+                commandList.SetGraphicsPipeline(mCurrentBoundGraphicsPipeline->GetGAPIGraphicsPipeline());
+            }
+        }
+        else if (pass.computePipeline)
+        {
+            if (mCurrentBoundComputePipeline != pass.computePipeline)
+            {
+                mCurrentBoundGraphicsPipeline = nullptr;
+                mCurrentBoundComputePipeline = pass.computePipeline;
+
+                commandList.SetComputePipeline(mCurrentBoundComputePipeline->GetGAPIComputePipeline());
+            }
+        }
+    }
+
+    void RGBuilder::MarkUseResources(PassInfo& pass, gapi::CommandList& commandList)
+    {
+        CHECK(mState == State::Executing);
+
+        if (pass.graphicsPipeline || pass.computePipeline)
+        {
+            for (const PassInfo::ResourceUseInfo& resourceUseInfo : pass.resourceUseInfos)
+            {
+                RGResource* rgResource = mResources[resourceUseInfo.rgResourceIndex];
+                if (RGTextureSRV* rgSRV = dynamic_cast<RGTextureSRV*>(rgResource))
+                {
+                    commandList.UseResource(rgSRV->GetSRV());
+                }
+                else if (RGTextureUAV* rgUAV = dynamic_cast<RGTextureUAV*>(rgResource))
+                {
+                    commandList.UseResource(rgUAV->GetUAV());
+                }
+            }
+        }
+    }
+
+    void RGBuilder::UpdateResourceUsagesInShaderParameters()
+    {
+        CHECK(mState == State::ResourceTracking);
+
+        mCurrentPassIndex = 0;
+
+        for (PassInfo& pass : mPasses)
+        {
+            if (pass.shaderParameters.IsValid())
+            {
+                ShaderParameters* shaderParameters = pass.shaderParameters->mParams.get();
+                const Vector<ShaderParameterInfo>& shaderParameterInfos = pass.shaderParameters->mParameterInfos;
+                for (const ShaderParameterInfo& shaderParameterInfo : shaderParameterInfos)
+                {
+                    Byte* src = reinterpret_cast<Byte*>(shaderParameters) + shaderParameterInfo.offsetInCPU;
+
+                    switch (shaderParameterInfo.type)
+                    {
+                    case ShaderParameterType::RGTextureSRV:
+                    {
+                        RGTextureSRVHandle& srv = *reinterpret_cast<RGTextureSRVHandle*>(src);
+                        CHECK_FORMAT(srv.IsValid(), "Null srv in shader parameter '{0}.", shaderParameterInfo.name);
+
+                        UseResource(srv);
+                        break;
+                    }
+                    case ShaderParameterType::RGTextureUAV:
+                    {
+                        RGTextureUAVHandle& uav = *reinterpret_cast<RGTextureUAVHandle*>(src);
+                        CHECK_FORMAT(uav.IsValid(), "Null uav in shader parameter '{0}.", shaderParameterInfo.name);
+
+                        UseResource(uav);
+                        break;
+                    }
+                    default:
+                        break;
+                    }
+                }
+            }
+
+            mCurrentPassIndex++;
+        }
+
+        mCurrentPassIndex = -1;
+    }
+
     void RGBuilder::ResolveTransitions()
     {
-        int numPasses = mPasses.size();
-        CHECK(numPasses == mUseResourceFunction.size());
+        CHECK(mState == State::ResourceTracking);
 
         FrameMap<Uint64, gapi::ResourceStateFlags> currentSubresourceStates;
 
+        int numPasses = mPasses.size();
         for (int i = 0; i < numPasses; ++i)
         {
             PassInfo& pass = mPasses[i];
             mCurrentPassIndex = i;
 
-            mUseResourceFunction[i](*this);
-
-            for (const PassInfo::UseState& useStateInPass : pass.useStates)
+            if (pass.useResourceFunction)
             {
-                RGResource* resource = mResources[useStateInPass.resourceIndex];
+                pass.useResourceFunction(*this);
+            }
+
+            for (const PassInfo::ResourceUseInfo& resourceUseInfo : pass.resourceUseInfos)
+            {
+                RGResource* resource = mResources[resourceUseInfo.rgResourceIndex];
 
                 if (RGTextureView* textureView = dynamic_cast<RGTextureView*>(resource))
                 {
                     Uint64 subresourceHashKey = textureView->GetSubresourceHashKey();
-                    CHECK(subresourceHashKey != 0);
+                    CHECK(subresourceHashKey);
                     auto currentStateIt = currentSubresourceStates.find(subresourceHashKey);
                     if (currentStateIt == currentSubresourceStates.end())
                     {
@@ -349,24 +567,19 @@ namespace cube
                     }
                     gapi::ResourceStateFlags currentState = currentStateIt->second;
 
-                    if (currentState != useStateInPass.state)
+                    if (currentState != resourceUseInfo.state)
                     {
                         RGTexture* texture = textureView->mRGTexture;
 
                         gapi::TransitionState& transition = pass.transitions.emplace_back();
                         transition.resourceType = gapi::TransitionState::ResourceType::Texture;
                         transition.texture = texture->mTexture;
-                        transition.subresourceRange = {
-                            .firstMipLevel = textureView->mMipLevel,
-                            .mipLevels = 1,
-                            .firstArrayIndex = 0,
-                            .arraySize = texture->mTexture->GetArraySize()
-                        };
+                        transition.subresourceRange = textureView->mSubresourceRange;
                         transition.src = currentState;
-                        transition.dst = useStateInPass.state;
+                        transition.dst = resourceUseInfo.state;
                     }
 
-                    currentStateIt->second = useStateInPass.state;
+                    currentStateIt->second = resourceUseInfo.state;
                 }
                 else
                 {
@@ -380,15 +593,15 @@ namespace cube
 
     void RGBuilder::RollbackResourceStates()
     {
-        CHECK(!mIsExecuting);
+        CHECK(mState == State::ResourceTracking);
 
         for (RGResource* resource : mResources)
         {
             if (RGTextureView* textureView = dynamic_cast<RGTextureView*>(resource))
             {
                 PassInfo& pass = mPasses[mCurrentPassIndex];
-                pass.useStates.push_back({
-                    .resourceIndex = textureView->mIndex,
+                pass.resourceUseInfos.push_back({
+                    .rgResourceIndex = textureView->mIndex,
                     .state = gapi::ResourceStateFlag::Common
                 });
             }
@@ -398,7 +611,6 @@ namespace cube
     void RGBuilder::Reset()
     {
         mPasses.clear();
-        mUseResourceFunction.clear();
         for (RGResource* resource : mResources)
         {
             delete resource;
@@ -406,6 +618,7 @@ namespace cube
         mResources.clear();
 
         mIsInRenderPass = false;
-        mIsExecuting = false;
+
+        mState = State::Init;
     }
 } // namespace cube

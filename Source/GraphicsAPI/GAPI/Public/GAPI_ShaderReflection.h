@@ -21,12 +21,14 @@ namespace cube
             Matrix,
             BindlessTexture,
             BindlessSampler,
-            BindlessCombinedTextureSampler
+            BindlessCombinedTextureSampler,
+            RGTextureSRV,
+            RGTextureUAV,
         };
 
         struct ShaderParameterReflection
         {
-            AnsiString name;
+            String name;
             ShaderParameterType type;
             Uint32 offset;
             Uint32 size;
@@ -34,7 +36,7 @@ namespace cube
 
         struct ShaderParameterBlockReflection
         {
-            AnsiString typeName;
+            String typeName;
             Uint32 index;
 
             Vector<ShaderParameterReflection> params;
@@ -42,6 +44,8 @@ namespace cube
 
         struct ShaderReflection
         {
+            String name;
+
             Vector<ShaderParameterBlockReflection> blocks;
 
             Uint32 threadGroupSizeX = 0;

@@ -1,6 +1,8 @@
 #include "GAPI_MetalShaderParameter.h"
 
 #include "Allocator/AllocatorUtility.h"
+#include "GAPI_Texture.h"
+#include "Renderer/RenderGraphTypes.h"
 #include "Renderer/ShaderParameter.h"
 
 namespace cube
@@ -56,6 +58,8 @@ namespace cube
                     break;
                 case ShaderParameterType::BindlessTexture:
                 case ShaderParameterType::BindlessSampler:
+                case ShaderParameterType::RGTextureSRV:
+                case ShaderParameterType::RGTextureUAV:
                     size = sizeof(Uint64);
                     alignment = sizeof(Uint64);
                     break;
@@ -80,7 +84,7 @@ namespace cube
             outTotalBufferSize = totalBufferSize;
         }
 
-        void MetalShaderParameterHelper::WriteParametersToBuffer(SharedPtr<Buffer> buffer, const Vector<ShaderParameterInfo>& paramInfos, const void* pParameters) const
+        void MetalShaderParameterHelper::WriteParametersToGPUBuffer(SharedPtr<Buffer> buffer, const Vector<ShaderParameterInfo>& paramInfos, const void* pParameters) const
         {
             Byte* bufferPtr = reinterpret_cast<Byte*>(buffer->Map());
 
@@ -160,6 +164,24 @@ namespace cube
                     ids[0] = bindlessCombinedTextureSampler->textureId;
                     ids[1] = bindlessCombinedTextureSampler->samplerId;
                     memcpy(dst, ids, sizeof(ids));
+                    break;
+                }
+                case ShaderParameterType::RGTextureSRV:
+                {
+                    const RGTextureSRVHandle& srv = *reinterpret_cast<const RGTextureSRVHandle*>(src);
+                    CHECK_FORMAT(srv.IsValid(), "Null srv in shader parameter '{0}.", paramInfo.name);
+
+                    Uint64 id = srv->GetSRV()->GetBindlessId();
+                    memcpy(dst, &id, sizeof(Uint64));
+                    break;
+                }
+                case ShaderParameterType::RGTextureUAV:
+                {
+                    const RGTextureUAVHandle& uav = *reinterpret_cast<const RGTextureUAVHandle*>(src);
+                    CHECK_FORMAT(uav.IsValid(), "Null uav in shader parameter '{0}.", paramInfo.name);
+
+                    Uint64 id = uav->GetUAV()->GetBindlessId();
+                    memcpy(dst, &id, sizeof(Uint64));
                     break;
                 }
                 case ShaderParameterType::Int:

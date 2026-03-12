@@ -23,7 +23,7 @@ namespace cube
             virtual ~ShaderParameterHelper() = default;
             
             virtual void UpdateShaderParameterInfo(Vector<ShaderParameterInfo>& inOutParameterInfos, Uint32& outTotalBufferSize) const = 0;
-            virtual void WriteParametersToBuffer(SharedPtr<Buffer> buffer, const Vector<ShaderParameterInfo>& paramInfos, const void* pParameters) const = 0;
+            virtual void WriteParametersToGPUBuffer(SharedPtr<Buffer> buffer, const Vector<ShaderParameterInfo>& paramInfos, const void* pParameters) const = 0;
         };
     } // namespace gapi
 } // namespace cube

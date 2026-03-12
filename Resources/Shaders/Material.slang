@@ -3,18 +3,19 @@ module Material;
 import Common;
 import MainInterface;
 
-public struct MaterialData_CB
+public struct MaterialShaderParameters
 {
     public float4 baseColor;
     public float4 diffuseColor;
     public float4 specularColor;
     public float shininess;
 
-    public Bindless<Sampler2D> textureSlot0;
-    public Bindless<Sampler2D> textureSlot1;
-    public Bindless<Sampler2D> textureSlot2;
-    public Bindless<Sampler2D> textureSlot3;
-    public Bindless<Sampler2D> textureSlot4;
+    public Bindless<Texture2D> textureSlot0;
+    public Bindless<Texture2D> textureSlot1;
+    public Bindless<Texture2D> textureSlot2;
+    public Bindless<Texture2D> textureSlot3;
+    public Bindless<Texture2D> textureSlot4;
+    public Bindless<SamplerState> materialSampler;
 };
 
 public struct MaterialValue
@@ -33,5 +34,5 @@ public struct MaterialValue
 
 public interface IMaterial
 {
-    MaterialValue GetMaterialValue(MaterialData_CB materialData, PSInput input);
+    MaterialValue GetMaterialValue(MaterialShaderParameters materialData, PSInput input);
 }

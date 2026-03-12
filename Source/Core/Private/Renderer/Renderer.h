@@ -8,6 +8,7 @@
 #include "Renderer/ShaderParameter.h"
 #include "SamplerManager.h"
 #include "ShaderManager.h"
+#include "Texture.h"
 #include "TextureManager.h"
 #include "Renderer/Mesh.h"
 #include "DLib.h"
@@ -42,7 +43,7 @@ namespace cube
     class Renderer
     {
     public:
-        Renderer() = default;
+        Renderer();
         ~Renderer() = default;
 
         void Initialize(GAPIName gAPIName, const ImGUIContext& imGUIContext, Uint32 numGPUSync = 3);
@@ -58,6 +59,10 @@ namespace cube
         TextureManager& GetTextureManager() { return mTextureManager; }
         SamplerManager& GetSamplerManager() { return mSamplerManager; }
         ShaderParametersManager& GetShaderParametersManager() { return mShaderParametersManager; }
+
+        SharedPtr<Material> GetDefaultMaterial() const { return mDefaultMaterial; }
+        SharedPtr<gapi::Texture> GetDummyBlackTexture() const { return mDummyBlackTexture->GetGAPITexture(); }
+        SharedPtr<gapi::Texture> GetDummyWhiteTexture() const { return mDummyWhiteTexture->GetGAPITexture(); }
 
         void SetObjectModelMatrix(const Vector3& position, const Vector3& rotation, const Vector3& scale);
         void SetViewMatrix(const Vector3& eye, const Vector3& target, const Vector3& upDir);
@@ -101,7 +106,6 @@ namespace cube
         SharedPtr<gapi::SwapChain> mSwapChain;
         SharedPtr<gapi::Texture> mCurrentBackbuffer;
         SharedPtr<gapi::Texture> mDepthStencilTexture;
-        SharedPtr<gapi::TextureDSV> mDSV;
 
         Vector3 mDirectionalLightDirection;
         Vector3 mDirectionalLightIntensity;
@@ -111,6 +115,9 @@ namespace cube
         SharedPtr<Mesh> mMesh;
         Vector<SharedPtr<Material>> mMaterials;
         SharedPtr<Material> mDefaultMaterial;
+
+        SharedPtr<TextureResource> mDummyBlackTexture;
+        SharedPtr<TextureResource> mDummyWhiteTexture;
 
         bool mShowAxis = true;
         bool mWireframe = false;

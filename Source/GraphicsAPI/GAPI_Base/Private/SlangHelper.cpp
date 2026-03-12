@@ -324,6 +324,7 @@ namespace cube
         EntryPointReflection* entryPoint = layout->findEntryPointByName(info.entryPoint.data());
         SlangUInt threadGroupSize[3];
         entryPoint->getComputeThreadGroupSize(3, threadGroupSize);
+        outReflection.name = String_Convert<String>(entryPoint->getName());
         outReflection.threadGroupSizeX = threadGroupSize[0];
         outReflection.threadGroupSizeY = threadGroupSize[1];
         outReflection.threadGroupSizeZ = threadGroupSize[2];
@@ -341,7 +342,7 @@ namespace cube
 
                 const char* parameterTypeName = parameterTypeLayout->getName();
                 Uint32 index = blockVariableLayout->getBindingIndex();
-                gapi::ShaderParameterBlockReflection& outBlockReflection = outReflection.blocks.emplace_back(parameterTypeName, index);
+                gapi::ShaderParameterBlockReflection& outBlockReflection = outReflection.blocks.emplace_back(String_Convert<String>(parameterTypeName), index);
                 
                 if (parameterTypeLayout->getKind() == TypeReflection::Kind::Struct)
                 {
@@ -472,7 +473,7 @@ namespace cube
                         {
                             Uint32 offset = fieldVariableLayout->getOffset();
                             Uint32 size = fieldTypeLayout->getSize();
-                            outBlockReflection.params.emplace_back(fieldVariableName, type, offset, size);
+                            outBlockReflection.params.emplace_back(String_Convert<String>(fieldVariableName), type, offset, size);
                         }
                         else
                         {

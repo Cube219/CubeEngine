@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.19)
 set(PUBLIC_FILES
     Public/Allocator/AllocatorUtility.h
     Public/Allocator/FrameAllocator.h
+    Public/Renderer/RenderGraphTypes.h
     Public/Renderer/RenderTypes.h
     Public/Renderer/ShaderParameter.h
     Public/CoreHeader.h

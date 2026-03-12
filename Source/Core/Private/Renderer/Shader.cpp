@@ -460,6 +460,9 @@ namespace cube
                 mMergedShaderReflection.blocks.push_back(block);
             }
         }
+
+        mMergedShaderReflection.name += CUBE_T(";");
+        mMergedShaderReflection.name += reflection.name;
     }
 
     void GraphicsPipeline::CacheShaderReflection(SharedPtr<Shader> vertexShader, SharedPtr<Shader> pixelShader)

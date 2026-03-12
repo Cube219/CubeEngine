@@ -168,11 +168,11 @@ public: \
     friend class ShaderParametersManager; \
     parametersType(ShaderParametersManager& manager) : ShaderParameters(manager) {} \
     \
-private: \
-    static const Character* GetDebugName() \
+    static const Character* GetName() \
     { \
         return CUBE_T(#parametersType); \
     } \
+    private: \
     \
     struct ParameterIterHelperBegin \
     { \
@@ -226,9 +226,13 @@ public: \
             ShaderParametersInfo<ParametersType>::isInitialized = true; \
         } \
     } \
-    void WriteAllParametersToBuffer() \
+    static const Vector<ShaderParameterInfo>& GetParameterInfos() \
     { \
-        mManager.GetShaderParameterHelper().WriteParametersToBuffer( \
+        return ShaderParametersInfo<ParametersType>::parameterInfos; \
+    } \
+    void WriteAllParametersToGPUBuffer() \
+    { \
+        mManager.GetShaderParameterHelper().WriteParametersToGPUBuffer( \
             mPooledBuffer.buffer, \
             ShaderParametersInfo<ParametersType>::parameterInfos, \
             this); \
@@ -256,7 +260,7 @@ public: \
             SharedPtr<T> parameters = std::make_shared<T>(*this);
             T::InitializeParametersInfo(*mShaderParameterHelper);
 
-            AllocateShaderParameters(parameters.get(), ShaderParametersInfo<T>::parameterInfos, ShaderParametersInfo<T>::totalBufferSize, T::GetDebugName());
+            AllocateShaderParameters(parameters.get(), ShaderParametersInfo<T>::parameterInfos, ShaderParametersInfo<T>::totalBufferSize, T::GetName());
 
             return parameters;
         }

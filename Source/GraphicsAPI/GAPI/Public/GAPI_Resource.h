@@ -65,6 +65,11 @@ namespace cube
 
             Uint32 firstArrayIndex;
             Uint32 arraySize;
+
+            Uint64 GetHash() const
+            {
+                return HashCombine(firstMipLevel, mipLevels, firstArrayIndex, arraySize);
+            }
         };
     } // namespace gapi
 } // namespace cube

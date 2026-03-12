@@ -4,6 +4,8 @@
 #include "Allocator/AllocatorUtility.h"
 #include "DX12ShaderCompiler.h"
 #include "GAPI_Shader.h"
+#include "GAPI_Texture.h"
+#include "Renderer/RenderGraphTypes.h"
 #include "Renderer/ShaderParameter.h"
 
 namespace cube
@@ -113,6 +115,8 @@ namespace cube
                 case ShaderParameterType::BindlessTexture:
                 case ShaderParameterType::BindlessSampler:
                 case ShaderParameterType::BindlessCombinedTextureSampler:
+                case ShaderParameterType::RGTextureSRV:
+                case ShaderParameterType::RGTextureUAV:
                     // uint2
                     size = sizeof(Uint32) * 2;
                     alignment = sizeof(Uint32);
@@ -139,7 +143,7 @@ namespace cube
             outTotalBufferSize = totalBufferSize;
         }
 
-        void DX12ShaderParameterHelper::WriteParametersToBuffer(SharedPtr<Buffer> buffer, const Vector<ShaderParameterInfo>& paramInfos, const void* pParameters) const
+        void DX12ShaderParameterHelper::WriteParametersToGPUBuffer(SharedPtr<Buffer> buffer, const Vector<ShaderParameterInfo>& paramInfos, const void* pParameters) const
         {
             Byte* bufferPtr = reinterpret_cast<Byte*>(buffer->Map());
 
@@ -217,6 +221,24 @@ namespace cube
                 {
                     const BindlessCombinedTextureSampler* data = reinterpret_cast<const BindlessCombinedTextureSampler*>(src);
                     Uint32 uint2[2] = { static_cast<Uint32>(data->textureId), static_cast<Uint32>(data->samplerId) };
+                    memcpy(dst, uint2, sizeof(uint2));
+                    break;
+                }
+                case ShaderParameterType::RGTextureSRV:
+                {
+                    const RGTextureSRVHandle& srv = *reinterpret_cast<const RGTextureSRVHandle*>(src);
+                    CHECK_FORMAT(srv.IsValid(), "Null srv in shader parameter '{0}.", paramInfo.name);
+
+                    Uint32 uint2[2] = { static_cast<Uint32>(srv->GetSRV()->GetBindlessId()), static_cast<Uint32>(-1) };
+                    memcpy(dst, uint2, sizeof(uint2));
+                    break;
+                }
+                case ShaderParameterType::RGTextureUAV:
+                {
+                    const RGTextureUAVHandle& uav = *reinterpret_cast<const RGTextureUAVHandle*>(src);
+                    CHECK_FORMAT(uav.IsValid(), "Null uav in shader parameter '{0}.", paramInfo.name);
+
+                    Uint32 uint2[2] = { static_cast<Uint32>(uav->GetUAV()->GetBindlessId()), static_cast<Uint32>(-1) };
                     memcpy(dst, uint2, sizeof(uint2));
                     break;
                 }

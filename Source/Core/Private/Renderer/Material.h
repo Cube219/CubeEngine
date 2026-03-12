@@ -3,6 +3,7 @@
 #include "CoreHeader.h"
 
 #include "GAPI_Pipeline.h"
+#include "Renderer/RenderGraphTypes.h"
 #include "Renderer/RenderTypes.h"
 #include "Renderer/ShaderParameter.h"
 #include "Vector.h"
@@ -31,11 +32,12 @@ namespace cube
             CUBE_SHADER_PARAMETER(Vector4, specularColor)
             CUBE_SHADER_PARAMETER(float, shininess)
 
-            CUBE_SHADER_PARAMETER(BindlessCombinedTextureSampler, textureSlot0)
-            CUBE_SHADER_PARAMETER(BindlessCombinedTextureSampler, textureSlot1)
-            CUBE_SHADER_PARAMETER(BindlessCombinedTextureSampler, textureSlot2)
-            CUBE_SHADER_PARAMETER(BindlessCombinedTextureSampler, textureSlot3)
-            CUBE_SHADER_PARAMETER(BindlessCombinedTextureSampler, textureSlot4)
+            CUBE_SHADER_PARAMETER(RGTextureSRVHandle, textureSlot0)
+            CUBE_SHADER_PARAMETER(RGTextureSRVHandle, textureSlot1)
+            CUBE_SHADER_PARAMETER(RGTextureSRVHandle, textureSlot2)
+            CUBE_SHADER_PARAMETER(RGTextureSRVHandle, textureSlot3)
+            CUBE_SHADER_PARAMETER(RGTextureSRVHandle, textureSlot4)
+            CUBE_SHADER_PARAMETER(BindlessSampler, materialSampler)
         CUBE_END_SHADER_PARAMETERS
     };
 
@@ -57,7 +59,7 @@ namespace cube
 
         void SetSampler(Uint64 samplerId);
 
-        SharedPtr<MaterialShaderParameters> GenerateShaderParameters(gapi::CommandList& commandList) const;
+        RGShaderParametersHandle<MaterialShaderParameters> GenerateShaderParameters(RGBuilder& builder) const;
 
         StringView GetDebugName() const { return mDebugName; }
 

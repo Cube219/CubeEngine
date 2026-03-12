@@ -3,164 +3,58 @@
 #include "CoreHeader.h"
 
 #include "Checker.h"
+#include "Engine.h"
 #include "GAPI_CommandList.h"
+#include "Renderer/RenderGraphTypes.h"
+#include "Renderer/Renderer.h"
+#include "Renderer/ShaderParameter.h"
 
 namespace cube
 {
-    namespace gapi
-    {
-        class Texture;
-        class TextureSRV;
-        class TextureUAV;
-        class TextureRTV;
-        class TextureDSV;
-    } // namespace gapi
-
     class RGBuilder;
-
-    // ===== Resources =====
-
-    class RGResource
-    {
-    protected:
-        friend class RGBuilder;
-
-        RGResource(int index);
-        virtual ~RGResource();
-
-        bool mIsTransient;
-
-        int mIndex;
-        int mBeginPass;
-        int mEndPass;
-    };
-
-    class RGTexture : public RGResource
-    {
-    protected:
-        friend class RGBuilder;
-
-        RGTexture(int index, SharedPtr<gapi::Texture> texture);
-        virtual ~RGTexture();
-
-        SharedPtr<gapi::Texture> mTexture;
-    };
-
-    class RGTextureView : public RGResource
-    {
-    public:
-        Uint64 GetSubresourceHashKey() const { return mSubresourceHashKey; }
-
-    protected:
-        friend class RGBuilder;
-
-        RGTextureView(int index, RGTexture* rgTexture, Uint32 mipLevel);
-        virtual ~RGTextureView();
-
-        RGTexture* mRGTexture;
-        Uint32 mMipLevel;
-        Uint64 mSubresourceHashKey;
-    };
-
-    class RGTextureSRV : public RGTextureView
-    {
-    public:
-        SharedPtr<gapi::TextureSRV> GetSRV() const
-        {
-            CHECK(mSRV);
-            return mSRV;
-        }
-
-    private:
-        friend class RGBuilder;
-
-        RGTextureSRV(int index, RGTexture* rgTexture, Uint32 mipLevel);
-        virtual ~RGTextureSRV();
-
-        SharedPtr<gapi::TextureSRV> mSRV;
-    };
-
-    class RGTextureUAV : public RGTextureView
-    {
-    public:
-        SharedPtr<gapi::TextureUAV> GetUAV() const
-        {
-            CHECK(mUAV);
-            return mUAV;
-        }
-
-    private:
-        friend class RGBuilder;
-
-        RGTextureUAV(int index, RGTexture* rgTexture, Uint32 mipLevel);
-        virtual ~RGTextureUAV();
-
-        SharedPtr<gapi::TextureUAV> mUAV;
-    };
-
-    class RGTextureRTV : public RGTextureView
-    {
-    public:
-        SharedPtr<gapi::TextureRTV> GetRTV() const
-        {
-            CHECK(mRTV);
-            return mRTV;
-        }
-
-    private:
-        friend class RGBuilder;
-
-        RGTextureRTV(int index, RGTexture* rgTexture, Uint32 mipLevel);
-        virtual ~RGTextureRTV();
-
-        SharedPtr<gapi::TextureRTV> mRTV;
-    };
-
-    class RGTextureDSV : public RGTextureView
-    {
-    public:
-        SharedPtr<gapi::TextureDSV> GetDSV() const
-        {
-            CHECK(mDSV);
-            return mDSV;
-        }
-
-    private:
-        friend class RGBuilder;
-
-        RGTextureDSV(int index, RGTexture* rgTexture, Uint32 mipLevel);
-        virtual ~RGTextureDSV();
-
-        SharedPtr<gapi::TextureDSV> mDSV;
-    };
 
     // ===== Builder =====
 
     class RGBuilder
     {
     public:
-        using UseResourceFunction = std::function<void(RGBuilder&)>;
+        using UseResourceFunction = std::function<void(RGBuilder& /*builder*/)>;
         using PassFunction = std::function<void(gapi::CommandList& /*commandList*/)>;
 
     public:
-        RGBuilder() = default;
+        RGBuilder(Renderer& renderer);
         ~RGBuilder();
 
         // void CreateTexture();
-        // void CreateShaderParameter();
-        RGTextureSRV* CreateSRV(RGTexture* rgTexture, Uint32 mipLevel);
-        RGTextureUAV* CreateUAV(RGTexture* rgTexture, Uint32 mipLevel);
-        RGTextureRTV* CreateRTV(RGTexture* rgTexture, Uint32 mipLevel);
-        RGTextureDSV* CreateDSV(RGTexture* rgTexture, Uint32 mipLevel);
+        template <typename ShaderParametersType>
+            requires std::derived_from<ShaderParametersType, ShaderParameters>
+        RGShaderParametersHandle<ShaderParametersType> CreateShaderParameters()
+        {
+            ShaderParametersManager& shaderParametersManager = Engine::GetRenderer()->GetShaderParametersManager();
+            SharedPtr<ShaderParametersType> parameters = shaderParametersManager.CreateShaderParameters<ShaderParametersType>();
 
-        RGTexture* RegisterTexture(SharedPtr<gapi::Texture> texture);
+            RGShaderParameters<ShaderParametersType>* rgParameters = new RGShaderParameters<ShaderParametersType>(mResources.size(), parameters);
+            mResources.push_back(rgParameters);
+
+            return RGShaderParametersHandle<ShaderParametersType>(rgParameters);
+        }
+
+        RGTextureSRVHandle CreateSRV(RGTextureHandle rgTexture, Uint32 firstMipLevel = 0, Int32 mipLevels = gapi::SubresourceRange::AllRange);
+        RGTextureUAVHandle CreateUAV(RGTextureHandle rgTexture, Uint32 mipLevel = 0);
+        RGTextureRTVHandle CreateRTV(RGTextureHandle rgTexture, Uint32 mipLevel = 0);
+        RGTextureDSVHandle CreateDSV(RGTextureHandle rgTexture, Uint32 mipLevel = 0);
+
+        RGTextureSRVHandle GetDummyBlackTexture();
+        RGTextureSRVHandle GetDummyWhiteTexture();
+
+        RGTextureHandle RegisterTexture(SharedPtr<gapi::Texture> texture);
 
         // TODO: Automatically collect attachments before executing.
         struct RenderPassInfo
         {
             struct ColorAttachment
             {
-                RGTextureRTV* color = nullptr;
+                RGTextureRTVHandle color;
                 gapi::LoadOperation loadOperation = gapi::LoadOperation::Load;
                 gapi::StoreOperation storeOperation = gapi::StoreOperation::Store;
                 Float4 clearColor;
@@ -168,7 +62,7 @@ namespace cube
             Vector<ColorAttachment> colors;
             struct DepthAttachment
             {
-                RGTextureDSV* dsv = nullptr;
+                RGTextureDSVHandle dsv;
                 gapi::LoadOperation loadOperation = gapi::LoadOperation::Load;
                 gapi::StoreOperation storeOperation = gapi::StoreOperation::Store;
                 float clearDepth;
@@ -178,48 +72,117 @@ namespace cube
         void BeginRenderPass(const RenderPassInfo& info);
         void EndRenderPass();
 
-        void AddPass(StringView name, PassFunction&& passFunction, UseResourceFunction&& useResourceFunction = [](RGBuilder&){}, bool isCompute = false);
+        struct DrawMeshInfo
+        {
+            SharedPtr<Mesh> mesh;
+            MeshMetadata meshMetaData;
+            gapi::RasterizerState::FillMode fillMode = gapi::RasterizerState::FillMode::Solid;
+            ArrayView<SharedPtr<Material>> materials;
+            Matrix model;
+        };
 
-        // TODO: Automatically collect use resource based on shader parameter.
-        void UseResource(RGTextureSRV* rgSRV);
-        void UseResource(RGTextureUAV* rgUAV);
-        void UseResource(RGTextureRTV* rgRTV);
-        void UseResource(RGTextureDSV* rgDSV);
+        template <typename ShaderParametersType>
+            requires std::derived_from<ShaderParametersType, ShaderParameters>
+        void BindShaderParameters(RGShaderParametersHandle<ShaderParametersType> parameters)
+        {
+            BindShaderParametersInternal(ShaderParametersType::GetName(), parameters);
+        }
+
+        void AddPass(StringView name, PassFunction&& passFunction, UseResourceFunction&& useResourceFunction = [](RGBuilder&) {}, bool isCompute = false)
+        {
+            AddPassInternal(name, nullptr, nullptr, {}, std::move(passFunction), std::move(useResourceFunction));
+        }
+
+        template <typename ShaderParametersType>
+            requires std::derived_from<ShaderParametersType, ShaderParameters>
+        void AddPass(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, RGShaderParametersHandle<ShaderParametersType> parameters, PassFunction&& passFunction)
+        {
+            AddPassInternal(name, graphicsPipeline, nullptr, parameters, std::move(passFunction), nullptr);
+        }
+
+        template <typename ShaderParametersType>
+            requires std::derived_from<ShaderParametersType, ShaderParameters>
+        void AddPass(StringView name, SharedPtr<ComputePipeline> computePipeline, RGShaderParametersHandle<ShaderParametersType> parameters, PassFunction&& passFunction)
+        {
+            AddPassInternal(name, nullptr, computePipeline, parameters, std::move(passFunction), nullptr);
+        }
+
+        void AddDrawMeshPass(StringView name, ArrayView<DrawMeshInfo> drawMeshInfos);
+
+        void UseResource(RGTextureSRVHandle rgSRV);
+        void UseResource(RGTextureUAVHandle rgUAV);
+        void UseResource(RGTextureRTVHandle rgRTV);
+        void UseResource(RGTextureDSVHandle rgDSV);
 
         void ExecuteAndSubmit(gapi::CommandList& commandList);
 
     private:
-        void ResolveTransitions();
-
-        void RollbackResourceStates();
-
-        void Reset();
-
         struct PassInfo
         {
             // Set in AddPass
             String name;
-            int index;
-            PassFunction passFunction;
-            bool isCompute;
+            int index = -1;
+
+            RGShaderParametersBaseHandle shaderParameters;
+
+            SharedPtr<GraphicsPipeline> graphicsPipeline = nullptr;
+            SharedPtr<ComputePipeline> computePipeline = nullptr;
+
+            PassFunction passFunction = nullptr;
+            UseResourceFunction useResourceFunction = nullptr;
 
             // Set while executing
-            struct UseState
+            struct ResourceUseInfo
             {
-                int resourceIndex;
+                int rgResourceIndex;
                 gapi::ResourceStateFlags state;
             };
-            Vector<UseState> useStates;
+            Vector<ResourceUseInfo> resourceUseInfos;
+
             Vector<gapi::TransitionState> transitions;
         };
+
+        void BindShaderParametersInternal(StringView name, RGShaderParametersBaseHandle parameters);
+
+        void AddPassInternal(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, SharedPtr<ComputePipeline> computePipeline, RGShaderParametersBaseHandle parameters, PassFunction&& passFunction, UseResourceFunction&& useResourceFunction);
+
+        void ResolveShaderParametersAndPipeline(PassInfo& pass, gapi::CommandList& commandList);
+        void MarkUseResources(PassInfo& pass, gapi::CommandList& commandList);
+
+        void UpdateResourceUsagesInShaderParameters();
+        void ResolveTransitions();
+        void RollbackResourceStates();
+
+        void Reset();
+
+        Renderer& mRenderer;
+
         Vector<PassInfo> mPasses;
-        Vector<UseResourceFunction> mUseResourceFunction;
-        int mCurrentPassIndex;
+        int mCurrentPassIndex = -1;
 
         Vector<RGResource*> mResources;
+        RGTextureSRVHandle mDummyBlackTexture;
+        RGTextureSRVHandle mDummyWhiteTexture;
 
-        bool mIsExecuting = false;
+        enum class State
+        {
+            Init,
+            ResourceTracking,
+            Executing,
+            Submitted
+        };
+        State mState = State::Init;
         bool mIsInRenderPass = false;
+
+        struct ShaderParametersBindInfo
+        {
+            SharedPtr<gapi::Buffer> GPUBuffer = nullptr;
+            int bindIndex = -1;
+        };
+        Map<String, ShaderParametersBindInfo> mShaderParametersBindInfos;
+
+        SharedPtr<GraphicsPipeline> mCurrentBoundGraphicsPipeline;
+        SharedPtr<ComputePipeline> mCurrentBoundComputePipeline;
     };
 
     // ===== Utility =====

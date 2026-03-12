@@ -6,7 +6,6 @@
 #include "Checker.h"
 #include "Engine.h"
 #include "FileSystem.h"
-#include "GAPI_Buffer.h"
 #include "GAPI_CommandList.h"
 #include "GAPI_Pipeline.h"
 #include "GAPI_Shader.h"
@@ -15,12 +14,17 @@
 #include "MatrixUtility.h"
 #include "MeshHelper.h"
 #include "Platform.h"
+#include "Renderer/RenderGraphTypes.h"
 #include "RenderGraph.h"
-#include "RenderProfiling.h"
-#include "Shader.h"
+#include "Texture.h"
 
 namespace cube
 {
+    Renderer::Renderer()
+        : mTextureManager(*this)
+    {
+    }
+
     void Renderer::Initialize(GAPIName gAPIName, const ImGUIContext& imGUIContext, Uint32 numGPUSync)
     {
         CUBE_LOG(Info, Renderer, "Initialize renderer. (GAPI: {})", GAPINameToString(gAPIName));
@@ -59,7 +63,7 @@ namespace cube
         });
 
         mShaderManager.Initialize(mGAPI.get(), false);
-        mTextureManager.Initialize(mGAPI.get(), mNumGPUSync, mShaderManager);
+        mTextureManager.Initialize(mGAPI.get(), mNumGPUSync);
         mSamplerManager.Initialize(mGAPI.get());
         mShaderParametersManager.Initialize(mGAPI.get(), mNumGPUSync);
 
@@ -89,7 +93,6 @@ namespace cube
             .height = mViewportHeight,
             .debugName = CUBE_T("MainDepthStencilTexture")
         });
-        mDSV = mDepthStencilTexture->CreateDSV({});
 
         mDirectionalLightDirection = Vector3(1.0f, 1.0f, 1.0f).Normalized();
         mDirectionalLightIntensity = Vector3(3.0f, 3.0f, 3.0f);
@@ -105,7 +108,6 @@ namespace cube
 
         ClearResources();
 
-        mDSV = nullptr;
         mDepthStencilTexture = nullptr;
         mCurrentBackbuffer = nullptr;
         mSwapChain = nullptr;
@@ -260,7 +262,6 @@ namespace cube
 
         if (mDepthStencilTexture)
         {
-            mDSV = nullptr;
             mDepthStencilTexture = nullptr;
 
             mDepthStencilTexture = mGAPI->CreateTexture({
@@ -272,7 +273,6 @@ namespace cube
                 .height = mViewportHeight,
                 .debugName = CUBE_T("MainDepthStencilTexture")
             });
-            mDSV = mDepthStencilTexture->CreateDSV({});
         }
     }
 
@@ -367,17 +367,7 @@ namespace cube
             ? gapi::RasterizerState::FillMode::Line
             : gapi::RasterizerState::FillMode::Solid;
 
-        GraphicsPipeline* currentGraphicsPipeline = nullptr;
-        auto SetGraphicsPipeline = [this, &currentGraphicsPipeline](gapi::CommandList& commandList, SharedPtr<GraphicsPipeline> graphicsPipeline)
-        {
-            if (currentGraphicsPipeline != graphicsPipeline.get())
-            {
-                commandList.SetGraphicsPipeline(graphicsPipeline->GetGAPIGraphicsPipeline());
-                currentGraphicsPipeline = graphicsPipeline.get();
-            }
-        };
-
-        RGBuilder builder;
+        RGBuilder builder(*this);
 
         {
             RG_GPU_EVENT_SCOPE(builder, CUBE_T("Frame"));
@@ -394,19 +384,20 @@ namespace cube
                 .width = mViewportWidth,
                 .height = mViewportHeight
             };
-            
-            SharedPtr<GlobalShaderParameters> globalShaderParameters = mShaderParametersManager.CreateShaderParameters<GlobalShaderParameters>();
-            globalShaderParameters->viewPosition = mViewPosition;
-            globalShaderParameters->viewProjection = mViewPerspectiveMatirx;
-            globalShaderParameters->directionalLightDirection = mDirectionalLightDirection;
-            globalShaderParameters->directionalLightIntensity = mDirectionalLightIntensity;
-            globalShaderParameters->WriteAllParametersToBuffer();
 
-            RGTexture* color = builder.RegisterTexture(mCurrentBackbuffer);
-            RGTexture* depthStencil = builder.RegisterTexture(mDepthStencilTexture);
+            RGShaderParametersHandle<GlobalShaderParameters> globalShaderParameters = builder.CreateShaderParameters<GlobalShaderParameters>();
+            globalShaderParameters->Get()->viewPosition = mViewPosition;
+            globalShaderParameters->Get()->viewProjection = mViewPerspectiveMatirx;
+            globalShaderParameters->Get()->directionalLightDirection = mDirectionalLightDirection;
+            globalShaderParameters->Get()->directionalLightIntensity = mDirectionalLightIntensity;
+            globalShaderParameters->Get()->WriteAllParametersToGPUBuffer();
+            builder.BindShaderParameters(globalShaderParameters);
 
-            RGTextureRTV* colorRTV = builder.CreateRTV(color, 0);
-            RGTextureDSV* depthStencilDSV = builder.CreateDSV(depthStencil, 0);
+            RGTextureHandle color = builder.RegisterTexture(mCurrentBackbuffer);
+            RGTextureHandle depthStencil = builder.RegisterTexture(mDepthStencilTexture);
+
+            RGTextureRTVHandle colorRTV = builder.CreateRTV(color);
+            RGTextureDSVHandle depthStencilDSV = builder.CreateDSV(depthStencil);
 
             RGBuilder::RenderPassInfo renderPassInfo;
             renderPassInfo.colors.push_back({
@@ -423,116 +414,50 @@ namespace cube
             };
             builder.BeginRenderPass(renderPassInfo);
 
-            builder.AddPass(CUBE_T("Init global settings"), [viewport, scissor, globalShaderParameters](gapi::CommandList& commandList)
+            builder.AddPass(CUBE_T("Init global settings"), [viewport, scissor](gapi::CommandList& commandList)
             {
                 gapi::Viewport vp = viewport;
                 gapi::ScissorRect sr = scissor;
                 commandList.SetViewports({ &vp, 1 });
                 commandList.SetScissors({ &sr, 1 });
                 commandList.SetPrimitiveTopology(gapi::PrimitiveTopology::TriangleList);
-                commandList.SetShaderVariableConstantBuffer(0, globalShaderParameters->GetBuffer());
             });
 
-            SharedPtr<ObjectShaderParameters> objectShaderParameters = mShaderParametersManager.CreateShaderParameters<ObjectShaderParameters>();
-            objectShaderParameters->model = mModelMatrix;
-            objectShaderParameters->modelInverse = mModelMatrix.Inversed();
-            objectShaderParameters->modelInverseTranspose = mModelMatrix.Inversed().Transposed();
-            objectShaderParameters->WriteAllParametersToBuffer();
-
-            builder.AddPass(CUBE_T("Draw Center Object"),
-                [this,
-                fillMode,
-                objectShaderParameters,
-                SetGraphicsPipeline](gapi::CommandList& commandList)
-            {
-                Uint32 vertexBufferOffset = 0;
-                SharedPtr<gapi::Buffer> vertexBuffer = mMesh->GetVertexBuffer();
-                commandList.BindVertexBuffers(0, { &vertexBuffer, 1 }, { &vertexBufferOffset, 1 });
-                commandList.BindIndexBuffer(mMesh->GetIndexBuffer(), 0);
-
-                commandList.SetShaderVariableConstantBuffer(1, objectShaderParameters->GetBuffer());
-
-                SharedPtr<Material> currentMaterial = nullptr;
-                const Vector<SubMesh>& subMeshes = mMesh->GetSubMeshes();
-                for (const SubMesh& subMesh : subMeshes)
-                {
-                    SharedPtr<Material> lastMaterial = currentMaterial;
-                    if (subMesh.materialIndex < mMaterials.size())
-                    {
-                        currentMaterial = mMaterials[subMesh.materialIndex];
-                    }
-                    else
-                    {
-                        currentMaterial = mDefaultMaterial;
-                    }
-
-                    GPU_EVENT_SCOPE(commandList, Format<FrameString>(CUBE_T("Mesh: {0}, Material: {1}"), subMesh.debugName, currentMaterial->GetDebugName()));
-
-                    if (currentMaterial != lastMaterial)
-                    {
-                        SetGraphicsPipeline(commandList, mShaderManager.GetMaterialShaderManager().GetOrCreateMaterialPipeline(currentMaterial, mMeshMetadata, fillMode));
-                        SharedPtr<MaterialShaderParameters> materialShaderParameters = currentMaterial->GenerateShaderParameters(commandList);
-                        commandList.SetShaderVariableConstantBuffer(2, materialShaderParameters->GetBuffer());
-                    }
-
-                    commandList.DrawIndexed(subMesh.numIndices, subMesh.indexOffset, subMesh.vertexOffset);
-                }
+            FrameVector<RGBuilder::DrawMeshInfo> drawMeshInfos;
+            drawMeshInfos.push_back({
+                .mesh = mMesh,
+                .meshMetaData = mMeshMetadata,
+                .fillMode = fillMode,
+                .materials = mMaterials,
+                .model = mModelMatrix
             });
+            builder.AddDrawMeshPass(CUBE_T("Draw Center Object"), drawMeshInfos);
 
             if (mShowAxis)
             {
-                SharedPtr<ObjectShaderParameters> xAxisObjectShaderParameters = mShaderParametersManager.CreateShaderParameters<ObjectShaderParameters>();
-                xAxisObjectShaderParameters->model = mXAxisModelMatrix;
-                xAxisObjectShaderParameters->modelInverse = mXAxisModelMatrix.Inversed();
-                xAxisObjectShaderParameters->modelInverseTranspose = mXAxisModelMatrix.Inversed().Transposed();
-                xAxisObjectShaderParameters->WriteAllParametersToBuffer();
-
-                SharedPtr<ObjectShaderParameters> yAxisObjectShaderParameters = mShaderParametersManager.CreateShaderParameters<ObjectShaderParameters>();
-                yAxisObjectShaderParameters->model = mYAxisModelMatrix;
-                yAxisObjectShaderParameters->modelInverse = mYAxisModelMatrix.Inversed();
-                yAxisObjectShaderParameters->modelInverseTranspose = mYAxisModelMatrix.Inversed().Transposed();
-                yAxisObjectShaderParameters->WriteAllParametersToBuffer();
-
-                SharedPtr<ObjectShaderParameters> zAxisObjectShaderParameters = mShaderParametersManager.CreateShaderParameters<ObjectShaderParameters>();
-                zAxisObjectShaderParameters->model = mZAxisModelMatrix;
-                zAxisObjectShaderParameters->modelInverse = mZAxisModelMatrix.Inversed();
-                zAxisObjectShaderParameters->modelInverseTranspose = mZAxisModelMatrix.Inversed().Transposed();
-                zAxisObjectShaderParameters->WriteAllParametersToBuffer();
-
-                builder.AddPass(CUBE_T("Draw Axis"), [this, SetGraphicsPipeline, xAxisObjectShaderParameters, yAxisObjectShaderParameters, zAxisObjectShaderParameters](gapi::CommandList& commandList)
-                {
-                    Uint32 vertexBufferOffset = 0;
-                    SetGraphicsPipeline(commandList, mShaderManager.GetMaterialShaderManager().GetOrCreateMaterialPipeline(mDefaultMaterial, mMeshMetadata));
-
-                    SharedPtr<gapi::Buffer> boxVertexBuffer = mBoxMesh->GetVertexBuffer();
-                    commandList.BindVertexBuffers(0, { &boxVertexBuffer, 1 }, { &vertexBufferOffset, 1 });
-                    commandList.BindIndexBuffer(mBoxMesh->GetIndexBuffer(), 0);
-                    const Vector<SubMesh>& boxSubMeshes = mBoxMesh->GetSubMeshes();
-
-                    commandList.SetShaderVariableConstantBuffer(1, xAxisObjectShaderParameters->GetBuffer());
-                    SharedPtr<MaterialShaderParameters> xAxisMaterialShaderParameters = mXAxisMaterial->GenerateShaderParameters(commandList);
-                    commandList.SetShaderVariableConstantBuffer(2, xAxisMaterialShaderParameters->GetBuffer());
-                    for (const SubMesh& subMesh : boxSubMeshes)
-                    {
-                        commandList.DrawIndexed(subMesh.numIndices, subMesh.indexOffset, subMesh.vertexOffset);
-                    }
-                    
-                    commandList.SetShaderVariableConstantBuffer(1, yAxisObjectShaderParameters->GetBuffer());
-                    SharedPtr<MaterialShaderParameters> yAxisMaterialShaderParameters = mYAxisMaterial->GenerateShaderParameters(commandList);
-                    commandList.SetShaderVariableConstantBuffer(2, yAxisMaterialShaderParameters->GetBuffer());
-                    for (const SubMesh& subMesh : boxSubMeshes)
-                    {
-                        commandList.DrawIndexed(subMesh.numIndices, subMesh.indexOffset, subMesh.vertexOffset);
-                    }
-                    
-                    commandList.SetShaderVariableConstantBuffer(1, zAxisObjectShaderParameters->GetBuffer());
-                    SharedPtr<MaterialShaderParameters> zAxisMaterialShaderParameters = mZAxisMaterial->GenerateShaderParameters(commandList);
-                    commandList.SetShaderVariableConstantBuffer(2, zAxisMaterialShaderParameters->GetBuffer());
-                    for (const SubMesh& subMesh : boxSubMeshes)
-                    {
-                        commandList.DrawIndexed(subMesh.numIndices, subMesh.indexOffset, subMesh.vertexOffset);
-                    }
+                FrameVector<RGBuilder::DrawMeshInfo> drawAxisMeshInfos;
+                drawAxisMeshInfos.push_back({
+                    .mesh = mBoxMesh,
+                    .meshMetaData = mMeshMetadata,
+                    .fillMode = fillMode,
+                    .materials = { &mXAxisMaterial, 1 },
+                    .model = mXAxisModelMatrix
                 });
+                drawAxisMeshInfos.push_back({
+                    .mesh = mBoxMesh,
+                    .meshMetaData = mMeshMetadata,
+                    .fillMode = fillMode,
+                    .materials = { &mYAxisMaterial, 1 },
+                    .model = mYAxisModelMatrix
+                });
+                drawAxisMeshInfos.push_back({
+                    .mesh = mBoxMesh,
+                    .meshMetaData = mMeshMetadata,
+                    .fillMode = fillMode,
+                    .materials = { &mZAxisMaterial, 1 },
+                    .model = mZAxisModelMatrix
+                });
+                builder.AddDrawMeshPass(CUBE_T("Draw Axis"), drawAxisMeshInfos);
             }
 
             builder.EndRenderPass();
@@ -547,6 +472,23 @@ namespace cube
         SetMesh(nullptr, mMeshMetadata); // Load default mesh
 
         mDefaultMaterial = std::make_shared<Material>(CUBE_T("DefaultMaterial"));
+
+        {
+            Uint32 dummyValue = 0;
+            TextureResourceCreateInfo dummyTextureCreateInfo = {
+                .type = gapi::TextureType::Texture2D,
+                .format = gapi::ElementFormat::RGBA8_UNorm,
+                .width = 1,
+                .height = 1,
+                .data = BlobView(&dummyValue, sizeof(Uint32)),
+                .bytesPerElement = sizeof(Uint32),
+                .debugName = CUBE_T("DummyBlackTexture")
+            };
+            mDummyBlackTexture = std::make_shared<TextureResource>(dummyTextureCreateInfo);
+            dummyValue = 0xFFFFFFFF;
+            dummyTextureCreateInfo.debugName = CUBE_T("DummyWhiteTexture");
+            mDummyWhiteTexture = std::make_shared<TextureResource>(dummyTextureCreateInfo);
+        }
 
         {
             mXAxisModelMatrix = MatrixUtility::GetScale(4.0f, 0.2f, 0.2f) + MatrixUtility::GetTranslation_Add(2, 0, 0);
@@ -569,6 +511,8 @@ namespace cube
         mYAxisMaterial = nullptr;
         mXAxisMaterial = nullptr;
 
+        mDummyWhiteTexture = nullptr;
+        mDummyBlackTexture = nullptr;
         mDefaultMaterial = nullptr;
 
         mMaterials.clear();

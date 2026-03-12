@@ -7,6 +7,7 @@
 #include "GAPI_Texture.h"
 #include "Mesh.h"
 #include "Renderer.h"
+#include "RenderGraph.h"
 #include "Shader.h"
 #include "Texture.h"
 
@@ -78,48 +79,67 @@ namespace cube
         mSamplerId = samplerId;
     }
 
-    SharedPtr<MaterialShaderParameters> Material::GenerateShaderParameters(gapi::CommandList& commandList) const
+    RGShaderParametersHandle<MaterialShaderParameters> Material::GenerateShaderParameters(RGBuilder& builder) const
     {
-        ShaderParametersManager& shaderParametersManager = Engine::GetRenderer()->GetShaderParametersManager();
+        RGShaderParametersHandle<MaterialShaderParameters> parameters = builder.CreateShaderParameters<MaterialShaderParameters>();
 
-        SharedPtr<MaterialShaderParameters> parameters = shaderParametersManager.CreateShaderParameters<MaterialShaderParameters>();
-
-        parameters->baseColor = mConstantBaseColor;
-        parameters->diffuseColor = mConstantDiffuseColor;
-        parameters->specularColor = mConstantSpecularColor;
-        parameters->shininess = mConstantShininess;
+        parameters->Get()->baseColor = mConstantBaseColor;
+        parameters->Get()->diffuseColor = mConstantDiffuseColor;
+        parameters->Get()->specularColor = mConstantSpecularColor;
+        parameters->Get()->shininess = mConstantShininess;
         if (mTextures[0])
         {
-            parameters->textureSlot0.textureId = mTextures[0]->GetDefaultSRV()->GetBindlessId();
-            parameters->textureSlot0.samplerId = mSamplerId;
-            commandList.UseResource(mTextures[0]->GetDefaultSRV());
+            RGTextureHandle texture = builder.RegisterTexture(mTextures[0]->GetGAPITexture());
+            RGTextureSRVHandle srv = builder.CreateSRV(texture);
+            parameters->Get()->textureSlot0 = srv;
+        }
+        else
+        {
+            parameters->Get()->textureSlot0 = builder.GetDummyBlackTexture();
         }
         if (mTextures[1])
         {
-            parameters->textureSlot1.textureId = mTextures[1]->GetDefaultSRV()->GetBindlessId();
-            parameters->textureSlot1.samplerId = mSamplerId;
-            commandList.UseResource(mTextures[1]->GetDefaultSRV());
+            RGTextureHandle texture = builder.RegisterTexture(mTextures[1]->GetGAPITexture());
+            RGTextureSRVHandle srv = builder.CreateSRV(texture);
+            parameters->Get()->textureSlot1 = srv;
+        }
+        else
+        {
+            parameters->Get()->textureSlot1 = builder.GetDummyBlackTexture();
         }
         if (mTextures[2])
         {
-            parameters->textureSlot2.textureId = mTextures[2]->GetDefaultSRV()->GetBindlessId();
-            parameters->textureSlot2.samplerId = mSamplerId;
-            commandList.UseResource(mTextures[2]->GetDefaultSRV());
+            RGTextureHandle texture = builder.RegisterTexture(mTextures[2]->GetGAPITexture());
+            RGTextureSRVHandle srv = builder.CreateSRV(texture);
+            parameters->Get()->textureSlot2 = srv;
+        }
+        else
+        {
+            parameters->Get()->textureSlot2 = builder.GetDummyBlackTexture();
         }
         if (mTextures[3])
         {
-            parameters->textureSlot3.textureId = mTextures[3]->GetDefaultSRV()->GetBindlessId();
-            parameters->textureSlot3.samplerId = mSamplerId;
-            commandList.UseResource(mTextures[3]->GetDefaultSRV());
+            RGTextureHandle texture = builder.RegisterTexture(mTextures[3]->GetGAPITexture());
+            RGTextureSRVHandle srv = builder.CreateSRV(texture);
+            parameters->Get()->textureSlot3 = srv;
+        }
+        else
+        {
+            parameters->Get()->textureSlot3 = builder.GetDummyBlackTexture();
         }
         if (mTextures[4])
         {
-            parameters->textureSlot4.textureId = mTextures[4]->GetDefaultSRV()->GetBindlessId();
-            parameters->textureSlot4.samplerId = mSamplerId;
-            commandList.UseResource(mTextures[4]->GetDefaultSRV());
+            RGTextureHandle texture = builder.RegisterTexture(mTextures[4]->GetGAPITexture());
+            RGTextureSRVHandle srv = builder.CreateSRV(texture);
+            parameters->Get()->textureSlot4 = srv;
         }
+        else
+        {
+            parameters->Get()->textureSlot4 = builder.GetDummyBlackTexture();
+        }
+        parameters->Get()->materialSampler.id = mSamplerId;
 
-        parameters->WriteAllParametersToBuffer();
+        parameters->Get()->WriteAllParametersToGPUBuffer();
 
         return parameters;
     }
@@ -156,7 +176,7 @@ namespace cube
 
         // Generate material shader codes
         FrameString getMaterialShaderCode = Format<FrameString>(
-            CUBE_T("MaterialValue GetMaterialValue(MaterialData_CB materialData, PSInput input)\n")
+            CUBE_T("MaterialValue GetMaterialValue(MaterialShaderParameters materialData, PSInput input)\n")
             CUBE_T("{{\n")
             CUBE_T("    MaterialValue value = {{}};\n")
             CUBE_T("\n")

@@ -7,21 +7,27 @@
 #include "GAPI.h"
 #include "GAPI_CommandList.h"
 #include "GAPI_Pipeline.h"
-#include "RenderGraph.h"
+#include "Renderer/RenderGraph.h"
+#include "Renderer/RenderGraphTypes.h"
 #include "Renderer.h"
 #include "Shader.h"
 #include "Texture.h"
 
 namespace cube
 {
-    void TextureManager::Initialize(GAPI* gapi, Uint32 numGPUSync, ShaderManager& shaderManager)
+    TextureManager::TextureManager(Renderer& renderer)
+        : mRenderer(renderer)
+    {
+    }
+
+    void TextureManager::Initialize(GAPI* gapi, Uint32 numGPUSync)
     {
         mGAPI = gapi;
 
         {
             platform::FilePath shaderFilePath = Engine::GetShaderDirectoryPath() / CUBE_T("GenerateMipmaps.slang");
         
-            mGenerateMipmapsShader = shaderManager.CreateShader({
+            mGenerateMipmapsShader = mRenderer.GetShaderManager().CreateShader({
                 .type = gapi::ShaderType::Compute,
                 .language = gapi::ShaderLanguage::Slang,
                 .filePaths = { &shaderFilePath, 1 },
@@ -30,7 +36,7 @@ namespace cube
             });
             CHECK(mGenerateMipmapsShader);
         
-            mGenerateMipmapsPipeline = shaderManager.CreateComputePipeline({
+            mGenerateMipmapsPipeline = mRenderer.GetShaderManager().CreateComputePipeline({
                 .shader = mGenerateMipmapsShader,
                 .debugName = CUBE_T("GenerateMipmapsComputePipeline")
             });
@@ -58,7 +64,7 @@ namespace cube
             return;
         }
 
-        RGBuilder builder;
+        RGBuilder builder(mRenderer);
         {
             RG_GPU_EVENT_SCOPE(builder, CUBE_T("GenerateMipmaps"));
 
@@ -66,44 +72,27 @@ namespace cube
             Uint32 height = texture->GetHeight();
             Uint32 mipLevels = texture->GetMipLevels();
 
-            RGTexture* rgTexture = builder.RegisterTexture(texture);
+            RGTextureHandle rgTexture = builder.RegisterTexture(texture);
 
             for (Uint32 mipIndex = 1; mipIndex < mipLevels; ++mipIndex)
             {
                 width = std::max(1u, width >> 1);
                 height = std::max(1u, height >> 1);
 
-                RGTextureSRV* srcSRV = builder.CreateSRV(rgTexture, mipIndex - 1);
-                RGTextureUAV* dstUAV = builder.CreateUAV(rgTexture, mipIndex);
+                RGTextureSRVHandle srcSRV = builder.CreateSRV(rgTexture, mipIndex - 1, 1);
+                RGTextureUAVHandle dstUAV = builder.CreateUAV(rgTexture, mipIndex);
+
+                RGShaderParametersHandle<GenerateMipmapsShaderParameters> params = builder.CreateShaderParameters<GenerateMipmapsShaderParameters>();
+                params->Get()->srcTexture = srcSRV;
+                params->Get()->dstTexture = dstUAV;
+                params->Get()->WriteAllParametersToGPUBuffer();
 
                 builder.AddPass(Format<FrameString>(CUBE_T("GenerateMipmaps ({0}->{1})"), mipIndex - 1, mipIndex),
-                [pipeline = mGenerateMipmapsPipeline, width, height, srcSRV, dstUAV](gapi::CommandList& commandList)
+                mGenerateMipmapsPipeline,
+                params,
+                [width, height](gapi::CommandList& commandList)
                 {
-                    ShaderParametersManager& shaderParametersManager = Engine::GetRenderer()->GetShaderParametersManager();
-                    SharedPtr<GenerateMipmapsShaderParameters> parameters = shaderParametersManager.CreateShaderParameters<GenerateMipmapsShaderParameters>();
-
-                    SharedPtr<gapi::TextureSRV> src = srcSRV->GetSRV();
-                    SharedPtr<gapi::TextureUAV> dst = dstUAV->GetUAV();
-
-                    parameters->srcTexture.id = src->GetBindlessId();
-                    parameters->dstTexture.id = dst->GetBindlessId();
-                    parameters->WriteAllParametersToBuffer();
-
-                    commandList.SetComputePipeline(pipeline->GetGAPIComputePipeline());
-
-                    // TODO: Move to RenderGraph in the future. Currently UseResource should be called
-                    // after set compute piepline.
-                    commandList.UseResource(src);
-                    commandList.UseResource(dst);
-
-                    commandList.SetShaderVariableConstantBuffer(0, parameters->GetBuffer());
-
                     commandList.DispatchThreads(width, height, 1);
-                },
-                [srcSRV, dstUAV](RGBuilder& builder)
-                {
-                    builder.UseResource(srcSRV);
-                    builder.UseResource(dstUAV);
                 });
             }
         }

@@ -15,7 +15,7 @@ namespace cube
             virtual ~MetalShaderParameterHelper();
 
             virtual void UpdateShaderParameterInfo(Vector<ShaderParameterInfo>& inOutParameterInfos, Uint32& outTotalBufferSize) const override;
-            virtual void WriteParametersToBuffer(SharedPtr<Buffer> buffer, const Vector<ShaderParameterInfo>& paramInfos, const void* pParameters) const override;
+            virtual void WriteParametersToGPUBuffer(SharedPtr<Buffer> buffer, const Vector<ShaderParameterInfo>& paramInfos, const void* pParameters) const override;
         };
     } // namespace gapi
 } // namespace cube
