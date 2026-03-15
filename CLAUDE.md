@@ -109,7 +109,6 @@ Test mode (`--test`) enables automatic testing by modifying platform behavior:
 - **No shutdown wait**: Skips "press any key" prompts on shutdown.
 
 ## Git Commit Conventions
-- Always use `--no-gpg-sign` flag
 - Always prefix commit message with `AGENT: `
 
 ## Other Coding Conventions
