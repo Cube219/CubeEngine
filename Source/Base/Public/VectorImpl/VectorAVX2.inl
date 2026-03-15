@@ -4,46 +4,6 @@
 
 namespace cube
 {
-    // Helper functions
-    namespace AVX2
-    {
-        namespace internal
-        {
-            template <int N>
-            inline __m128 GetSum(__m128 data)
-            {
-                if constexpr (N == 2)
-                {
-                    // data = x / y / ? / ?
-
-                    // hadd: (x+y, ?+?, x+y, ?+?) -- element 0 = x+y
-                    return _mm_hadd_ps(data, data);
-                }
-                if constexpr (N == 3)
-                {
-                    // data = x / y / z / ?
-
-                    // tmp = y / z / x / ?
-                    __m128 tmp = _mm_shuffle_ps(data, data, _MM_SHUFFLE(0, 0, 2, 1));
-                    // tmp2 = z / x / y / ?
-                    __m128 tmp2 = _mm_shuffle_ps(data, data, _MM_SHUFFLE(0, 1, 0, 2));
-                    // x+y+z / x+y+z / x+y+z / ?
-                    return _mm_add_ps(_mm_add_ps(data, tmp), tmp2);
-                }
-                if constexpr (N == 4)
-                {
-                    // data = x / y / z / w
-
-                    // hadd: (x+y, z+w, x+y, z+w)
-                    __m128 tmp = _mm_hadd_ps(data, data);
-                    // hadd: (x+y+z+w, x+y+z+w, x+y+z+w, x+y+z+w)
-                    return _mm_hadd_ps(tmp, tmp);
-                }
-                return {};
-            }
-        } // namespace internal
-    } // namespace AVX2
-
     template <int N>
     inline VectorBase<N> VectorBase<N>::Zero()
     {
@@ -104,11 +64,9 @@ namespace cube
             if constexpr (M == 3)
             {
                 // 3->4
-                __m128 tmp;
-                // tmp = z / z / 0 / 0
-                tmp = _mm_shuffle_ps(other.mData, zero, _MM_SHUFFLE(0, 0, 2, 2));
-                // mData = x / y / z / 0
-                mData = _mm_shuffle_ps(other.mData, tmp, _MM_SHUFFLE(2, 0, 1, 0));
+                __m128 v;
+                v = _mm_shuffle_ps(other.mData, zero, _MM_SHUFFLE(0, 0, 2, 2));  // (z, z, 0, 0)
+                mData = _mm_shuffle_ps(other.mData, v, _MM_SHUFFLE(2, 0, 1, 0)); // (x, y, z, 0)
             }
         }
     }
@@ -357,9 +315,18 @@ namespace cube
     inline float VectorBase<N>::SquareLength() const
     {
         __m128 res;
-        if constexpr (N == 2) { res = _mm_dp_ps(mData, mData, 0x31); }
-        if constexpr (N == 3) { res = _mm_dp_ps(mData, mData, 0x71); }
-        if constexpr (N == 4) { res = _mm_dp_ps(mData, mData, 0xF1); }
+        if constexpr (N == 2)
+        {
+            res = _mm_dp_ps(mData, mData, 0x31);
+        }
+        if constexpr (N == 3)
+        {
+            res = _mm_dp_ps(mData, mData, 0x71);
+        }
+        if constexpr (N == 4)
+        {
+            res = _mm_dp_ps(mData, mData, 0xF1);
+        }
         float f;
         _mm_store_ss(&f, res);
 
@@ -370,9 +337,18 @@ namespace cube
     inline VectorBase<N> VectorBase<N>::LengthV() const
     {
         VectorBase r;
-        if constexpr (N == 2) { r.mData = _mm_sqrt_ps(_mm_dp_ps(mData, mData, 0x3F)); }
-        if constexpr (N == 3) { r.mData = _mm_sqrt_ps(_mm_dp_ps(mData, mData, 0x7F)); }
-        if constexpr (N == 4) { r.mData = _mm_sqrt_ps(_mm_dp_ps(mData, mData, 0xFF)); }
+        if constexpr (N == 2)
+        {
+            r.mData = _mm_sqrt_ps(_mm_dp_ps(mData, mData, 0x3F));
+        }
+        if constexpr (N == 3)
+        {
+            r.mData = _mm_sqrt_ps(_mm_dp_ps(mData, mData, 0x7F));
+        }
+        if constexpr (N == 4)
+        {
+            r.mData = _mm_sqrt_ps(_mm_dp_ps(mData, mData, 0xFF));
+        }
 
         return r;
     }
@@ -381,9 +357,18 @@ namespace cube
     inline VectorBase<N> VectorBase<N>::SquareLengthV() const
     {
         VectorBase r;
-        if constexpr (N == 2) { r.mData = _mm_dp_ps(mData, mData, 0x3F); }
-        if constexpr (N == 3) { r.mData = _mm_dp_ps(mData, mData, 0x7F); }
-        if constexpr (N == 4) { r.mData = _mm_dp_ps(mData, mData, 0xFF); }
+        if constexpr (N == 2)
+        {
+            r.mData = _mm_dp_ps(mData, mData, 0x3F);
+        }
+        if constexpr (N == 3)
+        {
+            r.mData = _mm_dp_ps(mData, mData, 0x7F);
+        }
+        if constexpr (N == 4)
+        {
+            r.mData = _mm_dp_ps(mData, mData, 0xFF);
+        }
 
         return r;
     }
@@ -392,9 +377,18 @@ namespace cube
     inline void VectorBase<N>::Normalize()
     {
         __m128 squareLen;
-        if constexpr (N == 2) { squareLen = _mm_dp_ps(mData, mData, 0x3F); }
-        if constexpr (N == 3) { squareLen = _mm_dp_ps(mData, mData, 0x7F); }
-        if constexpr (N == 4) { squareLen = _mm_dp_ps(mData, mData, 0xFF); }
+        if constexpr (N == 2)
+        {
+            squareLen = _mm_dp_ps(mData, mData, 0x3F);
+        }
+        if constexpr (N == 3)
+        {
+            squareLen = _mm_dp_ps(mData, mData, 0x7F);
+        }
+        if constexpr (N == 4)
+        {
+            squareLen = _mm_dp_ps(mData, mData, 0xFF);
+        }
 
         // Reciprocal sqrt estimate + two Newton-Raphson refinement steps using FMA
         __m128 rsqrt = _mm_rsqrt_ps(squareLen);
@@ -426,9 +420,18 @@ namespace cube
     inline float VectorBase<N>::Dot(const VectorBase& rhs) const
     {
         __m128 res;
-        if constexpr (N == 2) { res = _mm_dp_ps(mData, rhs.mData, 0x31); }
-        if constexpr (N == 3) { res = _mm_dp_ps(mData, rhs.mData, 0x71); }
-        if constexpr (N == 4) { res = _mm_dp_ps(mData, rhs.mData, 0xF1); }
+        if constexpr (N == 2)
+        {
+            res = _mm_dp_ps(mData, rhs.mData, 0x31);
+        }
+        if constexpr (N == 3)
+        {
+            res = _mm_dp_ps(mData, rhs.mData, 0x71);
+        }
+        if constexpr (N == 4)
+        {
+            res = _mm_dp_ps(mData, rhs.mData, 0xF1);
+        }
         float f;
         _mm_store_ss(&f, res);
 
@@ -445,9 +448,18 @@ namespace cube
     inline VectorBase<N> VectorBase<N>::DotV(const VectorBase& rhs) const
     {
         VectorBase r;
-        if constexpr (N == 2) { r.mData = _mm_dp_ps(mData, rhs.mData, 0x3F); }
-        if constexpr (N == 3) { r.mData = _mm_dp_ps(mData, rhs.mData, 0x7F); }
-        if constexpr (N == 4) { r.mData = _mm_dp_ps(mData, rhs.mData, 0xFF); }
+        if constexpr (N == 2)
+        {
+            r.mData = _mm_dp_ps(mData, rhs.mData, 0x3F);
+        }
+        if constexpr (N == 3)
+        {
+            r.mData = _mm_dp_ps(mData, rhs.mData, 0x7F);
+        }
+        if constexpr (N == 4)
+        {
+            r.mData = _mm_dp_ps(mData, rhs.mData, 0xFF);
+        }
 
         return r;
     }
@@ -465,18 +477,14 @@ namespace cube
 
         VectorBase res;
 
-        // y1 / z1 / x1 / ??
-        __m128 l1 = _mm_shuffle_ps(mData, mData, _MM_SHUFFLE(0, 0, 2, 1));
-        // z2 / x2 / y2 / ??
-        __m128 r1 = _mm_shuffle_ps(rhs.mData, rhs.mData, _MM_SHUFFLE(0, 1, 0, 2));
+        __m128 l1 = _mm_shuffle_ps(mData, mData, _MM_SHUFFLE(0, 0, 2, 1)); // (y1, z1, x1, ?)
+        __m128 l2 = _mm_shuffle_ps(mData, mData, _MM_SHUFFLE(0, 1, 0, 2)); // (z1, x1, y1, ?)
 
-        // z1 / x1 / y1 / ??
-        __m128 l2 = _mm_shuffle_ps(mData, mData, _MM_SHUFFLE(0, 1, 0, 2));
-        // y2 / z2 / x2 / ??
-        __m128 r2 = _mm_shuffle_ps(rhs.mData, rhs.mData, _MM_SHUFFLE(0, 0, 2, 1));
+        __m128 r1 = _mm_shuffle_ps(rhs.mData, rhs.mData, _MM_SHUFFLE(0, 0, 2, 1)); // (y2, z2, x2, ?)
+        __m128 r2 = _mm_shuffle_ps(rhs.mData, rhs.mData, _MM_SHUFFLE(0, 1, 0, 2)); // (z2, x2, y2, ?)
 
-        // (l1*r1) - (l2*r2) = fnmadd(l2, r2, l1*r1)
-        res.mData = _mm_fnmadd_ps(l2, r2, _mm_mul_ps(l1, r1));
+        // (l1*r2) - (l2*r1)
+        res.mData = _mm_fnmadd_ps(l2, r1, _mm_mul_ps(l1, r2));
 
         return res;
     }

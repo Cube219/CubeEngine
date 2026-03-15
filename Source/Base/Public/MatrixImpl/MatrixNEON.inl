@@ -364,7 +364,8 @@ namespace cube
         float32x4_t c2 = mRows[2].mData;
         float32x4_t c3 = mRows[3].mData;
 
-        // Swap first two args for odd columns to negate signs
+        // Lambda bakes in (+,-,+,-) sign pattern.
+        // Swapping first two args negates the result, giving (-,+,-,+) for cof1/cof3.
         float32x4_t cof0 = CalculateSignedColCofactor(c1, c2, c3);
         float32x4_t cof1 = CalculateSignedColCofactor(c2, c0, c3);
         float32x4_t cof2 = CalculateSignedColCofactor(c0, c1, c3);

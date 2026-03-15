@@ -215,20 +215,30 @@ namespace cube
     inline Vector4 Matrix::GetCol(int index) const
     {
         Vector4 col;
-
-        __m128 t0 = mRows[0].mData;
-        __m128 t1 = mRows[1].mData;
-        __m128 t2 = mRows[2].mData;
-        __m128 t3 = mRows[3].mData;
-
-        _MM_TRANSPOSE4_PS(t0, t1, t2, t3);
+        __m128 lo, hi;
 
         switch (index)
         {
-        case 0: col.mData = t0; break;
-        case 1: col.mData = t1; break;
-        case 2: col.mData = t2; break;
-        case 3: col.mData = t3; break;
+        case 0:
+            lo = _mm_shuffle_ps(mRows[0].mData, mRows[1].mData, _MM_SHUFFLE(0, 0, 0, 0));
+            hi = _mm_shuffle_ps(mRows[2].mData, mRows[3].mData, _MM_SHUFFLE(0, 0, 0, 0));
+            col.mData = _mm_shuffle_ps(lo, hi, _MM_SHUFFLE(2, 0, 2, 0));
+            break;
+        case 1:
+            lo = _mm_shuffle_ps(mRows[0].mData, mRows[1].mData, _MM_SHUFFLE(1, 1, 1, 1));
+            hi = _mm_shuffle_ps(mRows[2].mData, mRows[3].mData, _MM_SHUFFLE(1, 1, 1, 1));
+            col.mData = _mm_shuffle_ps(lo, hi, _MM_SHUFFLE(2, 0, 2, 0));
+            break;
+        case 2:
+            lo = _mm_shuffle_ps(mRows[0].mData, mRows[1].mData, _MM_SHUFFLE(2, 2, 2, 2));
+            hi = _mm_shuffle_ps(mRows[2].mData, mRows[3].mData, _MM_SHUFFLE(2, 2, 2, 2));
+            col.mData = _mm_shuffle_ps(lo, hi, _MM_SHUFFLE(2, 0, 2, 0));
+            break;
+        case 3:
+            lo = _mm_shuffle_ps(mRows[0].mData, mRows[1].mData, _MM_SHUFFLE(3, 3, 3, 3));
+            hi = _mm_shuffle_ps(mRows[2].mData, mRows[3].mData, _MM_SHUFFLE(3, 3, 3, 3));
+            col.mData = _mm_shuffle_ps(lo, hi, _MM_SHUFFLE(2, 0, 2, 0));
+            break;
         }
 
         return col;
@@ -241,88 +251,34 @@ namespace cube
 
     inline void Matrix::SetCol(int index, const Vector4& col)
     {
-        __m128 t;
-
-        if (index == 0)
+        switch (index)
         {
-            mRows[0].mData = _mm_move_ss(mRows[0].mData, col.mData);
-            mRows[1].mData = _mm_move_ss(mRows[1].mData, col.mData);
-            mRows[2].mData = _mm_move_ss(mRows[2].mData, col.mData);
-            mRows[3].mData = _mm_move_ss(mRows[3].mData, col.mData);
-
+        case 0:
+            mRows[0].mData = _mm_insert_ps(mRows[0].mData, col.mData, 0b00'00'0000);
+            mRows[1].mData = _mm_insert_ps(mRows[1].mData, col.mData, 0b01'00'0000);
+            mRows[2].mData = _mm_insert_ps(mRows[2].mData, col.mData, 0b10'00'0000);
+            mRows[3].mData = _mm_insert_ps(mRows[3].mData, col.mData, 0b11'00'0000);
             return;
-        }
-
-        // row 0
-        t = _mm_shuffle_ps(col.mData, col.mData, _MM_SHUFFLE(0, 0, 0, 0));
-        switch (index)
-        {
         case 1:
-            t = _mm_shuffle_ps(mRows[0].mData, t, _MM_SHUFFLE(0, 0, 0, 0));
-            mRows[0].mData = _mm_shuffle_ps(t, mRows[0].mData, _MM_SHUFFLE(3, 2, 2, 1));
-            break;
+            mRows[0].mData = _mm_insert_ps(mRows[0].mData, col.mData, 0b00'01'0000);
+            mRows[1].mData = _mm_insert_ps(mRows[1].mData, col.mData, 0b01'01'0000);
+            mRows[2].mData = _mm_insert_ps(mRows[2].mData, col.mData, 0b10'01'0000);
+            mRows[3].mData = _mm_insert_ps(mRows[3].mData, col.mData, 0b11'01'0000);
+            return;
         case 2:
-            t = _mm_shuffle_ps(t, mRows[0].mData, _MM_SHUFFLE(3, 3, 0, 0));
-            mRows[0].mData = _mm_shuffle_ps(mRows[0].mData, t, _MM_SHUFFLE(2, 1, 1, 0));
-            break;
+            mRows[0].mData = _mm_insert_ps(mRows[0].mData, col.mData, 0b00'10'0000);
+            mRows[1].mData = _mm_insert_ps(mRows[1].mData, col.mData, 0b01'10'0000);
+            mRows[2].mData = _mm_insert_ps(mRows[2].mData, col.mData, 0b10'10'0000);
+            mRows[3].mData = _mm_insert_ps(mRows[3].mData, col.mData, 0b11'10'0000);
+            return;
         case 3:
-            t = _mm_shuffle_ps(mRows[0].mData, t, _MM_SHUFFLE(0, 0, 2, 2));
-            mRows[0].mData = _mm_shuffle_ps(mRows[0].mData, t, _MM_SHUFFLE(2, 1, 1, 0));
-            break;
-        }
-
-        // row 1
-        t = _mm_shuffle_ps(col.mData, col.mData, _MM_SHUFFLE(1, 1, 1, 1));
-        switch (index)
-        {
-        case 1:
-            t = _mm_shuffle_ps(mRows[1].mData, t, _MM_SHUFFLE(0, 0, 0, 0));
-            mRows[1].mData = _mm_shuffle_ps(t, mRows[1].mData, _MM_SHUFFLE(3, 2, 2, 1));
-            break;
-        case 2:
-            t = _mm_shuffle_ps(t, mRows[1].mData, _MM_SHUFFLE(3, 3, 0, 0));
-            mRows[1].mData = _mm_shuffle_ps(mRows[1].mData, t, _MM_SHUFFLE(2, 1, 1, 0));
-            break;
-        case 3:
-            t = _mm_shuffle_ps(mRows[1].mData, t, _MM_SHUFFLE(0, 0, 2, 2));
-            mRows[1].mData = _mm_shuffle_ps(mRows[1].mData, t, _MM_SHUFFLE(2, 1, 1, 0));
-            break;
-        }
-
-        // row 2
-        t = _mm_shuffle_ps(col.mData, col.mData, _MM_SHUFFLE(2, 2, 2, 2));
-        switch (index)
-        {
-        case 1:
-            t = _mm_shuffle_ps(mRows[2].mData, t, _MM_SHUFFLE(0, 0, 0, 0));
-            mRows[2].mData = _mm_shuffle_ps(t, mRows[2].mData, _MM_SHUFFLE(3, 2, 2, 1));
-            break;
-        case 2:
-            t = _mm_shuffle_ps(t, mRows[2].mData, _MM_SHUFFLE(3, 3, 0, 0));
-            mRows[2].mData = _mm_shuffle_ps(mRows[2].mData, t, _MM_SHUFFLE(2, 1, 1, 0));
-            break;
-        case 3:
-            t = _mm_shuffle_ps(mRows[2].mData, t, _MM_SHUFFLE(0, 0, 2, 2));
-            mRows[2].mData = _mm_shuffle_ps(mRows[2].mData, t, _MM_SHUFFLE(2, 1, 1, 0));
-            break;
-        }
-
-        // row 3
-        t = _mm_shuffle_ps(col.mData, col.mData, _MM_SHUFFLE(3, 3, 3, 3));
-        switch (index)
-        {
-        case 1:
-            t = _mm_shuffle_ps(mRows[3].mData, t, _MM_SHUFFLE(0, 0, 0, 0));
-            mRows[3].mData = _mm_shuffle_ps(t, mRows[3].mData, _MM_SHUFFLE(3, 2, 2, 1));
-            break;
-        case 2:
-            t = _mm_shuffle_ps(t, mRows[3].mData, _MM_SHUFFLE(3, 3, 0, 0));
-            mRows[3].mData = _mm_shuffle_ps(mRows[3].mData, t, _MM_SHUFFLE(2, 1, 1, 0));
-            break;
-        case 3:
-            t = _mm_shuffle_ps(mRows[3].mData, t, _MM_SHUFFLE(0, 0, 2, 2));
-            mRows[3].mData = _mm_shuffle_ps(mRows[3].mData, t, _MM_SHUFFLE(2, 1, 1, 0));
-            break;
+            mRows[0].mData = _mm_insert_ps(mRows[0].mData, col.mData, 0b00'11'0000);
+            mRows[1].mData = _mm_insert_ps(mRows[1].mData, col.mData, 0b01'11'0000);
+            mRows[2].mData = _mm_insert_ps(mRows[2].mData, col.mData, 0b10'11'0000);
+            mRows[3].mData = _mm_insert_ps(mRows[3].mData, col.mData, 0b11'11'0000);
+            return;
+        default:
+            return;
         }
     }
 
@@ -411,14 +367,14 @@ namespace cube
         __m128 c2 = mRows[2].mData;
         __m128 c3 = mRows[3].mData;
 
-        // Swap first two args for odd columns to negate signs
+        // Lambda bakes in (+,-,+,-) sign pattern.
+        // Swapping first two args negates the result, giving (-,+,-,+) for cof1/cof3.
         __m128 cof0 = CalculateSignedColCofactor(c1, c2, c3);
         __m128 cof1 = CalculateSignedColCofactor(c2, c0, c3);
         __m128 cof2 = CalculateSignedColCofactor(c0, c1, c3);
         __m128 cof3 = CalculateSignedColCofactor(c1, c0, c2);
 
-        __m128 det = _mm_mul_ps(c0, cof0);
-        det = AVX2::internal::GetSum<4>(det);
+        __m128 det = _mm_dp_ps(c0, cof0, 0xFF);
         __m128 invDet = _mm_div_ps(_mm_set1_ps(1.0f), det);
 
         mRows[0].mData = _mm_mul_ps(cof0, invDet);

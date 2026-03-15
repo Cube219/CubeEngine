@@ -5,7 +5,7 @@ project(CubeEngine)
 # Options
 option(CUBE_GAPI_ENABLE_DX12 "GraphicsAPI - Enable DirectX12" ON)
 option(CUBE_GAPI_ENABLE_METAL "GraphicsAPI - Enable Metal" ON)
-option(CUBE_ENABLE_AVX2 "Enable AVX2 SIMD optimizations (requires Haswell+ CPU)" OFF)
+option(CUBE_ENABLE_AVX2 "Enable AVX2 SIMD optimizations (requires Haswell+ CPU)" ON)
 
 # Sets
 set (DEPENDENCIES_DIR ${PROJECT_SOURCE_DIR}/Dependencies)
