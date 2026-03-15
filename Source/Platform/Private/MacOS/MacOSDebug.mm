@@ -57,13 +57,15 @@ namespace cube
     namespace platform
     {
         CubeLoggerWindow* MacOSDebug::mLoggerWindow;
-        CubeLoggerWindowDelegate* MacOSDebug::mLoggerWindowDelegaate;
+        CubeLoggerWindowDelegate* MacOSDebug::mLoggerWindowDelegate;
         CubeLoggerTextView* MacOSDebug::mLoggerTextView;
 
         bool MacOSDebug::mIsLoggerWindowCreated = false;
 
-        bool MacOSDebug::mIsDebugBreakSetInDebugMessageAlert = false;
-        bool MacOSDebug::mIsForceTerminationSetInDebugMessageAlert = false;
+        bool MacOSDebug::mIsDebugBreakSetFromDebugMessageAlert = false;
+        bool MacOSDebug::mIsForceTerminationSetFromDebugMessageAlert = false;
+
+        bool MacOSDebug::mIsTestMode = false;
 
         void MacOSDebug::PrintToDebugConsole(StringView str, PrintColorCategory colorCategory)
         {
@@ -95,6 +97,13 @@ namespace cube
             {
                 // Sync to main thread to print messages in debug console.
                 MacOSUtility::DispatchToMainThreadAndWait([]() {});
+            }
+
+            if (mIsTestMode)
+            {
+                // Force terminate in test mode.
+                platform::MacOSPlatform::ForceTerminateMainLoopThread();
+                exit(3);
             }
         }
 
@@ -232,6 +241,12 @@ namespace cube
 
         bool MacOSDebug::IsDebuggerAttached()
         {
+            // Ignore debugger to continue the program.
+            if (mIsTestMode)
+            {
+                return false;
+            }
+
             // Set up the mib (Management Information Base)
             int mib[4];
             mib[0] = CTL_KERN;
@@ -251,6 +266,16 @@ namespace cube
 
             // Check for the P_TRACED flag, which indicates the process is being debugged
             return ((info.kp_proc.p_flag & P_TRACED) != 0);
+        }
+
+        void MacOSDebug::SetTestMode(bool enable)
+        {
+            mIsTestMode = enable;
+        }
+
+        bool MacOSDebug::IsTestMode()
+        {
+            return mIsTestMode;
         }
 
         void MacOSDebug::CreateAndShowLoggerWindow()
@@ -280,8 +305,8 @@ namespace cube
 
             [[mLoggerWindow contentView] addSubview:scrollView];
 
-            mLoggerWindowDelegaate = [[CubeLoggerWindowDelegate alloc] init];
-            [mLoggerWindow setDelegate:mLoggerWindowDelegaate];
+            mLoggerWindowDelegate = [[CubeLoggerWindowDelegate alloc] init];
+            [mLoggerWindow setDelegate:mLoggerWindowDelegate];
 
             [mLoggerWindow makeKeyAndOrderFront:nil];
             mIsLoggerWindowCreated = true;
@@ -344,7 +369,7 @@ namespace cube
             {
                 [mLoggerTextView release];
                 [mLoggerWindow close];
-                [mLoggerWindowDelegaate release];
+                [mLoggerWindowDelegate release];
 
                 mIsLoggerWindowCreated = false;
             }
@@ -352,19 +377,24 @@ namespace cube
 
         void MacOSDebug::ShowDebugMessageAlert(StringView title, StringView msg)
         {
+            if (mIsTestMode)
+            {
+                return;
+            }
+
             MacOSUtility::DispatchToMainThreadAndWait([title, msg]() {
                 ShowDebugMessageAlert_MainThread(title, msg);
             });
             // Dispatch and wait to ensure the alert modal is closed.
             MacOSUtility::DispatchToMainThreadAndWait([]() {});
 
-            if (mIsDebugBreakSetInDebugMessageAlert)
+            if (mIsDebugBreakSetFromDebugMessageAlert)
             {
-                mIsDebugBreakSetInDebugMessageAlert = false;
+                mIsDebugBreakSetFromDebugMessageAlert = false;
                 CUBE_DEBUG_BREAK
             }
 
-            if (mIsForceTerminationSetInDebugMessageAlert)
+            if (mIsForceTerminationSetFromDebugMessageAlert)
             {
                 platform::MacOSPlatform::ForceTerminateMainLoopThread();
                 exit(3);
@@ -410,12 +440,12 @@ namespace cube
                 switch (response)
                 {
                 case NSAlertFirstButtonReturn: // Exit
-                    mIsForceTerminationSetInDebugMessageAlert = true;
+                    mIsForceTerminationSetFromDebugMessageAlert = true;
                     break;
                 case NSAlertSecondButtonReturn: // Ignore
                     break;
                 case NSAlertThirdButtonReturn: // Debug
-                    mIsDebugBreakSetInDebugMessageAlert = true;
+                    mIsDebugBreakSetFromDebugMessageAlert = true;
                     break;
                 default:
                     break;

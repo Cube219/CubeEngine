@@ -44,18 +44,24 @@ namespace cube
         {
             // Show logger window in debug mode
 #ifdef CUBE_DEBUG
-            WindowsDebug::CreateAndShowLoggerWindow();
+            if (!WindowsDebug::IsTestMode())
+            {
+                WindowsDebug::CreateAndShowLoggerWindow();
+            }
 #endif // CUBE_DEBUG
         }
 
         void WindowsPlatform::Shutdown()
         {
 #ifdef CUBE_DEBUG
-            // Wait console input not to close console immediately
-            std::wcout << L"Press any key to close the window..." << std::endl;
+            if (!WindowsDebug::IsTestMode())
+            {
+                // Wait console input not to close console immediately
+                std::wcout << L"Press any key to close the window..." << std::endl;
 
-            FlushConsoleInputBuffer(GetStdHandle(STD_INPUT_HANDLE));
-            _getch();
+                FlushConsoleInputBuffer(GetStdHandle(STD_INPUT_HANDLE));
+                _getch();
+            }
 #endif // CUBE_DEBUG
         }
 
@@ -103,6 +109,12 @@ namespace cube
             );
 
             CHECK_FORMAT(mWindow, "Failed to create a window. (ErrorCode: {0})", GetLastError());
+
+            if (WindowsDebug::IsTestMode())
+            {
+                // Send window to the back without focus in test mode.
+                SetWindowPos(mWindow, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+            }
         }
 
         void WindowsPlatform::ChangeWindowTitle(StringView title)

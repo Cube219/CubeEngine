@@ -19,6 +19,8 @@ namespace cube
 {
     namespace platform
     {
+        bool WindowsDebug::mIsTestMode = false;
+
         void WindowsDebug::PrintToDebugConsole(StringView str, PrintColorCategory colorCategory)
         {
             // TODO: Use custom allocator (logger allocator?)
@@ -41,6 +43,12 @@ namespace cube
             {
                 // TODO: Use custom allocator (logger allocator?)
                 ShowDebugMessageBox(WINDOWS_T("Check failed"), String_Convert<WindowsString>(formattedMsg));
+            }
+
+            if (mIsTestMode)
+            {
+                // Force terminate in test mode.
+                exit(3);
             }
         }
 
@@ -153,7 +161,23 @@ namespace cube
 
         bool WindowsDebug::IsDebuggerAttached()
         {
+            // Ignore debugger to continue the program.
+            if (mIsTestMode)
+            {
+                return false;
+            }
+
             return IsDebuggerPresent();
+        }
+
+        void WindowsDebug::SetTestMode(bool enable)
+        {
+            mIsTestMode = enable;
+        }
+
+        bool WindowsDebug::IsTestMode()
+        {
+            return mIsTestMode;
         }
 
         void WindowsDebug::CreateAndShowLoggerWindow()
@@ -182,6 +206,11 @@ namespace cube
 
         void WindowsDebug::ShowDebugMessageBox(const WindowsString& title, const WindowsString& msg)
         {
+            if (mIsTestMode)
+            {
+                return;
+            }
+
             // TODO: Use custom allocator (logger allocator?)
             WindowsString winStr = Format<WindowsString>(WINDOWS_T("{0}\n\n(Press Retry to debug the application)"), msg);
 

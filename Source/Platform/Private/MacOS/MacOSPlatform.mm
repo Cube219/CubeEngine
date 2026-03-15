@@ -369,7 +369,10 @@ namespace cube
             CreateMainMenu();
 
 #if CUBE_DEBUG
-            MacOSDebug::CreateAndShowLoggerWindow();
+            if (!MacOSDebug::IsTestMode())
+            {
+                MacOSDebug::CreateAndShowLoggerWindow();
+            }
 #endif
             mMainLoopThread = std::thread(&MacOSPlatform::MainLoop);
 
@@ -394,7 +397,7 @@ namespace cube
 
                 [NSEvent removeMonitor:mModifierEventHandler];
 
-                if (MacOSDebug::IsLoggerWindowCreated())
+                if (!MacOSDebug::IsTestMode() && MacOSDebug::IsLoggerWindowCreated())
                 {
                     MacOSDebug::AppendLogText(@"Press any key to close the application...", PrintColorCategory::Default);
                 }
@@ -439,6 +442,11 @@ namespace cube
         {
             MacOSUtility::DispatchToMainThreadAndWait([&]{
                 [mWindow makeKeyAndOrderFront:nil];
+                if (MacOSDebug::IsTestMode())
+                {
+                    // Hide windows in test mode.
+                    [mWindow orderBack:nil];
+                }
             });
         }
 

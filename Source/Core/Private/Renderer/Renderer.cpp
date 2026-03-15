@@ -424,6 +424,7 @@ namespace cube
                 .storeOperation = gapi::StoreOperation::Store,
                 .clearDepth = 0.0f
             };
+
             mCommandList->BeginRenderPass({ &colorAttachment, 1 }, depthStencilAttachment);
 
             SharedPtr<GlobalShaderParameters> globalShaderParameters = mShaderParametersManager.CreateShaderParameters<GlobalShaderParameters>();

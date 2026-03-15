@@ -101,6 +101,13 @@ namespace cube
             GetMyThreadFrameAllocator().Initialize("Platform main thread frame allocator", 1 * 1024 * 1024); // 1 MiB
         }
 
+        ParseCommandLineArgs(initInfo.argc, initInfo.argv);
+
+        if (AnsiStringView testParam = GetCommandLineParam("test"); testParam == "1")
+        {
+            platform::Debug::SetTestMode(true);
+        }
+
         platform::Platform::Initialize();
 
         if (initInfo.runLoopInOtherThread && initInfo.isInMainThread)
@@ -108,8 +115,6 @@ namespace cube
             // Initialization logic was already executed in another loop thread.
             return;
         }
-
-        ParseCommandLineArgs(initInfo.argc, initInfo.argv);
 
         GetMyThreadFrameAllocator().Initialize("Main thread frame allocator", 100u * 1024 * 1024); // 100 MiB
 
