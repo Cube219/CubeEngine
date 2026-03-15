@@ -2,10 +2,13 @@ cmake_minimum_required(VERSION 3.19)
 
 set(PUBLIC_FILES
     Public/MatrixImpl/MatrixArray.inl
+    Public/MatrixImpl/MatrixAVX2.inl
     Public/MatrixImpl/MatrixSSE.inl
     Public/MatrixImpl/MatrixUtilityArray.inl
+    Public/MatrixImpl/MatrixUtilityAVX2.inl
     Public/MatrixImpl/MatrixUtilitySSE.inl
     Public/VectorImpl/VectorArray.inl
+    Public/VectorImpl/VectorAVX2.inl
     Public/VectorImpl/VectorSSE.inl
     Public/Async.h
     Public/Allocator.h

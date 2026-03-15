@@ -5,6 +5,7 @@ project(CubeEngine)
 # Options
 option(CUBE_GAPI_ENABLE_DX12 "GraphicsAPI - Enable DirectX12" ON)
 option(CUBE_GAPI_ENABLE_METAL "GraphicsAPI - Enable Metal" ON)
+option(CUBE_ENABLE_AVX2 "Enable AVX2 SIMD optimizations (requires Haswell+ CPU)" ON)
 
 # Sets
 set (DEPENDENCIES_DIR ${PROJECT_SOURCE_DIR}/Dependencies)
@@ -38,6 +39,12 @@ if(PLATFORM_WINDOWS)
 
     add_definitions(-D_UNICODE -DUNICODE -DNOMINMAX)
     add_compile_options(/utf-8)
+
+    if(CUBE_ENABLE_AVX2)
+        add_definitions(-DCUBE_VECTOR_USE_AVX2=1)
+        add_compile_options(/arch:AVX2)
+        message(STATUS "CubeEngine: AVX2 SIMD enabled")
+    endif()
 
     # Add natvis file
     list(APPEND GLOBAL_FILES

@@ -155,75 +155,49 @@ namespace cube
 
     inline Matrix& Matrix::operator*= (const Matrix& rhs)
     {
-        __m128 v0, v1, v2, v3;
+        // Broadcast each rhs row to 256-bit (same row in both lanes)
+        __m256 rhs0 = _mm256_set_m128(rhs.mRows[0].mData, rhs.mRows[0].mData);
+        __m256 rhs1 = _mm256_set_m128(rhs.mRows[1].mData, rhs.mRows[1].mData);
+        __m256 rhs2 = _mm256_set_m128(rhs.mRows[2].mData, rhs.mRows[2].mData);
+        __m256 rhs3 = _mm256_set_m128(rhs.mRows[3].mData, rhs.mRows[3].mData);
 
-        // Row 0
-        v3 = mRows[0].mData;
-        v0 = _mm_shuffle_ps(v3, v3, _MM_SHUFFLE(0, 0, 0, 0));
-        v1 = _mm_shuffle_ps(v3, v3, _MM_SHUFFLE(1, 1, 1, 1));
-        v2 = _mm_shuffle_ps(v3, v3, _MM_SHUFFLE(2, 2, 2, 2));
-        v3 = _mm_shuffle_ps(v3, v3, _MM_SHUFFLE(3, 3, 3, 3));
+        // Process rows 0 and 1 simultaneously
+        {
+            __m256 src = _mm256_set_m128(mRows[1].mData, mRows[0].mData);
 
-        v0 = _mm_mul_ps(v0, rhs.mRows[0].mData);
-        v1 = _mm_mul_ps(v1, rhs.mRows[1].mData);
-        v2 = _mm_mul_ps(v2, rhs.mRows[2].mData);
-        v3 = _mm_mul_ps(v3, rhs.mRows[3].mData);
+            // Broadcast each element within its 128-bit lane
+            __m256 e0 = _mm256_shuffle_ps(src, src, _MM_SHUFFLE(0, 0, 0, 0));
+            __m256 e1 = _mm256_shuffle_ps(src, src, _MM_SHUFFLE(1, 1, 1, 1));
+            __m256 e2 = _mm256_shuffle_ps(src, src, _MM_SHUFFLE(2, 2, 2, 2));
+            __m256 e3 = _mm256_shuffle_ps(src, src, _MM_SHUFFLE(3, 3, 3, 3));
 
-        v2 = _mm_add_ps(v2, v3);
-        v1 = _mm_add_ps(v1, v2);
-        v0 = _mm_add_ps(v0, v1);
-        mRows[0].mData = v0;
+            // FMA accumulation: e0*rhsRow0 + e1*rhsRow1 + e2*rhsRow2 + e3*rhsRow3
+            __m256 result = _mm256_mul_ps(e0, rhs0);
+            result = _mm256_fmadd_ps(e1, rhs1, result);
+            result = _mm256_fmadd_ps(e2, rhs2, result);
+            result = _mm256_fmadd_ps(e3, rhs3, result);
 
-        // Row 1
-        v3 = mRows[1].mData;
-        v0 = _mm_shuffle_ps(v3, v3, _MM_SHUFFLE(0, 0, 0, 0));
-        v1 = _mm_shuffle_ps(v3, v3, _MM_SHUFFLE(1, 1, 1, 1));
-        v2 = _mm_shuffle_ps(v3, v3, _MM_SHUFFLE(2, 2, 2, 2));
-        v3 = _mm_shuffle_ps(v3, v3, _MM_SHUFFLE(3, 3, 3, 3));
+            mRows[0].mData = _mm256_castps256_ps128(result);
+            mRows[1].mData = _mm256_extractf128_ps(result, 1);
+        }
 
-        v0 = _mm_mul_ps(v0, rhs.mRows[0].mData);
-        v1 = _mm_mul_ps(v1, rhs.mRows[1].mData);
-        v2 = _mm_mul_ps(v2, rhs.mRows[2].mData);
-        v3 = _mm_mul_ps(v3, rhs.mRows[3].mData);
+        // Process rows 2 and 3 simultaneously
+        {
+            __m256 src = _mm256_set_m128(mRows[3].mData, mRows[2].mData);
 
-        v2 = _mm_add_ps(v2, v3);
-        v1 = _mm_add_ps(v1, v2);
-        v0 = _mm_add_ps(v0, v1);
-        mRows[1].mData = v0;
+            __m256 e0 = _mm256_shuffle_ps(src, src, _MM_SHUFFLE(0, 0, 0, 0));
+            __m256 e1 = _mm256_shuffle_ps(src, src, _MM_SHUFFLE(1, 1, 1, 1));
+            __m256 e2 = _mm256_shuffle_ps(src, src, _MM_SHUFFLE(2, 2, 2, 2));
+            __m256 e3 = _mm256_shuffle_ps(src, src, _MM_SHUFFLE(3, 3, 3, 3));
 
-        // Row 2
-        v3 = mRows[2].mData;
-        v0 = _mm_shuffle_ps(v3, v3, _MM_SHUFFLE(0, 0, 0, 0));
-        v1 = _mm_shuffle_ps(v3, v3, _MM_SHUFFLE(1, 1, 1, 1));
-        v2 = _mm_shuffle_ps(v3, v3, _MM_SHUFFLE(2, 2, 2, 2));
-        v3 = _mm_shuffle_ps(v3, v3, _MM_SHUFFLE(3, 3, 3, 3));
+            __m256 result = _mm256_mul_ps(e0, rhs0);
+            result = _mm256_fmadd_ps(e1, rhs1, result);
+            result = _mm256_fmadd_ps(e2, rhs2, result);
+            result = _mm256_fmadd_ps(e3, rhs3, result);
 
-        v0 = _mm_mul_ps(v0, rhs.mRows[0].mData);
-        v1 = _mm_mul_ps(v1, rhs.mRows[1].mData);
-        v2 = _mm_mul_ps(v2, rhs.mRows[2].mData);
-        v3 = _mm_mul_ps(v3, rhs.mRows[3].mData);
-
-        v2 = _mm_add_ps(v2, v3);
-        v1 = _mm_add_ps(v1, v2);
-        v0 = _mm_add_ps(v0, v1);
-        mRows[2].mData = v0;
-
-        // Row 3
-        v3 = mRows[3].mData;
-        v0 = _mm_shuffle_ps(v3, v3, _MM_SHUFFLE(0, 0, 0, 0));
-        v1 = _mm_shuffle_ps(v3, v3, _MM_SHUFFLE(1, 1, 1, 1));
-        v2 = _mm_shuffle_ps(v3, v3, _MM_SHUFFLE(2, 2, 2, 2));
-        v3 = _mm_shuffle_ps(v3, v3, _MM_SHUFFLE(3, 3, 3, 3));
-
-        v0 = _mm_mul_ps(v0, rhs.mRows[0].mData);
-        v1 = _mm_mul_ps(v1, rhs.mRows[1].mData);
-        v2 = _mm_mul_ps(v2, rhs.mRows[2].mData);
-        v3 = _mm_mul_ps(v3, rhs.mRows[3].mData);
-
-        v2 = _mm_add_ps(v2, v3);
-        v1 = _mm_add_ps(v1, v2);
-        v0 = _mm_add_ps(v0, v1);
-        mRows[3].mData = v0;
+            mRows[2].mData = _mm256_castps256_ps128(result);
+            mRows[3].mData = _mm256_extractf128_ps(result, 1);
+        }
 
         return *this;
     }
@@ -342,7 +316,7 @@ namespace cube
                 __m128 l2 = _mm_shuffle_ps(c2, c2, _MM_SHUFFLE(1, 3, 2, 0));
                 __m128 r1 = _mm_shuffle_ps(c1, c1, _MM_SHUFFLE(1, 3, 2, 0));
                 __m128 r2 = _mm_shuffle_ps(c2, c2, _MM_SHUFFLE(2, 1, 3, 0));
-                c30Coef = _mm_sub_ps(_mm_mul_ps(l1, l2), _mm_mul_ps(r1, r2));
+                c30Coef = _mm_fnmadd_ps(r1, r2, _mm_mul_ps(l1, l2));
             }
 
             // (c12*c23-c13*c22, 0, c20*c13-c10*c23, c10*c22-c20*c12)
@@ -352,7 +326,7 @@ namespace cube
                 __m128 l2 = _mm_shuffle_ps(c2, c2, _MM_SHUFFLE(2, 0, 0, 3));
                 __m128 r1 = _mm_shuffle_ps(c1, c1, _MM_SHUFFLE(2, 0, 0, 3));
                 __m128 r2 = _mm_shuffle_ps(c2, c2, _MM_SHUFFLE(0, 3, 0, 2));
-                c31Coef = _mm_sub_ps(_mm_mul_ps(l1, l2), _mm_mul_ps(r1, r2));
+                c31Coef = _mm_fnmadd_ps(r1, r2, _mm_mul_ps(l1, l2));
             }
 
             // (c13*c21-c11*c23, c10*c23-c13*c20, 0, c11*c20-c10*c21)
@@ -362,7 +336,7 @@ namespace cube
                 __m128 l2 = _mm_shuffle_ps(c2, c2, _MM_SHUFFLE(0, 0, 3, 1));
                 __m128 r1 = _mm_shuffle_ps(c1, c1, _MM_SHUFFLE(0, 0, 3, 1));
                 __m128 r2 = _mm_shuffle_ps(c2, c2, _MM_SHUFFLE(1, 0, 0, 3));
-                c32Coef = _mm_sub_ps(_mm_mul_ps(l1, l2), _mm_mul_ps(r1, r2));
+                c32Coef = _mm_fnmadd_ps(r1, r2, _mm_mul_ps(l1, l2));
             }
 
             // (c11*c22-c12*c21, c12*c20-c10*c22, c10*c21-c11*c20, 0)
@@ -372,7 +346,7 @@ namespace cube
                 __m128 l2 = _mm_shuffle_ps(c2, c2, _MM_SHUFFLE(0, 1, 0, 2));
                 __m128 r1 = _mm_shuffle_ps(c1, c1, _MM_SHUFFLE(0, 1, 0, 2));
                 __m128 r2 = _mm_shuffle_ps(c2, c2, _MM_SHUFFLE(0, 0, 2, 1));
-                c33Coef = _mm_sub_ps(_mm_mul_ps(l1, l2), _mm_mul_ps(r1, r2));
+                c33Coef = _mm_fnmadd_ps(r1, r2, _mm_mul_ps(l1, l2));
             }
 
             __m128 c30 = _mm_shuffle_ps(c3, c3, _MM_SHUFFLE(0, 0, 0, 0));
@@ -381,12 +355,9 @@ namespace cube
             __m128 c33 = _mm_shuffle_ps(c3, c3, _MM_SHUFFLE(3, 3, 3, 3));
 
             __m128 cof = _mm_mul_ps(c30Coef, c30);
-            __m128 t = _mm_mul_ps(c31Coef, c31);
-            cof = _mm_add_ps(cof, t);
-            t = _mm_mul_ps(c32Coef, c32);
-            cof = _mm_add_ps(cof, t);
-            t = _mm_mul_ps(c33Coef, c33);
-            cof = _mm_add_ps(cof, t);
+            cof = _mm_fmadd_ps(c31Coef, c31, cof);
+            cof = _mm_fmadd_ps(c32Coef, c32, cof);
+            cof = _mm_fmadd_ps(c33Coef, c33, cof);
 
             return cof;
         };
@@ -442,58 +413,45 @@ namespace cube
         __m128 row2 = mRows[2].mData;
         __m128 row3 = mRows[3].mData;
 
-        // Compute cofactors of 3x3 block
-        // cofRow0 = (a11*a22-a12*a21, a12*a20-a10*a22, a10*a21-a11*a20, 0)
+        // Compute cofactors of 3x3 block using cross-product pattern
         __m128 r1_yzx = _mm_shuffle_ps(row1, row1, _MM_SHUFFLE(3, 0, 2, 1));
         __m128 r2_zxy = _mm_shuffle_ps(row2, row2, _MM_SHUFFLE(3, 1, 0, 2));
         __m128 r1_zxy = _mm_shuffle_ps(row1, row1, _MM_SHUFFLE(3, 1, 0, 2));
         __m128 r2_yzx = _mm_shuffle_ps(row2, row2, _MM_SHUFFLE(3, 0, 2, 1));
-        __m128 cofRow0 = _mm_sub_ps(_mm_mul_ps(r1_yzx, r2_zxy), _mm_mul_ps(r1_zxy, r2_yzx));
+        __m128 cofRow0 = _mm_fnmadd_ps(r1_zxy, r2_yzx, _mm_mul_ps(r1_yzx, r2_zxy));
 
-        // Determinant: dot(row0, cofRow0) xyz only
+        // Determinant
         __m128 det = _mm_dp_ps(row0, cofRow0, 0x7F);
         __m128 invDet = _mm_div_ps(_mm_set1_ps(1.0f), det);
 
-        // cofRow1 = (a02*a21-a01*a22, a00*a22-a02*a20, a01*a20-a00*a21, 0)
         __m128 r0_zxy = _mm_shuffle_ps(row0, row0, _MM_SHUFFLE(3, 1, 0, 2));
         __m128 r0_yzx = _mm_shuffle_ps(row0, row0, _MM_SHUFFLE(3, 0, 2, 1));
-        __m128 cofRow1 = _mm_sub_ps(_mm_mul_ps(r0_zxy, r2_yzx), _mm_mul_ps(r0_yzx, r2_zxy));
+        __m128 cofRow1 = _mm_fnmadd_ps(r0_yzx, r2_zxy, _mm_mul_ps(r0_zxy, r2_yzx));
+        __m128 cofRow2 = _mm_fnmadd_ps(r0_zxy, r1_yzx, _mm_mul_ps(r0_yzx, r1_zxy));
 
-        // cofRow2 = (a01*a12-a02*a11, a02*a10-a00*a12, a00*a11-a01*a10, 0)
-        __m128 cofRow2 = _mm_sub_ps(_mm_mul_ps(r0_yzx, r1_zxy), _mm_mul_ps(r0_zxy, r1_yzx));
-
-        // Scale by invDet (adjugate rows are already transposed cofactors)
         __m128 invRow0 = _mm_mul_ps(cofRow0, invDet);
         __m128 invRow1 = _mm_mul_ps(cofRow1, invDet);
         __m128 invRow2 = _mm_mul_ps(cofRow2, invDet);
 
-        // Transpose 3x3 to get inverted 3x3 in row-major
-        // We have invRow0 = col0 of inverse, etc. Need to transpose.
-        __m128 tmp0 = _mm_unpacklo_ps(invRow0, invRow1);  // (i00, i10, i01, i11)
-        __m128 tmp1 = _mm_unpackhi_ps(invRow0, invRow1);  // (i02, i12, -, -)
-        __m128 tmp2 = _mm_unpacklo_ps(invRow2, _mm_setzero_ps()); // (i20, 0, i21, 0)
-        __m128 tmp3 = _mm_unpackhi_ps(invRow2, _mm_setzero_ps()); // (i22, 0, -, -)
+        // Transpose 3x3
+        __m128 tmp0 = _mm_unpacklo_ps(invRow0, invRow1);
+        __m128 tmp1 = _mm_unpackhi_ps(invRow0, invRow1);
+        __m128 tmp2 = _mm_unpacklo_ps(invRow2, _mm_setzero_ps());
+        __m128 tmp3 = _mm_unpackhi_ps(invRow2, _mm_setzero_ps());
 
-        __m128 iRow0 = _mm_movelh_ps(tmp0, tmp2); // (i00, i10, i20, 0)
-        __m128 iRow1 = _mm_movehl_ps(tmp2, tmp0); // (i01, i11, i21, 0)
-        __m128 iRow2 = _mm_movelh_ps(tmp1, tmp3); // (i02, i12, i22, 0)
+        __m128 iRow0 = _mm_movelh_ps(tmp0, tmp2);
+        __m128 iRow1 = _mm_movehl_ps(tmp2, tmp0);
+        __m128 iRow2 = _mm_movelh_ps(tmp1, tmp3);
 
-        // Compute new translation: t' = -(tx*iRow0 + ty*iRow1 + tz*iRow2)
+        // New translation using FMA: t' = -(tx*iRow0 + ty*iRow1 + tz*iRow2)
         __m128 tx = _mm_shuffle_ps(row3, row3, _MM_SHUFFLE(0, 0, 0, 0));
         __m128 ty = _mm_shuffle_ps(row3, row3, _MM_SHUFFLE(1, 1, 1, 1));
         __m128 tz = _mm_shuffle_ps(row3, row3, _MM_SHUFFLE(2, 2, 2, 2));
 
         __m128 newTrans = _mm_mul_ps(tx, iRow0);
-        newTrans = _mm_add_ps(newTrans, _mm_mul_ps(ty, iRow1));
-        newTrans = _mm_add_ps(newTrans, _mm_mul_ps(tz, iRow2));
+        newTrans = _mm_fmadd_ps(ty, iRow1, newTrans);
+        newTrans = _mm_fmadd_ps(tz, iRow2, newTrans);
         newTrans = _mm_sub_ps(_mm_setzero_ps(), newTrans);
-
-        // Set w component of translation row to 1
-        __m128 one = _mm_set_ps(1.0f, 0.0f, 0.0f, 0.0f);
-        newTrans = _mm_or_ps(_mm_andnot_ps(_mm_set_ps(0xFFFFFFFF, 0, 0, 0), newTrans),
-                             _mm_and_ps(_mm_set_ps(0xFFFFFFFF, 0, 0, 0), one));
-
-        // Use blend to set w=1 in translation row
         newTrans = _mm_blend_ps(newTrans, _mm_set1_ps(1.0f), 0x8);
 
         mRows[0].mData = iRow0;
@@ -529,14 +487,11 @@ namespace cube
         v2 = _mm_shuffle_ps(v3, v3, _MM_SHUFFLE(2, 2, 2, 2));
         v3 = _mm_shuffle_ps(v3, v3, _MM_SHUFFLE(3, 3, 3, 3));
 
+        // FMA accumulation: v0*row0 + v1*row1 + v2*row2 + v3*row3
         v0 = _mm_mul_ps(v0, rhs.mRows[0].mData);
-        v1 = _mm_mul_ps(v1, rhs.mRows[1].mData);
-        v2 = _mm_mul_ps(v2, rhs.mRows[2].mData);
-        v3 = _mm_mul_ps(v3, rhs.mRows[3].mData);
-
-        v2 = _mm_add_ps(v2, v3);
-        v1 = _mm_add_ps(v1, v2);
-        v0 = _mm_add_ps(v0, v1);
+        v0 = _mm_fmadd_ps(v1, rhs.mRows[1].mData, v0);
+        v0 = _mm_fmadd_ps(v2, rhs.mRows[2].mData, v0);
+        v0 = _mm_fmadd_ps(v3, rhs.mRows[3].mData, v0);
         res.mData = v0;
 
         return res;

@@ -385,6 +385,92 @@ namespace cube
             - (row0->mData[col0])*(row1->mData[col2])*(row2->mData[col1]) - (row0->mData[col1])*(row1->mData[col0])*(row2->mData[col2]) - (row0->mData[col2])*(row1->mData[col1])*(row2->mData[col0]);
     }
 
+    inline bool Matrix::IsAffine() const
+    {
+        float d0 = mRows[0].mData[3];
+        float d1 = mRows[1].mData[3];
+        float d2 = mRows[2].mData[3];
+        float d3 = mRows[3].mData[3] - 1.0f;
+        return (d0 * d0 + d1 * d1 + d2 * d2 + d3 * d3) < FLOAT_EPS * FLOAT_EPS;
+    }
+
+    inline void Matrix::AffineInverse()
+    {
+        // Invert 3x3 upper-left block using cofactors
+        float a00 = mRows[0].mData[0];
+        float a01 = mRows[0].mData[1];
+        float a02 = mRows[0].mData[2];
+
+        float a10 = mRows[1].mData[0];
+        float a11 = mRows[1].mData[1];
+        float a12 = mRows[1].mData[2];
+
+        float a20 = mRows[2].mData[0];
+        float a21 = mRows[2].mData[1];
+        float a22 = mRows[2].mData[2];
+
+        float c00 = a11 * a22 - a12 * a21;
+        float c01 = a12 * a20 - a10 * a22;
+        float c02 = a10 * a21 - a11 * a20;
+
+        float c10 = a02 * a21 - a01 * a22;
+        float c11 = a00 * a22 - a02 * a20;
+        float c12 = a01 * a20 - a00 * a21;
+
+        float c20 = a01 * a12 - a02 * a11;
+        float c21 = a02 * a10 - a00 * a12;
+        float c22 = a00 * a11 - a01 * a10;
+
+        float det = a00 * c00 + a01 * c01 + a02 * c02;
+        float rDet = 1.0f / det;
+
+        // Inverted 3x3 = adjugate / det
+        float i00 = c00 * rDet;
+        float i01 = c10 * rDet;
+        float i02 = c20 * rDet;
+
+        float i10 = c01 * rDet;
+        float i11 = c11 * rDet;
+        float i12 = c21 * rDet;
+
+
+        float i20 = c02 * rDet;
+        float i21 = c12 * rDet;
+        float i22 = c22 * rDet;
+
+        // New translation: t' = -t * A^(-1)
+        float tx = mRows[3].mData[0];
+        float ty = mRows[3].mData[1];
+        float tz = mRows[3].mData[2];
+        float ntx = -(tx * i00 + ty * i10 + tz * i20);
+        float nty = -(tx * i01 + ty * i11 + tz * i21);
+        float ntz = -(tx * i02 + ty * i12 + tz * i22);
+
+        mRows[0].mData[0] = i00;
+        mRows[0].mData[1] = i01;
+        mRows[0].mData[2] = i02;
+        mRows[0].mData[3] = 0.0f;
+        mRows[1].mData[0] = i10;
+        mRows[1].mData[1] = i11;
+        mRows[1].mData[2] = i12;
+        mRows[1].mData[3] = 0.0f;
+        mRows[2].mData[0] = i20;
+        mRows[2].mData[1] = i21;
+        mRows[2].mData[2] = i22;
+        mRows[2].mData[3] = 0.0f;
+        mRows[3].mData[0] = ntx;
+        mRows[3].mData[1] = nty;
+        mRows[3].mData[2] = ntz;
+        mRows[3].mData[3] = 1.0f;
+    }
+
+    inline Matrix Matrix::AffineInversed() const
+    {
+        Matrix res(*this);
+        res.AffineInverse();
+        return res;
+    }
+
     inline Matrix operator* (float lhs, const Matrix& rhs)
     {
         Matrix r(rhs);

@@ -1,6 +1,14 @@
 #pragma once
 
+#ifndef CUBE_VECTOR_USE_AVX2
+#define CUBE_VECTOR_USE_AVX2 0
+#endif
+
+#if CUBE_VECTOR_USE_AVX2
+#define CUBE_VECTOR_USE_SSE 0
+#else
 #define CUBE_VECTOR_USE_SSE 1
+#endif
 
 #define FORCE_INLINE __forceinline
 
