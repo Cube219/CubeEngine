@@ -374,54 +374,49 @@ namespace cube
     {
         Transpose();
 
-        auto CalculateColCofactor = [](__m128 c1, __m128 c2, __m128 c3)
+        // Computes signed cofactors with (+,-,+,-) row signs baked in via
+        // swapped shuffle indices, eliminating the need for pmpm/mpmp sign
+        // multiplication. For odd columns, swap c1/c2 args to negate all results.
+        auto CalculateSignedColCofactor = [](__m128 c1, __m128 c2, __m128 c3)
         {
+            // (0, c13*c22-c12*c23, c11*c23-c13*c21, c12*c21-c11*c22)
             __m128 c30Coef;
-            // (0, c12*c23-c22*c13, c11*c23-c21*c13, c11*c22-c21*c12)
             {
-                __m128 l1 = _mm_shuffle_ps(c1, c1, _MM_SHUFFLE(1, 1, 2, 0));
-                __m128 l2 = _mm_shuffle_ps(c2, c2, _MM_SHUFFLE(2, 3, 3, 0));
-                __m128 r1 = _mm_shuffle_ps(c1, c1, _MM_SHUFFLE(2, 3, 3, 0));
-                __m128 r2 = _mm_shuffle_ps(c2, c2, _MM_SHUFFLE(1, 1, 2, 0));
-                __m128 ll = _mm_mul_ps(l1, l2);
-                __m128 rr = _mm_mul_ps(r1, r2);
-                c30Coef = _mm_sub_ps(ll, rr);
+                __m128 l1 = _mm_shuffle_ps(c1, c1, _MM_SHUFFLE(2, 1, 3, 0));
+                __m128 l2 = _mm_shuffle_ps(c2, c2, _MM_SHUFFLE(1, 3, 2, 0));
+                __m128 r1 = _mm_shuffle_ps(c1, c1, _MM_SHUFFLE(1, 3, 2, 0));
+                __m128 r2 = _mm_shuffle_ps(c2, c2, _MM_SHUFFLE(2, 1, 3, 0));
+                c30Coef = _mm_sub_ps(_mm_mul_ps(l1, l2), _mm_mul_ps(r1, r2));
             }
 
-            // (c12*c23-c22*c13, 0, c20*c13-c10*c23, c20*c12-c10*c22)
+            // (c12*c23-c13*c22, 0, c20*c13-c10*c23, c10*c22-c20*c12)
             __m128 c31Coef;
             {
-                __m128 l1 = _mm_shuffle_ps(c1, c1, _MM_SHUFFLE(2, 3, 0, 2));
-                __m128 l2 = _mm_shuffle_ps(c2, c2, _MM_SHUFFLE(0, 0, 0, 3));
-                __m128 r1 = _mm_shuffle_ps(c1, c1, _MM_SHUFFLE(0, 0, 0, 3));
-                __m128 r2 = _mm_shuffle_ps(c2, c2, _MM_SHUFFLE(2, 3, 0, 2));
-                __m128 ll = _mm_mul_ps(l1, l2);
-                __m128 rr = _mm_mul_ps(r1, r2);
-                c31Coef = _mm_sub_ps(ll, rr);
+                __m128 l1 = _mm_shuffle_ps(c1, c1, _MM_SHUFFLE(0, 3, 0, 2));
+                __m128 l2 = _mm_shuffle_ps(c2, c2, _MM_SHUFFLE(2, 0, 0, 3));
+                __m128 r1 = _mm_shuffle_ps(c1, c1, _MM_SHUFFLE(2, 0, 0, 3));
+                __m128 r2 = _mm_shuffle_ps(c2, c2, _MM_SHUFFLE(0, 3, 0, 2));
+                c31Coef = _mm_sub_ps(_mm_mul_ps(l1, l2), _mm_mul_ps(r1, r2));
             }
 
-            // (c21*c13-c11*c23, c20*c13-c10*c23, 0, c10*c21-c20*c11)
+            // (c13*c21-c11*c23, c10*c23-c13*c20, 0, c11*c20-c10*c21)
             __m128 c32Coef;
             {
-                __m128 l1 = _mm_shuffle_ps(c1, c1, _MM_SHUFFLE(0, 0, 3, 3));
-                __m128 l2 = _mm_shuffle_ps(c2, c2, _MM_SHUFFLE(1, 0, 0, 1));
-                __m128 r1 = _mm_shuffle_ps(c1, c1, _MM_SHUFFLE(1, 0, 0, 1));
-                __m128 r2 = _mm_shuffle_ps(c2, c2, _MM_SHUFFLE(0, 0, 3, 3));
-                __m128 ll = _mm_mul_ps(l1, l2);
-                __m128 rr = _mm_mul_ps(r1, r2);
-                c32Coef = _mm_sub_ps(ll, rr);
+                __m128 l1 = _mm_shuffle_ps(c1, c1, _MM_SHUFFLE(1, 0, 0, 3));
+                __m128 l2 = _mm_shuffle_ps(c2, c2, _MM_SHUFFLE(0, 0, 3, 1));
+                __m128 r1 = _mm_shuffle_ps(c1, c1, _MM_SHUFFLE(0, 0, 3, 1));
+                __m128 r2 = _mm_shuffle_ps(c2, c2, _MM_SHUFFLE(1, 0, 0, 3));
+                c32Coef = _mm_sub_ps(_mm_mul_ps(l1, l2), _mm_mul_ps(r1, r2));
             }
 
-            // (c11*c22-c21*c12, c10*c22-c20*c12, c10*c21-c20*c11, 0)
+            // (c11*c22-c12*c21, c12*c20-c10*c22, c10*c21-c11*c20, 0)
             __m128 c33Coef;
             {
-                __m128 l1 = _mm_shuffle_ps(c1, c1, _MM_SHUFFLE(0, 0, 0, 1));
-                __m128 l2 = _mm_shuffle_ps(c2, c2, _MM_SHUFFLE(0, 1, 2, 2));
-                __m128 r1 = _mm_shuffle_ps(c1, c1, _MM_SHUFFLE(0, 1, 2, 2));
-                __m128 r2 = _mm_shuffle_ps(c2, c2, _MM_SHUFFLE(0, 0, 0, 1));
-                __m128 ll = _mm_mul_ps(l1, l2);
-                __m128 rr = _mm_mul_ps(r1, r2);
-                c33Coef = _mm_sub_ps(ll, rr);
+                __m128 l1 = _mm_shuffle_ps(c1, c1, _MM_SHUFFLE(0, 0, 2, 1));
+                __m128 l2 = _mm_shuffle_ps(c2, c2, _MM_SHUFFLE(0, 1, 0, 2));
+                __m128 r1 = _mm_shuffle_ps(c1, c1, _MM_SHUFFLE(0, 1, 0, 2));
+                __m128 r2 = _mm_shuffle_ps(c2, c2, _MM_SHUFFLE(0, 0, 2, 1));
+                c33Coef = _mm_sub_ps(_mm_mul_ps(l1, l2), _mm_mul_ps(r1, r2));
             }
 
             __m128 c30 = _mm_shuffle_ps(c3, c3, _MM_SHUFFLE(0, 0, 0, 0));
@@ -445,26 +440,19 @@ namespace cube
         __m128 c2 = mRows[2].mData;
         __m128 c3 = mRows[3].mData;
 
-        __m128 cof0 = CalculateColCofactor(c1, c2, c3);
-        __m128 cof1 = CalculateColCofactor(c0, c2, c3);
-        __m128 cof2 = CalculateColCofactor(c0, c1, c3);
-        __m128 cof3 = CalculateColCofactor(c0, c1, c2);
+        // Swap first two args for odd columns to negate signs
+        __m128 cof0 = CalculateSignedColCofactor(c1, c2, c3);
+        __m128 cof1 = CalculateSignedColCofactor(c2, c0, c3);
+        __m128 cof2 = CalculateSignedColCofactor(c0, c1, c3);
+        __m128 cof3 = CalculateSignedColCofactor(c1, c0, c2);
 
-        __m128 pmpm = _mm_set_ps(-1.0f, 1.0f, -1.0f, 1.0f);
-        __m128 mpmp = _mm_set_ps(1.0f, -1.0f, 1.0f, -1.0f);
-
-        __m128 det = _mm_dp_ps(_mm_mul_ps(c0, pmpm), cof0, 0xFF);
+        __m128 det = _mm_dp_ps(c0, cof0, 0xFF);
         __m128 invDet = _mm_div_ps(_mm_set1_ps(1.0f), det);
 
-        __m128 v0 = _mm_mul_ps(_mm_mul_ps(cof0, pmpm), invDet);
-        __m128 v1 = _mm_mul_ps(_mm_mul_ps(cof1, mpmp), invDet);
-        __m128 v2 = _mm_mul_ps(_mm_mul_ps(cof2, pmpm), invDet);
-        __m128 v3 = _mm_mul_ps(_mm_mul_ps(cof3, mpmp), invDet);
-
-        mRows[0].mData = v0;
-        mRows[1].mData = v1;
-        mRows[2].mData = v2;
-        mRows[3].mData = v3;
+        mRows[0].mData = _mm_mul_ps(cof0, invDet);
+        mRows[1].mData = _mm_mul_ps(cof1, invDet);
+        mRows[2].mData = _mm_mul_ps(cof2, invDet);
+        mRows[3].mData = _mm_mul_ps(cof3, invDet);
     }
 
     inline Matrix Matrix::Inversed() const

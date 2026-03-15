@@ -306,45 +306,48 @@ namespace cube
     {
         Transpose();
 
-        auto CalculateColCofactor = [](float32x4_t c1, float32x4_t c2, float32x4_t c3)
+        // Computes signed cofactors with (+,-,+,-) row signs baked in via
+        // swapped shuffle indices, eliminating the need for pmpm/mpmp sign
+        // multiplication. For odd columns, swap c1/c2 args to negate all results.
+        auto CalculateSignedColCofactor = [](float32x4_t c1, float32x4_t c2, float32x4_t c3)
         {
+            // (0, c13*c22-c12*c23, c11*c23-c13*c21, c12*c21-c11*c22)
             float32x4_t c30Coef;
-            // (0, c12*c23-c22*c13, c11*c23-c21*c13, c11*c22-c21*c12)
             {
-                float32x4_t l1 = __builtin_shufflevector(c1, c1, 0, 2, 1, 1);
-                float32x4_t l2 = __builtin_shufflevector(c2, c2, 0, 3, 3, 2);
-                float32x4_t r1 = __builtin_shufflevector(c1, c1, 0, 3, 3, 2);
-                float32x4_t r2 = __builtin_shufflevector(c2, c2, 0, 2, 1, 1);
+                float32x4_t l1 = __builtin_shufflevector(c1, c1, 0, 3, 1, 2);
+                float32x4_t l2 = __builtin_shufflevector(c2, c2, 0, 2, 3, 1);
+                float32x4_t r1 = __builtin_shufflevector(c1, c1, 0, 2, 3, 1);
+                float32x4_t r2 = __builtin_shufflevector(c2, c2, 0, 3, 1, 2);
                 c30Coef = vfmsq_f32(vmulq_f32(l1, l2), r1, r2);
             }
 
-            // (c12*c23-c22*c13, 0, c20*c13-c10*c23, c20*c12-c10*c22)
+            // (c12*c23-c13*c22, 0, c20*c13-c10*c23, c10*c22-c20*c12)
             float32x4_t c31Coef;
             {
-                float32x4_t l1 = __builtin_shufflevector(c1, c1, 2, 0, 3, 2);
-                float32x4_t l2 = __builtin_shufflevector(c2, c2, 3, 0, 0, 0);
-                float32x4_t r1 = __builtin_shufflevector(c1, c1, 3, 0, 0, 0);
-                float32x4_t r2 = __builtin_shufflevector(c2, c2, 2, 0, 3, 2);
+                float32x4_t l1 = __builtin_shufflevector(c1, c1, 2, 0, 3, 0);
+                float32x4_t l2 = __builtin_shufflevector(c2, c2, 3, 0, 0, 2);
+                float32x4_t r1 = __builtin_shufflevector(c1, c1, 3, 0, 0, 2);
+                float32x4_t r2 = __builtin_shufflevector(c2, c2, 2, 0, 3, 0);
                 c31Coef = vfmsq_f32(vmulq_f32(l1, l2), r1, r2);
             }
 
-            // (c21*c13-c11*c23, c20*c13-c10*c23, 0, c10*c21-c20*c11)
+            // (c13*c21-c11*c23, c10*c23-c13*c20, 0, c11*c20-c10*c21)
             float32x4_t c32Coef;
             {
-                float32x4_t l1 = __builtin_shufflevector(c1, c1, 3, 3, 0, 0);
-                float32x4_t l2 = __builtin_shufflevector(c2, c2, 1, 0, 0, 1);
-                float32x4_t r1 = __builtin_shufflevector(c1, c1, 1, 0, 0, 1);
-                float32x4_t r2 = __builtin_shufflevector(c2, c2, 3, 3, 0, 0);
+                float32x4_t l1 = __builtin_shufflevector(c1, c1, 3, 0, 0, 1);
+                float32x4_t l2 = __builtin_shufflevector(c2, c2, 1, 3, 0, 0);
+                float32x4_t r1 = __builtin_shufflevector(c1, c1, 1, 3, 0, 0);
+                float32x4_t r2 = __builtin_shufflevector(c2, c2, 3, 0, 0, 1);
                 c32Coef = vfmsq_f32(vmulq_f32(l1, l2), r1, r2);
             }
 
-            // (c11*c22-c21*c12, c10*c22-c20*c12, c10*c21-c20*c11, 0)
+            // (c11*c22-c12*c21, c12*c20-c10*c22, c10*c21-c11*c20, 0)
             float32x4_t c33Coef;
             {
-                float32x4_t l1 = __builtin_shufflevector(c1, c1, 1, 0, 0, 0);
-                float32x4_t l2 = __builtin_shufflevector(c2, c2, 2, 2, 1, 0);
-                float32x4_t r1 = __builtin_shufflevector(c1, c1, 2, 2, 1, 0);
-                float32x4_t r2 = __builtin_shufflevector(c2, c2, 1, 0, 0, 0);
+                float32x4_t l1 = __builtin_shufflevector(c1, c1, 1, 2, 0, 0);
+                float32x4_t l2 = __builtin_shufflevector(c2, c2, 2, 0, 1, 0);
+                float32x4_t r1 = __builtin_shufflevector(c1, c1, 2, 0, 1, 0);
+                float32x4_t r2 = __builtin_shufflevector(c2, c2, 1, 2, 0, 0);
                 c33Coef = vfmsq_f32(vmulq_f32(l1, l2), r1, r2);
             }
 
@@ -361,28 +364,20 @@ namespace cube
         float32x4_t c2 = mRows[2].mData;
         float32x4_t c3 = mRows[3].mData;
 
-        float32x4_t cof0 = CalculateColCofactor(c1, c2, c3);
-        float32x4_t cof1 = CalculateColCofactor(c0, c2, c3);
-        float32x4_t cof2 = CalculateColCofactor(c0, c1, c3);
-        float32x4_t cof3 = CalculateColCofactor(c0, c1, c2);
+        // Swap first two args for odd columns to negate signs
+        float32x4_t cof0 = CalculateSignedColCofactor(c1, c2, c3);
+        float32x4_t cof1 = CalculateSignedColCofactor(c2, c0, c3);
+        float32x4_t cof2 = CalculateSignedColCofactor(c0, c1, c3);
+        float32x4_t cof3 = CalculateSignedColCofactor(c1, c0, c2);
 
-        alignas(16) float pmpmArr[4] = {1.0f, -1.0f, 1.0f, -1.0f};
-        float32x4_t pmpm = vld1q_f32(pmpmArr);
-        float32x4_t mpmp = vrev64q_f32(pmpm);
-
-        float32x4_t det = vmulq_f32(vmulq_f32(c0, pmpm), cof0);
+        float32x4_t det = vmulq_f32(c0, cof0);
         det = NEON::internal::GetSum<4>(det);
         float32x4_t invDet = vdivq_f32(vdupq_n_f32(1.0f), det);
 
-        float32x4_t v0 = vmulq_f32(vmulq_f32(cof0, pmpm), invDet);
-        float32x4_t v1 = vmulq_f32(vmulq_f32(cof1, mpmp), invDet);
-        float32x4_t v2 = vmulq_f32(vmulq_f32(cof2, pmpm), invDet);
-        float32x4_t v3 = vmulq_f32(vmulq_f32(cof3, mpmp), invDet);
-
-        mRows[0].mData = v0;
-        mRows[1].mData = v1;
-        mRows[2].mData = v2;
-        mRows[3].mData = v3;
+        mRows[0].mData = vmulq_f32(cof0, invDet);
+        mRows[1].mData = vmulq_f32(cof1, invDet);
+        mRows[2].mData = vmulq_f32(cof2, invDet);
+        mRows[3].mData = vmulq_f32(cof3, invDet);
     }
 
     inline Matrix Matrix::Inversed() const
