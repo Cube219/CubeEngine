@@ -262,7 +262,24 @@ namespace cube
 
         platform::MacOSUtility::DispatchToMainThreadAndWait([this] {
             ImGui_ImplOSX_Init(mImGUIView);
+
+            // Override ImeDataFn to ensure it runs in main thread. It is called from text input
+            // and calls UI-related methods (NSTextInputContext).
+            static auto defaultImeDataFn = ImGui::GetPlatformIO().Platform_SetImeDataFn;
+            ImGui::GetPlatformIO().Platform_SetImeDataFn = [](ImGuiContext* ctx, ImGuiViewport* viewport, ImGuiPlatformImeData* data) -> void {
+                if ([NSThread isMainThread])
+                {
+                    defaultImeDataFn(ctx, viewport, data);
+                }
+                else
+                {
+                    platform::MacOSUtility::DispatchToMainThread([ctx, viewport, data] {
+                        defaultImeDataFn(ctx, viewport, data);
+                    });
+                }
+            };
         });
+
         ImGui_ImplMetal_Init(mMainDevice->GetMTLDevice());
 
         // Start new frame before starting ImGUI loop in Engine class

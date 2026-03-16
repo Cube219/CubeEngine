@@ -382,7 +382,7 @@ namespace cube
 
         void MacOSPlatform::Shutdown()
         {
-            CHECK_NOT_MAIN_THREAD();
+            CHECK_MACOS_NOT_MAIN_THREAD();
 
             mIsApplicationClosed = true;
 
@@ -602,7 +602,7 @@ namespace cube
 
         void MacOSPlatform::LastCleanup()
         {
-            CHECK_MAIN_THREAD();
+            CHECK_MACOS_MAIN_THREAD();
 
             MacOSDebug::CloseAndDestroyLoggerWindow();
 
@@ -754,7 +754,7 @@ namespace cube
 
         void MacOSPlatform::ReceiveModifierKeyEvent(NSEventModifierFlags flags)
         {
-            CHECK_MAIN_THREAD()
+            CHECK_MACOS_MAIN_THREAD()
 
 #define PROCESS_MODIFIER_KEY(variable, eventFlag, kVK_keyCode) \
     if (variable != ((flags & eventFlag) > 0)) \
@@ -788,7 +788,7 @@ namespace cube
 
         void MacOSPlatform::CreateMainMenu()
         {
-            CHECK_MAIN_THREAD()
+            CHECK_MACOS_MAIN_THREAD()
 
             @autoreleasepool {
                 NSString* title = @"CubeEngine";

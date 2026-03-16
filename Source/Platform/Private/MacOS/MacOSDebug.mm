@@ -280,7 +280,7 @@ namespace cube
 
         void MacOSDebug::CreateAndShowLoggerWindow()
         {
-            CHECK_MAIN_THREAD()
+            CHECK_MACOS_MAIN_THREAD()
             CHECK(!mIsLoggerWindowCreated);
 
             NSUInteger style = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable;
@@ -325,7 +325,7 @@ namespace cube
 
         void MacOSDebug::AppendLogText(NSString* text, PrintColorCategory colorCategory)
         {
-            CHECK_MAIN_THREAD()
+            CHECK_MACOS_MAIN_THREAD()
             CHECK(mIsLoggerWindowCreated);
 
             @autoreleasepool {
@@ -363,7 +363,7 @@ namespace cube
 
         void MacOSDebug::CloseAndDestroyLoggerWindow()
         {
-            CHECK_MAIN_THREAD()
+            CHECK_MACOS_MAIN_THREAD()
 
             if (mIsLoggerWindowCreated)
             {
@@ -403,7 +403,7 @@ namespace cube
 
         void MacOSDebug::ShowDebugMessageAlert_MainThread(StringView title, StringView msg)
         {
-            CHECK_MAIN_THREAD()
+            CHECK_MACOS_MAIN_THREAD()
 
             @autoreleasepool {
                 NSTextView* textView = [[NSTextView alloc] initWithFrame:NSMakeRect(0, 0, 400, 600)];
