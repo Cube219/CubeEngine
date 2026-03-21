@@ -340,7 +340,7 @@ namespace cube
                 VariableLayoutReflection* parameterVariableLayout = blockTypeLayout->getElementVarLayout();
 
                 const char* parameterTypeName = parameterTypeLayout->getName();
-                Uint32 index = parameterVariableLayout->getBindingIndex();
+                Uint32 index = blockVariableLayout->getBindingIndex();
                 gapi::ShaderParameterBlockReflection& outBlockReflection = outReflection.blocks.emplace_back(parameterTypeName, index);
                 
                 if (parameterTypeLayout->getKind() == TypeReflection::Kind::Struct)

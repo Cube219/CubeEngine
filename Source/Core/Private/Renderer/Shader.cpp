@@ -445,6 +445,12 @@ namespace cube
             {
                 if (existingBlock.typeName == block.typeName && existingBlock.index == block.index)
                 {
+                    if (existingBlock.index != block.index)
+                    {
+                        CUBE_LOG(Error, Shader, "Found duplicated binding index in the same shader type! (Name: {0} / index: {1}, {2}) Use the former one.",
+                            block.typeName, existingBlock.index, block.index);
+                        break;
+                    }
                     found = true;
                     break;
                 }
