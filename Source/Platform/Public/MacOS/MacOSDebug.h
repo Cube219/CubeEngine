@@ -40,6 +40,9 @@ namespace cube
             static String DumpStackTrace(bool removeBeforeProjectFolderPath = true);
 
             static bool IsDebuggerAttached();
+
+            static void SetTestMode(bool enable);
+            static bool IsTestMode();
             // === Base member functions ===
 
 #ifdef __OBJC__
@@ -53,13 +56,15 @@ namespace cube
             static void ShowDebugMessageAlert_MainThread(StringView title, StringView msg);
 
             static CubeLoggerWindow* mLoggerWindow;
-            static CubeLoggerWindowDelegate* mLoggerWindowDelegaate;
+            static CubeLoggerWindowDelegate* mLoggerWindowDelegate;
             static CubeLoggerTextView* mLoggerTextView;
 
             static bool mIsLoggerWindowCreated;
 
-            static bool mIsDebugBreakSetInDebugMessageAlert;
-            static bool mIsForceTerminationSetInDebugMessageAlert;
+            static bool mIsDebugBreakSetFromDebugMessageAlert;
+            static bool mIsForceTerminationSetFromDebugMessageAlert;
+
+            static bool mIsTestMode;
 #endif // __OBJC__
         };
         using Debug = MacOSDebug;

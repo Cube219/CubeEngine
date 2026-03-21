@@ -113,6 +113,7 @@ namespace cube
         SharedPtr<Material> mDefaultMaterial;
 
         bool mShowAxis = true;
+        bool mWireframe = false;
         SharedPtr<Mesh> mBoxMesh;
         Matrix mXAxisModelMatrix;
         SharedPtr<Material> mXAxisMaterial;

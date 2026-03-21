@@ -23,6 +23,9 @@ namespace cube
             static String DumpStackTrace(bool removeBeforeProjectFolderPath = true);
 
             static bool IsDebuggerAttached();
+
+            static void SetTestMode(bool enable);
+            static bool IsTestMode();
             // === Base member functions ===
 
         public:
@@ -30,6 +33,8 @@ namespace cube
 
         private:
             static void ShowDebugMessageBox(const WindowsString& title, const WindowsString& msg);
+
+            static bool mIsTestMode;
         };
         using Debug = WindowsDebug;
     } // namespace platform

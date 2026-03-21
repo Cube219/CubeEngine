@@ -85,6 +85,8 @@ namespace cube
     platform::FilePath Engine::mRootDirectoryPath;
     platform::FilePath Engine::mShaderDirectoryPath;
 
+    HashMap<AnsiString, AnsiString> Engine::mCommandLineArgs;
+
     Uint64 Engine::mStartTime;
     Uint64 Engine::mLastTime;
     Uint64 Engine::mCurrentTime;
@@ -97,6 +99,13 @@ namespace cube
             // Some platform dispatch events in platform main thread. (e.g. MacOS)
             // Discard allocation will be executed in PostLoopFunction.
             GetMyThreadFrameAllocator().Initialize("Platform main thread frame allocator", 1 * 1024 * 1024); // 1 MiB
+        }
+
+        ParseCommandLineArgs(initInfo.argc, initInfo.argv);
+
+        if (AnsiStringView testParam = GetCommandLineParam("test"); testParam == "1")
+        {
+            platform::Debug::SetTestMode(true);
         }
 
         platform::Platform::Initialize();
@@ -120,6 +129,19 @@ namespace cube
         Checker::RegisterExtension<EngineCheckerExtension>();
 
         CUBE_LOG(Info, Engine, "Initialize CubeEngine.");
+
+        if (!mCommandLineArgs.empty())
+        {
+            FrameAnsiString params;
+            for (const auto& [key, value] : mCommandLineArgs)
+            {
+                params += key;
+                params += "=";
+                params += value;
+                params += " ";
+            }
+            CUBE_LOG(Info, Engine, "Command line parameters: {0}", params);
+        }
 
         SearchAndSetRootDirectory();
         SetOtherDirectories();
@@ -295,5 +317,57 @@ namespace cube
     void Engine::SetOtherDirectories()
     {
         mShaderDirectoryPath = mRootDirectoryPath / CUBE_T("Resources/Shaders");
+    }
+
+    void Engine::ParseCommandLineArgs(int argc, const char** argv)
+    {
+        if (argv == nullptr || argc <= 1)
+        {
+            return;
+        }
+
+        for (int i = 1; i < argc; ++i)
+        {
+            AnsiStringView arg(argv[i]);
+
+            // Skip args that don't start with '-'
+            if (arg.empty() || arg[0] != '-')
+            {
+                continue;
+            }
+
+            // Strip leading dashes
+            SizeType dashEnd = arg.find_first_not_of('-');
+            if (dashEnd == AnsiStringView::npos)
+            {
+                continue;
+            }
+            AnsiStringView keyValue = arg.substr(dashEnd);
+
+            // Split on '=' for value
+            SizeType eqPos = keyValue.find('=');
+            if (eqPos != AnsiStringView::npos)
+            {
+                AnsiString key(keyValue.substr(0, eqPos));
+                AnsiString value(keyValue.substr(eqPos + 1));
+                mCommandLineArgs[key] = value;
+            }
+            else
+            {
+                AnsiString key(keyValue);
+                mCommandLineArgs[key] = "1";
+            }
+        }
+    }
+
+    AnsiStringView Engine::GetCommandLineParam(AnsiStringView name)
+    {
+        AnsiString key(name);
+        auto it = mCommandLineArgs.find(key);
+        if (it != mCommandLineArgs.end())
+        {
+            return AnsiStringView(it->second);
+        }
+        return AnsiStringView();
     }
 } // namespace cube

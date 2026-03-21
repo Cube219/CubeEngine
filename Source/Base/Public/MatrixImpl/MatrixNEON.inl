@@ -306,45 +306,48 @@ namespace cube
     {
         Transpose();
 
-        auto CalculateColCofactor = [](float32x4_t c1, float32x4_t c2, float32x4_t c3)
+        // Computes signed cofactors with (+,-,+,-) row signs baked in via
+        // swapped shuffle indices, eliminating the need for pmpm/mpmp sign
+        // multiplication. For odd columns, swap c1/c2 args to negate all results.
+        auto CalculateSignedColCofactor = [](float32x4_t c1, float32x4_t c2, float32x4_t c3)
         {
+            // (0, c13*c22-c12*c23, c11*c23-c13*c21, c12*c21-c11*c22)
             float32x4_t c30Coef;
-            // (0, c12*c23-c22*c13, c11*c23-c21*c13, c11*c22-c21*c12)
             {
-                float32x4_t l1 = __builtin_shufflevector(c1, c1, 0, 2, 1, 1);
-                float32x4_t l2 = __builtin_shufflevector(c2, c2, 0, 3, 3, 2);
-                float32x4_t r1 = __builtin_shufflevector(c1, c1, 0, 3, 3, 2);
-                float32x4_t r2 = __builtin_shufflevector(c2, c2, 0, 2, 1, 1);
+                float32x4_t l1 = __builtin_shufflevector(c1, c1, 0, 3, 1, 2);
+                float32x4_t l2 = __builtin_shufflevector(c2, c2, 0, 2, 3, 1);
+                float32x4_t r1 = __builtin_shufflevector(c1, c1, 0, 2, 3, 1);
+                float32x4_t r2 = __builtin_shufflevector(c2, c2, 0, 3, 1, 2);
                 c30Coef = vfmsq_f32(vmulq_f32(l1, l2), r1, r2);
             }
 
-            // (c12*c23-c22*c13, 0, c20*c13-c10*c23, c20*c12-c10*c22)
+            // (c12*c23-c13*c22, 0, c20*c13-c10*c23, c10*c22-c20*c12)
             float32x4_t c31Coef;
             {
-                float32x4_t l1 = __builtin_shufflevector(c1, c1, 2, 0, 3, 2);
-                float32x4_t l2 = __builtin_shufflevector(c2, c2, 3, 0, 0, 0);
-                float32x4_t r1 = __builtin_shufflevector(c1, c1, 3, 0, 0, 0);
-                float32x4_t r2 = __builtin_shufflevector(c2, c2, 2, 0, 3, 2);
+                float32x4_t l1 = __builtin_shufflevector(c1, c1, 2, 0, 3, 0);
+                float32x4_t l2 = __builtin_shufflevector(c2, c2, 3, 0, 0, 2);
+                float32x4_t r1 = __builtin_shufflevector(c1, c1, 3, 0, 0, 2);
+                float32x4_t r2 = __builtin_shufflevector(c2, c2, 2, 0, 3, 0);
                 c31Coef = vfmsq_f32(vmulq_f32(l1, l2), r1, r2);
             }
 
-            // (c21*c13-c11*c23, c20*c13-c10*c23, 0, c10*c21-c20*c11)
+            // (c13*c21-c11*c23, c10*c23-c13*c20, 0, c11*c20-c10*c21)
             float32x4_t c32Coef;
             {
-                float32x4_t l1 = __builtin_shufflevector(c1, c1, 3, 3, 0, 0);
-                float32x4_t l2 = __builtin_shufflevector(c2, c2, 1, 0, 0, 1);
-                float32x4_t r1 = __builtin_shufflevector(c1, c1, 1, 0, 0, 1);
-                float32x4_t r2 = __builtin_shufflevector(c2, c2, 3, 3, 0, 0);
+                float32x4_t l1 = __builtin_shufflevector(c1, c1, 3, 0, 0, 1);
+                float32x4_t l2 = __builtin_shufflevector(c2, c2, 1, 3, 0, 0);
+                float32x4_t r1 = __builtin_shufflevector(c1, c1, 1, 3, 0, 0);
+                float32x4_t r2 = __builtin_shufflevector(c2, c2, 3, 0, 0, 1);
                 c32Coef = vfmsq_f32(vmulq_f32(l1, l2), r1, r2);
             }
 
-            // (c11*c22-c21*c12, c10*c22-c20*c12, c10*c21-c20*c11, 0)
+            // (c11*c22-c12*c21, c12*c20-c10*c22, c10*c21-c11*c20, 0)
             float32x4_t c33Coef;
             {
-                float32x4_t l1 = __builtin_shufflevector(c1, c1, 1, 0, 0, 0);
-                float32x4_t l2 = __builtin_shufflevector(c2, c2, 2, 2, 1, 0);
-                float32x4_t r1 = __builtin_shufflevector(c1, c1, 2, 2, 1, 0);
-                float32x4_t r2 = __builtin_shufflevector(c2, c2, 1, 0, 0, 0);
+                float32x4_t l1 = __builtin_shufflevector(c1, c1, 1, 2, 0, 0);
+                float32x4_t l2 = __builtin_shufflevector(c2, c2, 2, 0, 1, 0);
+                float32x4_t r1 = __builtin_shufflevector(c1, c1, 2, 0, 1, 0);
+                float32x4_t r2 = __builtin_shufflevector(c2, c2, 1, 2, 0, 0);
                 c33Coef = vfmsq_f32(vmulq_f32(l1, l2), r1, r2);
             }
 
@@ -361,28 +364,21 @@ namespace cube
         float32x4_t c2 = mRows[2].mData;
         float32x4_t c3 = mRows[3].mData;
 
-        float32x4_t cof0 = CalculateColCofactor(c1, c2, c3);
-        float32x4_t cof1 = CalculateColCofactor(c0, c2, c3);
-        float32x4_t cof2 = CalculateColCofactor(c0, c1, c3);
-        float32x4_t cof3 = CalculateColCofactor(c0, c1, c2);
+        // Lambda bakes in (+,-,+,-) sign pattern.
+        // Swapping first two args negates the result, giving (-,+,-,+) for cof1/cof3.
+        float32x4_t cof0 = CalculateSignedColCofactor(c1, c2, c3);
+        float32x4_t cof1 = CalculateSignedColCofactor(c2, c0, c3);
+        float32x4_t cof2 = CalculateSignedColCofactor(c0, c1, c3);
+        float32x4_t cof3 = CalculateSignedColCofactor(c1, c0, c2);
 
-        alignas(16) float pmpmArr[4] = {1.0f, -1.0f, 1.0f, -1.0f};
-        float32x4_t pmpm = vld1q_f32(pmpmArr);
-        float32x4_t mpmp = vrev64q_f32(pmpm);
-
-        float32x4_t det = vmulq_f32(vmulq_f32(c0, pmpm), cof0);
+        float32x4_t det = vmulq_f32(c0, cof0);
         det = NEON::internal::GetSum<4>(det);
         float32x4_t invDet = vdivq_f32(vdupq_n_f32(1.0f), det);
 
-        float32x4_t v0 = vmulq_f32(vmulq_f32(cof0, pmpm), invDet);
-        float32x4_t v1 = vmulq_f32(vmulq_f32(cof1, mpmp), invDet);
-        float32x4_t v2 = vmulq_f32(vmulq_f32(cof2, pmpm), invDet);
-        float32x4_t v3 = vmulq_f32(vmulq_f32(cof3, mpmp), invDet);
-
-        mRows[0].mData = v0;
-        mRows[1].mData = v1;
-        mRows[2].mData = v2;
-        mRows[3].mData = v3;
+        mRows[0].mData = vmulq_f32(cof0, invDet);
+        mRows[1].mData = vmulq_f32(cof1, invDet);
+        mRows[2].mData = vmulq_f32(cof2, invDet);
+        mRows[3].mData = vmulq_f32(cof3, invDet);
     }
 
     inline Matrix Matrix::Inversed() const
@@ -390,6 +386,80 @@ namespace cube
         Matrix res(*this);
         res.Inverse();
 
+        return res;
+    }
+
+    inline bool Matrix::IsAffine() const
+    {
+        float32x4x2_t t01 = vtrnq_f32(mRows[0].mData, mRows[1].mData);
+        float32x4x2_t t23 = vtrnq_f32(mRows[2].mData, mRows[3].mData);
+        float32x4_t col3 = vcombine_f32(vget_high_f32(t01.val[1]), vget_high_f32(t23.val[1]));
+
+        float32x4_t expected = vdupq_n_f32(0.0f);
+        expected = vsetq_lane_f32(1.0f, expected, 3); // (0.0f, 0.0f, 0.0f, 1.0f)
+        float32x4_t diff = vsubq_f32(col3, expected);
+        float32x4_t sq = vmulq_f32(diff, diff);
+        float dot = vaddvq_f32(sq);
+        return dot < FLOAT_EPS * FLOAT_EPS;
+    }
+
+    inline void Matrix::AffineInverse()
+    {
+        float32x4_t r0 = mRows[0].mData;
+        float32x4_t r1 = mRows[1].mData;
+        float32x4_t r2 = mRows[2].mData;
+        float32x4_t r3 = mRows[3].mData;
+
+        // Compute cofactors using cross-product pattern
+        float32x4_t r1_yzx = vextq_f32(r1, r1, 3); // (?, x, y, z)
+        r1_yzx = vextq_f32(r1_yzx, r1, 2); // (y, z, x, y)
+        float32x4_t r1_zxy = vextq_f32(r1_yzx, r1_yzx, 1); // (z, x, y, y)
+
+        float32x4_t r2_yzx = vextq_f32(r2, r2, 3);
+        r2_yzx = vextq_f32(r2_yzx, r2, 2);
+        float32x4_t r2_zxy = vextq_f32(r2_yzx, r2_yzx, 1);
+        float32x4_t c0 = vfmsq_f32(vmulq_f32(r1_yzx, r2_zxy), r1_zxy, r2_yzx);
+
+        float32x4_t detV = vmulq_f32(r0, c0);
+        float det = vaddvq_f32(vsetq_lane_f32(0.0f, detV, 3));
+        float32x4_t invDet = vdupq_n_f32(1.0f / det);
+
+        float32x4_t r0_yzx = vextq_f32(r0, r0, 3);
+        r0_yzx = vextq_f32(r0_yzx, r0, 2);
+        float32x4_t r0_zxy = vextq_f32(r0_yzx, r0_yzx, 1);
+        float32x4_t c1 = vfmsq_f32(vmulq_f32(r0_zxy, r2_yzx), r0_yzx, r2_zxy);
+        float32x4_t c2 = vfmsq_f32(vmulq_f32(r0_yzx, r1_zxy), r0_zxy, r1_yzx);
+
+        float32x4_t invR0 = vmulq_f32(c0, invDet);
+        float32x4_t invR1 = vmulq_f32(c1, invDet);
+        float32x4_t invR2 = vmulq_f32(c2, invDet);
+
+        // Transpose 3x3 (invRow0/1/2 are columns of result, need rows)
+        float32x4x2_t t01 = vtrnq_f32(invR0, invR1);
+        float32x4_t zero = vdupq_n_f32(0.0f);
+        float32x4x2_t t2z = vtrnq_f32(invR2, zero);
+
+        float32x4_t iRow0 = vcombine_f32(vget_low_f32(t01.val[0]), vget_low_f32(t2z.val[0]));
+        float32x4_t iRow1 = vcombine_f32(vget_low_f32(t01.val[1]), vget_low_f32(t2z.val[1]));
+        float32x4_t iRow2 = vcombine_f32(vget_high_f32(t01.val[0]), vget_high_f32(t2z.val[0]));
+
+        // New translation: t' = -(tx*iRow0 + ty*iRow1 + tz*iRow2)
+        float32x4_t tr = vmulq_laneq_f32(iRow0, r3, 0);
+        tr = vfmaq_laneq_f32(tr, iRow1, r3, 1);
+        tr = vfmaq_laneq_f32(tr, iRow2, r3, 2);
+        tr = vnegq_f32(tr);
+        tr = vsetq_lane_f32(1.0f, tr, 3);
+
+        mRows[0].mData = iRow0;
+        mRows[1].mData = iRow1;
+        mRows[2].mData = iRow2;
+        mRows[3].mData = tr;
+    }
+
+    inline Matrix Matrix::AffineInversed() const
+    {
+        Matrix res(*this);
+        res.AffineInverse();
         return res;
     }
 

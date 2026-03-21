@@ -2,6 +2,7 @@
 
 #include "CoreHeader.h"
 
+#include "CubeString.h"
 #include "Event.h"
 #include "FileSystem.h"
 #include "GAPI.h"
@@ -39,6 +40,8 @@ namespace cube
         CUBE_CORE_EXPORT static const platform::FilePath& GetRootDirectoryPath() { return mRootDirectoryPath; }
         CUBE_CORE_EXPORT static const platform::FilePath& GetShaderDirectoryPath() { return mShaderDirectoryPath; }
 
+        CUBE_CORE_EXPORT static AnsiStringView GetCommandLineParam(AnsiStringView name);
+
         static void SetMesh(SharedPtr<MeshData> meshData, const MeshMetadata& meshMeta);
         static void SetMaterials(const Vector<SharedPtr<Material>>& materials);
 
@@ -50,6 +53,8 @@ namespace cube
         static void LoopImGUI();
 
         static Uint64 GetNow();
+
+        static void ParseCommandLineArgs(int argc, const char** argv);
 
         static void SearchAndSetRootDirectory();
         static void SetOtherDirectories();
@@ -66,6 +71,8 @@ namespace cube
 
         static platform::FilePath mRootDirectoryPath;
         static platform::FilePath mShaderDirectoryPath;
+
+        static HashMap<AnsiString, AnsiString> mCommandLineArgs;
 
         static Uint64 mStartTime;
         static Uint64 mLastTime;

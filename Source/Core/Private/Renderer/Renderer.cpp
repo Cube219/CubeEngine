@@ -171,6 +171,7 @@ namespace cube
             ImGui::SeparatorText("Gizmos");
 
             ImGui::Checkbox("Show Axis", &mShowAxis);
+            ImGui::Checkbox("Wireframe", &mWireframe);
         }
 
         ImGui::End();
@@ -362,6 +363,10 @@ namespace cube
 
     void Renderer::RenderImpl()
     {
+        gapi::RasterizerState::FillMode fillMode = mWireframe
+            ? gapi::RasterizerState::FillMode::Line
+            : gapi::RasterizerState::FillMode::Solid;
+
         GraphicsPipeline* currentGraphicsPipeline = nullptr;
         auto SetGraphicsPipeline = [this, &currentGraphicsPipeline](gapi::CommandList& commandList, SharedPtr<GraphicsPipeline> graphicsPipeline)
         {
@@ -436,6 +441,7 @@ namespace cube
 
             builder.AddPass(CUBE_T("Draw Center Object"),
                 [this,
+                fillMode,
                 objectShaderParameters,
                 SetGraphicsPipeline](gapi::CommandList& commandList)
             {
@@ -464,7 +470,7 @@ namespace cube
 
                     if (currentMaterial != lastMaterial)
                     {
-                        SetGraphicsPipeline(commandList, mShaderManager.GetMaterialShaderManager().GetOrCreateMaterialPipeline(currentMaterial, mMeshMetadata));
+                        SetGraphicsPipeline(commandList, mShaderManager.GetMaterialShaderManager().GetOrCreateMaterialPipeline(currentMaterial, mMeshMetadata, fillMode));
                         SharedPtr<MaterialShaderParameters> materialShaderParameters = currentMaterial->GenerateShaderParameters(commandList);
                         commandList.SetShaderVariableConstantBuffer(2, materialShaderParameters->GetBuffer());
                     }

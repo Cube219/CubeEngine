@@ -116,6 +116,7 @@ namespace cube
             .language = createInfo.language,
             .shaderCodeInfos = shaderCodeInfos,
             .entryPoint = createInfo.entryPoint,
+            .preprocessorDefines = createInfo.defines,
             .withDebugSymbol = manager.IsUsingDebugMode(),
             .debugName = createInfo.debugName
         });
@@ -134,6 +135,11 @@ namespace cube
         mMetaData.fileInfos = Vector<ShaderFileInfo>(shaderFileInfos.begin(), shaderFileInfos.end());
         mMetaData.materialShaderCode = createInfo.materialShaderCode;
         mMetaData.entryPoint = createInfo.entryPoint;
+        mMetaData.defines.clear();
+        for (const gapi::PreprocessorDefine& define : createInfo.defines)
+        {
+            mMetaData.defines.push_back({ AnsiString(define.name), AnsiString(define.value) });
+        }
         mMetaData.debugName = createInfo.debugName;
 
         FrameVector<ShaderFileInfo> dependencyFileInfos = GetDependencyFileInfos(mGAPIShader->GetDependencyFilePaths(), mMetaData.fileInfos);
@@ -252,12 +258,19 @@ namespace cube
             });
         }
 
+        FrameVector<gapi::PreprocessorDefine> recompileDefines;
+        for (const StoredPreprocessorDefine& define : mMetaData.defines)
+        {
+            recompileDefines.push_back({ define.name, define.value });
+        }
+
         mRecompiledGAPIShader = Engine::GetRenderer()->GetGAPI().CreateShader(
         {
             .type = mMetaData.type,
             .language = mMetaData.language,
             .shaderCodeInfos = shaderCodeInfos,
             .entryPoint = mMetaData.entryPoint,
+            .preprocessorDefines = recompileDefines,
             .withDebugSymbol = mManager.IsUsingDebugMode(),
             .debugName = Format<String>(CUBE_T("{0}:{1}"), mMetaData.debugName, mRecompileCount + 1)
         });

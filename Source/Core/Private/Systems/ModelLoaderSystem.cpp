@@ -13,6 +13,7 @@
 #include "CubeMath.h"
 #include "CubeString.h"
 #include "Engine.h"
+#include "Logger.h"
 #include "FileSystem.h"
 #include "GAPI_Texture.h"
 #include "Renderer/Material.h"
@@ -35,6 +36,67 @@ namespace cube
     {
         mCurrentSelectModelIndex = -1;
         ResetModelTransform();
+
+        // Load model at initialization using parameter.
+        if (AnsiStringView modelParam = Engine::GetCommandLineParam("model"); !modelParam.empty())
+        {
+            // Parse format: <type>_<index> (e.g., gltf_0, default_2)
+            SizeType underscorePos = modelParam.rfind('_');
+            if (underscorePos == AnsiStringView::npos || underscorePos == 0 || underscorePos == modelParam.size() - 1)
+            {
+                CUBE_LOG(Error, ModelLoaderSystem, "Invalid --model format ({0}). Expected <type>_<index>.", modelParam);
+                return;
+            }
+
+            AnsiStringView modelTypeStr = modelParam.substr(0, underscorePos);
+            AnsiStringView indexStr = modelParam.substr(underscorePos + 1);
+
+            int index = -1;
+            try
+            {
+                index = std::stoi(indexStr.data());
+            }
+            catch (...)
+            {
+                CUBE_LOG(Error, ModelLoaderSystem, "Invalid --model index ({0}). Must be an integer.", indexStr);
+                return;
+            }
+
+            ModelType type;
+            if (modelTypeStr == "gltf")
+            {
+                type = ModelType::glTF;
+            }
+            else if (modelTypeStr == "default")
+            {
+                type = ModelType::Obj;
+            }
+            else
+            {
+                CUBE_LOG(Error, ModelLoaderSystem, "Invalid --model type ({0}). Must be 'gltf' or 'default'.", modelTypeStr);
+                return;
+            }
+
+            LoadModelList();
+
+            int typeCount = 0;
+            for (int i = 0; i < static_cast<int>(mModelPathList.size()); ++i)
+            {
+                if (mModelPathList[i].type == type)
+                {
+                    if (typeCount == index)
+                    {
+                        mCurrentSelectModelIndex = i;
+                        CUBE_LOG(Info, ModelLoaderSystem, "Loading model from command line: {0}", mModelPathList[i].name);
+                        LoadCurrentModelAndSet();
+                        return;
+                    }
+                    ++typeCount;
+                }
+            }
+
+            CUBE_LOG(Error, ModelLoaderSystem, "Model index {0} out of range for type ({1}) (size: {2}).", index, modelTypeStr, typeCount);
+        }
     }
 
     void ModelLoaderSystem::Shutdown()
@@ -904,29 +966,66 @@ namespace cube
                     }
                 };
 
+                bool isPBR = !objMaterial.metallic_texname.empty() || !objMaterial.roughness_texname.empty();
+                material->SetIsPBR(isPBR);
+
                 FrameString channelMappingCode;
-                if (!objMaterial.diffuse_texname.empty())
+                if (isPBR)
                 {
-                    material->SetTexture(0, LoadTexture(CUBE_T("baseColorTexture"), objMaterial.diffuse_texname));
-                    channelMappingCode += CUBE_T("value.albedo = materialData.textureSlot0.Sample(input.uv).rgb;\n");
+                    if (!objMaterial.diffuse_texname.empty())
+                    {
+                        material->SetTexture(0, LoadTexture(CUBE_T("baseColorTexture"), objMaterial.diffuse_texname));
+                        channelMappingCode += CUBE_T("value.albedo = materialData.textureSlot0.Sample(input.uv).rgb;\n");
+                    }
+                    if (!objMaterial.metallic_texname.empty())
+                    {
+                        material->SetTexture(1, LoadTexture(CUBE_T("metallicTexture"), objMaterial.metallic_texname));
+                        channelMappingCode += CUBE_T("float t1 = materialData.textureSlot1.Sample(input.uv).r;\n");
+                        channelMappingCode += CUBE_T("value.metallic = t1;\n");
+                    }
+                    if (!objMaterial.roughness_texname.empty())
+                    {
+                        material->SetTexture(2, LoadTexture(CUBE_T("roughnessTexture"), objMaterial.roughness_texname));
+                        channelMappingCode += CUBE_T("float t2 = materialData.textureSlot2.Sample(input.uv).r;\n");
+                        channelMappingCode += CUBE_T("value.roughness = t2;\n");
+                    }
+                    if (!objMaterial.normal_texname.empty())
+                    {
+                        material->SetTexture(3, LoadTexture(CUBE_T("normalTexture"), objMaterial.normal_texname));
+                        channelMappingCode += CUBE_T("float3 t3 = normalize(materialData.textureSlot3.Sample(input.uv).rgb * 2.0f - 1.0f);\n");
+                        channelMappingCode += CUBE_T("value.normal = t3;\n");
+                    }
                 }
-                if (!objMaterial.metallic_texname.empty())
+                else
                 {
-                    material->SetTexture(1, LoadTexture(CUBE_T("normalTexture"), objMaterial.metallic_texname));
-                    channelMappingCode += CUBE_T("float t1 = materialData.textureSlot1.Sample(input.uv).r;\n");
-                    channelMappingCode += CUBE_T("value.metallic = t1;\n");
-                }
-                if (!objMaterial.roughness_texname.empty())
-                {
-                    material->SetTexture(2, LoadTexture(CUBE_T("roughnessTexture"), objMaterial.roughness_texname));
-                    channelMappingCode += CUBE_T("float t2 = materialData.textureSlot2.Sample(input.uv).r;\n");
-                    channelMappingCode += CUBE_T("value.roughness = t2;\n");
-                }
-                if (!objMaterial.normal_texname.empty())
-                {
-                    material->SetTexture(3, LoadTexture(CUBE_T("normalTexture"), objMaterial.normal_texname));
-                    channelMappingCode += CUBE_T("float3 t3 = normalize(materialData.textureSlot3.Sample(input.uv).rgb * 2.0f - 1.0f);\n");
-                    channelMappingCode += CUBE_T("value.normal = t3;\n");
+                    if (!objMaterial.diffuse_texname.empty())
+                    {
+                        material->SetTexture(0, LoadTexture(CUBE_T("diffuseTexture"), objMaterial.diffuse_texname));
+                        channelMappingCode += CUBE_T("value.diffuseColor = materialData.textureSlot0.Sample(input.uv).rgb;\n");
+                    }
+                    else
+                    {
+                        material->SetDiffuseColor(Vector4(objMaterial.diffuse[0], objMaterial.diffuse[1], objMaterial.diffuse[2], 1.0f));
+                        channelMappingCode += CUBE_T("value.diffuseColor = materialData.diffuseColor.rgb;\n");
+                    }
+                    if (!objMaterial.specular_texname.empty())
+                    {
+                        material->SetTexture(1, LoadTexture(CUBE_T("specularTexture"), objMaterial.specular_texname));
+                        channelMappingCode += CUBE_T("value.specularColor = materialData.textureSlot1.Sample(input.uv).rgb;\n");
+                    }
+                    else
+                    {
+                        material->SetSpecularColor(Vector4(objMaterial.specular[0], objMaterial.specular[1], objMaterial.specular[2], 1.0f));
+                        channelMappingCode += CUBE_T("value.specularColor = materialData.specularColor.rgb;\n");
+
+                    }
+                    material->SetShininess(objMaterial.shininess);
+                    channelMappingCode += CUBE_T("value.shininess = materialData.shininess;\n");
+                    if (!objMaterial.normal_texname.empty())
+                    {
+                        material->SetTexture(2, LoadTexture(CUBE_T("normalTexture"), objMaterial.normal_texname));
+                        channelMappingCode += CUBE_T("value.normal = normalize(materialData.textureSlot2.Sample(input.uv).rgb * 2.0f - 1.0f);\n");
+                    }
                 }
                 material->SetChannelMappingCode(channelMappingCode);
 

@@ -67,6 +67,12 @@ namespace cube
             }
         }
 
+        struct PreprocessorDefine
+        {
+            AnsiStringView name;
+            AnsiStringView value;
+        };
+
         struct ShaderCreateInfo
         {
             ShaderType type;
@@ -79,6 +85,8 @@ namespace cube
             };
             ArrayView<ShaderCodeInfo> shaderCodeInfos;
             AnsiStringView entryPoint;
+
+            ArrayView<PreprocessorDefine> preprocessorDefines;
 
             bool withDebugSymbol;
             StringView debugName;

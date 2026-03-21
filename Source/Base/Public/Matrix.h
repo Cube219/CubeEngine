@@ -48,6 +48,11 @@ namespace cube
         void Inverse();
         Matrix Inversed() const;
 
+        bool IsAffine() const;
+
+        void AffineInverse();
+        Matrix AffineInversed() const;
+
     private:
         Vector4 mRows[4];
 
@@ -61,7 +66,9 @@ namespace cube
 
 #ifndef CUBE_MATRIX_IMPLEMENTATION
 
-#if CUBE_VECTOR_USE_SSE
+#if CUBE_VECTOR_USE_AVX2
+#include "MatrixImpl/MatrixAVX2.inl"
+#elif CUBE_VECTOR_USE_SSE
 #include "MatrixImpl/MatrixSSE.inl"
 #elif CUBE_VECTOR_USE_NEON
 #include "MatrixImpl/MatrixNEON.inl"

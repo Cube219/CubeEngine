@@ -27,6 +27,9 @@ namespace cube
             static String DumpStackTrace(bool removeBeforeProjectFolderPath = true) { NOT_IMPLEMENTED() return {}; }
 
             static bool IsDebuggerAttached() { NOT_IMPLEMENTED() return false; }
+
+            static void SetTestMode(bool enable) { NOT_IMPLEMENTED(); }
+            static bool IsTestMode() { NOT_IMPLEMENTED(); return false; }
         };
     } // namespace platform
 } // namespace cube

@@ -369,7 +369,10 @@ namespace cube
             CreateMainMenu();
 
 #if CUBE_DEBUG
-            MacOSDebug::CreateAndShowLoggerWindow();
+            if (!MacOSDebug::IsTestMode())
+            {
+                MacOSDebug::CreateAndShowLoggerWindow();
+            }
 #endif
             mMainLoopThread = std::thread(&MacOSPlatform::MainLoop);
 
@@ -379,7 +382,7 @@ namespace cube
 
         void MacOSPlatform::Shutdown()
         {
-            CHECK_NOT_MAIN_THREAD();
+            CHECK_MACOS_NOT_MAIN_THREAD();
 
             mIsApplicationClosed = true;
 
@@ -394,7 +397,7 @@ namespace cube
 
                 [NSEvent removeMonitor:mModifierEventHandler];
 
-                if (MacOSDebug::IsLoggerWindowCreated())
+                if (!MacOSDebug::IsTestMode() && MacOSDebug::IsLoggerWindowCreated())
                 {
                     MacOSDebug::AppendLogText(@"Press any key to close the application...", PrintColorCategory::Default);
                 }
@@ -439,6 +442,11 @@ namespace cube
         {
             MacOSUtility::DispatchToMainThreadAndWait([&]{
                 [mWindow makeKeyAndOrderFront:nil];
+                if (MacOSDebug::IsTestMode())
+                {
+                    // Hide windows in test mode.
+                    [mWindow orderBack:nil];
+                }
             });
         }
 
@@ -594,7 +602,7 @@ namespace cube
 
         void MacOSPlatform::LastCleanup()
         {
-            CHECK_MAIN_THREAD();
+            CHECK_MACOS_MAIN_THREAD();
 
             MacOSDebug::CloseAndDestroyLoggerWindow();
 
@@ -746,7 +754,7 @@ namespace cube
 
         void MacOSPlatform::ReceiveModifierKeyEvent(NSEventModifierFlags flags)
         {
-            CHECK_MAIN_THREAD()
+            CHECK_MACOS_MAIN_THREAD()
 
 #define PROCESS_MODIFIER_KEY(variable, eventFlag, kVK_keyCode) \
     if (variable != ((flags & eventFlag) > 0)) \
@@ -780,7 +788,7 @@ namespace cube
 
         void MacOSPlatform::CreateMainMenu()
         {
-            CHECK_MAIN_THREAD()
+            CHECK_MACOS_MAIN_THREAD()
 
             @autoreleasepool {
                 NSString* title = @"CubeEngine";
