@@ -15,9 +15,10 @@ namespace cube
             mErrorMessage = errorMessage;
             mDependencyFilePaths = std::move(dependencyFilePaths);
 
-            mThreadGroupSizeX = result.reflection.threadGroupSizeX;
-            mThreadGroupSizeY = result.reflection.threadGroupSizeY;
-            mThreadGroupSizeZ = result.reflection.threadGroupSizeZ;
+            mReflection = std::move(result.reflection);
+            mThreadGroupSizeX = mReflection.threadGroupSizeX;
+            mThreadGroupSizeY = mReflection.threadGroupSizeY;
+            mThreadGroupSizeZ = mReflection.threadGroupSizeZ;
         }
 
         DX12Shader::~DX12Shader()

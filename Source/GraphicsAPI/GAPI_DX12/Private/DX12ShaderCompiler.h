@@ -3,7 +3,7 @@
 #include "DX12Header.h"
 
 #include "Blob.h"
-#include "ShaderParameterReflection.h"
+#include "GAPI_ShaderReflection.h"
 
 struct IDxcCompiler3;
 struct IDxcUtils;
@@ -20,7 +20,7 @@ namespace cube
     {
         Blob shader;
 
-        ShaderReflection reflection;
+        gapi::ShaderReflection reflection;
     };
 
     class DX12ShaderCompiler

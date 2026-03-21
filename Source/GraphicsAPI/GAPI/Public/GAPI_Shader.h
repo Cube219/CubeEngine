@@ -8,6 +8,7 @@
 #include "CubeString.h"
 #include "FileSystem.h"
 #include "Format.h"
+#include "GAPI_ShaderReflection.h"
 
 namespace cube
 {
@@ -102,7 +103,8 @@ namespace cube
             StringView GetWarningMessage() const { return mWarningMessage; }
             StringView GetErrorMessage() const { return mErrorMessage; }
 
-            // TODO: Use reflection data
+            const ShaderReflection& GetReflection() const { return mReflection; }
+
             Uint32 GetThreadGroupSizeX() const { return mThreadGroupSizeX; }
             Uint32 GetThreadGroupSizeY() const { return mThreadGroupSizeY; }
             Uint32 GetThreadGroupSizeZ() const { return mThreadGroupSizeZ; }
@@ -117,6 +119,8 @@ namespace cube
             Uint32 mThreadGroupSizeX;
             Uint32 mThreadGroupSizeY;
             Uint32 mThreadGroupSizeZ;
+
+            ShaderReflection mReflection;
 
             Vector<platform::FilePath> mDependencyFilePaths;
         };

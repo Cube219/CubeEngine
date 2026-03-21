@@ -106,7 +106,7 @@ namespace cube
 #endif
         };
 
-        ShaderReflection reflection;
+        gapi::ShaderReflection reflection;
         Blob shader = SlangHelper::Compile(createInfo, compileOption, compileResult, &reflection);
 
         if (compileResult.isSuccess)

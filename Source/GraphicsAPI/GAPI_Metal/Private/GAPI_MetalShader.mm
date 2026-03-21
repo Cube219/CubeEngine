@@ -5,7 +5,6 @@
 #include "Logger.h"
 #include "MacOS/MacOSString.h"
 #include "MetalDevice.h"
-#include "ShaderParameterReflection.h"
 
 namespace cube
 {
@@ -20,10 +19,10 @@ namespace cube
             mErrorMessage = errorMessage;
             mDependencyFilePaths = std::move(dependencyFilePaths);
 
-            const ShaderReflection& reflection = result.reflection;
-            mThreadGroupSizeX = reflection.threadGroupSizeX;
-            mThreadGroupSizeY = reflection.threadGroupSizeY;
-            mThreadGroupSizeZ = reflection.threadGroupSizeZ;
+            mReflection = result.reflection;
+            mThreadGroupSizeX = mReflection.threadGroupSizeX;
+            mThreadGroupSizeY = mReflection.threadGroupSizeY;
+            mThreadGroupSizeZ = mReflection.threadGroupSizeZ;
         }
 
         MetalShader::~MetalShader()

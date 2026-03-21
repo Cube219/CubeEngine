@@ -9,6 +9,7 @@ set(PUBLIC_FILES
     Public/GAPI_Resource.h
     Public/GAPI_Shader.h
     Public/GAPI_ShaderParameter.h
+    Public/GAPI_ShaderReflection.h
     Public/GAPI_SwapChain.h
     Public/GAPI_Texture.h
     Public/GAPI_Timestamp.h

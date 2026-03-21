@@ -5,6 +5,7 @@
 #include "Checker.h"
 #include "GAPI_Buffer.h"
 #include "GAPI_ShaderParameter.h"
+#include "GAPI_ShaderReflection.h"
 #include "Matrix.h"
 #include "Renderer/RenderTypes.h"
 
@@ -30,20 +31,7 @@ namespace cube
     class ShaderParametersManager;
 
     // ===== ParameterTypeInfo =====
-    // Note: Also add in SlangHelperPrivate::GetReflection.
-    enum class ShaderParameterType
-    {
-        Bool,
-        Int,
-        Float,
-        Float2,
-        Float3,
-        Float4,
-        Matrix,
-        BindlessTexture,
-        BindlessSampler,
-        BindlessCombinedTextureSampler
-    };
+    using ShaderParameterType = gapi::ShaderParameterType;
 
     template <typename T>
     struct NoEntry : std::false_type {};

@@ -4,6 +4,7 @@
 
 #include "GAPI_Pipeline.h"
 #include "GAPI_Shader.h"
+#include "GAPI_ShaderReflection.h"
 
 namespace cube
 {
@@ -123,6 +124,7 @@ namespace cube
         ~GraphicsPipeline();
 
         SharedPtr<gapi::GraphicsPipeline> GetGAPIGraphicsPipeline() const { return mGAPIGraphicsPipeline; }
+        const gapi::ShaderReflection& GetMergedShaderReflection() const { return mMergedShaderReflection; }
 
         bool HasRecompiledShadersInPipeline() const;
 
@@ -130,10 +132,13 @@ namespace cube
         friend class ShaderManager;
 
         void RecreateGraphicsPipeline();
+        void MergeShaderReflection(const gapi::ShaderReflection& reflection);
+        void CacheShaderReflection(SharedPtr<Shader> vertexShader, SharedPtr<Shader> pixelShader);
 
         ShaderManager& mManager;
 
         SharedPtr<gapi::GraphicsPipeline> mGAPIGraphicsPipeline;
+        gapi::ShaderReflection mMergedShaderReflection;
 
         struct RecreateInfo
         {
@@ -198,6 +203,7 @@ namespace cube
         ~ComputePipeline();
 
         SharedPtr<gapi::ComputePipeline> GetGAPIComputePipeline() const { return mGAPIComputePipeline; }
+        const gapi::ShaderReflection& GetShaderReflection() const { return mShaderReflection; }
 
         bool HasRecompiledShaderInPipeline() const;
 
@@ -205,10 +211,12 @@ namespace cube
         friend class ShaderManager;
 
         void RecreateComputePipeline();
+        void CacheShaderReflection(SharedPtr<Shader> shader);
 
         ShaderManager& mManager;
 
         SharedPtr<gapi::ComputePipeline> mGAPIComputePipeline;
+        gapi::ShaderReflection mShaderReflection;
 
         struct RecreateInfo
         {

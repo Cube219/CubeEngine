@@ -2,7 +2,7 @@
 
 #include "MetalHeader.h"
 
-#include "ShaderParameterReflection.h"
+#include "GAPI_ShaderReflection.h"
 
 namespace cube
 {
@@ -18,7 +18,7 @@ namespace cube
         id<MTLLibrary> library = nil;
         id<MTLFunction> function = nil;
 
-        ShaderReflection reflection;
+        gapi::ShaderReflection reflection;
     };
 
     class MetalShaderCompiler

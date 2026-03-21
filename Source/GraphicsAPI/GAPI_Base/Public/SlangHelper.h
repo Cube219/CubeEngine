@@ -3,7 +3,7 @@
 #include "GAPI_BaseHeader.h"
 
 #include "GAPI_Shader.h"
-#include "ShaderParameterReflection.h"
+#include "GAPI_ShaderReflection.h"
 
 namespace cube
 {
@@ -24,6 +24,6 @@ namespace cube
         static void Initialize();
         static void Shutdown();
 
-        static Blob Compile(const gapi::ShaderCreateInfo& info, const SlangCompileOptions& options, gapi::ShaderCompileResult& compileResult, ShaderReflection* pReflection = nullptr);
+        static Blob Compile(const gapi::ShaderCreateInfo& info, const SlangCompileOptions& options, gapi::ShaderCompileResult& compileResult, gapi::ShaderReflection* pReflection = nullptr);
     };
 } // namespace cube

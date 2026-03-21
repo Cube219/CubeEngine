@@ -20,8 +20,8 @@ namespace cube
         static void Initialize();
         static void Shutdown();
 
-        static Blob Compile(const gapi::ShaderCreateInfo& info, const SlangCompileOptions& options, gapi::ShaderCompileResult& compileResult, ShaderReflection* pReflection);
-        static void GetReflection(const gapi::ShaderCreateInfo& info, ComPtr<slang::IComponentType> program, ShaderReflection& outReflection);
+        static Blob Compile(const gapi::ShaderCreateInfo& info, const SlangCompileOptions& options, gapi::ShaderCompileResult& compileResult, gapi::ShaderReflection* pReflection);
+        static void GetReflection(const gapi::ShaderCreateInfo& info, ComPtr<slang::IComponentType> program, gapi::ShaderReflection& outReflection);
 
         static ComPtr<slang::IGlobalSession> mGlobalSession;
         static AnsiString mShaderSearchPath;
@@ -88,7 +88,7 @@ namespace cube
         mGlobalSession = nullptr;
     }
 
-    Blob SlangHelperPrivate::Compile(const gapi::ShaderCreateInfo& info, const SlangCompileOptions& options, gapi::ShaderCompileResult& compileResult, ShaderReflection* pReflection)
+    Blob SlangHelperPrivate::Compile(const gapi::ShaderCreateInfo& info, const SlangCompileOptions& options, gapi::ShaderCompileResult& compileResult, gapi::ShaderReflection* pReflection)
     {
         compileResult.Reset();
         ComPtr<slang::IBlob> diagnosticBlob;
@@ -313,7 +313,7 @@ namespace cube
         return resBlob;
     }
 
-    void SlangHelperPrivate::GetReflection(const gapi::ShaderCreateInfo& info, ComPtr<slang::IComponentType> program, ShaderReflection& outReflection)
+    void SlangHelperPrivate::GetReflection(const gapi::ShaderCreateInfo& info, ComPtr<slang::IComponentType> program, gapi::ShaderReflection& outReflection)
     {
         using namespace slang;
 
@@ -341,7 +341,7 @@ namespace cube
 
                 const char* parameterTypeName = parameterTypeLayout->getName();
                 Uint32 index = parameterVariableLayout->getBindingIndex();
-                ShaderParameterBlockReflection& outBlockReflection = outReflection.blocks.emplace_back(parameterTypeName, index);
+                gapi::ShaderParameterBlockReflection& outBlockReflection = outReflection.blocks.emplace_back(parameterTypeName, index);
                 
                 if (parameterTypeLayout->getKind() == TypeReflection::Kind::Struct)
                 {
@@ -355,7 +355,7 @@ namespace cube
                         const char* fieldTypeName = fieldType->getName();
                         const char* fieldVariableName = fieldVariableLayout->getName();
 
-                        auto AppendParmeterReflection = [&](ShaderParameterType type)
+                        auto AppendParmeterReflection = [&](gapi::ShaderParameterType type)
                         {
                             Uint32 offset = fieldVariableLayout->getOffset();
                             Uint32 size = fieldTypeLayout->getSize();
@@ -369,7 +369,7 @@ namespace cube
                             if (fieldTypeName == AnsiString("DescriptorHandle"))
                             {
                                 // TODO
-                                // AppendParmeterReflection(ShaderParameterType::Bindless);
+                                // AppendParmeterReflection(gapi::ShaderParameterType::Bindless);
                             }
                             else
                             {
@@ -383,7 +383,7 @@ namespace cube
                             Uint32 numCol = fieldTypeLayout->getColumnCount();
                             if (numRow == 4 && numCol == 4)
                             {
-                                AppendParmeterReflection(ShaderParameterType::Matrix);
+                                AppendParmeterReflection(gapi::ShaderParameterType::Matrix);
                             }
                             else
                             {
@@ -401,16 +401,16 @@ namespace cube
                                 switch (numElements)
                                 {
                                 case 1:
-                                    AppendParmeterReflection(ShaderParameterType::Float);
+                                    AppendParmeterReflection(gapi::ShaderParameterType::Float);
                                     break;
                                 case 2:
-                                    AppendParmeterReflection(ShaderParameterType::Float2);
+                                    AppendParmeterReflection(gapi::ShaderParameterType::Float2);
                                     break;
                                 case 3:
-                                    AppendParmeterReflection(ShaderParameterType::Float3);
+                                    AppendParmeterReflection(gapi::ShaderParameterType::Float3);
                                     break;
                                 case 4:
-                                    AppendParmeterReflection(ShaderParameterType::Float4);
+                                    AppendParmeterReflection(gapi::ShaderParameterType::Float4);
                                     break;
                                 default:
                                     NO_ENTRY_FORMAT("Invalid vector count: {0}", numElements);
@@ -429,13 +429,13 @@ namespace cube
                             switch (scalarType)
                             {
                             case TypeReflection::ScalarType::Bool:
-                                AppendParmeterReflection(ShaderParameterType::Bool);
+                                AppendParmeterReflection(gapi::ShaderParameterType::Bool);
                                 break;
                             case TypeReflection::ScalarType::Int32:
-                                AppendParmeterReflection(ShaderParameterType::Int);
+                                AppendParmeterReflection(gapi::ShaderParameterType::Int);
                                 break;
                             case TypeReflection::ScalarType::Float32:
-                                AppendParmeterReflection(ShaderParameterType::Float);
+                                AppendParmeterReflection(gapi::ShaderParameterType::Float);
                                 break;
                             default:
                                 CUBE_LOG(Warning, Slang, "Unsupported type in scalar. Ignore it. (name: {0} / type: {1})", fieldVariableName, (int)scalarType);
@@ -472,7 +472,7 @@ namespace cube
         SlangHelperPrivate::Shutdown();
     }
 
-    Blob SlangHelper::Compile(const gapi::ShaderCreateInfo& info, const SlangCompileOptions& options, gapi::ShaderCompileResult& compileResult, ShaderReflection* pReflection)
+    Blob SlangHelper::Compile(const gapi::ShaderCreateInfo& info, const SlangCompileOptions& options, gapi::ShaderCompileResult& compileResult, gapi::ShaderReflection* pReflection)
     {
         return SlangHelperPrivate::Compile(info, options, compileResult, pReflection);
     }

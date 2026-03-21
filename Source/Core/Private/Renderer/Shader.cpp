@@ -1,8 +1,10 @@
 #include "Shader.h"
 
 #include "Allocator/FrameAllocator.h"
+#include "Checker.h"
 #include "Engine.h"
 #include "FileSystem.h"
+#include "Logger.h"
 #include "Renderer.h"
 
 namespace cube
@@ -336,6 +338,8 @@ namespace cube
 
         mRecreateInfo.CopyFromCreateInfo(createInfo);
         mRecreateCount = 0;
+
+        CacheShaderReflection(createInfo.vertexShader, createInfo.pixelShader);
     }
 
     GraphicsPipeline::~GraphicsPipeline()
@@ -378,6 +382,8 @@ namespace cube
         });
 
         mRecreateCount++;
+
+        CacheShaderReflection(mRecreateInfo.vertexShader, mRecreateInfo.pixelShader);
     }
 
     ComputePipeline::ComputePipeline(ShaderManager& manager, const ComputePipelineCreateInfo& createInfo) :
@@ -390,6 +396,8 @@ namespace cube
 
         mRecreateInfo.CopyFromCreateInfo(createInfo);
         mRecreateCount = 0;
+
+        CacheShaderReflection(createInfo.shader);
     }
 
     ComputePipeline::~ComputePipeline()
@@ -412,5 +420,54 @@ namespace cube
         });
 
         mRecreateCount++;
+
+        CacheShaderReflection(mRecreateInfo.shader);
+    }
+
+    void ComputePipeline::CacheShaderReflection(SharedPtr<Shader> shader)
+    {
+        if (shader)
+        {
+            mShaderReflection = shader->GetGAPIShader()->GetReflection();
+        }
+        else
+        {
+            mShaderReflection = {};
+        }
+    }
+
+    void GraphicsPipeline::MergeShaderReflection(const gapi::ShaderReflection& reflection)
+    {
+        for (const gapi::ShaderParameterBlockReflection& block : reflection.blocks)
+        {
+            bool found = false;
+            for (const gapi::ShaderParameterBlockReflection& existingBlock : mMergedShaderReflection.blocks)
+            {
+                if (existingBlock.typeName == block.typeName && existingBlock.index == block.index)
+                {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+            {
+                mMergedShaderReflection.blocks.push_back(block);
+            }
+        }
+    }
+
+    void GraphicsPipeline::CacheShaderReflection(SharedPtr<Shader> vertexShader, SharedPtr<Shader> pixelShader)
+    {
+        mMergedShaderReflection = {};
+
+        if (vertexShader)
+        {
+            MergeShaderReflection(vertexShader->GetGAPIShader()->GetReflection());
+        }
+
+        if (pixelShader)
+        {
+            MergeShaderReflection(pixelShader->GetGAPIShader()->GetReflection());
+        }
     }
 } // namespace cube
