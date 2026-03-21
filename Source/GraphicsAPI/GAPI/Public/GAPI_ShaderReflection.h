@@ -11,6 +11,7 @@ namespace cube
         // Note: Also add in SlangHelperPrivate::GetReflection.
         enum class ShaderParameterType
         {
+            Unknown,
             Bool,
             Int,
             Float,
