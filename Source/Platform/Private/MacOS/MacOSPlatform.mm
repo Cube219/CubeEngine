@@ -504,6 +504,11 @@ namespace cube
             mIsLoopFinished = true;
         }
 
+        void MacOSPlatform::TriggerClose()
+        {
+            BasePlatform::GetClosingEvent().Dispatch();
+        }
+
         void MacOSPlatform::Sleep(float timeSec)
         {
             timespec ts;

@@ -38,6 +38,7 @@ namespace cube
             static void SetPostLoopMainThreadFunction(std::function<void()> function) { NOT_IMPLEMENTED() }
             static void StartLoop() { NOT_IMPLEMENTED() }
             static void FinishLoop() { NOT_IMPLEMENTED() }
+            static void TriggerClose() { NOT_IMPLEMENTED() }
             static void Sleep(float timeSec) { NOT_IMPLEMENTED() }
 
             static void ShowCursor() { NOT_IMPLEMENTED() }

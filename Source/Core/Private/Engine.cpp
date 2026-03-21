@@ -91,6 +91,8 @@ namespace cube
     Uint64 Engine::mLastTime;
     Uint64 Engine::mCurrentTime;
 
+    Uint32 Engine::mLoopCount = 0;
+
     void Engine::Initialize(const EngineInitializeInfo& initInfo)
     {
         if (initInfo.runLoopInOtherThread && initInfo.isInMainThread)
@@ -251,6 +253,13 @@ namespace cube
         LoopImGUI();
 
         mRenderer->RenderAndPresent();
+
+        mLoopCount++;
+        if (platform::Debug::IsTestMode() && mLoopCount >= 20)
+        {
+            CUBE_LOG(Info, Engine, "Test mode: Auto-closing after {0} rendering loops.", mLoopCount);
+            platform::Platform::TriggerClose();
+        }
     }
 
     void Engine::OnClosing()

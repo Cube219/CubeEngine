@@ -77,5 +77,7 @@ namespace cube
         static Uint64 mStartTime;
         static Uint64 mLastTime;
         static Uint64 mCurrentTime;
+
+        static Uint32 mLoopCount;
     };
 } // namespace cube

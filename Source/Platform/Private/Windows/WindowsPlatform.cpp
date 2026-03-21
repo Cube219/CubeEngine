@@ -187,6 +187,11 @@ namespace cube
             mIsFinished = true;
         }
 
+        void WindowsPlatform::TriggerClose()
+        {
+            BasePlatform::GetClosingEvent().Dispatch();
+        }
+
         void WindowsPlatform::Sleep(float timeSec)
         {
             ::Sleep(timeSec * 1000.0f);

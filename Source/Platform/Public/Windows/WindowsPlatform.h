@@ -34,6 +34,7 @@ namespace cube
             static void SetPostLoopMainThreadFunction(std::function<void()> function);
             static void StartLoop();
             static void FinishLoop();
+            static void TriggerClose();
             static void Sleep(float timeSec);
 
             static void ShowCursor();
