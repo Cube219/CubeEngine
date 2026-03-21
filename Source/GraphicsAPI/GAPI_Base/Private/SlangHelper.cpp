@@ -355,12 +355,27 @@ namespace cube
                         const char* fieldTypeName = fieldType->getName();
                         const char* fieldVariableName = fieldVariableLayout->getName();
 
-                        auto AppendParmeterReflection = [&](gapi::ShaderParameterType type)
+                        auto GetBindlessType = [](TypeReflection* type) -> gapi::ShaderParameterType
                         {
-                            Uint32 offset = fieldVariableLayout->getOffset();
-                            Uint32 size = fieldTypeLayout->getSize();
-                            outBlockReflection.params.emplace_back(fieldVariableName, type, offset, size);
+                            if (type->getKind() == TypeReflection::Kind::SamplerState)
+                            {
+                                return gapi::ShaderParameterType::BindlessSampler;
+                            }
+                            SlangResourceShape shape = type->getResourceShape();
+                            if (shape & SLANG_TEXTURE_COMBINED_FLAG)
+                            {
+                                return gapi::ShaderParameterType::BindlessCombinedTextureSampler;
+                            }
+                            SlangResourceShapeIntegral baseShape = shape & SLANG_RESOURCE_BASE_SHAPE_MASK;
+                            if (baseShape >= SLANG_TEXTURE_1D && baseShape <= SLANG_TEXTURE_CUBE)
+                            {
+                                return gapi::ShaderParameterType::BindlessTexture;
+                            }
+                            CUBE_LOG(Warning, Slang, "Unsupported bindless type.");
+                            return gapi::ShaderParameterType::Unknown;
                         };
+
+                        gapi::ShaderParameterType type = gapi::ShaderParameterType::Unknown;
 
                         switch (fieldType->getKind())
                         {
@@ -368,12 +383,12 @@ namespace cube
                         {
                             if (fieldTypeName == AnsiString("DescriptorHandle"))
                             {
-                                // TODO
-                                // AppendParmeterReflection(gapi::ShaderParameterType::Bindless);
+                                TypeReflection* innerType = fieldType->getElementType();
+                                type = GetBindlessType(innerType);
                             }
                             else
                             {
-                                CUBE_LOG(Warning, Slang, "Unsupported field type. Ignore it. (name: {0} / type: {1})", fieldVariableName, fieldTypeName);
+                                CUBE_LOG(Warning, Slang, "Unsupported field struct type. Only DescriptorHandle is supported.");
                             }
                             break;
                         }
@@ -383,11 +398,11 @@ namespace cube
                             Uint32 numCol = fieldTypeLayout->getColumnCount();
                             if (numRow == 4 && numCol == 4)
                             {
-                                AppendParmeterReflection(gapi::ShaderParameterType::Matrix);
+                                type = gapi::ShaderParameterType::Matrix;
                             }
                             else
                             {
-                                CUBE_LOG(Warning, Slang, "Unsupported dimension in matrix. Only 4x4 is allowed. Ignore it. (name: {0} / row: {1} / col: {2})", fieldVariableName, numRow, numCol);
+                                CUBE_LOG(Warning, Slang, "Unsupported dimension in matrix. Only 4x4 is allowed. Ignore it. ({0}x{1})", numRow, numCol);
                             }
                             break;
                         }
@@ -401,16 +416,16 @@ namespace cube
                                 switch (numElements)
                                 {
                                 case 1:
-                                    AppendParmeterReflection(gapi::ShaderParameterType::Float);
+                                    type = gapi::ShaderParameterType::Float;
                                     break;
                                 case 2:
-                                    AppendParmeterReflection(gapi::ShaderParameterType::Float2);
+                                    type = gapi::ShaderParameterType::Float2;
                                     break;
                                 case 3:
-                                    AppendParmeterReflection(gapi::ShaderParameterType::Float3);
+                                    type = gapi::ShaderParameterType::Float3;
                                     break;
                                 case 4:
-                                    AppendParmeterReflection(gapi::ShaderParameterType::Float4);
+                                    type = gapi::ShaderParameterType::Float4;
                                     break;
                                 default:
                                     NO_ENTRY_FORMAT("Invalid vector count: {0}", numElements);
@@ -419,7 +434,7 @@ namespace cube
                             }
                             else
                             {
-                                CUBE_LOG(Warning, Slang, "Unsupported type in vector. Only float32 is allowed. Ignore it. (name: {0} / type: {1})", fieldVariableName, (int)vectorScalarType);
+                                CUBE_LOG(Warning, Slang, "Unsupported type in vector. Only float32 is allowed.");
                             }
                             break;
                         }
@@ -429,23 +444,41 @@ namespace cube
                             switch (scalarType)
                             {
                             case TypeReflection::ScalarType::Bool:
-                                AppendParmeterReflection(gapi::ShaderParameterType::Bool);
+                                type = gapi::ShaderParameterType::Bool;
                                 break;
                             case TypeReflection::ScalarType::Int32:
-                                AppendParmeterReflection(gapi::ShaderParameterType::Int);
+                                type = gapi::ShaderParameterType::Int;
                                 break;
                             case TypeReflection::ScalarType::Float32:
-                                AppendParmeterReflection(gapi::ShaderParameterType::Float);
+                                type = gapi::ShaderParameterType::Float;
                                 break;
                             default:
-                                CUBE_LOG(Warning, Slang, "Unsupported type in scalar. Ignore it. (name: {0} / type: {1})", fieldVariableName, (int)scalarType);
+                                CUBE_LOG(Warning, Slang, "Unsupported type in scalar.");
                                 break;
                             }
                             break;
                         }
-                        default:
-                            CUBE_LOG(Warning, Slang, "Unsupported field type. Ignore it. (name: {0} / type: {1})", fieldVariableName, fieldTypeName);
+                        case TypeReflection::Kind::Resource:
+                        case TypeReflection::Kind::SamplerState:
+                        {
+                            // Raw resource types used for bindless access (Metal path).
+                            // On Metal, Bindless<T> resolves to T directly.
+                            type = GetBindlessType(fieldType);
                             break;
+                        }
+                        default:
+                            break;
+                        }
+
+                        if (type != gapi::ShaderParameterType::Unknown)
+                        {
+                            Uint32 offset = fieldVariableLayout->getOffset();
+                            Uint32 size = fieldTypeLayout->getSize();
+                            outBlockReflection.params.emplace_back(fieldVariableName, type, offset, size);
+                        }
+                        else
+                        {
+                            CUBE_LOG(Warning, Slang, "Unsupported field type. Ignore it. (name: {0} / type: {1})", fieldVariableName, fieldTypeName);
                         }
                     }
                 }
