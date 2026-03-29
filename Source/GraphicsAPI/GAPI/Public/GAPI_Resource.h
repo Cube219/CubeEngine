@@ -58,6 +58,8 @@ namespace cube
 
         struct SubresourceRange
         {
+            static constexpr Int32 AllRange = -1;
+
             Uint32 firstMipLevel;
             Uint32 mipLevels;
 

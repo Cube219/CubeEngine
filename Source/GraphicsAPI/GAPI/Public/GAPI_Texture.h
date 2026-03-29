@@ -103,11 +103,11 @@ namespace cube
         {
             // [firstMipLevel, firstMipLevel + mipLevels - 1)]
             Uint32 firstMipLevel = 0;
-            Int32 mipLevels = -1;
+            Int32 mipLevels = SubresourceRange::AllRange;
 
             // [firstArrayIndex, firstArrayIndex + arraySize - 1)]
             Uint32 firstArrayIndex = 0;
-            Int32 arraySize = -1;
+            Int32 arraySize = SubresourceRange::AllRange;
         };
 
         class TextureSRV
@@ -115,37 +115,28 @@ namespace cube
         public:
             TextureSRV(const TextureSRVCreateInfo& createInfo, SharedPtr<Texture> texture) :
                 mTexture(texture),
-                mFirstMipLevel(createInfo.firstMipLevel),
-                mMipLevels(createInfo.mipLevels > 0 ? createInfo.mipLevels : texture->GetMipLevels() - createInfo.firstMipLevel),
-                mFirstArrayIndex(createInfo.firstArrayIndex),
-                mArraySize(createInfo.arraySize > 0 ? createInfo.arraySize : texture->GetArraySize() - createInfo.firstArrayIndex),
+                mSubresourceRange({
+                    .firstMipLevel = createInfo.firstMipLevel,
+                    .mipLevels = static_cast<Uint32>(createInfo.mipLevels > 0 ? createInfo.mipLevels : texture->GetMipLevels() - createInfo.firstMipLevel),
+                    .firstArrayIndex = createInfo.firstArrayIndex,
+                    .arraySize = static_cast<Uint32>(createInfo.arraySize > 0 ? createInfo.arraySize : texture->GetArraySize() - createInfo.firstArrayIndex)
+                }),
                 mBindlessId(-1) // Set in child class
             {}
             virtual ~TextureSRV() {}
 
-            Uint32 GetFirstMipLevel() const { return mFirstMipLevel; }
-            Uint32 GetMipLevels() const { return mMipLevels; }
-            Uint32 GetFirstArrayIndex() const { return mFirstArrayIndex; }
-            Uint32 GetArraySize() const { return mArraySize; }
-            SubresourceRange GetSubresourceRange() const
-            {
-                return {
-                    .firstMipLevel = mFirstMipLevel,
-                    .mipLevels = mMipLevels,
-                    .firstArrayIndex = mFirstArrayIndex,
-                    .arraySize = mArraySize
-                };
-            }
+            Uint32 GetFirstMipLevel() const { return mSubresourceRange.firstMipLevel; }
+            Uint32 GetMipLevels() const { return mSubresourceRange.mipLevels; }
+            Uint32 GetFirstArrayIndex() const { return mSubresourceRange.firstArrayIndex; }
+            Uint32 GetArraySize() const { return mSubresourceRange.arraySize; }
+            SubresourceRange GetSubresourceRange() const { return mSubresourceRange; }
 
             Uint64 GetBindlessId() const { return mBindlessId; }
 
         protected:
             SharedPtr<Texture> mTexture;
 
-            Uint32 mFirstMipLevel;
-            Uint32 mMipLevels;
-            Uint32 mFirstArrayIndex;
-            Uint32 mArraySize;
+            SubresourceRange mSubresourceRange;
 
             Uint64 mBindlessId;
         };
@@ -156,11 +147,11 @@ namespace cube
 
             // [firstArrayIndex, firstArrayIndex + arraySize - 1)]
             Uint32 firstArrayIndex = 0;
-            Int32 arraySize = -1;
+            Int32 arraySize = SubresourceRange::AllRange;
 
             // [firstDepthIndex, firstDepthIndex + DepthSize - 1)]
             Uint32 firstDepthIndex = 0;
-            Int32 DepthSize = -1;
+            Int32 DepthSize = SubresourceRange::AllRange;
         };
 
         class TextureUAV
@@ -168,38 +159,31 @@ namespace cube
         public:
             TextureUAV(const TextureUAVCreateInfo& createInfo, SharedPtr<Texture> texture) :
                 mTexture(texture),
-                mMipLevel(createInfo.mipLevel),
-                mFirstArrayIndex(createInfo.firstArrayIndex),
-                mArraySize(createInfo.arraySize > 0 ? createInfo.arraySize : texture->GetArraySize() - createInfo.firstArrayIndex),
+                mSubresourceRange({
+                    .firstMipLevel = createInfo.mipLevel,
+                    .mipLevels = 1,
+                    .firstArrayIndex = createInfo.firstArrayIndex,
+                    .arraySize = static_cast<Uint32>(createInfo.arraySize > 0 ? createInfo.arraySize : texture->GetArraySize() - createInfo.firstArrayIndex)
+                }),
                 mFirstDepthIndex(createInfo.firstDepthIndex),
                 mDepthSize(createInfo.DepthSize > 0 ? createInfo.DepthSize : texture->GetDepth() - createInfo.firstDepthIndex),
                 mBindlessId(-1) // Set in child class
             {}
             virtual ~TextureUAV() {}
 
-            Uint32 GetMipLevel() const { return mMipLevel; }
-            Uint32 GetFirstArrayIndex() const { return mFirstArrayIndex; }
-            Uint32 GetArraySize() const { return mArraySize; }
+            Uint32 GetMipLevel() const { return mSubresourceRange.firstMipLevel; }
+            Uint32 GetFirstArrayIndex() const { return mSubresourceRange.firstArrayIndex; }
+            Uint32 GetArraySize() const { return mSubresourceRange.arraySize; }
             Uint32 GetFirstDepthIndex() const { return mFirstDepthIndex; }
             Uint32 GetDepthSize() const { return mDepthSize; }
-            SubresourceRange GetSubresourceRange() const
-            {
-                return {
-                    .firstMipLevel = mMipLevel,
-                    .mipLevels = 1,
-                    .firstArrayIndex = mFirstArrayIndex,
-                    .arraySize = mArraySize
-                };
-            }
+            SubresourceRange GetSubresourceRange() const { return mSubresourceRange; }
 
             Uint64 GetBindlessId() const { return mBindlessId; }
 
         protected:
             SharedPtr<Texture> mTexture;
 
-            Uint32 mMipLevel;
-            Uint32 mFirstArrayIndex;
-            Uint32 mArraySize;
+            SubresourceRange mSubresourceRange;
             Uint32 mFirstDepthIndex;
             Uint32 mDepthSize;
 
@@ -211,10 +195,10 @@ namespace cube
             Uint32 mipLevel = 0;
 
             Uint32 firstArrayIndex = 0;
-            Int32 arraySize = -1;
+            Int32 arraySize = SubresourceRange::AllRange;
 
             Uint32 firstDepthIndex = 0;
-            Int32 DepthSize = -1;
+            Int32 DepthSize = SubresourceRange::AllRange;
         };
 
         class TextureRTV
@@ -222,43 +206,34 @@ namespace cube
         public:
             TextureRTV(const TextureRTVCreateInfo& createInfo, SharedPtr<Texture> texture)
                 : mTexture(texture)
-                , mMipLevel(createInfo.mipLevel)
-                , mFirstArrayIndex(createInfo.firstArrayIndex)
-                , mArraySize(createInfo.arraySize > 0 ? createInfo.arraySize : texture->GetArraySize() - createInfo.firstArrayIndex)
+                , mSubresourceRange({
+                    .firstMipLevel = createInfo.mipLevel,
+                    .mipLevels = 1,
+                    .firstArrayIndex = createInfo.firstArrayIndex,
+                    .arraySize = static_cast<Uint32>(createInfo.arraySize > 0 ? createInfo.arraySize : texture->GetArraySize() - createInfo.firstArrayIndex)
+                })
                 , mFirstDepthIndex(createInfo.firstDepthIndex)
                 , mDepthSize(createInfo.DepthSize > 0 ? createInfo.DepthSize : texture->GetDepth() - createInfo.firstDepthIndex)
             {}
             TextureRTV()
                 : mTexture(nullptr)
-                , mMipLevel(0)
-                , mFirstArrayIndex(0)
-                , mArraySize(1)
+                , mSubresourceRange({ .firstMipLevel = 0, .mipLevels = 1, .firstArrayIndex = 0, .arraySize = 1 })
                 , mFirstDepthIndex(0)
                 , mDepthSize(1)
             {}
             virtual ~TextureRTV() {}
 
-            Uint32 GetMipLevel() const { return mMipLevel; }
-            Uint32 GetFirstArrayIndex() const { return mFirstArrayIndex; }
-            Uint32 GetArraySize() const { return mArraySize; }
+            Uint32 GetMipLevel() const { return mSubresourceRange.firstMipLevel; }
+            Uint32 GetFirstArrayIndex() const { return mSubresourceRange.firstArrayIndex; }
+            Uint32 GetArraySize() const { return mSubresourceRange.arraySize; }
             Uint32 GetFirstDepthIndex() const { return mFirstDepthIndex; }
             Uint32 GetDepthSize() const { return mDepthSize; }
-            SubresourceRange GetSubresourceRange() const
-            {
-                return {
-                    .firstMipLevel = mMipLevel,
-                    .mipLevels = 1,
-                    .firstArrayIndex = mFirstArrayIndex,
-                    .arraySize = mArraySize
-                };
-            }
+            SubresourceRange GetSubresourceRange() const { return mSubresourceRange; }
 
         protected:
             SharedPtr<Texture> mTexture;
 
-            Uint32 mMipLevel;
-            Uint32 mFirstArrayIndex;
-            Uint32 mArraySize;
+            SubresourceRange mSubresourceRange;
             Uint32 mFirstDepthIndex;
             Uint32 mDepthSize;
         };
@@ -268,7 +243,7 @@ namespace cube
             Uint32 mipLevel = 0;
 
             Uint32 firstArrayIndex = 0;
-            Int32 arraySize = -1;
+            Int32 arraySize = SubresourceRange::AllRange;
         };
 
         class TextureDSV
@@ -276,31 +251,24 @@ namespace cube
         public:
             TextureDSV(const TextureDSVCreateInfo& createInfo, SharedPtr<Texture> texture)
                 : mTexture(texture)
-                , mMipLevel(createInfo.mipLevel)
-                , mFirstArrayIndex(createInfo.firstArrayIndex)
-                , mArraySize(createInfo.arraySize > 0 ? createInfo.arraySize : texture->GetArraySize() - createInfo.firstArrayIndex)
+                , mSubresourceRange({
+                    .firstMipLevel = createInfo.mipLevel,
+                    .mipLevels = 1,
+                    .firstArrayIndex = createInfo.firstArrayIndex,
+                    .arraySize = static_cast<Uint32>(createInfo.arraySize > 0 ? createInfo.arraySize : texture->GetArraySize() - createInfo.firstArrayIndex)
+                })
             {}
             virtual ~TextureDSV() {}
 
-            Uint32 GetMipLevel() const { return mMipLevel; }
-            Uint32 GetFirstArrayIndex() const { return mFirstArrayIndex; }
-            Uint32 GetArraySize() const { return mArraySize; }
-            SubresourceRange GetSubresourceRange() const
-            {
-                return {
-                    .firstMipLevel = mMipLevel,
-                    .mipLevels = 1,
-                    .firstArrayIndex = mFirstArrayIndex,
-                    .arraySize = mArraySize
-                };
-            }
+            Uint32 GetMipLevel() const { return mSubresourceRange.firstMipLevel; }
+            Uint32 GetFirstArrayIndex() const { return mSubresourceRange.firstArrayIndex; }
+            Uint32 GetArraySize() const { return mSubresourceRange.arraySize; }
+            SubresourceRange GetSubresourceRange() const { return mSubresourceRange; }
 
         protected:
             SharedPtr<Texture> mTexture;
 
-            Uint32 mMipLevel;
-            Uint32 mFirstArrayIndex;
-            Uint32 mArraySize;
+            SubresourceRange mSubresourceRange;
         };
     } // namespace gapi
 } // namespace cube

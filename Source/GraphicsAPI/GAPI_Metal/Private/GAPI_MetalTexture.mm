@@ -168,8 +168,8 @@ namespace cube
             CHECK(metalTexture);
             CHECK_FORMAT(metalTexture->GetTextureUsage() & MTLTextureUsageShaderRead, "Cannot create MetalTextureSRV. Texture was not created with MTLTextureUsageShaderRead.");
 
-            Uint32 mipLevels = createInfo.mipLevels != -1 ? createInfo.mipLevels : metalTexture->GetMipLevels() - createInfo.firstMipLevel;
-            Uint32 arraySize = createInfo.arraySize != -1 ? createInfo.arraySize : metalTexture->GetArraySize() - createInfo.firstArrayIndex;
+            Uint32 mipLevels = createInfo.mipLevels != SubresourceRange::AllRange ? createInfo.mipLevels : metalTexture->GetMipLevels() - createInfo.firstMipLevel;
+            Uint32 arraySize = createInfo.arraySize != SubresourceRange::AllRange ? createInfo.arraySize : metalTexture->GetArraySize() - createInfo.firstArrayIndex;
             id<MTLTexture> mtlTexture = metalTexture->GetMTLTexture();
             mSRV = [mtlTexture
                 newTextureViewWithPixelFormat:metalTexture->GetPixelFormat()
@@ -195,7 +195,7 @@ namespace cube
 
             CHECK_FORMAT(metalTexture->GetTextureUsage() & (MTLTextureUsageShaderRead | MTLTextureUsageShaderWrite), "Cannot create MetalTextureUAV. Texture was not created with MTLTextureUsageShaderRead and MTLTextureUsageShaderWrite.");
 
-            Uint32 arraySize = createInfo.arraySize != -1 ? createInfo.arraySize : metalTexture->GetArraySize() - createInfo.firstArrayIndex;
+            Uint32 arraySize = createInfo.arraySize != SubresourceRange::AllRange ? createInfo.arraySize : metalTexture->GetArraySize() - createInfo.firstArrayIndex;
             id<MTLTexture> mtlTexture = metalTexture->GetMTLTexture();
             mUAV = [mtlTexture
                 newTextureViewWithPixelFormat:metalTexture->GetPixelFormat()
@@ -220,7 +220,7 @@ namespace cube
             CHECK(metalTexture);
             CHECK_FORMAT(metalTexture->GetTextureUsage() & MTLTextureUsageRenderTarget, "Cannot create MetalTextureRTV. Texture was not created with MTLTextureUsageRenderTarget.");
 
-            Uint32 arraySize = createInfo.arraySize != -1 ? createInfo.arraySize : metalTexture->GetArraySize() - createInfo.firstArrayIndex;
+            Uint32 arraySize = createInfo.arraySize != SubresourceRange::AllRange ? createInfo.arraySize : metalTexture->GetArraySize() - createInfo.firstArrayIndex;
             mRTV = [metalTexture->GetMTLTexture()
                 newTextureViewWithPixelFormat:metalTexture->GetPixelFormat()
                 textureType:metalTexture->GetTextureType()
@@ -253,7 +253,7 @@ namespace cube
             CHECK(metalTexture);
             CHECK_FORMAT(metalTexture->GetTextureUsage() & MTLTextureUsageRenderTarget, "Cannot create MetalTextureDSV. Texture was not created with MTLTextureUsageRenderTarget.");
 
-            Uint32 arraySize = createInfo.arraySize != -1 ? createInfo.arraySize : metalTexture->GetArraySize() - createInfo.firstArrayIndex;
+            Uint32 arraySize = createInfo.arraySize != SubresourceRange::AllRange ? createInfo.arraySize : metalTexture->GetArraySize() - createInfo.firstArrayIndex;
             mDSV = [metalTexture->GetMTLTexture()
                 newTextureViewWithPixelFormat:metalTexture->GetPixelFormat()
                                   textureType:metalTexture->GetTextureType()
