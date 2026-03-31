@@ -31,7 +31,61 @@ namespace cube
     class ShaderParametersManager;
 
     // ===== ParameterTypeInfo =====
-    using ShaderParameterType = gapi::ShaderParameterType;
+    // Note: Also update CompatibleShaderParameterReflectionTypeMap each ShaderParameterHelper implementations.
+    enum class ShaderParameterType
+    {
+        Unknown,
+        Bool,
+        Int,
+        Float,
+        Float2,
+        Float3,
+        Float4,
+        Matrix,
+        BindlessTexture,
+        BindlessSampler,
+        BindlessCombinedTextureSampler,
+        RGTextureSRV,
+        RGTextureUAV,
+
+        Num
+    };
+    // TODO: Use formatter style?
+    inline const Character* ToString(ShaderParameterType type)
+    {
+        switch (type)
+        {
+        case ShaderParameterType::Unknown:
+            return CUBE_T("Unknown");
+        case ShaderParameterType::Bool:
+            return CUBE_T("Bool");
+        case ShaderParameterType::Int:
+            return CUBE_T("Int");
+        case ShaderParameterType::Float:
+            return CUBE_T("Float");
+        case ShaderParameterType::Float2:
+            return CUBE_T("Float2");
+        case ShaderParameterType::Float3:
+            return CUBE_T("Float3");
+        case ShaderParameterType::Float4:
+            return CUBE_T("Float4");
+        case ShaderParameterType::Matrix:
+            return CUBE_T("Matrix");
+        case ShaderParameterType::BindlessTexture:
+            return CUBE_T("BindlessTexture");
+        case ShaderParameterType::BindlessSampler:
+            return CUBE_T("BindlessSampler");
+        case ShaderParameterType::BindlessCombinedTextureSampler:
+            return CUBE_T("BindlessCombinedTextureSampler");
+        case ShaderParameterType::RGTextureSRV:
+            return CUBE_T("RGTextureSRV");
+        case ShaderParameterType::RGTextureUAV:
+            return CUBE_T("RGTextureUAV");
+        default:
+            break;
+        }
+        return CUBE_T("Undefined");
+    }
 
     template <typename T>
     struct NoEntry : std::false_type {};
@@ -146,6 +200,7 @@ namespace cube
         ShaderParameters& operator=(const ShaderParameters& rhs) = delete;
 
         SharedPtr<gapi::Buffer> GetBuffer() const { return mPooledBuffer.buffer; }
+        ShaderParametersManager& GetManager() const { return mManager; }
 
     protected:
         // Only manager can create shader parameters
@@ -265,6 +320,8 @@ public: \
             return parameters;
         }
 
+        bool ValidateShaderParameters(const Vector<ShaderParameterInfo>& parameterInfos, const gapi::ShaderParameterBlockReflection& parameterBlockReflection);
+
     private:
         friend class ShaderParameters;
 
@@ -277,6 +334,7 @@ public: \
 
         GAPI* mGAPI;
         const gapi::ShaderParameterHelper* mShaderParameterHelper;
+        Vector<Vector<gapi::ShaderParameterReflection::Type>> mCompatibleShaderParameterReflectionTypeMap;
 
         Uint32 mCurrentIndex;
 

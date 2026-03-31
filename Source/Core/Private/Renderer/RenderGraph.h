@@ -178,6 +178,7 @@ namespace cube
         {
             SharedPtr<gapi::Buffer> GPUBuffer = nullptr;
             int bindIndex = -1;
+            const Vector<ShaderParameterInfo>* pParameterInfos = nullptr;
         };
         Map<String, ShaderParametersBindInfo> mShaderParametersBindInfos;
 

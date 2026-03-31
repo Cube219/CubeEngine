@@ -356,7 +356,7 @@ namespace cube
                         const char* fieldTypeName = fieldType->getName();
                         const char* fieldVariableName = fieldVariableLayout->getName();
 
-                        gapi::ShaderParameterType type = gapi::ShaderParameterType::Unknown;
+                        gapi::ShaderParameterReflection::Type type = gapi::ShaderParameterReflection::Type::Unknown;
 
                         switch (fieldType->getKind())
                         {
@@ -366,7 +366,7 @@ namespace cube
                             {
                                 // Maybe it is impossible to get generic type in DescriptorHandle. It always emits uint2 type.
                                 // So just return combined texture sampler type.
-                                type = gapi::ShaderParameterType::BindlessCombinedTextureSampler;
+                                type = gapi::ShaderParameterReflection::Type::BindlessHandler;
                             }
                             else
                             {
@@ -380,7 +380,7 @@ namespace cube
                             Uint32 numCol = fieldTypeLayout->getColumnCount();
                             if (numRow == 4 && numCol == 4)
                             {
-                                type = gapi::ShaderParameterType::Matrix;
+                                type = gapi::ShaderParameterReflection::Type::Matrix;
                             }
                             else
                             {
@@ -398,16 +398,16 @@ namespace cube
                                 switch (numElements)
                                 {
                                 case 1:
-                                    type = gapi::ShaderParameterType::Float;
+                                    type = gapi::ShaderParameterReflection::Type::Float;
                                     break;
                                 case 2:
-                                    type = gapi::ShaderParameterType::Float2;
+                                    type = gapi::ShaderParameterReflection::Type::Float2;
                                     break;
                                 case 3:
-                                    type = gapi::ShaderParameterType::Float3;
+                                    type = gapi::ShaderParameterReflection::Type::Float3;
                                     break;
                                 case 4:
-                                    type = gapi::ShaderParameterType::Float4;
+                                    type = gapi::ShaderParameterReflection::Type::Float4;
                                     break;
                                 default:
                                     NO_ENTRY_FORMAT("Invalid vector count: {0}", numElements);
@@ -426,13 +426,13 @@ namespace cube
                             switch (scalarType)
                             {
                             case TypeReflection::ScalarType::Bool:
-                                type = gapi::ShaderParameterType::Bool;
+                                type = gapi::ShaderParameterReflection::Type::Bool;
                                 break;
                             case TypeReflection::ScalarType::Int32:
-                                type = gapi::ShaderParameterType::Int;
+                                type = gapi::ShaderParameterReflection::Type::Int;
                                 break;
                             case TypeReflection::ScalarType::Float32:
-                                type = gapi::ShaderParameterType::Float;
+                                type = gapi::ShaderParameterReflection::Type::Float;
                                 break;
                             default:
                                 CUBE_LOG(Warning, Slang, "Unsupported type in scalar.");
@@ -447,19 +447,19 @@ namespace cube
                             // In this case, Bindless<T> resolves to T directly.
                             if (fieldType->getKind() == TypeReflection::Kind::SamplerState)
                             {
-                                type = gapi::ShaderParameterType::BindlessSampler;
+                                type = gapi::ShaderParameterReflection::Type::Sampler;
                                 break;
                             }
                             SlangResourceShape shape = fieldType->getResourceShape();
                             if (shape & SLANG_TEXTURE_COMBINED_FLAG)
                             {
-                                type = gapi::ShaderParameterType::BindlessCombinedTextureSampler;
+                                type = gapi::ShaderParameterReflection::Type::CombinedTextureSampler;
                                 break;
                             }
                             SlangResourceShapeIntegral baseShape = shape & SLANG_RESOURCE_BASE_SHAPE_MASK;
                             if (baseShape >= SLANG_TEXTURE_1D && baseShape <= SLANG_TEXTURE_CUBE)
                             {
-                                type = gapi::ShaderParameterType::BindlessTexture;
+                                type = gapi::ShaderParameterReflection::Type::Texture;
                                 break;
                             }
                             CUBE_LOG(Warning, Slang, "Unsupported resource type.");
@@ -469,7 +469,7 @@ namespace cube
                             break;
                         }
 
-                        if (type != gapi::ShaderParameterType::Unknown)
+                        if (type != gapi::ShaderParameterReflection::Type::Unknown)
                         {
                             Uint32 offset = fieldVariableLayout->getOffset();
                             Uint32 size = fieldTypeLayout->getSize();

@@ -2,6 +2,8 @@
 
 #include "GAPIHeader.h"
 
+#include "GAPI_ShaderReflection.h"
+
 namespace cube
 {
     struct ShaderParameterInfo;
@@ -24,6 +26,8 @@ namespace cube
             
             virtual void UpdateShaderParameterInfo(Vector<ShaderParameterInfo>& inOutParameterInfos, Uint32& outTotalBufferSize) const = 0;
             virtual void WriteParametersToGPUBuffer(SharedPtr<Buffer> buffer, const Vector<ShaderParameterInfo>& paramInfos, const void* pParameters) const = 0;
+
+            virtual const Vector<Vector<ShaderParameterReflection::Type>>& GetCompatibleShaderParameterReflectionTypeMap() const = 0;
         };
     } // namespace gapi
 } // namespace cube

@@ -62,6 +62,8 @@ namespace cube
             CHECK_HR(D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, mDevice.GetMaxRootSignatureVersion(), &signatureBlob, &errorBlob));
             CHECK_HR(mDevice.GetDevice()->CreateRootSignature(0, signatureBlob->GetBufferPointer(), signatureBlob->GetBufferSize(), IID_PPV_ARGS(&mRootSignature)));
             SET_DEBUG_NAME(mRootSignature, "GlobalRootSignature");
+
+            InitializeCompatibleShaderParameterReflectionTypeMap();
         }
 
         void DX12ShaderParameterHelper::Shutdown()
@@ -256,6 +258,49 @@ namespace cube
             }
 
             buffer->Unmap();
+        }
+
+        void DX12ShaderParameterHelper::InitializeCompatibleShaderParameterReflectionTypeMap()
+        {
+            mCompatibleShaderParameterReflectionTypeMap.resize(static_cast<int>(ShaderParameterType::Num));
+
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::Bool)] = {
+                ShaderParameterReflection::Type::Bool
+            };
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::Int)] = {
+                ShaderParameterReflection::Type::Int
+            };
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::Float)] = {
+                ShaderParameterReflection::Type::Float
+            };
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::Float2)] = {
+                ShaderParameterReflection::Type::Float2
+            };
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::Float3)] = {
+                ShaderParameterReflection::Type::Float3
+            };
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::Float4)] = {
+                ShaderParameterReflection::Type::Float4
+            };
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::Matrix)] = {
+                ShaderParameterReflection::Type::Matrix
+            };
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::BindlessTexture)] = {
+                ShaderParameterReflection::Type::BindlessHandler
+            };
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::BindlessSampler)] = {
+                ShaderParameterReflection::Type::BindlessHandler
+            };
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::BindlessCombinedTextureSampler)] = {
+                ShaderParameterReflection::Type::BindlessHandler
+            };
+            // RGTextureView use bindless.
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::RGTextureSRV)] = {
+                ShaderParameterReflection::Type::BindlessHandler
+            };
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::RGTextureUAV)] = {
+                ShaderParameterReflection::Type::BindlessHandler
+            };
         }
     } // namespace gapi
 } // namespace cube

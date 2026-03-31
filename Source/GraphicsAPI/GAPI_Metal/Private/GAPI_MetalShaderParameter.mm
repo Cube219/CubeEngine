@@ -17,6 +17,15 @@ namespace cube
         {
         }
 
+        void MetalShaderParameterHelper::Initialize()
+        {
+            InitializeCompatibleShaderParameterReflectionTypeMap();
+        }
+
+        void MetalShaderParameterHelper::Shutdown()
+        {
+        }
+
         void MetalShaderParameterHelper::UpdateShaderParameterInfo(Vector<ShaderParameterInfo>& inOutParameterInfos, Uint32& outTotalBufferSize) const
         {
             Uint32 currentOffset = 0;
@@ -198,6 +207,49 @@ namespace cube
             }
 
             buffer->Unmap();
+        }
+
+        void MetalShaderParameterHelper::InitializeCompatibleShaderParameterReflectionTypeMap()
+        {
+            mCompatibleShaderParameterReflectionTypeMap.resize(static_cast<int>(ShaderParameterType::Num));
+
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::Bool)] = {
+                ShaderParameterReflection::Type::Bool
+            };
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::Int)] = {
+                ShaderParameterReflection::Type::Int
+            };
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::Float)] = {
+                ShaderParameterReflection::Type::Float
+            };
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::Float2)] = {
+                ShaderParameterReflection::Type::Float2
+            };
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::Float3)] = {
+                ShaderParameterReflection::Type::Float3
+            };
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::Float4)] = {
+                ShaderParameterReflection::Type::Float4
+            };
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::Matrix)] = {
+                ShaderParameterReflection::Type::Matrix
+            };
+            // Metal use raw resource type for bindless.
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::BindlessTexture)] = {
+                ShaderParameterReflection::Type::Texture
+            };
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::BindlessSampler)] = {
+                ShaderParameterReflection::Type::Sampler
+            };
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::BindlessCombinedTextureSampler)] = {
+                ShaderParameterReflection::Type::CombinedTextureSampler
+            };
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::RGTextureSRV)] = {
+                ShaderParameterReflection::Type::Texture
+            };
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::RGTextureUAV)] = {
+                ShaderParameterReflection::Type::Texture
+            };
         }
     } // namespace gapi
 } // namespace cube

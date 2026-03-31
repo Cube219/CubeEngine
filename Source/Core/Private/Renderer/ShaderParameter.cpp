@@ -1,5 +1,6 @@
 #include "Renderer/ShaderParameter.h"
 
+#include "Allocator/FrameAllocator.h"
 #include "GAPI.h"
 
 namespace cube
@@ -19,6 +20,7 @@ namespace cube
     {
         mGAPI = gapi;
         mShaderParameterHelper = &mGAPI->GetShaderParameterHelper();
+        mCompatibleShaderParameterReflectionTypeMap = mShaderParameterHelper->GetCompatibleShaderParameterReflectionTypeMap();
         mBufferPools.resize(numGPUSync);
 
         mCurrentIndex = 0;
@@ -45,6 +47,78 @@ namespace cube
             pool.pooledBufferIndices.emplace((Uint32)(pool.buffers[index]->GetSize()), index);
         }
         pool.freedBufferIndices.clear();
+    }
+
+    bool ShaderParametersManager::ValidateShaderParameters(const Vector<ShaderParameterInfo>& parameterInfos, const gapi::ShaderParameterBlockReflection& parameterBlockReflection)
+    {
+        FrameMap<FrameString, int> parameterNameToIndexMapInShaderCode;
+        FrameVector<bool> checkedParameterInShaderCode(parameterBlockReflection.params.size(), false);
+        for (int i = 0; i < parameterBlockReflection.params.size(); ++i)
+        {
+            const gapi::ShaderParameterReflection& paramReflection = parameterBlockReflection.params[i];
+            parameterNameToIndexMapInShaderCode.insert({ FrameString(paramReflection.name.begin(), paramReflection.name.end()), i });
+        }
+
+        bool res = true;
+
+        for (const ShaderParameterInfo& parameterInfo : parameterInfos)
+        {
+            FrameString name = String_Convert<FrameString>(parameterInfo.name);
+
+            auto findIt = parameterNameToIndexMapInShaderCode.find(name);
+            if (findIt == parameterNameToIndexMapInShaderCode.end())
+            {
+                CUBE_LOG(Error, ShaderParameter, "Cannot find shader parameter '{0}' in shader code!", name);
+                res = false;
+            }
+            else
+            {
+                int index = findIt->second;
+                const Vector<gapi::ShaderParameterReflection::Type>& compatibleTypes = mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(parameterInfo.type)];
+
+                bool found = false;
+                for (const gapi::ShaderParameterReflection::Type& compatibleType : compatibleTypes)
+                {
+                    if (compatibleType == parameterBlockReflection.params[index].type)
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found)
+                {
+                    CUBE_LOG(Error, ShaderParamter, "Incompatible shader parameter type between C++ and shader code! (Name: {0}::{1} / C++: {2} / shader code: {3})",
+                        parameterBlockReflection.typeName, name, ToString(parameterInfo.type), ToString(parameterBlockReflection.params[index].type));
+                    FrameString compatibleTypesStr;
+                    for (const gapi::ShaderParameterReflection::Type& compatibleType : compatibleTypes)
+                    {
+                        if (compatibleTypesStr.empty())
+                        {
+                            compatibleTypesStr = ToString(compatibleType);
+                        }
+                        else
+                        {
+                            compatibleTypesStr = Format<FrameString>(CUBE_T("{0}, {1}"), compatibleTypesStr, ToString(compatibleType));
+                        }
+                    }
+                    CUBE_LOG(Error, ShaderParamter, "    Compatible types in shader code: {0}", compatibleTypesStr);
+                    res = false;
+                }
+                checkedParameterInShaderCode[index] = true;
+            }
+        }
+
+        for (int i = 0; i < checkedParameterInShaderCode.size(); ++i)
+        {
+            if (!checkedParameterInShaderCode[i])
+            {
+                CUBE_LOG(Error, ShaderParameter, "Shader parameter '{0}' defined in shader code but cannot find in C++ code!", parameterBlockReflection.params[i].name);
+                res = false;
+            }
+        }
+
+        return res;
     }
 
     void ShaderParametersManager::AllocateShaderParameters(ShaderParameters* parameters, const Vector<ShaderParameterInfo>& paramInfos, Uint32 bufferSize, StringView debugName)

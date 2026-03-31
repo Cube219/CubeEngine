@@ -65,6 +65,7 @@ namespace cube
         SetNumGPUSync(initInfo.numGPUSync);
 
         mShaderParameterHelper = std::make_unique<gapi::MetalShaderParameterHelper>();
+        mShaderParameterHelper->Initialize();
     }
 
     void GAPI_Metal::Shutdown(const ImGUIContext& imGUIInfo)
@@ -73,6 +74,7 @@ namespace cube
 
         WaitAllGPUSync();
 
+        mShaderParameterHelper->Shutdown();
         mShaderParameterHelper = nullptr;
 
         MetalShaderCompiler::Shutdown();

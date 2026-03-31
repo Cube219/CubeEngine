@@ -412,7 +412,7 @@ namespace cube
 
             SharedPtr<ShaderParameters> params = pass.shaderParameters->mParams;
             // Reset bind index because it is a new buffer.
-            findIt->second = { params->GetBuffer(), -1 };
+            findIt->second = { params->GetBuffer(), -1, &(pass.shaderParameters->mParameterInfos) };
         }
 
         // Resolve shader parameter bind index.
@@ -431,6 +431,9 @@ namespace cube
             {
                 if (auto findIt = mShaderParametersBindInfos.find(block.typeName); findIt != mShaderParametersBindInfos.end())
                 {
+                    // TODO: Move validation after creating pipeline.
+                    CHECK(mRenderer.GetShaderParametersManager().ValidateShaderParameters(*(findIt->second.pParameterInfos), block));
+
                     if (findIt->second.bindIndex != block.index)
                     {
                         commandList.SetShaderVariableConstantBuffer(block.index, findIt->second.GPUBuffer);

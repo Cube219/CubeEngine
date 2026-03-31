@@ -41,7 +41,7 @@ PSOutput PSMain(PSInput input) : SV_TARGET
     float3x3 TBN = float3x3(tangent, bitangent, normal);
     normal = normalize(mul(materialValue.normal, TBN));
 
-    float3 view = normalize(globalParams.cameraPosition - input.worldPosition.xyz);
+    float3 view = normalize(globalParams.viewPosition - input.worldPosition.xyz);
 
     ILight directionalLight = DirectionalLight(normalize(globalParams.directionalLightDirection), globalParams.directionalLightIntensity);
     float3 color = directionalLight.CalculateLight(view, normal, materialValue);
