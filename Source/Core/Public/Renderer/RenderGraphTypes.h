@@ -176,11 +176,10 @@ namespace cube
     protected:
         friend class RGBuilder;
 
-        RGShaderParametersBase(int index, const Character* mName, const Vector<ShaderParameterInfo>& parameterInfos, SharedPtr<ShaderParameters> params);
+        RGShaderParametersBase(int index, const ShaderParametersInfo& parametersInfo, SharedPtr<ShaderParameters> params);
         virtual ~RGShaderParametersBase() = default;
 
-        const Character* mName;
-        const Vector<ShaderParameterInfo>& mParameterInfos;
+        const ShaderParametersInfo& mParametersInfo;
         SharedPtr<ShaderParameters> mParams;
     };
     using RGShaderParametersBaseHandle = RGResourceHandler<RGShaderParametersBase>;
@@ -195,8 +194,8 @@ namespace cube
     private:
         friend class RGBuilder;
 
-        RGShaderParameters(int index, SharedPtr<ShaderParametersType> params)
-            : RGShaderParametersBase(index, ShaderParametersType::GetName(), ShaderParametersType::GetParameterInfos(), params)
+        RGShaderParameters(int index, SharedPtr<ShaderParametersType> params, const ShaderParametersInfo& parametersInfo)
+            : RGShaderParametersBase(index, parametersInfo, params)
             , mCastedPtr(dynamic_cast<ShaderParametersType*>(mParams.get()))
         {}
         virtual ~RGShaderParameters() = default;

@@ -13,6 +13,8 @@
 
 namespace cube
 {
+    CUBE_REGISTER_SHADER_PARAMETERS(MaterialShaderParameters);
+
     Material::Material(StringView debugName)
         : mConstantBaseColor(1.0f, 0.0f, 0.80392f) // Magenta
         , mDebugName(std::move(debugName))

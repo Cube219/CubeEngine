@@ -21,6 +21,14 @@ namespace cube
         class Texture;
     } // namespace gapi
 
+    class GenerateMipmapsShaderParameters : public ShaderParameters
+    {
+        CUBE_BEGIN_SHADER_PARAMETERS(GenerateMipmapsShaderParameters)
+            CUBE_SHADER_PARAMETER(RGTextureSRVHandle, srcTexture)
+            CUBE_SHADER_PARAMETER(RGTextureUAVHandle, dstTexture)
+        CUBE_END_SHADER_PARAMETERS
+    };
+
     class TextureManager
     {
     public:
@@ -38,14 +46,6 @@ namespace cube
 
         SharedPtr<Shader> mGenerateMipmapsShader;
         SharedPtr<ComputePipeline> mGenerateMipmapsPipeline;
-
-        class GenerateMipmapsShaderParameters : public ShaderParameters
-        {
-            CUBE_BEGIN_SHADER_PARAMETERS(GenerateMipmapsShaderParameters)
-                CUBE_SHADER_PARAMETER(RGTextureSRVHandle, srcTexture)
-                CUBE_SHADER_PARAMETER(RGTextureUAVHandle, dstTexture)
-            CUBE_END_SHADER_PARAMETERS
-        };
 
         SharedPtr<gapi::CommandList> mCommandList;
     };

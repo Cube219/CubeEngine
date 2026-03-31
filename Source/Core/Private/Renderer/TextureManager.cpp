@@ -15,6 +15,8 @@
 
 namespace cube
 {
+    CUBE_REGISTER_SHADER_PARAMETERS(GenerateMipmapsShaderParameters);
+
     TextureManager::TextureManager(Renderer& renderer)
         : mRenderer(renderer)
     {

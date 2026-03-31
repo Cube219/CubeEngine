@@ -26,12 +26,12 @@ namespace cube
         {
         }
 
-        void MetalShaderParameterHelper::UpdateShaderParameterInfo(Vector<ShaderParameterInfo>& inOutParameterInfos, Uint32& outTotalBufferSize) const
+        void MetalShaderParameterHelper::UpdateShaderParametersInfo(ShaderParametersInfo& inOutParametersInfo) const
         {
             Uint32 currentOffset = 0;
             Uint32 totalBufferSize = 0;
 
-            for (ShaderParameterInfo& paramInfo : inOutParameterInfos)
+            for (ShaderParameterInfo& paramInfo : inOutParametersInfo.parameterInfos)
             {
                 Uint32 size = 0;
                 Uint32 alignment = 1;
@@ -90,14 +90,14 @@ namespace cube
                 totalBufferSize = std::max(totalBufferSize, currentOffset);
             }
 
-            outTotalBufferSize = totalBufferSize;
+            inOutParametersInfo.totalBufferSize = totalBufferSize;
         }
 
-        void MetalShaderParameterHelper::WriteParametersToGPUBuffer(SharedPtr<Buffer> buffer, const Vector<ShaderParameterInfo>& paramInfos, const void* pParameters) const
+        void MetalShaderParameterHelper::WriteParametersToGPUBuffer(SharedPtr<Buffer> buffer, const ShaderParametersInfo& parametersInfos, const void* pParameters) const
         {
             Byte* bufferPtr = reinterpret_cast<Byte*>(buffer->Map());
 
-            for (const ShaderParameterInfo& paramInfo : paramInfos)
+            for (const ShaderParameterInfo& paramInfo : parametersInfos.parameterInfos)
             {
                 const Byte* src = reinterpret_cast<const Byte*>(pParameters) + paramInfo.offsetInCPU;
                 Byte* dst = bufferPtr + paramInfo.offsetInGPU;

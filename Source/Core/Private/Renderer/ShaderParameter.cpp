@@ -5,6 +5,60 @@
 
 namespace cube
 {
+    ShaderParametersManager::DeferredInitializingParameterInfos ShaderParametersManager::mDeferredInitializingParametersInfos[ShaderParametersManager::MAX_NUM_DEFERRED_INIT];
+    int ShaderParametersManager::mDeferredInitializingParametersInfosIndex = 0;
+    bool ShaderParametersManager::mIsDeferredInitOverflow = false;
+
+    Vector<ShaderParametersInfo> ShaderParametersManager::mShaderParametersInfos;
+    Map<String, int> ShaderParametersManager::mShaderParametersTypeNameToIndexMap;
+
+    void ShaderParametersManager::AddDeferredInitializingParameterInfos(const DeferredInitializingParameterInfos& initInfos)
+    {
+        mDeferredInitializingParametersInfos[mDeferredInitializingParametersInfosIndex] = initInfos;
+        mDeferredInitializingParametersInfosIndex++;
+
+        if (mDeferredInitializingParametersInfosIndex >= MAX_NUM_DEFERRED_INIT)
+        {
+            mIsDeferredInitOverflow = true;
+            // To avoid accessing out-of-bound.
+            mDeferredInitializingParametersInfosIndex = 0;
+        }
+    }
+
+    void ShaderParametersManager::ProcessDeferredInitializingParametersInfos(const gapi::ShaderParameterHelper& shaderParemeterHelper)
+    {
+        CHECK_FORMAT(!mIsDeferredInitOverflow, "Deferred init overflow! Increase ShaderParametersManager::MAX_NUM_DEFERRED_INIT. (Current: {0})", MAX_NUM_DEFERRED_INIT);
+
+        for (int i = 0; i < mDeferredInitializingParametersInfosIndex; ++i)
+        {
+            DeferredInitializingParameterInfos& initInfo = mDeferredInitializingParametersInfos[i];
+            String typeName = String(initInfo.typeName);
+            if (mShaderParametersTypeNameToIndexMap.find(typeName) != mShaderParametersTypeNameToIndexMap.end())
+            {
+                CUBE_LOG(Error, ShaderParameter, "Shader parameters '{0}' is already initialized.", initInfo.typeName);
+                continue;
+            }
+
+            mShaderParametersTypeNameToIndexMap.insert({ typeName, static_cast<int>(mShaderParametersInfos.size()) });
+            ShaderParametersInfo& paramsInfo = mShaderParametersInfos.emplace_back();
+            initInfo.initFunction(shaderParemeterHelper, paramsInfo);
+        }
+
+        mDeferredInitializingParametersInfosIndex = 0;
+    }
+
+    int ShaderParametersManager::GetShaderParametersInfoIndex(StringView parametersTypeName)
+    {
+        auto findIt = mShaderParametersTypeNameToIndexMap.find(String(parametersTypeName));
+        if (findIt == mShaderParametersTypeNameToIndexMap.end())
+        {
+            CUBE_LOG(Error, ShaderParameter, "Uninitialized shader parameters type! ({0})", parametersTypeName);
+            CHECK(false);
+        }
+
+        return findIt->second;
+    }
+
     ShaderParameters::ShaderParameters(ShaderParametersManager& manager) :
         mManager(manager)
     {
@@ -24,6 +78,8 @@ namespace cube
         mBufferPools.resize(numGPUSync);
 
         mCurrentIndex = 0;
+
+        ProcessDeferredInitializingParametersInfos(*mShaderParameterHelper);
     }
 
     void ShaderParametersManager::Shutdown()
@@ -121,16 +177,17 @@ namespace cube
         return res;
     }
 
-    void ShaderParametersManager::AllocateShaderParameters(ShaderParameters* parameters, const Vector<ShaderParameterInfo>& paramInfos, Uint32 bufferSize, StringView debugName)
+    void ShaderParametersManager::AllocateShaderParameters(ShaderParameters* parameters, const ShaderParametersInfo& parametersInfo)
     {
         // Constant buffer size must be 256 byte aligned in HLSL.
+        Uint32 bufferSize = parametersInfo.totalBufferSize;
         if ((bufferSize & 255) != 0)
         {
             bufferSize = (bufferSize + 255) & ~255;
         }
 
         parameters->mGPUSyncIndex = mCurrentIndex;
-        parameters->mPooledBuffer = AllocateBuffer(bufferSize, debugName);
+        parameters->mPooledBuffer = AllocateBuffer(bufferSize, parametersInfo.name);
     }
 
     ShaderParametersPooledBuffer ShaderParametersManager::AllocateBuffer(Uint32 size, StringView debugName)

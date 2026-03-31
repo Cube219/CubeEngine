@@ -73,10 +73,9 @@ namespace cube
         mSubresourceHashKey = HashCombine(reinterpret_cast<Uint64>(rgTexture->mTexture.get()), mSubresourceRange.GetHash());
     }
 
-    RGShaderParametersBase::RGShaderParametersBase(int index, const Character* name, const Vector<cube::ShaderParameterInfo>& parameterInfos, SharedPtr<cube::ShaderParameters> params)
+    RGShaderParametersBase::RGShaderParametersBase(int index, const ShaderParametersInfo& parametersInfo, SharedPtr<ShaderParameters> params)
         : RGResource(index)
-        , mName(name)
-        , mParameterInfos(parameterInfos)
+        , mParametersInfo(parametersInfo)
         , mParams(std::move(params))
     {
     }
@@ -373,7 +372,7 @@ namespace cube
         CHECK(mState == State::Init);
 
         // Add pass that just store parameters. Resources in the parameters will be tracked automatically.
-        AddPassInternal(Format<String>(CUBE_T("##BindShaderParameters: {0}"), parameters->mName),
+        AddPassInternal(Format<String>(CUBE_T("##BindShaderParameters: {0}"), parameters->mParametersInfo.name),
             nullptr, nullptr, parameters, nullptr, nullptr);
     }
 
@@ -403,7 +402,7 @@ namespace cube
         // Register shader parameters in the pass.
         if (pass.shaderParameters.IsValid())
         {
-            const Character* name = pass.shaderParameters->mName;
+            const Character* name = pass.shaderParameters->mParametersInfo.name;
             auto findIt = mShaderParametersBindInfos.find(name);
             if (findIt == mShaderParametersBindInfos.end())
             {
@@ -412,7 +411,7 @@ namespace cube
 
             SharedPtr<ShaderParameters> params = pass.shaderParameters->mParams;
             // Reset bind index because it is a new buffer.
-            findIt->second = { params->GetBuffer(), -1, &(pass.shaderParameters->mParameterInfos) };
+            findIt->second = { params->GetBuffer(), -1, &(pass.shaderParameters->mParametersInfo.parameterInfos) };
         }
 
         // Resolve shader parameter bind index.
@@ -503,7 +502,7 @@ namespace cube
             if (pass.shaderParameters.IsValid())
             {
                 ShaderParameters* shaderParameters = pass.shaderParameters->mParams.get();
-                const Vector<ShaderParameterInfo>& shaderParameterInfos = pass.shaderParameters->mParameterInfos;
+                const Vector<ShaderParameterInfo>& shaderParameterInfos = pass.shaderParameters->mParametersInfo.parameterInfos;
                 for (const ShaderParameterInfo& shaderParameterInfo : shaderParameterInfos)
                 {
                     Byte* src = reinterpret_cast<Byte*>(shaderParameters) + shaderParameterInfo.offsetInCPU;

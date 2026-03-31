@@ -177,14 +177,13 @@ namespace cube
         Uint32 sizeInGPU; // Set in gapi::ShaderParameterHelper
     };
 
-    template <typename TShaderParameters>
-        requires std::is_base_of_v<ShaderParameters, TShaderParameters>
+    // TODO: Change name (s -> List)
     struct ShaderParametersInfo
     {
-        static inline bool isInitialized = false;
+        const Character* name;
 
-        static inline Vector<ShaderParameterInfo> parameterInfos;
-        static inline Uint32 totalBufferSize;
+        Vector<ShaderParameterInfo> parameterInfos;
+        Uint32 totalBufferSize;
     };
 
     struct ShaderParametersPooledBuffer
@@ -231,7 +230,7 @@ public: \
     \
     struct ParameterIterHelperBegin \
     { \
-        static void InitializeParameterInfo() {} \
+        static void InitializeParameterInfo(ShaderParametersInfo& infos) {} \
     }; \
     typedef ParameterIterHelperBegin
 
@@ -240,12 +239,12 @@ public: \
     \
     struct ParameterIterHelper_##paramName \
     { \
-        static void InitializeParameterInfo() \
+        static void InitializeParameterInfo(ShaderParametersInfo& infos) \
         { \
-            ParameterIterHelper_##paramName##_Prev::InitializeParameterInfo(); \
+            ParameterIterHelper_##paramName##_Prev::InitializeParameterInfo(infos); \
             \
-            ShaderParametersInfo<ParametersType>::parameterInfos.emplace_back(); \
-            auto& paramInfo = ShaderParametersInfo<ParametersType>::parameterInfos.back(); \
+            infos.parameterInfos.emplace_back(); \
+            auto& paramInfo = infos.parameterInfos.back(); \
             \
             paramInfo.name = #paramName; \
             paramInfo.type = ShaderParameterTypeInfo<paramType>::type; \
@@ -265,38 +264,85 @@ private: \
     \
     struct ParameterIterHelperEnd \
     { \
-        static void InitializeParameterInfo() \
+        static void InitializeParameterInfo(ShaderParametersInfo& infos) \
         { \
-            ParameterIterHelperEnd_Prev::InitializeParameterInfo(); \
+            ParameterIterHelperEnd_Prev::InitializeParameterInfo(infos); \
         } \
     }; \
     \
 public: \
-    static void InitializeParametersInfo(const gapi::ShaderParameterHelper& shaderParemeterHelper) \
+    static void InitializeParametersInfo(const gapi::ShaderParameterHelper& shaderParemeterHelper, ShaderParametersInfo& infos) \
     { \
-        if (!ShaderParametersInfo<ParametersType>::isInitialized) \
-        { \
-            ParameterIterHelperEnd::InitializeParameterInfo(); \
-            shaderParemeterHelper.UpdateShaderParameterInfo(ShaderParametersInfo<ParametersType>::parameterInfos, ShaderParametersInfo<ParametersType>::totalBufferSize); \
-            ShaderParametersInfo<ParametersType>::isInitialized = true; \
-        } \
-    } \
-    static const Vector<ShaderParameterInfo>& GetParameterInfos() \
-    { \
-        return ShaderParametersInfo<ParametersType>::parameterInfos; \
+        infos.name = GetName(); \
+        ParameterIterHelperEnd::InitializeParameterInfo(infos); \
+        shaderParemeterHelper.UpdateShaderParametersInfo(infos); \
     } \
     void WriteAllParametersToGPUBuffer() \
     { \
         mManager.GetShaderParameterHelper().WriteParametersToGPUBuffer( \
             mPooledBuffer.buffer, \
-            ShaderParametersInfo<ParametersType>::parameterInfos, \
+            ShaderParametersManager::GetShaderParametersInfo<ParametersType>(), \
             this); \
     }
+
+#define CUBE_REGISTER_SHADER_PARAMETERS(parametersType) \
+    namespace internal \
+    { \
+        struct RegisterShaderParameters_##parametersType \
+        { \
+            using ParametersType = parametersType; \
+            \
+            RegisterShaderParameters_##parametersType() \
+            { \
+                ShaderParametersManager::AddDeferredInitializingParameterInfos({ ParametersType::GetName(), &ParametersType::InitializeParametersInfo }); \
+            } \
+        }; \
+        static RegisterShaderParameters_##parametersType gRegisterShaderParameters_##parametersType; \
+    }
+
 
     // ===== ShaderParametersManager =====
 
     class ShaderParametersManager
     {
+    public:
+        struct DeferredInitializingParameterInfos
+        {
+            const Character* typeName;
+            void (*initFunction)(const gapi::ShaderParameterHelper&, ShaderParametersInfo&);
+        };
+        static void AddDeferredInitializingParameterInfos(const DeferredInitializingParameterInfos& initInfos);
+
+        template <typename T>
+            requires std::derived_from<T, ShaderParameters>
+        static const ShaderParametersInfo& GetShaderParametersInfo()
+        {
+            static int cachedIndex = -1;
+            if (cachedIndex == -1)
+            {
+                cachedIndex = GetShaderParametersInfoIndex(T::GetName());
+            }
+
+            return mShaderParametersInfos[cachedIndex];
+        }
+        static const ShaderParametersInfo& GetShaderParametersInfo(StringView parametersTypeName)
+        {
+            return mShaderParametersInfos[GetShaderParametersInfoIndex(parametersTypeName)];
+        }
+
+    private:
+        static void ProcessDeferredInitializingParametersInfos(const gapi::ShaderParameterHelper& shaderParemeterHelper);
+
+        static int GetShaderParametersInfoIndex(StringView parametersTypeName);
+
+        static constexpr int MAX_NUM_DEFERRED_INIT = 1024;
+        static DeferredInitializingParameterInfos mDeferredInitializingParametersInfos[MAX_NUM_DEFERRED_INIT];
+        static int mDeferredInitializingParametersInfosIndex;
+        static bool mIsDeferredInitOverflow;
+
+        static Vector<ShaderParametersInfo> mShaderParametersInfos;
+        static Map<String, int> mShaderParametersTypeNameToIndexMap;
+
     public:
         ShaderParametersManager() = default;
         ~ShaderParametersManager() = default;
@@ -313,9 +359,8 @@ public: \
         SharedPtr<T> CreateShaderParameters()
         {
             SharedPtr<T> parameters = std::make_shared<T>(*this);
-            T::InitializeParametersInfo(*mShaderParameterHelper);
 
-            AllocateShaderParameters(parameters.get(), ShaderParametersInfo<T>::parameterInfos, ShaderParametersInfo<T>::totalBufferSize, T::GetName());
+            AllocateShaderParameters(parameters.get(), GetShaderParametersInfo<T>());
 
             return parameters;
         }
@@ -327,7 +372,7 @@ public: \
 
         struct ShaderParametersBufferPool;
 
-        void AllocateShaderParameters(ShaderParameters* parameters, const Vector<ShaderParameterInfo>& paramInfos, Uint32 bufferSize, StringView debugName);
+        void AllocateShaderParameters(ShaderParameters* parameters, const ShaderParametersInfo& parametersInfo);
 
         ShaderParametersPooledBuffer AllocateBuffer(Uint32 size, StringView debugName);
         void FreeBuffer(ShaderParameters& parameters);

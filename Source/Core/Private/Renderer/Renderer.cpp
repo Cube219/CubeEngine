@@ -20,6 +20,9 @@
 
 namespace cube
 {
+    CUBE_REGISTER_SHADER_PARAMETERS(GlobalShaderParameters);
+    CUBE_REGISTER_SHADER_PARAMETERS(ObjectShaderParameters);
+
     Renderer::Renderer()
         : mTextureManager(*this)
     {

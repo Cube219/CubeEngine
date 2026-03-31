@@ -32,8 +32,9 @@ namespace cube
         {
             ShaderParametersManager& shaderParametersManager = Engine::GetRenderer()->GetShaderParametersManager();
             SharedPtr<ShaderParametersType> parameters = shaderParametersManager.CreateShaderParameters<ShaderParametersType>();
+            const ShaderParametersInfo& parametersInfo = ShaderParametersManager::GetShaderParametersInfo<ShaderParametersType>();
 
-            RGShaderParameters<ShaderParametersType>* rgParameters = new RGShaderParameters<ShaderParametersType>(mResources.size(), parameters);
+            RGShaderParameters<ShaderParametersType>* rgParameters = new RGShaderParameters<ShaderParametersType>(mResources.size(), parameters, parametersInfo);
             mResources.push_back(rgParameters);
 
             return RGShaderParametersHandle<ShaderParametersType>(rgParameters);
