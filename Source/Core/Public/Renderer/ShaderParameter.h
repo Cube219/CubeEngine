@@ -28,7 +28,7 @@ namespace cube
         class Buffer;
     } // namespace gapi
 
-    class ShaderParametersManager;
+    class ShaderParameterListManager;
 
     // ===== ParameterTypeInfo =====
     // Note: Also update CompatibleShaderParameterReflectionTypeMap each ShaderParameterHelper implementations.
@@ -162,8 +162,8 @@ namespace cube
         static constexpr Uint32 size = sizeof(BindlessCombinedTextureSampler);
     };
 
-    // ===== ShaderParameters =====
-    class ShaderParameters;
+    // ===== ShaderParameterList =====
+    class ShaderParameterList;
 
     struct ShaderParameterInfo
     {
@@ -177,8 +177,7 @@ namespace cube
         Uint32 sizeInGPU; // Set in gapi::ShaderParameterHelper
     };
 
-    // TODO: Change name (s -> List)
-    struct ShaderParametersInfo
+    struct ShaderParameterListInfo
     {
         const Character* name;
 
@@ -186,51 +185,51 @@ namespace cube
         Uint32 totalBufferSize;
     };
 
-    struct ShaderParametersPooledBuffer
+    struct ShaderParameterListPooledBuffer
     {
         SharedPtr<gapi::Buffer> buffer;
         Uint32 poolIndex;
     };
 
-    class ShaderParameters
+    class ShaderParameterList
     {
     public:
-        ShaderParameters(const ShaderParameters& other) = delete;
-        ShaderParameters& operator=(const ShaderParameters& rhs) = delete;
+        ShaderParameterList(const ShaderParameterList& other) = delete;
+        ShaderParameterList& operator=(const ShaderParameterList& rhs) = delete;
 
         SharedPtr<gapi::Buffer> GetBuffer() const { return mPooledBuffer.buffer; }
-        ShaderParametersManager& GetManager() const { return mManager; }
+        ShaderParameterListManager& GetManager() const { return mManager; }
 
     protected:
-        // Only manager can create shader parameters
-        friend class ShaderParametersManager;
+        // Only manager can create shader parameter list
+        friend class ShaderParameterListManager;
 
-        ShaderParameters(ShaderParametersManager& manager);
-        virtual ~ShaderParameters();
+        ShaderParameterList(ShaderParameterListManager& manager);
+        virtual ~ShaderParameterList();
 
-        ShaderParametersManager& mManager;
+        ShaderParameterListManager& mManager;
 
         Uint32 mGPUSyncIndex;
-        ShaderParametersPooledBuffer mPooledBuffer;
+        ShaderParameterListPooledBuffer mPooledBuffer;
     };
 
-#define CUBE_BEGIN_SHADER_PARAMETERS(parametersType) \
+#define CUBE_BEGIN_SHADER_PARAMETER_LIST(parameterListType) \
     \
-    using ParametersType = parametersType; \
+    using ParameterListType = parameterListType; \
     \
 public: \
-    friend class ShaderParametersManager; \
-    parametersType(ShaderParametersManager& manager) : ShaderParameters(manager) {} \
+    friend class ShaderParameterListManager; \
+    parameterListType(ShaderParameterListManager& manager) : ShaderParameterList(manager) {} \
     \
     static const Character* GetName() \
     { \
-        return CUBE_T(#parametersType); \
+        return CUBE_T(#parameterListType); \
     } \
     private: \
     \
     struct ParameterIterHelperBegin \
     { \
-        static void InitializeParameterInfo(ShaderParametersInfo& infos) {} \
+        static void InitializeParameterInfo(ShaderParameterListInfo& infos) {} \
     }; \
     typedef ParameterIterHelperBegin
 
@@ -239,7 +238,7 @@ public: \
     \
     struct ParameterIterHelper_##paramName \
     { \
-        static void InitializeParameterInfo(ShaderParametersInfo& infos) \
+        static void InitializeParameterInfo(ShaderParameterListInfo& infos) \
         { \
             ParameterIterHelper_##paramName##_Prev::InitializeParameterInfo(infos); \
             \
@@ -249,7 +248,7 @@ public: \
             paramInfo.name = #paramName; \
             paramInfo.type = ShaderParameterTypeInfo<paramType>::type; \
             paramInfo.sizeInCPU = ShaderParameterTypeInfo<paramType>::size; \
-            paramInfo.offsetInCPU = offsetof(ParametersType, paramName); \
+            paramInfo.offsetInCPU = offsetof(ParameterListType, paramName); \
         } \
     }; \
     \
@@ -259,93 +258,93 @@ public: \
 private: \
     typedef ParameterIterHelper_##paramName
 
-#define CUBE_END_SHADER_PARAMETERS \
+#define CUBE_END_SHADER_PARAMETER_LIST \
     ParameterIterHelperEnd_Prev; \
     \
     struct ParameterIterHelperEnd \
     { \
-        static void InitializeParameterInfo(ShaderParametersInfo& infos) \
+        static void InitializeParameterInfo(ShaderParameterListInfo& infos) \
         { \
             ParameterIterHelperEnd_Prev::InitializeParameterInfo(infos); \
         } \
     }; \
     \
 public: \
-    static void InitializeParametersInfo(const gapi::ShaderParameterHelper& shaderParemeterHelper, ShaderParametersInfo& infos) \
+    static void InitializeParameterListInfo(const gapi::ShaderParameterHelper& shaderParemeterHelper, ShaderParameterListInfo& infos) \
     { \
         infos.name = GetName(); \
         ParameterIterHelperEnd::InitializeParameterInfo(infos); \
-        shaderParemeterHelper.UpdateShaderParametersInfo(infos); \
+        shaderParemeterHelper.UpdateShaderParameterListInfo(infos); \
     } \
     void WriteAllParametersToGPUBuffer() \
     { \
         mManager.GetShaderParameterHelper().WriteParametersToGPUBuffer( \
             mPooledBuffer.buffer, \
-            ShaderParametersManager::GetShaderParametersInfo<ParametersType>(), \
+            ShaderParameterListManager::GetShaderParameterListInfo<ParameterListType>(), \
             this); \
     }
 
-#define CUBE_REGISTER_SHADER_PARAMETERS(parametersType) \
+#define CUBE_REGISTER_SHADER_PARAMETER_LIST(parameterListType) \
     namespace internal \
     { \
-        struct RegisterShaderParameters_##parametersType \
+        struct RegisterShaderParameterList_##parameterListType \
         { \
-            using ParametersType = parametersType; \
+            using ParameterListType = parameterListType; \
             \
-            RegisterShaderParameters_##parametersType() \
+            RegisterShaderParameterList_##parameterListType() \
             { \
-                ShaderParametersManager::AddDeferredInitializingParameterInfos({ ParametersType::GetName(), &ParametersType::InitializeParametersInfo }); \
+                ShaderParameterListManager::AddDeferredInitializingParameterListInfos({ ParameterListType::GetName(), &ParameterListType::InitializeParameterListInfo }); \
             } \
         }; \
-        static RegisterShaderParameters_##parametersType gRegisterShaderParameters_##parametersType; \
+        static RegisterShaderParameterList_##parameterListType gRegisterShaderParameterList_##parameterListType; \
     }
 
 
-    // ===== ShaderParametersManager =====
+    // ===== ShaderParameterListManager =====
 
-    class ShaderParametersManager
+    class ShaderParameterListManager
     {
     public:
-        struct DeferredInitializingParameterInfos
+        struct DeferredInitializingParameterListInfos
         {
             const Character* typeName;
-            void (*initFunction)(const gapi::ShaderParameterHelper&, ShaderParametersInfo&);
+            void (*initFunction)(const gapi::ShaderParameterHelper&, ShaderParameterListInfo&);
         };
-        static void AddDeferredInitializingParameterInfos(const DeferredInitializingParameterInfos& initInfos);
+        static void AddDeferredInitializingParameterListInfos(const DeferredInitializingParameterListInfos& initInfos);
 
         template <typename T>
-            requires std::derived_from<T, ShaderParameters>
-        static const ShaderParametersInfo& GetShaderParametersInfo()
+            requires std::derived_from<T, ShaderParameterList>
+        static const ShaderParameterListInfo& GetShaderParameterListInfo()
         {
             static int cachedIndex = -1;
             if (cachedIndex == -1)
             {
-                cachedIndex = GetShaderParametersInfoIndex(T::GetName());
+                cachedIndex = GetShaderParameterListInfoIndex(T::GetName());
             }
 
-            return mShaderParametersInfos[cachedIndex];
+            return mShaderParameterListInfos[cachedIndex];
         }
-        static const ShaderParametersInfo& GetShaderParametersInfo(StringView parametersTypeName)
+        static const ShaderParameterListInfo& GetShaderParameterListInfo(StringView parameterListTypeName)
         {
-            return mShaderParametersInfos[GetShaderParametersInfoIndex(parametersTypeName)];
+            return mShaderParameterListInfos[GetShaderParameterListInfoIndex(parameterListTypeName)];
         }
 
     private:
-        static void ProcessDeferredInitializingParametersInfos(const gapi::ShaderParameterHelper& shaderParemeterHelper);
+        static void ProcessDeferredInitializingParameterListInfos(const gapi::ShaderParameterHelper& shaderParemeterHelper);
 
-        static int GetShaderParametersInfoIndex(StringView parametersTypeName);
+        static int GetShaderParameterListInfoIndex(StringView parameterListTypeName);
 
         static constexpr int MAX_NUM_DEFERRED_INIT = 1024;
-        static DeferredInitializingParameterInfos mDeferredInitializingParametersInfos[MAX_NUM_DEFERRED_INIT];
-        static int mDeferredInitializingParametersInfosIndex;
+        static DeferredInitializingParameterListInfos mDeferredInitializingParameterListInfos[MAX_NUM_DEFERRED_INIT];
+        static int mDeferredInitializingParameterListInfosIndex;
         static bool mIsDeferredInitOverflow;
 
-        static Vector<ShaderParametersInfo> mShaderParametersInfos;
-        static Map<String, int> mShaderParametersTypeNameToIndexMap;
+        static Vector<ShaderParameterListInfo> mShaderParameterListInfos;
+        static Map<String, int> mShaderParameterListTypeNameToIndexMap;
 
     public:
-        ShaderParametersManager() = default;
-        ~ShaderParametersManager() = default;
+        ShaderParameterListManager() = default;
+        ~ShaderParameterListManager() = default;
 
         void Initialize(GAPI* gapi, Uint32 numGPUSync);
         void Shutdown();
@@ -355,27 +354,27 @@ public: \
         void MoveNextFrame();
 
         template <typename T>
-            requires std::derived_from<T, ShaderParameters>
-        SharedPtr<T> CreateShaderParameters()
+            requires std::derived_from<T, ShaderParameterList>
+        SharedPtr<T> CreateShaderParameterList()
         {
-            SharedPtr<T> parameters = std::make_shared<T>(*this);
+            SharedPtr<T> parameterList = std::make_shared<T>(*this);
 
-            AllocateShaderParameters(parameters.get(), GetShaderParametersInfo<T>());
+            AllocateShaderParameterList(parameterList.get(), GetShaderParameterListInfo<T>());
 
-            return parameters;
+            return parameterList;
         }
 
-        bool ValidateShaderParameters(const Vector<ShaderParameterInfo>& parameterInfos, const gapi::ShaderParameterBlockReflection& parameterBlockReflection);
+        bool ValidateShaderParameterList(const Vector<ShaderParameterInfo>& parameterInfos, const gapi::ShaderParameterBlockReflection& parameterBlockReflection);
 
     private:
-        friend class ShaderParameters;
+        friend class ShaderParameterList;
 
-        struct ShaderParametersBufferPool;
+        struct ShaderParameterListBufferPool;
 
-        void AllocateShaderParameters(ShaderParameters* parameters, const ShaderParametersInfo& parametersInfo);
+        void AllocateShaderParameterList(ShaderParameterList* parameterList, const ShaderParameterListInfo& parameterListInfo);
 
-        ShaderParametersPooledBuffer AllocateBuffer(Uint32 size, StringView debugName);
-        void FreeBuffer(ShaderParameters& parameters);
+        ShaderParameterListPooledBuffer AllocateBuffer(Uint32 size, StringView debugName);
+        void FreeBuffer(ShaderParameterList& parameterList);
 
         GAPI* mGAPI;
         const gapi::ShaderParameterHelper* mShaderParameterHelper;
@@ -383,7 +382,7 @@ public: \
 
         Uint32 mCurrentIndex;
 
-        struct ShaderParametersBufferPool
+        struct ShaderParameterListBufferPool
         {
             Vector<SharedPtr<gapi::Buffer>> buffers;
             MultiMap<Uint32, Uint32> pooledBufferIndices;
@@ -400,6 +399,6 @@ public: \
                 freedBufferIndices.clear();
             }
         };
-        Vector<ShaderParametersBufferPool> mBufferPools;
+        Vector<ShaderParameterListBufferPool> mBufferPools;
     };
 } // namespace cube

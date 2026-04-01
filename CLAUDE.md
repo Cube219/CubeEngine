@@ -201,10 +201,10 @@ The `EngineInitializeInfo.runInitializeAndShutdownInLoopFunction` flag handles t
 CubeEngine uses **compile-time reflection** for type-safe constant buffer binding:
 
 ```cpp
-CUBE_BEGIN_SHADER_PARAMETERS(MyParameters)
+CUBE_BEGIN_SHADER_PARAMETER_LIST(MyParameterList)
     CUBE_SHADER_PARAMETER(Matrix4x4, worldMatrix)
     CUBE_SHADER_PARAMETER(Vector4, color)
-CUBE_END_SHADER_PARAMETERS()
+CUBE_END_SHADER_PARAMETER_LIST
 ```
 
 This macro DSL generates:
@@ -212,7 +212,7 @@ This macro DSL generates:
 2. Reflection metadata (offsets, sizes, names)
 3. Helper functions for GPU buffer binding
 
-The `ShaderParametersManager` pools constant buffers with multi-buffering (configurable `numGPUSync`) to avoid CPU/GPU sync stalls.
+The `ShaderParameterListManager` pools constant buffers with multi-buffering (configurable `numGPUSync`) to avoid CPU/GPU sync stalls.
 
 ### Rendering Pipeline Flow
 

@@ -2,9 +2,9 @@ import Light;
 import MainInterface;
 import Material;
 
-ParameterBlock<GlobalShaderParameters> globalParams;
-ParameterBlock<ObjectShaderParameters> perObjectParams;
-ParameterBlock<MaterialShaderParameters> materialParams;
+ParameterBlock<GlobalShaderParameterList> globalParams;
+ParameterBlock<ObjectShaderParameterList> perObjectParams;
+ParameterBlock<MaterialShaderParameterList> materialParams;
 
 extern struct Material : IMaterial;
 

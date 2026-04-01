@@ -73,10 +73,10 @@ namespace cube
         mSubresourceHashKey = HashCombine(reinterpret_cast<Uint64>(rgTexture->mTexture.get()), mSubresourceRange.GetHash());
     }
 
-    RGShaderParametersBase::RGShaderParametersBase(int index, const ShaderParametersInfo& parametersInfo, SharedPtr<ShaderParameters> params)
+    RGShaderParameterListBase::RGShaderParameterListBase(int index, const ShaderParameterListInfo& parameterListInfo, SharedPtr<ShaderParameterList> parameterList)
         : RGResource(index)
-        , mParametersInfo(parametersInfo)
-        , mParams(std::move(params))
+        , mParameterListInfo(parameterListInfo)
+        , mParameterList(std::move(parameterList))
     {
     }
 
@@ -218,13 +218,13 @@ namespace cube
 
         for (const DrawMeshInfo& drawMeshInfo : drawMeshInfos)
         {
-            RGShaderParametersHandle<ObjectShaderParameters> objectShaderParameters = CreateShaderParameters<ObjectShaderParameters>();
-            objectShaderParameters->Get()->model = drawMeshInfo.model;
-            objectShaderParameters->Get()->modelInverse = drawMeshInfo.model.Inversed();
-            objectShaderParameters->Get()->modelInverseTranspose = drawMeshInfo.model.Inversed().Transposed();
-            objectShaderParameters->Get()->WriteAllParametersToGPUBuffer();
+            RGShaderParameterListHandle<ObjectShaderParameterList> objectShaderParameterList = CreateShaderParameterList<ObjectShaderParameterList>();
+            objectShaderParameterList->Get()->model = drawMeshInfo.model;
+            objectShaderParameterList->Get()->modelInverse = drawMeshInfo.model.Inversed();
+            objectShaderParameterList->Get()->modelInverseTranspose = drawMeshInfo.model.Inversed().Transposed();
+            objectShaderParameterList->Get()->WriteAllParametersToGPUBuffer();
 
-            AddPassInternal(CUBE_T("##DrawMeshPass - Bind Vertex/Index buffer and object shader parameters"), nullptr, nullptr, objectShaderParameters,
+            AddPassInternal(CUBE_T("##DrawMeshPass - Bind Vertex/Index buffer and object shader parameter list"), nullptr, nullptr, objectShaderParameterList,
             [mesh = drawMeshInfo.mesh](gapi::CommandList& commandList){
                 Uint32 vertexBufferOffset = 0;
                 SharedPtr<gapi::Buffer> vertexBuffer = mesh->GetVertexBuffer();
@@ -246,10 +246,10 @@ namespace cube
                     material = mRenderer.GetDefaultMaterial();
                 }
                 SharedPtr<GraphicsPipeline> pipeline = mRenderer.GetShaderManager().GetMaterialShaderManager().GetOrCreateMaterialPipeline(material, drawMeshInfo.meshMetaData, drawMeshInfo.fillMode);
-                RGShaderParametersHandle<MaterialShaderParameters> materialShaderParameters = material->GenerateShaderParameters(*this);
+                RGShaderParameterListHandle<MaterialShaderParameterList> materialShaderParameterList = material->GenerateShaderParameterList(*this);
 
                 AddPassInternal(Format<FrameString>(CUBE_T("Mesh: {0}, Material: {1}"),
-                    subMesh.debugName, material->GetDebugName()), pipeline, nullptr, materialShaderParameters,
+                    subMesh.debugName, material->GetDebugName()), pipeline, nullptr, materialShaderParameterList,
                 [subMesh](gapi::CommandList& commandList) {
                     commandList.DrawIndexed(subMesh.numIndices, subMesh.indexOffset, subMesh.vertexOffset);
                 },
@@ -319,7 +319,7 @@ namespace cube
 
         mState = State::ResourceTracking;
 
-        UpdateResourceUsagesInShaderParameters();
+        UpdateResourceUsagesInShaderParameterList();
         ResolveTransitions();
 
         mState = State::Executing;
@@ -338,7 +338,7 @@ namespace cube
                 commandList.BeginEvent(pass.name);
             }
 
-            ResolveShaderParametersAndPipeline(pass, commandList);
+            ResolveShaderParameterListAndPipeline(pass, commandList);
             MarkUseResources(pass, commandList);
 
             if (!pass.transitions.empty())
@@ -367,16 +367,16 @@ namespace cube
         Reset();
     }
 
-    void RGBuilder::BindShaderParametersInternal(StringView name, RGShaderParametersBaseHandle parameters)
+    void RGBuilder::BindShaderParameterListInternal(StringView name, RGShaderParameterListBaseHandle parameterList)
     {
         CHECK(mState == State::Init);
 
-        // Add pass that just store parameters. Resources in the parameters will be tracked automatically.
-        AddPassInternal(Format<String>(CUBE_T("##BindShaderParameters: {0}"), parameters->mParametersInfo.name),
-            nullptr, nullptr, parameters, nullptr, nullptr);
+        // Add pass that just store parameter list. Resources in the parameter list will be tracked automatically.
+        AddPassInternal(Format<String>(CUBE_T("##BindShaderParameterList: {0}"), parameterList->mParameterListInfo.name),
+            nullptr, nullptr, parameterList, nullptr, nullptr);
     }
 
-    void RGBuilder::AddPassInternal(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, SharedPtr<ComputePipeline> computePipeline, RGShaderParametersBaseHandle parameters, PassFunction&& passFunction, UseResourceFunction&& useResourceFunction)
+    void RGBuilder::AddPassInternal(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, SharedPtr<ComputePipeline> computePipeline, RGShaderParameterListBaseHandle parameterList, PassFunction&& passFunction, UseResourceFunction&& useResourceFunction)
     {
         CHECK(mState == State::Init);
 
@@ -387,7 +387,7 @@ namespace cube
         mPasses.push_back({
             .name = String(name),
             .index = index,
-            .shaderParameters = parameters,
+            .shaderParameterList = parameterList,
             .graphicsPipeline = std::move(graphicsPipeline),
             .computePipeline = std::move(computePipeline),
             .passFunction = std::move(passFunction),
@@ -395,23 +395,23 @@ namespace cube
         });
     }
 
-    void RGBuilder::ResolveShaderParametersAndPipeline(PassInfo& pass, gapi::CommandList& commandList)
+    void RGBuilder::ResolveShaderParameterListAndPipeline(PassInfo& pass, gapi::CommandList& commandList)
     {
         CHECK(mState == State::Executing);
 
-        // Register shader parameters in the pass.
-        if (pass.shaderParameters.IsValid())
+        // Register shader parameter list in the pass.
+        if (pass.shaderParameterList.IsValid())
         {
-            const Character* name = pass.shaderParameters->mParametersInfo.name;
-            auto findIt = mShaderParametersBindInfos.find(name);
-            if (findIt == mShaderParametersBindInfos.end())
+            const Character* name = pass.shaderParameterList->mParameterListInfo.name;
+            auto findIt = mShaderParameterListBindInfos.find(name);
+            if (findIt == mShaderParameterListBindInfos.end())
             {
-                findIt = mShaderParametersBindInfos.insert({ name, {} }).first;
+                findIt = mShaderParameterListBindInfos.insert({ name, {} }).first;
             }
 
-            SharedPtr<ShaderParameters> params = pass.shaderParameters->mParams;
+            SharedPtr<ShaderParameterList> parameterList = pass.shaderParameterList->mParameterList;
             // Reset bind index because it is a new buffer.
-            findIt->second = { params->GetBuffer(), -1, &(pass.shaderParameters->mParametersInfo.parameterInfos) };
+            findIt->second = { parameterList->GetBuffer(), -1, &(pass.shaderParameterList->mParameterListInfo.parameterInfos) };
         }
 
         // Resolve shader parameter bind index.
@@ -428,10 +428,10 @@ namespace cube
         {
             for (const gapi::ShaderParameterBlockReflection& block : pReflection->blocks)
             {
-                if (auto findIt = mShaderParametersBindInfos.find(block.typeName); findIt != mShaderParametersBindInfos.end())
+                if (auto findIt = mShaderParameterListBindInfos.find(block.typeName); findIt != mShaderParameterListBindInfos.end())
                 {
                     // TODO: Move validation after creating pipeline.
-                    CHECK(mRenderer.GetShaderParametersManager().ValidateShaderParameters(*(findIt->second.pParameterInfos), block));
+                    CHECK(mRenderer.GetShaderParameterListManager().ValidateShaderParameterList(*(findIt->second.pParameterInfos), block));
 
                     if (findIt->second.bindIndex != block.index)
                     {
@@ -441,7 +441,7 @@ namespace cube
                 }
                 else
                 {
-                    CUBE_LOG(Error, RenderGraph, "Shader parameter '{0}' is needed in shader '{1}' but not bounded!", block.typeName, pReflection->name);
+                    CUBE_LOG(Error, RenderGraph, "Shader parameter list '{0}' is needed in shader '{1}' but not bounded!", block.typeName, pReflection->name);
                     CHECK(false);
                 }
             }
@@ -491,7 +491,7 @@ namespace cube
         }
     }
 
-    void RGBuilder::UpdateResourceUsagesInShaderParameters()
+    void RGBuilder::UpdateResourceUsagesInShaderParameterList()
     {
         CHECK(mState == State::ResourceTracking);
 
@@ -499,13 +499,13 @@ namespace cube
 
         for (PassInfo& pass : mPasses)
         {
-            if (pass.shaderParameters.IsValid())
+            if (pass.shaderParameterList.IsValid())
             {
-                ShaderParameters* shaderParameters = pass.shaderParameters->mParams.get();
-                const Vector<ShaderParameterInfo>& shaderParameterInfos = pass.shaderParameters->mParametersInfo.parameterInfos;
+                ShaderParameterList* shaderParameterList = pass.shaderParameterList->mParameterList.get();
+                const Vector<ShaderParameterInfo>& shaderParameterInfos = pass.shaderParameterList->mParameterListInfo.parameterInfos;
                 for (const ShaderParameterInfo& shaderParameterInfo : shaderParameterInfos)
                 {
-                    Byte* src = reinterpret_cast<Byte*>(shaderParameters) + shaderParameterInfo.offsetInCPU;
+                    Byte* src = reinterpret_cast<Byte*>(shaderParameterList) + shaderParameterInfo.offsetInCPU;
 
                     switch (shaderParameterInfo.type)
                     {

@@ -13,7 +13,7 @@
 
 namespace cube
 {
-    CUBE_REGISTER_SHADER_PARAMETERS(MaterialShaderParameters);
+    CUBE_REGISTER_SHADER_PARAMETER_LIST(MaterialShaderParameterList);
 
     Material::Material(StringView debugName)
         : mConstantBaseColor(1.0f, 0.0f, 0.80392f) // Magenta
@@ -81,9 +81,9 @@ namespace cube
         mSamplerId = samplerId;
     }
 
-    RGShaderParametersHandle<MaterialShaderParameters> Material::GenerateShaderParameters(RGBuilder& builder) const
+    RGShaderParameterListHandle<MaterialShaderParameterList> Material::GenerateShaderParameterList(RGBuilder& builder) const
     {
-        RGShaderParametersHandle<MaterialShaderParameters> parameters = builder.CreateShaderParameters<MaterialShaderParameters>();
+        RGShaderParameterListHandle<MaterialShaderParameterList> parameters = builder.CreateShaderParameterList<MaterialShaderParameterList>();
 
         parameters->Get()->baseColor = mConstantBaseColor;
         parameters->Get()->diffuseColor = mConstantDiffuseColor;
@@ -178,7 +178,7 @@ namespace cube
 
         // Generate material shader codes
         FrameString getMaterialShaderCode = Format<FrameString>(
-            CUBE_T("MaterialValue GetMaterialValue(MaterialShaderParameters materialData, PSInput input)\n")
+            CUBE_T("MaterialValue GetMaterialValue(MaterialShaderParameterList materialData, PSInput input)\n")
             CUBE_T("{{\n")
             CUBE_T("    MaterialValue value = {{}};\n")
             CUBE_T("\n")

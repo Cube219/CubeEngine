@@ -3,7 +3,7 @@ module Material;
 import Common;
 import MainInterface;
 
-public struct MaterialShaderParameters
+public struct MaterialShaderParameterList
 {
     public float4 baseColor;
     public float4 diffuseColor;
@@ -34,5 +34,5 @@ public struct MaterialValue
 
 public interface IMaterial
 {
-    MaterialValue GetMaterialValue(MaterialShaderParameters materialData, PSInput input);
+    MaterialValue GetMaterialValue(MaterialShaderParameterList materialData, PSInput input);
 }

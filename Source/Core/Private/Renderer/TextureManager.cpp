@@ -15,7 +15,7 @@
 
 namespace cube
 {
-    CUBE_REGISTER_SHADER_PARAMETERS(GenerateMipmapsShaderParameters);
+    CUBE_REGISTER_SHADER_PARAMETER_LIST(GenerateMipmapsShaderParameterList);
 
     TextureManager::TextureManager(Renderer& renderer)
         : mRenderer(renderer)
@@ -84,7 +84,7 @@ namespace cube
                 RGTextureSRVHandle srcSRV = builder.CreateSRV(rgTexture, mipIndex - 1, 1);
                 RGTextureUAVHandle dstUAV = builder.CreateUAV(rgTexture, mipIndex);
 
-                RGShaderParametersHandle<GenerateMipmapsShaderParameters> params = builder.CreateShaderParameters<GenerateMipmapsShaderParameters>();
+                RGShaderParameterListHandle<GenerateMipmapsShaderParameterList> params = builder.CreateShaderParameterList<GenerateMipmapsShaderParameterList>();
                 params->Get()->srcTexture = srcSRV;
                 params->Get()->dstTexture = dstUAV;
                 params->Get()->WriteAllParametersToGPUBuffer();

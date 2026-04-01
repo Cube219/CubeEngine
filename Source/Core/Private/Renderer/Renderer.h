@@ -21,23 +21,23 @@ namespace cube
     class MeshData;
     class Shader;
 
-    class GlobalShaderParameters : public ShaderParameters
+    class GlobalShaderParameterList : public ShaderParameterList
     {
-        CUBE_BEGIN_SHADER_PARAMETERS(GlobalShaderParameters)
+        CUBE_BEGIN_SHADER_PARAMETER_LIST(GlobalShaderParameterList)
             CUBE_SHADER_PARAMETER(Vector3, viewPosition)
             CUBE_SHADER_PARAMETER(Matrix, viewProjection)
             CUBE_SHADER_PARAMETER(Vector3, directionalLightDirection)
             CUBE_SHADER_PARAMETER(Vector3, directionalLightIntensity)
-        CUBE_END_SHADER_PARAMETERS
+        CUBE_END_SHADER_PARAMETER_LIST
     };
 
-    class ObjectShaderParameters : public ShaderParameters
+    class ObjectShaderParameterList : public ShaderParameterList
     {
-        CUBE_BEGIN_SHADER_PARAMETERS(ObjectShaderParameters)
+        CUBE_BEGIN_SHADER_PARAMETER_LIST(ObjectShaderParameterList)
             CUBE_SHADER_PARAMETER(Matrix, model)
             CUBE_SHADER_PARAMETER(Matrix, modelInverse)
             CUBE_SHADER_PARAMETER(Matrix, modelInverseTranspose)
-        CUBE_END_SHADER_PARAMETERS
+        CUBE_END_SHADER_PARAMETER_LIST
     };
 
     class Renderer
@@ -58,7 +58,7 @@ namespace cube
         ShaderManager& GetShaderManager() { return mShaderManager; }
         TextureManager& GetTextureManager() { return mTextureManager; }
         SamplerManager& GetSamplerManager() { return mSamplerManager; }
-        ShaderParametersManager& GetShaderParametersManager() { return mShaderParametersManager; }
+        ShaderParameterListManager& GetShaderParameterListManager() { return mShaderParameterListManager; }
 
         SharedPtr<Material> GetDefaultMaterial() const { return mDefaultMaterial; }
         SharedPtr<gapi::Texture> GetDummyBlackTexture() const { return mDummyBlackTexture->GetGAPITexture(); }
@@ -89,7 +89,7 @@ namespace cube
         ShaderManager mShaderManager;
         TextureManager mTextureManager;
         SamplerManager mSamplerManager;
-        ShaderParametersManager mShaderParametersManager;
+        ShaderParameterListManager mShaderParameterListManager;
 
         bool mRenderImGUI;
 

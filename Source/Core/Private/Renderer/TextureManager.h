@@ -21,12 +21,12 @@ namespace cube
         class Texture;
     } // namespace gapi
 
-    class GenerateMipmapsShaderParameters : public ShaderParameters
+    class GenerateMipmapsShaderParameterList : public ShaderParameterList
     {
-        CUBE_BEGIN_SHADER_PARAMETERS(GenerateMipmapsShaderParameters)
+        CUBE_BEGIN_SHADER_PARAMETER_LIST(GenerateMipmapsShaderParameterList)
             CUBE_SHADER_PARAMETER(RGTextureSRVHandle, srcTexture)
             CUBE_SHADER_PARAMETER(RGTextureUAVHandle, dstTexture)
-        CUBE_END_SHADER_PARAMETERS
+        CUBE_END_SHADER_PARAMETER_LIST
     };
 
     class TextureManager

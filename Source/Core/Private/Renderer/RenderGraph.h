@@ -26,18 +26,18 @@ namespace cube
         ~RGBuilder();
 
         // void CreateTexture();
-        template <typename ShaderParametersType>
-            requires std::derived_from<ShaderParametersType, ShaderParameters>
-        RGShaderParametersHandle<ShaderParametersType> CreateShaderParameters()
+        template <typename ShaderParameterListType>
+            requires std::derived_from<ShaderParameterListType, ShaderParameterList>
+        RGShaderParameterListHandle<ShaderParameterListType> CreateShaderParameterList()
         {
-            ShaderParametersManager& shaderParametersManager = Engine::GetRenderer()->GetShaderParametersManager();
-            SharedPtr<ShaderParametersType> parameters = shaderParametersManager.CreateShaderParameters<ShaderParametersType>();
-            const ShaderParametersInfo& parametersInfo = ShaderParametersManager::GetShaderParametersInfo<ShaderParametersType>();
+            ShaderParameterListManager& shaderParameterListManager = Engine::GetRenderer()->GetShaderParameterListManager();
+            SharedPtr<ShaderParameterListType> parameterList = shaderParameterListManager.CreateShaderParameterList<ShaderParameterListType>();
+            const ShaderParameterListInfo& parameterListInfo = ShaderParameterListManager::GetShaderParameterListInfo<ShaderParameterListType>();
 
-            RGShaderParameters<ShaderParametersType>* rgParameters = new RGShaderParameters<ShaderParametersType>(mResources.size(), parameters, parametersInfo);
-            mResources.push_back(rgParameters);
+            RGShaderParameterList<ShaderParameterListType>* rgParameterList = new RGShaderParameterList<ShaderParameterListType>(mResources.size(), parameterList, parameterListInfo);
+            mResources.push_back(rgParameterList);
 
-            return RGShaderParametersHandle<ShaderParametersType>(rgParameters);
+            return RGShaderParameterListHandle<ShaderParameterListType>(rgParameterList);
         }
 
         RGTextureSRVHandle CreateSRV(RGTextureHandle rgTexture, Uint32 firstMipLevel = 0, Int32 mipLevels = gapi::SubresourceRange::AllRange);
@@ -82,11 +82,11 @@ namespace cube
             Matrix model;
         };
 
-        template <typename ShaderParametersType>
-            requires std::derived_from<ShaderParametersType, ShaderParameters>
-        void BindShaderParameters(RGShaderParametersHandle<ShaderParametersType> parameters)
+        template <typename ShaderParameterListType>
+            requires std::derived_from<ShaderParameterListType, ShaderParameterList>
+        void BindShaderParameterList(RGShaderParameterListHandle<ShaderParameterListType> parameterList)
         {
-            BindShaderParametersInternal(ShaderParametersType::GetName(), parameters);
+            BindShaderParameterListInternal(ShaderParameterListType::GetName(), parameterList);
         }
 
         void AddPass(StringView name, PassFunction&& passFunction, UseResourceFunction&& useResourceFunction = [](RGBuilder&) {}, bool isCompute = false)
@@ -94,18 +94,18 @@ namespace cube
             AddPassInternal(name, nullptr, nullptr, {}, std::move(passFunction), std::move(useResourceFunction));
         }
 
-        template <typename ShaderParametersType>
-            requires std::derived_from<ShaderParametersType, ShaderParameters>
-        void AddPass(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, RGShaderParametersHandle<ShaderParametersType> parameters, PassFunction&& passFunction)
+        template <typename ShaderParameterListType>
+            requires std::derived_from<ShaderParameterListType, ShaderParameterList>
+        void AddPass(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, RGShaderParameterListHandle<ShaderParameterListType> parameterList, PassFunction&& passFunction)
         {
-            AddPassInternal(name, graphicsPipeline, nullptr, parameters, std::move(passFunction), nullptr);
+            AddPassInternal(name, graphicsPipeline, nullptr, parameterList, std::move(passFunction), nullptr);
         }
 
-        template <typename ShaderParametersType>
-            requires std::derived_from<ShaderParametersType, ShaderParameters>
-        void AddPass(StringView name, SharedPtr<ComputePipeline> computePipeline, RGShaderParametersHandle<ShaderParametersType> parameters, PassFunction&& passFunction)
+        template <typename ShaderParameterListType>
+            requires std::derived_from<ShaderParameterListType, ShaderParameterList>
+        void AddPass(StringView name, SharedPtr<ComputePipeline> computePipeline, RGShaderParameterListHandle<ShaderParameterListType> parameterList, PassFunction&& passFunction)
         {
-            AddPassInternal(name, nullptr, computePipeline, parameters, std::move(passFunction), nullptr);
+            AddPassInternal(name, nullptr, computePipeline, parameterList, std::move(passFunction), nullptr);
         }
 
         void AddDrawMeshPass(StringView name, ArrayView<DrawMeshInfo> drawMeshInfos);
@@ -124,7 +124,7 @@ namespace cube
             String name;
             int index = -1;
 
-            RGShaderParametersBaseHandle shaderParameters;
+            RGShaderParameterListBaseHandle shaderParameterList;
 
             SharedPtr<GraphicsPipeline> graphicsPipeline = nullptr;
             SharedPtr<ComputePipeline> computePipeline = nullptr;
@@ -143,14 +143,14 @@ namespace cube
             Vector<gapi::TransitionState> transitions;
         };
 
-        void BindShaderParametersInternal(StringView name, RGShaderParametersBaseHandle parameters);
+        void BindShaderParameterListInternal(StringView name, RGShaderParameterListBaseHandle parameterList);
 
-        void AddPassInternal(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, SharedPtr<ComputePipeline> computePipeline, RGShaderParametersBaseHandle parameters, PassFunction&& passFunction, UseResourceFunction&& useResourceFunction);
+        void AddPassInternal(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, SharedPtr<ComputePipeline> computePipeline, RGShaderParameterListBaseHandle parameterList, PassFunction&& passFunction, UseResourceFunction&& useResourceFunction);
 
-        void ResolveShaderParametersAndPipeline(PassInfo& pass, gapi::CommandList& commandList);
+        void ResolveShaderParameterListAndPipeline(PassInfo& pass, gapi::CommandList& commandList);
         void MarkUseResources(PassInfo& pass, gapi::CommandList& commandList);
 
-        void UpdateResourceUsagesInShaderParameters();
+        void UpdateResourceUsagesInShaderParameterList();
         void ResolveTransitions();
         void RollbackResourceStates();
 
@@ -175,13 +175,13 @@ namespace cube
         State mState = State::Init;
         bool mIsInRenderPass = false;
 
-        struct ShaderParametersBindInfo
+        struct ShaderParameterListBindInfo
         {
             SharedPtr<gapi::Buffer> GPUBuffer = nullptr;
             int bindIndex = -1;
             const Vector<ShaderParameterInfo>* pParameterInfos = nullptr;
         };
-        Map<String, ShaderParametersBindInfo> mShaderParametersBindInfos;
+        Map<String, ShaderParameterListBindInfo> mShaderParameterListBindInfos;
 
         SharedPtr<GraphicsPipeline> mCurrentBoundGraphicsPipeline;
         SharedPtr<ComputePipeline> mCurrentBoundComputePipeline;

@@ -6,13 +6,13 @@
 
 namespace cube
 {
-    struct ShaderParametersInfo;
+    struct ShaderParameterListInfo;
 
     namespace gapi
     {
         class Buffer;
 
-        struct ShaderParametersAllocationInfo
+        struct ShaderParameterListAllocationInfo
         {
             Vector<Uint32> offsets;
             Uint32 totalBufferSize;
@@ -23,9 +23,9 @@ namespace cube
         public:
             ShaderParameterHelper() = default;
             virtual ~ShaderParameterHelper() = default;
-            
-            virtual void UpdateShaderParametersInfo(ShaderParametersInfo& inOutParametersInfo) const = 0;
-            virtual void WriteParametersToGPUBuffer(SharedPtr<Buffer> buffer, const ShaderParametersInfo& parametersInfos, const void* pParameters) const = 0;
+
+            virtual void UpdateShaderParameterListInfo(ShaderParameterListInfo& inOutParameterListInfo) const = 0;
+            virtual void WriteParametersToGPUBuffer(SharedPtr<Buffer> buffer, const ShaderParameterListInfo& parameterListInfo, const void* pParameterList) const = 0;
 
             virtual const Vector<Vector<ShaderParameterReflection::Type>>& GetCompatibleShaderParameterReflectionTypeMap() const = 0;
         };

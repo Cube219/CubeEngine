@@ -24,9 +24,9 @@ namespace cube
         class Texture;
     } // namespace gapi
 
-    class MaterialShaderParameters : public ShaderParameters
+    class MaterialShaderParameterList : public ShaderParameterList
     {
-        CUBE_BEGIN_SHADER_PARAMETERS(MaterialShaderParameters)
+        CUBE_BEGIN_SHADER_PARAMETER_LIST(MaterialShaderParameterList)
             CUBE_SHADER_PARAMETER(Vector4, baseColor)
             CUBE_SHADER_PARAMETER(Vector4, diffuseColor)
             CUBE_SHADER_PARAMETER(Vector4, specularColor)
@@ -38,7 +38,7 @@ namespace cube
             CUBE_SHADER_PARAMETER(RGTextureSRVHandle, textureSlot3)
             CUBE_SHADER_PARAMETER(RGTextureSRVHandle, textureSlot4)
             CUBE_SHADER_PARAMETER(BindlessSampler, materialSampler)
-        CUBE_END_SHADER_PARAMETERS
+        CUBE_END_SHADER_PARAMETER_LIST
     };
 
     class Material
@@ -59,7 +59,7 @@ namespace cube
 
         void SetSampler(Uint64 samplerId);
 
-        RGShaderParametersHandle<MaterialShaderParameters> GenerateShaderParameters(RGBuilder& builder) const;
+        RGShaderParameterListHandle<MaterialShaderParameterList> GenerateShaderParameterList(RGBuilder& builder) const;
 
         StringView GetDebugName() const { return mDebugName; }
 

@@ -5,72 +5,72 @@
 
 namespace cube
 {
-    ShaderParametersManager::DeferredInitializingParameterInfos ShaderParametersManager::mDeferredInitializingParametersInfos[ShaderParametersManager::MAX_NUM_DEFERRED_INIT];
-    int ShaderParametersManager::mDeferredInitializingParametersInfosIndex = 0;
-    bool ShaderParametersManager::mIsDeferredInitOverflow = false;
+    ShaderParameterListManager::DeferredInitializingParameterListInfos ShaderParameterListManager::mDeferredInitializingParameterListInfos[ShaderParameterListManager::MAX_NUM_DEFERRED_INIT];
+    int ShaderParameterListManager::mDeferredInitializingParameterListInfosIndex = 0;
+    bool ShaderParameterListManager::mIsDeferredInitOverflow = false;
 
-    Vector<ShaderParametersInfo> ShaderParametersManager::mShaderParametersInfos;
-    Map<String, int> ShaderParametersManager::mShaderParametersTypeNameToIndexMap;
+    Vector<ShaderParameterListInfo> ShaderParameterListManager::mShaderParameterListInfos;
+    Map<String, int> ShaderParameterListManager::mShaderParameterListTypeNameToIndexMap;
 
-    void ShaderParametersManager::AddDeferredInitializingParameterInfos(const DeferredInitializingParameterInfos& initInfos)
+    void ShaderParameterListManager::AddDeferredInitializingParameterListInfos(const DeferredInitializingParameterListInfos& initInfos)
     {
-        mDeferredInitializingParametersInfos[mDeferredInitializingParametersInfosIndex] = initInfos;
-        mDeferredInitializingParametersInfosIndex++;
+        mDeferredInitializingParameterListInfos[mDeferredInitializingParameterListInfosIndex] = initInfos;
+        mDeferredInitializingParameterListInfosIndex++;
 
-        if (mDeferredInitializingParametersInfosIndex >= MAX_NUM_DEFERRED_INIT)
+        if (mDeferredInitializingParameterListInfosIndex >= MAX_NUM_DEFERRED_INIT)
         {
             mIsDeferredInitOverflow = true;
             // To avoid accessing out-of-bound.
-            mDeferredInitializingParametersInfosIndex = 0;
+            mDeferredInitializingParameterListInfosIndex = 0;
         }
     }
 
-    void ShaderParametersManager::ProcessDeferredInitializingParametersInfos(const gapi::ShaderParameterHelper& shaderParemeterHelper)
+    void ShaderParameterListManager::ProcessDeferredInitializingParameterListInfos(const gapi::ShaderParameterHelper& shaderParemeterHelper)
     {
-        CHECK_FORMAT(!mIsDeferredInitOverflow, "Deferred init overflow! Increase ShaderParametersManager::MAX_NUM_DEFERRED_INIT. (Current: {0})", MAX_NUM_DEFERRED_INIT);
+        CHECK_FORMAT(!mIsDeferredInitOverflow, "Deferred init overflow! Increase ShaderParameterListManager::MAX_NUM_DEFERRED_INIT. (Current: {0})", MAX_NUM_DEFERRED_INIT);
 
-        for (int i = 0; i < mDeferredInitializingParametersInfosIndex; ++i)
+        for (int i = 0; i < mDeferredInitializingParameterListInfosIndex; ++i)
         {
-            DeferredInitializingParameterInfos& initInfo = mDeferredInitializingParametersInfos[i];
+            DeferredInitializingParameterListInfos& initInfo = mDeferredInitializingParameterListInfos[i];
             String typeName = String(initInfo.typeName);
-            if (mShaderParametersTypeNameToIndexMap.find(typeName) != mShaderParametersTypeNameToIndexMap.end())
+            if (mShaderParameterListTypeNameToIndexMap.find(typeName) != mShaderParameterListTypeNameToIndexMap.end())
             {
-                CUBE_LOG(Error, ShaderParameter, "Shader parameters '{0}' is already initialized.", initInfo.typeName);
+                CUBE_LOG(Error, ShaderParameter, "Shader parameter list '{0}' is already initialized.", initInfo.typeName);
                 continue;
             }
 
-            mShaderParametersTypeNameToIndexMap.insert({ typeName, static_cast<int>(mShaderParametersInfos.size()) });
-            ShaderParametersInfo& paramsInfo = mShaderParametersInfos.emplace_back();
+            mShaderParameterListTypeNameToIndexMap.insert({ typeName, static_cast<int>(mShaderParameterListInfos.size()) });
+            ShaderParameterListInfo& paramsInfo = mShaderParameterListInfos.emplace_back();
             initInfo.initFunction(shaderParemeterHelper, paramsInfo);
         }
 
-        mDeferredInitializingParametersInfosIndex = 0;
+        mDeferredInitializingParameterListInfosIndex = 0;
     }
 
-    int ShaderParametersManager::GetShaderParametersInfoIndex(StringView parametersTypeName)
+    int ShaderParameterListManager::GetShaderParameterListInfoIndex(StringView parameterListTypeName)
     {
-        auto findIt = mShaderParametersTypeNameToIndexMap.find(String(parametersTypeName));
-        if (findIt == mShaderParametersTypeNameToIndexMap.end())
+        auto findIt = mShaderParameterListTypeNameToIndexMap.find(String(parameterListTypeName));
+        if (findIt == mShaderParameterListTypeNameToIndexMap.end())
         {
-            CUBE_LOG(Error, ShaderParameter, "Uninitialized shader parameters type! ({0})", parametersTypeName);
+            CUBE_LOG(Error, ShaderParameter, "Uninitialized shader parameter list type! ({0})", parameterListTypeName);
             CHECK(false);
         }
 
         return findIt->second;
     }
 
-    ShaderParameters::ShaderParameters(ShaderParametersManager& manager) :
+    ShaderParameterList::ShaderParameterList(ShaderParameterListManager& manager) :
         mManager(manager)
     {
-        // Other members will be initialized in ShaderParametersManagers::InitializeShaderParameters.
+        // Other members will be initialized in ShaderParameterListManager::AllocateShaderParameterList.
     }
 
-    ShaderParameters::~ShaderParameters()
+    ShaderParameterList::~ShaderParameterList()
     {
         mManager.FreeBuffer(*this);
     }
 
-    void ShaderParametersManager::Initialize(GAPI* gapi, Uint32 numGPUSync)
+    void ShaderParameterListManager::Initialize(GAPI* gapi, Uint32 numGPUSync)
     {
         mGAPI = gapi;
         mShaderParameterHelper = &mGAPI->GetShaderParameterHelper();
@@ -79,23 +79,23 @@ namespace cube
 
         mCurrentIndex = 0;
 
-        ProcessDeferredInitializingParametersInfos(*mShaderParameterHelper);
+        ProcessDeferredInitializingParameterListInfos(*mShaderParameterHelper);
     }
 
-    void ShaderParametersManager::Shutdown()
+    void ShaderParameterListManager::Shutdown()
     {
-        for (ShaderParametersBufferPool& pool : mBufferPools)
+        for (ShaderParameterListBufferPool& pool : mBufferPools)
         {
             pool.Clear();
         }
         mBufferPools.clear();
     }
 
-    void ShaderParametersManager::MoveNextFrame()
+    void ShaderParameterListManager::MoveNextFrame()
     {
         mCurrentIndex = (mCurrentIndex + 1) % mBufferPools.size();
 
-        ShaderParametersBufferPool& pool = mBufferPools[mCurrentIndex];
+        ShaderParameterListBufferPool& pool = mBufferPools[mCurrentIndex];
         pool.CheckConsistency();
 
         for (Uint32 index : pool.freedBufferIndices)
@@ -105,7 +105,7 @@ namespace cube
         pool.freedBufferIndices.clear();
     }
 
-    bool ShaderParametersManager::ValidateShaderParameters(const Vector<ShaderParameterInfo>& parameterInfos, const gapi::ShaderParameterBlockReflection& parameterBlockReflection)
+    bool ShaderParameterListManager::ValidateShaderParameterList(const Vector<ShaderParameterInfo>& parameterInfos, const gapi::ShaderParameterBlockReflection& parameterBlockReflection)
     {
         FrameMap<FrameString, int> parameterNameToIndexMapInShaderCode;
         FrameVector<bool> checkedParameterInShaderCode(parameterBlockReflection.params.size(), false);
@@ -177,22 +177,22 @@ namespace cube
         return res;
     }
 
-    void ShaderParametersManager::AllocateShaderParameters(ShaderParameters* parameters, const ShaderParametersInfo& parametersInfo)
+    void ShaderParameterListManager::AllocateShaderParameterList(ShaderParameterList* parameterList, const ShaderParameterListInfo& parameterListInfo)
     {
         // Constant buffer size must be 256 byte aligned in HLSL.
-        Uint32 bufferSize = parametersInfo.totalBufferSize;
+        Uint32 bufferSize = parameterListInfo.totalBufferSize;
         if ((bufferSize & 255) != 0)
         {
             bufferSize = (bufferSize + 255) & ~255;
         }
 
-        parameters->mGPUSyncIndex = mCurrentIndex;
-        parameters->mPooledBuffer = AllocateBuffer(bufferSize, parametersInfo.name);
+        parameterList->mGPUSyncIndex = mCurrentIndex;
+        parameterList->mPooledBuffer = AllocateBuffer(bufferSize, parameterListInfo.name);
     }
 
-    ShaderParametersPooledBuffer ShaderParametersManager::AllocateBuffer(Uint32 size, StringView debugName)
+    ShaderParameterListPooledBuffer ShaderParameterListManager::AllocateBuffer(Uint32 size, StringView debugName)
     {
-        ShaderParametersBufferPool& pool = mBufferPools[mCurrentIndex];
+        ShaderParameterListBufferPool& pool = mBufferPools[mCurrentIndex];
 
         if (auto it = pool.pooledBufferIndices.lower_bound(size); it != pool.pooledBufferIndices.end())
         {
@@ -215,23 +215,23 @@ namespace cube
         return { .buffer = buffer, .poolIndex = static_cast<Uint32>(pool.buffers.size()) - 1 };
     }
 
-    void ShaderParametersManager::FreeBuffer(ShaderParameters& parameters)
+    void ShaderParameterListManager::FreeBuffer(ShaderParameterList& parameterList)
     {
-        if (mCurrentIndex != parameters.mGPUSyncIndex)
+        if (mCurrentIndex != parameterList.mGPUSyncIndex)
         {
             CUBE_LOG(Warning, Renderer, "Mismatch GPU sync index at allocation and freeing in {0}. They should be the same GPU sync index.");
         }
 
-        ShaderParametersBufferPool& pool = mBufferPools[parameters.mGPUSyncIndex];
-        CHECK(parameters.mPooledBuffer.buffer);
-        CHECK(parameters.mPooledBuffer.buffer == pool.buffers[parameters.mPooledBuffer.poolIndex]);
-        parameters.mPooledBuffer.buffer->SetDebugName(CUBE_T("PooledShaderParameter")); 
-        pool.freedBufferIndices.push_back(parameters.mPooledBuffer.poolIndex);
+        ShaderParameterListBufferPool& pool = mBufferPools[parameterList.mGPUSyncIndex];
+        CHECK(parameterList.mPooledBuffer.buffer);
+        CHECK(parameterList.mPooledBuffer.buffer == pool.buffers[parameterList.mPooledBuffer.poolIndex]);
+        parameterList.mPooledBuffer.buffer->SetDebugName(CUBE_T("PooledShaderParameter"));
+        pool.freedBufferIndices.push_back(parameterList.mPooledBuffer.poolIndex);
 
-        parameters.mPooledBuffer = { .buffer = nullptr, .poolIndex = 0 };
+        parameterList.mPooledBuffer = { .buffer = nullptr, .poolIndex = 0 };
     }
 
-    void ShaderParametersManager::ShaderParametersBufferPool::CheckConsistency()
+    void ShaderParameterListManager::ShaderParameterListBufferPool::CheckConsistency()
     {
         CHECK(buffers.size() == freedBufferIndices.size() + pooledBufferIndices.size());
 

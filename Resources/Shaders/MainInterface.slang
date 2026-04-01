@@ -1,6 +1,6 @@
 module MainInterface;
 
-public struct GlobalShaderParameters
+public struct GlobalShaderParameterList
 {
     public float3 viewPosition;
     public float4x4 viewProjection;
@@ -8,7 +8,7 @@ public struct GlobalShaderParameters
     public float3 directionalLightIntensity;
 };
 
-public struct ObjectShaderParameters
+public struct ObjectShaderParameterList
 {
     public float4x4 model;
     public float4x4 modelInverse;

@@ -171,40 +171,40 @@ namespace cube
     };
     using RGTextureDSVHandle = RGResourceHandler<RGTextureDSV>;
 
-    class RGShaderParametersBase : public RGResource
+    class RGShaderParameterListBase : public RGResource
     {
     protected:
         friend class RGBuilder;
 
-        RGShaderParametersBase(int index, const ShaderParametersInfo& parametersInfo, SharedPtr<ShaderParameters> params);
-        virtual ~RGShaderParametersBase() = default;
+        RGShaderParameterListBase(int index, const ShaderParameterListInfo& parameterListInfo, SharedPtr<ShaderParameterList> parameterList);
+        virtual ~RGShaderParameterListBase() = default;
 
-        const ShaderParametersInfo& mParametersInfo;
-        SharedPtr<ShaderParameters> mParams;
+        const ShaderParameterListInfo& mParameterListInfo;
+        SharedPtr<ShaderParameterList> mParameterList;
     };
-    using RGShaderParametersBaseHandle = RGResourceHandler<RGShaderParametersBase>;
+    using RGShaderParameterListBaseHandle = RGResourceHandler<RGShaderParameterListBase>;
 
-    template <typename ShaderParametersType>
-        requires std::derived_from<ShaderParametersType, ShaderParameters>
-    class RGShaderParameters : public RGShaderParametersBase
+    template <typename ShaderParameterListType>
+        requires std::derived_from<ShaderParameterListType, ShaderParameterList>
+    class RGShaderParameterList : public RGShaderParameterListBase
     {
     public:
-        ShaderParametersType* Get() { return mCastedPtr; }
+        ShaderParameterListType* Get() { return mCastedPtr; }
 
     private:
         friend class RGBuilder;
 
-        RGShaderParameters(int index, SharedPtr<ShaderParametersType> params, const ShaderParametersInfo& parametersInfo)
-            : RGShaderParametersBase(index, parametersInfo, params)
-            , mCastedPtr(dynamic_cast<ShaderParametersType*>(mParams.get()))
+        RGShaderParameterList(int index, SharedPtr<ShaderParameterListType> parameterList, const ShaderParameterListInfo& parameterListInfo)
+            : RGShaderParameterListBase(index, parameterListInfo, parameterList)
+            , mCastedPtr(dynamic_cast<ShaderParameterListType*>(mParameterList.get()))
         {}
-        virtual ~RGShaderParameters() = default;
+        virtual ~RGShaderParameterList() = default;
 
-        ShaderParametersType* mCastedPtr;
+        ShaderParameterListType* mCastedPtr;
     };
-    template <typename ShaderParametersType>
-        requires std::derived_from<ShaderParametersType, ShaderParameters>
-    using RGShaderParametersHandle = RGResourceHandler<RGShaderParameters<ShaderParametersType>>;
+    template <typename ShaderParameterListType>
+        requires std::derived_from<ShaderParameterListType, ShaderParameterList>
+    using RGShaderParameterListHandle = RGResourceHandler<RGShaderParameterList<ShaderParameterListType>>;
 
 
     // ===== ShaderParameterTypeInfo specializations for RG handles =====

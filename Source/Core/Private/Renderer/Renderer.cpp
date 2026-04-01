@@ -20,8 +20,8 @@
 
 namespace cube
 {
-    CUBE_REGISTER_SHADER_PARAMETERS(GlobalShaderParameters);
-    CUBE_REGISTER_SHADER_PARAMETERS(ObjectShaderParameters);
+    CUBE_REGISTER_SHADER_PARAMETER_LIST(GlobalShaderParameterList);
+    CUBE_REGISTER_SHADER_PARAMETER_LIST(ObjectShaderParameterList);
 
     Renderer::Renderer()
         : mTextureManager(*this)
@@ -68,7 +68,7 @@ namespace cube
         mShaderManager.Initialize(mGAPI.get(), false);
         mTextureManager.Initialize(mGAPI.get(), mNumGPUSync);
         mSamplerManager.Initialize(mGAPI.get());
-        mShaderParametersManager.Initialize(mGAPI.get(), mNumGPUSync);
+        mShaderParameterListManager.Initialize(mGAPI.get(), mNumGPUSync);
 
         mRenderImGUI = (imGUIContext.context != nullptr);
 
@@ -117,7 +117,7 @@ namespace cube
 
         mCommandList = nullptr;
 
-        mShaderParametersManager.Shutdown();
+        mShaderParameterListManager.Shutdown();
         mSamplerManager.Shutdown();
         mTextureManager.Shutdown();
         mShaderManager.Shutdown();
@@ -186,7 +186,7 @@ namespace cube
     {
         mCurrentRenderingFrame++;
         mGAPI->BeginRenderingFrame();
-        mShaderParametersManager.MoveNextFrame();
+        mShaderParameterListManager.MoveNextFrame();
 
         SetGlobalConstantBuffers();
 
@@ -388,13 +388,13 @@ namespace cube
                 .height = mViewportHeight
             };
 
-            RGShaderParametersHandle<GlobalShaderParameters> globalShaderParameters = builder.CreateShaderParameters<GlobalShaderParameters>();
-            globalShaderParameters->Get()->viewPosition = mViewPosition;
-            globalShaderParameters->Get()->viewProjection = mViewPerspectiveMatirx;
-            globalShaderParameters->Get()->directionalLightDirection = mDirectionalLightDirection;
-            globalShaderParameters->Get()->directionalLightIntensity = mDirectionalLightIntensity;
-            globalShaderParameters->Get()->WriteAllParametersToGPUBuffer();
-            builder.BindShaderParameters(globalShaderParameters);
+            RGShaderParameterListHandle<GlobalShaderParameterList> globalShaderParameterList = builder.CreateShaderParameterList<GlobalShaderParameterList>();
+            globalShaderParameterList->Get()->viewPosition = mViewPosition;
+            globalShaderParameterList->Get()->viewProjection = mViewPerspectiveMatirx;
+            globalShaderParameterList->Get()->directionalLightDirection = mDirectionalLightDirection;
+            globalShaderParameterList->Get()->directionalLightIntensity = mDirectionalLightIntensity;
+            globalShaderParameterList->Get()->WriteAllParametersToGPUBuffer();
+            builder.BindShaderParameterList(globalShaderParameterList);
 
             RGTextureHandle color = builder.RegisterTexture(mCurrentBackbuffer);
             RGTextureHandle depthStencil = builder.RegisterTexture(mDepthStencilTexture);

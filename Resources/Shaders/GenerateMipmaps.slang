@@ -1,11 +1,11 @@
 import Common;
 
-struct GenerateMipmapsShaderParameters
+struct GenerateMipmapsShaderParameterList
 {
     Bindless<Texture2D> srcTexture;
     Bindless<RWTexture2D> dstTexture;
 };
-ParameterBlock<GenerateMipmapsShaderParameters> generateMipmapsParams;
+ParameterBlock<GenerateMipmapsShaderParameterList> generateMipmapsParams;
 
 [shader("compute")]
 [numthreads(8, 8, 1)]
