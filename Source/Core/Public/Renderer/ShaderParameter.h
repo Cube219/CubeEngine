@@ -320,6 +320,7 @@ public: \
             if (cachedIndex == -1)
             {
                 cachedIndex = GetShaderParameterListInfoIndex(T::GetName());
+                CHECK_FORMAT(cachedIndex != -1, "Uninitialized shader parameter list type! ({0})", T::GetName());
             }
 
             return mShaderParameterListInfos[cachedIndex];
@@ -364,7 +365,8 @@ public: \
             return parameterList;
         }
 
-        bool ValidateShaderParameterList(const Vector<ShaderParameterInfo>& parameterInfos, const gapi::ShaderParameterBlockReflection& parameterBlockReflection);
+        bool ValidateShader(const gapi::ShaderReflection& shaderReflection);
+        bool ValidateShaderParameterList(const ShaderParameterListInfo& parameterListInfo, const gapi::ShaderParameterBlockReflection& parameterBlockReflection);
 
     private:
         friend class ShaderParameterList;

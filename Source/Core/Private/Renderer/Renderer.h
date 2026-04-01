@@ -55,10 +55,10 @@ namespace cube
         void OnResize(Uint32 width, Uint32 height);
 
         GAPI& GetGAPI() const { return *mGAPI; }
+        ShaderParameterListManager& GetShaderParameterListManager() { return mShaderParameterListManager; }
         ShaderManager& GetShaderManager() { return mShaderManager; }
         TextureManager& GetTextureManager() { return mTextureManager; }
         SamplerManager& GetSamplerManager() { return mSamplerManager; }
-        ShaderParameterListManager& GetShaderParameterListManager() { return mShaderParameterListManager; }
 
         SharedPtr<Material> GetDefaultMaterial() const { return mDefaultMaterial; }
         SharedPtr<gapi::Texture> GetDummyBlackTexture() const { return mDummyBlackTexture->GetGAPITexture(); }
@@ -86,10 +86,10 @@ namespace cube
         Uint32 mNumGPUSync;
         Uint64 mCurrentRenderingFrame;
 
+        ShaderParameterListManager mShaderParameterListManager;
         ShaderManager mShaderManager;
         TextureManager mTextureManager;
         SamplerManager mSamplerManager;
-        ShaderParameterListManager mShaderParameterListManager;
 
         bool mRenderImGUI;
 

@@ -25,6 +25,7 @@ namespace cube
 
     Renderer::Renderer()
         : mTextureManager(*this)
+        , mShaderManager(*this)
     {
     }
 
@@ -65,10 +66,10 @@ namespace cube
             .imGUI = imGUIContext
         });
 
+        mShaderParameterListManager.Initialize(mGAPI.get(), mNumGPUSync);
         mShaderManager.Initialize(mGAPI.get(), false);
         mTextureManager.Initialize(mGAPI.get(), mNumGPUSync);
         mSamplerManager.Initialize(mGAPI.get());
-        mShaderParameterListManager.Initialize(mGAPI.get(), mNumGPUSync);
 
         mRenderImGUI = (imGUIContext.context != nullptr);
 
@@ -117,10 +118,10 @@ namespace cube
 
         mCommandList = nullptr;
 
-        mShaderParameterListManager.Shutdown();
         mSamplerManager.Shutdown();
         mTextureManager.Shutdown();
         mShaderManager.Shutdown();
+        mShaderParameterListManager.Shutdown();
 
         mGAPI->Shutdown(imGUIContext);
         mGAPI = nullptr;

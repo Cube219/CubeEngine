@@ -11,13 +11,14 @@ namespace cube
     class GAPI;
     struct GraphisPipelineCreateInfo;
     class GraphicsPipeline;
+    class Renderer;
     struct ShaderCreateInfo;
     class Shader;
 
     class ShaderManager
     {
     public:
-        ShaderManager();
+        ShaderManager(Renderer& renderer);
         ~ShaderManager() = default;
 
         void Initialize(GAPI* gapi, bool useDebugMode);
@@ -40,6 +41,7 @@ namespace cube
     private:
         friend class Renderer;
 
+        Renderer& mRenderer;
         GAPI* mGAPI;
 
         bool mUseDebugMode; // Modified in Renderer directly

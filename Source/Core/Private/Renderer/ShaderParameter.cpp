@@ -52,8 +52,7 @@ namespace cube
         auto findIt = mShaderParameterListTypeNameToIndexMap.find(String(parameterListTypeName));
         if (findIt == mShaderParameterListTypeNameToIndexMap.end())
         {
-            CUBE_LOG(Error, ShaderParameter, "Uninitialized shader parameter list type! ({0})", parameterListTypeName);
-            CHECK(false);
+            return -1;
         }
 
         return findIt->second;
@@ -105,7 +104,31 @@ namespace cube
         pool.freedBufferIndices.clear();
     }
 
-    bool ShaderParameterListManager::ValidateShaderParameterList(const Vector<ShaderParameterInfo>& parameterInfos, const gapi::ShaderParameterBlockReflection& parameterBlockReflection)
+    bool ShaderParameterListManager::ValidateShader(const gapi::ShaderReflection& shaderReflection)
+    {
+        bool res = true;
+
+        for (const gapi::ShaderParameterBlockReflection& blockReflection : shaderReflection.blocks)
+        {
+            const int index = GetShaderParameterListInfoIndex(blockReflection.typeName);
+            if (index == -1)
+            {
+                CUBE_LOG(Error, ShaderParameter, "Undefined shader parameter list type! ({0})", blockReflection.typeName);
+                res = false;
+            }
+            else
+            {
+                if (!ValidateShaderParameterList(mShaderParameterListInfos[index], blockReflection))
+                {
+                    res = false;
+                }
+            }
+        }
+
+        return res;
+    }
+
+    bool ShaderParameterListManager::ValidateShaderParameterList(const ShaderParameterListInfo& parameterListInfo, const gapi::ShaderParameterBlockReflection& parameterBlockReflection)
     {
         FrameMap<FrameString, int> parameterNameToIndexMapInShaderCode;
         FrameVector<bool> checkedParameterInShaderCode(parameterBlockReflection.params.size(), false);
@@ -117,7 +140,7 @@ namespace cube
 
         bool res = true;
 
-        for (const ShaderParameterInfo& parameterInfo : parameterInfos)
+        for (const ShaderParameterInfo& parameterInfo : parameterListInfo.parameterInfos)
         {
             FrameString name = String_Convert<FrameString>(parameterInfo.name);
 

@@ -1,13 +1,15 @@
 #include "ShaderManager.h"
 
 #include "Checker.h"
+#include "Renderer.h"
 #include "Shader.h"
 #include "Allocator/FrameAllocator.h"
 
 namespace cube
 {
-    ShaderManager::ShaderManager()
+    ShaderManager::ShaderManager(Renderer& renderer)
         : mMaterialShaderManager(*this)
+        , mRenderer(renderer)
     {
     }
 
@@ -47,6 +49,7 @@ namespace cube
     SharedPtr<GraphicsPipeline> ShaderManager::CreateGraphicsPipeline(const GraphisPipelineCreateInfo& createInfo)
     {
         SharedPtr<GraphicsPipeline> graphicsPipeline = std::make_shared<GraphicsPipeline>(*this, createInfo);
+        CHECK(mRenderer.GetShaderParameterListManager().ValidateShader(graphicsPipeline->GetMergedShaderReflection()));
         mCreatedGraphicsPipelines.insert(graphicsPipeline.get());
 
         return graphicsPipeline;
@@ -63,6 +66,7 @@ namespace cube
     SharedPtr<ComputePipeline> ShaderManager::CreateComputePipeline(const ComputePipelineCreateInfo& createInfo)
     {
         SharedPtr<ComputePipeline> computePipeline = std::make_shared<ComputePipeline>(*this, createInfo);
+        CHECK(mRenderer.GetShaderParameterListManager().ValidateShader(computePipeline->GetShaderReflection()));
         mCreatedComputePipelines.insert(computePipeline.get());
 
         return computePipeline;
@@ -147,10 +151,12 @@ namespace cube
             for (GraphicsPipeline* graphicsPipeline : graphicsPipelinesToRecreate)
             {
                 graphicsPipeline->RecreateGraphicsPipeline();
+                CHECK(mRenderer.GetShaderParameterListManager().ValidateShader(graphicsPipeline->GetMergedShaderReflection()));
             }
             for (ComputePipeline* computePipeline : computePipelinesToRecreate)
             {
                 computePipeline->RecreateComputePipeline();
+                CHECK(mRenderer.GetShaderParameterListManager().ValidateShader(computePipeline->GetShaderReflection()));
             }
         }
 
