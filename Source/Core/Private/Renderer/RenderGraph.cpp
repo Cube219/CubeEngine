@@ -94,9 +94,15 @@ namespace cube
 
     RGTextureHandle RGBuilder::RegisterTexture(SharedPtr<gapi::Texture> texture)
     {
-        // TODO: Check duplication
+        if (auto findIt = mRegisteredTextures.find(texture.get()); findIt != mRegisteredTextures.end())
+        {
+            return findIt->second;
+        }
+
         RGTexture* rgTexture = new RGTexture(mResources.size(), texture);
         mResources.push_back(rgTexture);
+
+        mRegisteredTextures.insert({ texture.get(), RGTextureHandle(rgTexture) });
 
         return RGTextureHandle(rgTexture);
     }
@@ -610,6 +616,7 @@ namespace cube
     void RGBuilder::Reset()
     {
         mPasses.clear();
+        mRegisteredTextures.clear();
         for (RGResource* resource : mResources)
         {
             delete resource;

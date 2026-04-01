@@ -162,6 +162,7 @@ namespace cube
         int mCurrentPassIndex = -1;
 
         Vector<RGResource*> mResources;
+        Map<gapi::Texture*, RGTextureHandle> mRegisteredTextures;
         RGTextureSRVHandle mDummyBlackTexture;
         RGTextureSRVHandle mDummyWhiteTexture;
 
