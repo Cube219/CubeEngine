@@ -36,21 +36,7 @@ namespace cube
         {
             allocation.type = DX12Allocation::ResourceType::Texture;
         }
-        switch (heapType)
-        {
-        case D3D12_HEAP_TYPE_DEFAULT:
-            allocation.usage = gapi::ResourceUsage::GPUOnly;
-            break;
-        case D3D12_HEAP_TYPE_UPLOAD:
-            allocation.usage = gapi::ResourceUsage::CPUtoGPU;
-            break;
-        case D3D12_HEAP_TYPE_READBACK:
-            allocation.usage = gapi::ResourceUsage::GPUtoCPU;
-            break;
-        default:
-            allocation.usage = gapi::ResourceUsage::GPUOnly;
-            break;
-        }
+        allocation.heapType = heapType;
 
         D3D12MA::ALLOCATION_DESC allocationDesc = {};
         allocationDesc.HeapType = heapType;

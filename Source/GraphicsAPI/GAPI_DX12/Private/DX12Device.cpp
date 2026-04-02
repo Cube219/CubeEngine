@@ -83,6 +83,11 @@ namespace cube
             res = false;
         }
 
+        if (mFeatureSupport.GPUUploadHeapSupported())
+        {
+            CUBE_LOG(Info, DX12, "Device {0} supports GPU Upload Heap.", WindowsStringView(mAdapterDesc.Description));
+        }
+
         return res;
     }
 

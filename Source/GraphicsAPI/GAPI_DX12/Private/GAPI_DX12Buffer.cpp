@@ -38,7 +38,11 @@ namespace cube
             D3D12_HEAP_TYPE heapType;
             switch (mUsage)
             {
-            case ResourceUsage::GPUOnly: heapType = D3D12_HEAP_TYPE_DEFAULT; break;
+            case ResourceUsage::GPUOnly:
+                heapType = device.IsGPUUploadHeapSupported()
+                    ? D3D12_HEAP_TYPE_GPU_UPLOAD
+                    : D3D12_HEAP_TYPE_DEFAULT;
+                break;
             case ResourceUsage::CPUtoGPU: heapType = D3D12_HEAP_TYPE_UPLOAD; break;
             case ResourceUsage::GPUtoCPU: heapType = D3D12_HEAP_TYPE_READBACK; break;
             default:
@@ -76,9 +80,17 @@ namespace cube
             switch (mUsage)
             {
             case ResourceUsage::GPUOnly:
-                // TODO: Use alignment?
-                mUploadDesc = mDevice.GetUploadManager().Allocate(ResourceType::Buffer, mSize);
-                return mUploadDesc.pData;
+                if (mAllocation.heapType == D3D12_HEAP_TYPE_GPU_UPLOAD)
+                {
+                    mAllocation.Map();
+                    return mAllocation.pMapPtr;
+                }
+                else
+                {
+                    // TODO: Use alignment?
+                    mUploadDesc = mDevice.GetUploadManager().Allocate(ResourceType::Buffer, mSize);
+                    return mUploadDesc.pData;
+                }
             case ResourceUsage::CPUtoGPU:
                 mAllocation.Map();
                 return mAllocation.pMapPtr;
@@ -94,11 +106,18 @@ namespace cube
             switch (mUsage)
             {
             case ResourceUsage::GPUOnly:
-                mUploadDesc.type = ResourceType::Buffer;
-                mUploadDesc.dstResource = mAllocation.allocation->GetResource();
-                mUploadDesc.dstAPIObject = this;
+                if (mAllocation.heapType == D3D12_HEAP_TYPE_GPU_UPLOAD)
+                {
+                    mAllocation.Unmap();
+                }
+                else
+                {
+                    mUploadDesc.type = ResourceType::Buffer;
+                    mUploadDesc.dstResource = mAllocation.allocation->GetResource();
+                    mUploadDesc.dstAPIObject = this;
 
-                mDevice.GetUploadManager().Submit(mUploadDesc, true);
+                    mDevice.GetUploadManager().Submit(mUploadDesc, true);
+                }
                 break;
             case ResourceUsage::CPUtoGPU:
                 mAllocation.Unmap();

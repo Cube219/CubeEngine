@@ -5,7 +5,6 @@
 #include "D3D12MemAlloc.h"
 
 #include "DX12Utility.h"
-#include "GAPI_Resource.h"
 
 namespace cube
 {
@@ -18,7 +17,7 @@ namespace cube
             Buffer, Texture
         };
         ResourceType type;
-        gapi::ResourceUsage usage;
+        D3D12_HEAP_TYPE heapType;
         void *pMapPtr = nullptr;
 
         D3D12MA::Allocation* allocation = nullptr;
@@ -28,14 +27,14 @@ namespace cube
         // (readBegin > readEnd) -> read all range
         void Map(Uint64 readBegin = 1, Uint64 readEnd = 0)
         {
-            CHECK_FORMAT(usage != gapi::ResourceUsage::GPUOnly, "Cannot map the resouce used GPU only.");
+            CHECK_FORMAT(heapType != D3D12_HEAP_TYPE_DEFAULT, "Cannot map the resource from default heap type.");
 
             if (pMapPtr != nullptr)
             {
                 return;
             }
 
-            if (usage == gapi::ResourceUsage::CPUtoGPU)
+            if (heapType == D3D12_HEAP_TYPE_UPLOAD || heapType == D3D12_HEAP_TYPE_GPU_UPLOAD)
             {
                 readBegin = readEnd = 0; // Range [0, 0] -> cannot read, only write available
             }
@@ -52,7 +51,7 @@ namespace cube
                 return;
             }
 
-            if (usage == gapi::ResourceUsage::GPUtoCPU)
+            if (heapType == D3D12_HEAP_TYPE_READBACK)
             {
                 writeBegin = writeEnd = 0; // Range [0, 0] -> Not be written
             }

@@ -32,6 +32,7 @@ namespace cube
         ID3D12Device* GetDevice() const { return mDevice.Get(); }
 
         D3D_ROOT_SIGNATURE_VERSION GetMaxRootSignatureVersion() const { return mFeatureSupport.HighestRootSignatureVersion(); }
+        bool IsGPUUploadHeapSupported() const { return mFeatureSupport.GPUUploadHeapSupported(); }
 
         DX12MemoryAllocator& GetMemoryAllocator() { return mMemoryAllocator; }
         DX12QueueManager& GetQueueManager() { return mQueueManager; }

@@ -7,11 +7,6 @@ message(STATUS "CubeEngine: Fetching D3D12MemoryAllocator...")
 FetchContent_Declare(
     D3D12MemoryAllocator
     GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator
-    GIT_TAG        6a61103936dfadedca584e1a521fab6943d3b5ad # v2.0.1
+    GIT_TAG        0fa62ed3a0a69b73230a8ec1faa752d4061c8dc8 # v3.1.0
 )
 FetchContent_MakeAvailable(D3D12MemoryAllocator)
-
-target_include_directories(D3D12MemoryAllocator
-    PUBLIC
-        ${D3D12MemoryAllocator_SOURCE_DIR}/include
-)
