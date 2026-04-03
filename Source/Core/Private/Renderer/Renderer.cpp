@@ -159,6 +159,8 @@ namespace cube
 
                 mDirectionalLightIntensity = Vector3(intensityFloat3.x, intensityFloat3.y, intensityFloat3.z);
             }
+            ImGui::SeparatorText("Environment Mapping");
+            ImGui::Checkbox("Enable", &mEnvironmentMapping);
         }
 
         if (ImGui::CollapsingHeader("Shader", ImGuiTreeNodeFlags_DefaultOpen))
@@ -499,10 +501,53 @@ namespace cube
             mZAxisMaterial = std::make_shared<Material>(CUBE_T("ZAxisMaterial"));
             mZAxisMaterial->SetBaseColor({ 0.0f, 0.0f, 1.0f, 1.0f });
         }
+
+        {
+            platform::FilePath IBLPath = Engine::GetRootDirectoryPath() / CUBE_T("Resources/Textures/IBL/SanFrancisco2");
+            TextureRawData negXData = TextureHelper::LoadFromFile(IBLPath / CUBE_T("negx.jpg"));
+            TextureRawData negYData = TextureHelper::LoadFromFile(IBLPath / CUBE_T("negy.jpg"));
+            TextureRawData negZData = TextureHelper::LoadFromFile(IBLPath / CUBE_T("negz.jpg"));
+            TextureRawData posXData = TextureHelper::LoadFromFile(IBLPath / CUBE_T("posx.jpg"));
+            TextureRawData posYData = TextureHelper::LoadFromFile(IBLPath / CUBE_T("posy.jpg"));
+            TextureRawData posZData = TextureHelper::LoadFromFile(IBLPath / CUBE_T("posz.jpg"));
+
+            const Uint64 totalSize = negXData.data.GetSize() + negYData.data.GetSize() + negZData.data.GetSize()
+                + posXData.data.GetSize() + posYData.data.GetSize() + posZData.data.GetSize();
+            Blob totalData = Blob(totalSize);
+            {
+                Byte* pData = (Byte*)totalData.GetData();
+#define CUBE_APPEND_DATA(v) \
+                memcpy(pData, (v).data.GetData(), (v).data.GetSize()); \
+                pData += (v).data.GetSize();
+
+                CUBE_APPEND_DATA(posXData);
+                CUBE_APPEND_DATA(negXData);
+                CUBE_APPEND_DATA(posYData);
+                CUBE_APPEND_DATA(negYData);
+                CUBE_APPEND_DATA(posZData);
+                CUBE_APPEND_DATA(negZData);
+#undef CUBE_APPEND_DATA
+            }
+
+            TextureResourceCreateInfo createInfo = {
+                .textureInfo = {
+                    .format = negXData.format,
+                    .type = gapi::TextureType::TextureCube,
+                    .width = negXData.width,
+                    .height = negYData.height,
+                },
+                .data = BlobView(totalData),
+                .bytesPerElement = negXData.bytesPerElement,
+                .debugName = CUBE_T("IBLTexture")
+            };
+            mIBLTexture = std::make_shared<TextureResource>(createInfo);
+        }
     }
 
     void Renderer::ClearResources()
     {
+        mIBLTexture = nullptr;
+
         mZAxisMaterial = nullptr;
         mYAxisMaterial = nullptr;
         mXAxisMaterial = nullptr;

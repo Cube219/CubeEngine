@@ -64,7 +64,6 @@ namespace cube
             Texture(const TextureCreateInfo& createInfo)
                 : mUsage(createInfo.usage)
                 , mInfo(createInfo.textureInfo)
-                , mRowPitch(0) // Set in child class
             {}
             virtual ~Texture() = default;
 
@@ -79,7 +78,12 @@ namespace cube
             Uint32 GetDepth() const { return mInfo.depth; }
             Uint32 GetArraySize() const { return mInfo.arraySize; }
             Uint32 GetMipLevels() const { return mInfo.mipLevels; }
-            Uint32 GetRowPitch() const { return mRowPitch; }
+            Uint32 GetNumSlices() const { return IsCubemap() ? mInfo.arraySize * 6 : mInfo.arraySize; }
+            bool IsCubemap() const { return (mInfo.type == TextureType::TextureCube) || (mInfo.type == TextureType::TextureCubeArray); }
+
+            int GetNumSubresources() const { return mSubresourceLayouts.size(); }
+            int GetSubresourceIndex(int sliceIndex, int mipLevel) const { return sliceIndex * mInfo.mipLevels + mipLevel; }
+            const SubresourceLayout& GetSubresourceLayout(int subresourceIndex) const { return mSubresourceLayouts[subresourceIndex]; }
 
             virtual SharedPtr<TextureSRV> CreateSRV(const TextureSRVCreateInfo& createInfo) = 0;
             virtual SharedPtr<TextureUAV> CreateUAV(const TextureUAVCreateInfo& createInfo) = 0;
@@ -89,7 +93,7 @@ namespace cube
         protected:
             ResourceUsage mUsage;
             TextureInfo mInfo;
-            Uint32 mRowPitch;
+            Vector<SubresourceLayout> mSubresourceLayouts; // Set in child class
         };
 
         struct TextureSRVCreateInfo

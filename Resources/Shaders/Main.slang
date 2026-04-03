@@ -1,3 +1,4 @@
+import Global;
 import Light;
 import MainInterface;
 import Material;

@@ -2,6 +2,7 @@
 
 #include "CoreHeader.h"
 
+#include "FileSystem.h"
 #include "GAPI_Texture.h"
 
 namespace cube
@@ -29,5 +30,21 @@ namespace cube
         SharedPtr<gapi::Texture> mGAPITexture;
 
         String mDebugName;
+    };
+
+    struct TextureRawData
+    {
+        gapi::ElementFormat format;
+        Uint32 width;
+        Uint32 height;
+        Uint32 bytesPerElement;
+        Blob data;
+    };
+
+    class TextureHelper
+    {
+    public:
+        static void ValidateInfo(const gapi::TextureInfo& info);
+        static TextureRawData LoadFromFile(platform::FilePath path);
     };
 } // namespace cube

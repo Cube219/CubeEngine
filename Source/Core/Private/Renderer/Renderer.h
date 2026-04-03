@@ -119,8 +119,11 @@ namespace cube
         SharedPtr<TextureResource> mDummyBlackTexture;
         SharedPtr<TextureResource> mDummyWhiteTexture;
 
+        SharedPtr<TextureResource> mIBLTexture;
+
         bool mShowAxis = true;
         bool mWireframe = false;
+        bool mEnvironmentMapping = true;
         SharedPtr<Mesh> mBoxMesh;
         Matrix mXAxisModelMatrix;
         SharedPtr<Material> mXAxisMaterial;

@@ -41,7 +41,8 @@ namespace cube
             ID3D12Resource* mResource;
             DX12UploadDesc mUploadDesc;
 
-            D3D12_PLACED_SUBRESOURCE_FOOTPRINT mLayout;
+            Vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> mFootprints;
+
             Uint64 mTotalSize;
         };
 

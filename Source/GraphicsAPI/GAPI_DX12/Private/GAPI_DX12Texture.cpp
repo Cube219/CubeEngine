@@ -14,6 +14,7 @@ namespace cube
             const TextureInfo& info = createInfo.textureInfo;
 
             D3D12_RESOURCE_DIMENSION dimension;
+            UINT16 depthOrArraySize = 1;
             switch (info.type)
             {
             case TextureType::Texture1D:
@@ -22,12 +23,19 @@ namespace cube
                 break;
             case TextureType::Texture2D:
             case TextureType::Texture2DArray:
+                dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+                break;
             case TextureType::TextureCube:
+                dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+                depthOrArraySize = 6;
+                break;
             case TextureType::TextureCubeArray:
                 dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+                depthOrArraySize = static_cast<UINT16>(6 * info.arraySize);
                 break;
             case TextureType::Texture3D:
                 dimension = D3D12_RESOURCE_DIMENSION_TEXTURE3D;
+                depthOrArraySize = static_cast<UINT16>(info.depth);
                 break;
             default:
                 NOT_IMPLEMENTED();
@@ -53,17 +61,28 @@ namespace cube
                 .Alignment = 0,
                 .Width = info.width,
                 .Height = info.height,
-                .DepthOrArraySize = static_cast<UINT16>(std::max(info.depth, info.arraySize)),
+                .DepthOrArraySize = depthOrArraySize,
                 .MipLevels = static_cast<UINT16>(info.mipLevels),
                 .Format = GetDX12ElementFormatInfo(info.format).format,
                 .SampleDesc = {
                     .Count = 1,
-                    .Quality = 0 },
+                    .Quality = 0
+                },
                 .Layout = (mUsage == ResourceUsage::GPUOnly) ? D3D12_TEXTURE_LAYOUT_UNKNOWN : D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
                 .Flags = flags
             };
-            device.GetDevice()->GetCopyableFootprints(&desc, 0, 1, 0, &mLayout, nullptr, nullptr, &mTotalSize);
-            mRowPitch = mLayout.Footprint.RowPitch;
+            const Uint32 numSlices = GetNumSlices();
+            const Uint32 numSubresources = numSlices * info.mipLevels;
+            mSubresourceLayouts.resize(numSubresources);
+            mFootprints.resize(numSubresources);
+            device.GetDevice()->GetCopyableFootprints(&desc, 0, numSubresources, 0, mFootprints.data(), nullptr, nullptr, &mTotalSize);
+            for (int i = 0; i < numSubresources; ++i)
+            {
+                mSubresourceLayouts[i] = {
+                    .offset = mFootprints[i].Offset,
+                    .rowPitch = mFootprints[i].Footprint.RowPitch
+                };
+            }
 
             D3D12_HEAP_TYPE heapType;
             switch (mUsage)
@@ -133,7 +152,7 @@ namespace cube
                 mUploadDesc.type = ResourceType::Texture;
                 mUploadDesc.dstResource = mAllocation.allocation->GetResource();
                 mUploadDesc.dstAPIObject = this;
-                mUploadDesc.dstTextureLayout = mLayout;
+                mUploadDesc.textureFootprints = mFootprints;
 
                 mDevice.GetUploadManager().Submit(mUploadDesc, true);
                 break;
