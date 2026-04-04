@@ -74,7 +74,6 @@ namespace cube
         struct Info
         {
             GAPIName apiName = GAPIName::Unknown;
-            bool useLeftHanded = false;
         };
     public:
         GAPI() = default;

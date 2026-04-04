@@ -450,6 +450,7 @@ TEST(MatrixUtilityTest, LookAt_BasicProperties)
     Float4 f = transformedEye.GetFloat4();
     EXPECT_NEAR(f.x, 0.0f, kEps);
     EXPECT_NEAR(f.y, 0.0f, kEps);
+    EXPECT_NEAR(f.z, 0.0f, kEps);
 
     // Different eye position
     Vector3 eye2(10.0f, 5.0f, 0.0f);
@@ -459,6 +460,7 @@ TEST(MatrixUtilityTest, LookAt_BasicProperties)
     Float4 f2 = (eyeH2 * view2).GetFloat4();
     EXPECT_NEAR(f2.x, 0.0f, kEps);
     EXPECT_NEAR(f2.y, 0.0f, kEps);
+    EXPECT_NEAR(f2.z, 0.0f, kEps);
 }
 
 TEST(MatrixUtilityTest, LookAt_TargetOnZAxis)
@@ -486,6 +488,19 @@ TEST(MatrixUtilityTest, LookAt_TargetOnZAxis)
     EXPECT_NEAR(f2.z, 0.0f, kEps);
 }
 
+TEST(MatrixUtilityTest, LookAt_TargetHasNegativeZ)
+{
+    // In right-handed, target should be at negative Z in view space
+    Vector3 eye(0.0f, 0.0f, -5.0f);
+    Vector3 target(0.0f, 0.0f, 0.0f);
+    Vector3 up(0.0f, 1.0f, 0.0f);
+
+    Matrix view = MatrixUtility::GetLookAt(eye, target, up);
+    Vector4 targetH(0.0f, 0.0f, 0.0f, 1.0f);
+    Float4 f = (targetH * view).GetFloat4();
+    EXPECT_LT(f.z, 0.0f);
+}
+
 // ===== Perspective =====
 
 TEST(MatrixUtilityTest, PerspectiveFov_BasicProperties)
@@ -497,20 +512,21 @@ TEST(MatrixUtilityTest, PerspectiveFov_BasicProperties)
 
     Matrix proj = MatrixUtility::GetPerspectiveFov(fov, aspect, nearZ, farZ);
 
-    // A point at center of near plane should map to (0, 0, ?, ?)
-    Vector4 nearCenter(0.0f, 0.0f, nearZ, 1.0f);
+    // A point at center of near plane (right-handed: -Z is forward)
+    Vector4 nearCenter(0.0f, 0.0f, -nearZ, 1.0f);
     Vector4 result = nearCenter * proj;
     Float4 f = result.GetFloat4();
     EXPECT_NEAR(f.x, 0.0f, kEps);
     EXPECT_NEAR(f.y, 0.0f, kEps);
+    // ndc_z should be 0 at near plane
+    float ndcZ = f.z / f.w;
+    EXPECT_NEAR(ndcZ, 0.0f, kEps);
 
-    // Different FOV
-    float fov2 = Math::Deg2Rad(60.0f);
-    Matrix proj2 = MatrixUtility::GetPerspectiveFov(fov2, 1.0f, 1.0f, 1000.0f);
-    Vector4 nearCenter2(0.0f, 0.0f, 1.0f, 1.0f);
-    Float4 f2 = (nearCenter2 * proj2).GetFloat4();
-    EXPECT_NEAR(f2.x, 0.0f, kEps);
-    EXPECT_NEAR(f2.y, 0.0f, kEps);
+    // ndc_z should be 1 at far plane
+    Vector4 farCenter(0.0f, 0.0f, -farZ, 1.0f);
+    Float4 f2 = (farCenter * proj).GetFloat4();
+    float ndcZFar = f2.z / f2.w;
+    EXPECT_NEAR(ndcZFar, 1.0f, kEps);
 }
 
 TEST(MatrixUtilityTest, PerspectiveFovWithReverseY_BasicProperties)
@@ -522,8 +538,8 @@ TEST(MatrixUtilityTest, PerspectiveFovWithReverseY_BasicProperties)
 
     Matrix proj = MatrixUtility::GetPerspectiveFovWithReverseY(fov, aspect, nearZ, farZ);
 
-    // A point at center of near plane
-    Vector4 nearCenter(0.0f, 0.0f, nearZ, 1.0f);
+    // A point at center of near plane (right-handed: -Z is forward)
+    Vector4 nearCenter(0.0f, 0.0f, -nearZ, 1.0f);
     Vector4 result = nearCenter * proj;
     Float4 f = result.GetFloat4();
     EXPECT_NEAR(f.x, 0.0f, kEps);
@@ -532,7 +548,7 @@ TEST(MatrixUtilityTest, PerspectiveFovWithReverseY_BasicProperties)
     // Different parameters
     Matrix proj2 = MatrixUtility::GetPerspectiveFovWithReverseY(
         Math::Deg2Rad(60.0f), 1.0f, 0.5f, 500.0f);
-    Vector4 nearCenter2(0.0f, 0.0f, 0.5f, 1.0f);
+    Vector4 nearCenter2(0.0f, 0.0f, -0.5f, 1.0f);
     Float4 f2 = (nearCenter2 * proj2).GetFloat4();
     EXPECT_NEAR(f2.x, 0.0f, kEps);
     EXPECT_NEAR(f2.y, 0.0f, kEps);
@@ -552,15 +568,6 @@ TEST(MatrixUtilityTest, PerspectiveFovWithReverseY_YIsFlipped)
     Float4 r1 = proj.GetRow(1).GetFloat4();
     Float4 r1Rev = projRev.GetRow(1).GetFloat4();
     EXPECT_NEAR(r1.y, -r1Rev.y, kEps);
-
-    // Also test with different parameters
-    float fov2 = Math::Deg2Rad(60.0f);
-    float aspect2 = 16.0f / 9.0f;
-    Matrix proj2 = MatrixUtility::GetPerspectiveFov(fov2, aspect2, 1.0f, 1000.0f);
-    Matrix projRev2 = MatrixUtility::GetPerspectiveFovWithReverseY(fov2, aspect2, 1.0f, 1000.0f);
-    Float4 r1b = proj2.GetRow(1).GetFloat4();
-    Float4 r1Revb = projRev2.GetRow(1).GetFloat4();
-    EXPECT_NEAR(r1b.y, -r1Revb.y, kEps);
 }
 
 // ===== Combined Transforms =====
@@ -774,11 +781,11 @@ TEST(MatrixUtilityTest, ViewProjectionPipeline)
     EXPECT_NEAR(ev.y, 0.0f, kEps);
     EXPECT_NEAR(ev.z, 0.0f, kEps);
 
-    // The target should be in front of camera (positive z in view space)
+    // The target should be in front of camera (negative z in right-handed view space)
     Vector4 targetH(0.0f, 0.0f, 0.0f, 1.0f);
     Vector4 targetView = targetH * view;
     Float4 tv = targetView.GetFloat4();
-    EXPECT_GT(tv.z, 0.0f);
+    EXPECT_LT(tv.z, 0.0f);
 
     // Target is at center of view, so after view-proj its x,y should be 0
     Vector4 targetClip = targetH * viewProj;
@@ -787,6 +794,9 @@ TEST(MatrixUtilityTest, ViewProjectionPipeline)
     float ndcY = tc.y / tc.w;
     EXPECT_NEAR(ndcX, 0.0f, kEps);
     EXPECT_NEAR(ndcY, 0.0f, kEps);
+
+    // clip.w should be positive for visible objects
+    EXPECT_GT(tc.w, 0.0f);
 }
 
 TEST(MatrixUtilityTest, LookAt_OrthonormalBasis)

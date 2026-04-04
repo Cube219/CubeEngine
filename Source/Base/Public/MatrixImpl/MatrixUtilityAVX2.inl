@@ -243,16 +243,17 @@ namespace cube
     inline Matrix MatrixUtility::GetLookAt(const Vector3& eyePos, const Vector3& targetPos, const Vector3& upDir)
     {
         /*
+          Right-handed: Z-axis points away from target (camera looks down -Z)
                Ux       Vx       Wx        0
                Uy       Vy       Wy        0
                Uz       Vz       Wz        0
-          -ePos*U  -ePos*V  -ePos*w        1
+          -ePos*U  -ePos*V  -ePos*W        1
           (U, V, W: basis vectors in eye space)
           (ePos: eye's position)
         */
         Matrix m;
 
-        Vector3 w = targetPos - eyePos;
+        Vector3 w = eyePos - targetPos;
         w.Normalize();
         Vector3 u = Vector3::Cross(upDir, w);
         u.Normalize();
@@ -287,33 +288,34 @@ namespace cube
     inline Matrix MatrixUtility::GetPerspectiveFov(float fovAngleY, float aspectRatio, float nearZ, float farZ)
     {
         /*
-          1/(rtan(a/2))             0             0             0
-                      0  1/(tan(a/2))             0             0
-                      0             0       f/(f-n)             1
-                      0             0     -nf/(f-n)             0
+          Right-handed: maps view space (-Z forward) to [0,1] depth range
+          1/(rtan(a/2))             0              0             0
+                      0  1/(tan(a/2))              0             0
+                      0             0     f/(n-f)            -1
+                      0             0     nf/(n-f)             0
         */
 
         float tanA = Math::Tan(fovAngleY / 2.0f);
-        float t = farZ / (farZ - nearZ);
+        float t = farZ / (nearZ - farZ);
 
         return Matrix{
             Vector4(1.0f / (aspectRatio * tanA), 0.0f, 0.0f, 0.0f),
             Vector4(0.0f, 1.0f / tanA, 0.0f, 0.0f),
-            Vector4(0.0f, 0.0f, t, 1.0f),
-            Vector4(0.0f, 0.0f, -nearZ * t, 0.0f)
+            Vector4(0.0f, 0.0f, t, -1.0f),
+            Vector4(0.0f, 0.0f, nearZ * t, 0.0f)
         };
     }
 
     inline Matrix MatrixUtility::GetPerspectiveFovWithReverseY(float fovAngleY, float aspectRatio, float nearZ, float farZ)
     {
         float tanA = Math::Tan(fovAngleY / 2.0f);
-        float t = farZ / (farZ - nearZ);
+        float t = farZ / (nearZ - farZ);
 
         return Matrix{
             Vector4(1.0f / (aspectRatio * tanA), 0.0f, 0.0f, 0.0f),
             Vector4(0.0f, -1.0f / tanA, 0.0f, 0.0f),
-            Vector4(0.0f, 0.0f, t, 1.0f),
-            Vector4(0.0f, 0.0f, -nearZ * t, 0.0f)
+            Vector4(0.0f, 0.0f, t, -1.0f),
+            Vector4(0.0f, 0.0f, nearZ * t, 0.0f)
         };
     }
 } // namespace cube

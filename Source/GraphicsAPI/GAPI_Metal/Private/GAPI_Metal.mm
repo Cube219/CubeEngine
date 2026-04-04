@@ -46,8 +46,7 @@ namespace cube
         CUBE_LOG(Info, Metal, "Initialize GAPI_Metal.");
 
         mInfo = {
-            .apiName = GAPIName::Metal,
-            .useLeftHanded = true
+            .apiName = GAPIName::Metal
         };
 
         InitializeTypes();

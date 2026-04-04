@@ -96,8 +96,7 @@ namespace cube
         CUBE_LOG(Info, DX12, "Initialize GAPI_DX12.");
 
         mInfo = {
-            .apiName = GAPIName::DX12,
-            .useLeftHanded = true
+            .apiName = GAPIName::DX12
         };
 
         InitializeTypes();

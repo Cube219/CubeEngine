@@ -288,27 +288,13 @@ namespace cube
     void Renderer::SetViewMatrix(const Vector3& eye, const Vector3& target, const Vector3& upDir)
     {
         mViewPosition = eye;
-        if (mGAPI->GetInfo().useLeftHanded)
-        {
-            // Flip z axis
-            mViewMatrix = MatrixUtility::GetLookAt(target, eye, upDir);
-        }
-        else
-        {
-            mViewMatrix = MatrixUtility::GetLookAt(eye, target, upDir);
-        }
+        mViewMatrix = MatrixUtility::GetLookAt(eye, target, upDir);
         mIsViewPerspectiveMatrixDirty = true;
     }
 
     void Renderer::SetPerspectiveMatrix(float fovAngleY, float aspectRatio, float nearZ, float farZ)
     {
         mPerspectiveMatrix = MatrixUtility::GetPerspectiveFov(fovAngleY, aspectRatio, nearZ, farZ);
-        if (mGAPI->GetInfo().useLeftHanded)
-        {
-            // Flip z axis
-            Vector4 zRow = mPerspectiveMatrix.GetRow(2);
-            mPerspectiveMatrix.SetRow(2, -zRow);
-        }
         mIsViewPerspectiveMatrixDirty = true;
     }
 
