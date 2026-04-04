@@ -5,13 +5,33 @@
 
 namespace cube
 {
+    IAllocator* Logger::mCurrentAllocator = nullptr;
     IAllocator* Logger::mAllocator = nullptr;
+    IAllocator* Logger::mDefaultAllocator = nullptr;
     char Logger::mFilePathSeparator = '\\';
     Vector<UniquePtr<ILoggerExtension>> Logger::mExtensions;
+
+    class DefaultLoggerAllocator : public IAllocator
+    {
+    public:
+        void* Allocate(SizeType n) override
+        {
+            return malloc(n);
+        }
+
+        void Free(void* ptr, SizeType n) override
+        {
+            free(ptr);
+        }
+    };
+    DefaultLoggerAllocator defaultLoggerAllocator;
 
     void Logger::Init(IAllocator* loggerAllocator)
     {
         mAllocator = loggerAllocator;
+        mDefaultAllocator = &defaultLoggerAllocator;
+
+        mCurrentAllocator = loggerAllocator;
     }
 
     void Logger::SetFilePathSeparator(char separator)
@@ -58,5 +78,15 @@ namespace cube
         {
             extension->WriteFormattedLog(type, res);
         }
+    }
+
+    void Logger::UseDefaultAllocator()
+    {
+        mCurrentAllocator = mDefaultAllocator;
+    }
+
+    void Logger::UseLoggerAllocator()
+    {
+        mCurrentAllocator = mAllocator;
     }
 } // namespace cube

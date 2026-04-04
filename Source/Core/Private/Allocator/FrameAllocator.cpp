@@ -118,6 +118,8 @@ namespace cube
 #ifdef CUBE_FRAME_ALLOCATOR_TRACK_ALLOCATION
         if (mInitialized)
         {
+            LoggerUseDefaultAllocatorScope scope;
+
             CUBE_LOG(Warning, Allocator, "The frame allocator is already initialized. (name: {} / blockSize: {}) Skip the initialization.", debugName, blockSize);
 
             return;
@@ -135,6 +137,8 @@ namespace cube
 #ifdef CUBE_FRAME_ALLOCATOR_TRACK_ALLOCATION
         if (!mInitialized)
         {
+            LoggerUseDefaultAllocatorScope scope;
+
             CUBE_LOG(Warning, Allocator, "The frame allocator is not initialized but try to shudown it.");
 
             return;
@@ -246,7 +250,11 @@ namespace cube
     void FrameAllocator::DiscardAllocations()
     {
 #ifdef CUBE_FRAME_ALLOCATOR_TRACK_ALLOCATION
-        CHECK_FORMAT(mAllocatedSize == 0, "Not all allocations were freed in the frame allocator.");
+        {
+            LoggerUseDefaultAllocatorScope scope;
+
+            CHECK_FORMAT(mAllocatedSize == 0, "Not all allocations were freed in the frame allocator.");
+        }
 #endif
 
         mMemoryBlock.DiscardAllocations();
@@ -259,8 +267,12 @@ namespace cube
 
     void FrameAllocator::AllocateAdditionalBlock(Uint64 size)
     {
-        CUBE_LOG(Warning, Allocator, "Allocate additional block in FrameAllocation. It has performance cost. Try to increase default block size in FrameAllocator.");
-        CUBE_LOG(Warning, Allocator, "Default size: {0} / Size to allocate: {1}", mBlockSize, size);
+        {
+            LoggerUseDefaultAllocatorScope scope;
+            
+            CUBE_LOG(Warning, Allocator, "Allocate additional block in FrameAllocation. It has performance cost. Try to increase default block size in FrameAllocator.");
+            CUBE_LOG(Warning, Allocator, "Default size: {0} / Size to allocate: {1}", mBlockSize, size);
+        }
 
         mAdditionalMemBlocks.emplace_back(size);
     }

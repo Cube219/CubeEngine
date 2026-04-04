@@ -38,12 +38,12 @@ namespace cube
 
             T* allocate(size_t n)
             {
-                return (T*)Logger::mAllocator->Allocate(sizeof(T) * n);
+                return (T*)Logger::mCurrentAllocator->Allocate(sizeof(T) * n);
             }
 
             void deallocate(T* p, size_t n)
             {
-                Logger::mAllocator->Free(p, n);
+                Logger::mCurrentAllocator->Free(p, n);
             }
         };
 
@@ -71,15 +71,33 @@ namespace cube
         }
         CUBE_LOGGER_EXPORT static void WriteLog(LogType type, const char* fullFileName, int lineNum, StringView category, StringView msg);
 
+        static void UseDefaultAllocator();
+        static void UseLoggerAllocator();
+
     private:
         Logger() = default;
 
         static const char* SplitFileName(const char* fullPath);
 
-        CUBE_LOGGER_EXPORT static IAllocator* mAllocator;
+        CUBE_LOGGER_EXPORT static IAllocator* mCurrentAllocator;
+        static IAllocator* mAllocator;
+        static IAllocator* mDefaultAllocator;
         static char mFilePathSeparator;
         CUBE_LOGGER_EXPORT static Vector<UniquePtr<ILoggerExtension>> mExtensions;
+    };
+
+    struct LoggerUseDefaultAllocatorScope
+    {
+        LoggerUseDefaultAllocatorScope()
+        {
+            Logger::UseDefaultAllocator();
+        }
+        ~LoggerUseDefaultAllocatorScope()
+        {
+            Logger::UseLoggerAllocator();
+        }
     };
 } // namespace cube
 
 #define CUBE_LOG(type, category, format, ...) cube::Logger::WriteLogFormatting(LogType::type, __FILE__, __LINE__, CUBE_T(#category), CUBE_T(format), ##__VA_ARGS__)
+
