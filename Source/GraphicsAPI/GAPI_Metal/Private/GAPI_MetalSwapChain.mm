@@ -62,9 +62,9 @@ namespace cube
         {
             CHECK(mDrawableTexture);
             
-            if (createInfo.mipLevel != 0 || createInfo.firstArrayIndex != 0 || createInfo.firstDepthIndex != 0)
+            if (createInfo.mipLevel != 0 || createInfo.firstSliceIndex != 0 || createInfo.firstDepthIndex != 0)
             {
-                CUBE_LOG(Warning, MetalSwapChain, "Try to create RTV for backbuffer which is not base view (mipLevel=0, arrayIndex=0, depthIndex=0). Ignore that and use base view.");
+                CUBE_LOG(Warning, MetalSwapChain, "Try to create RTV for backbuffer which is not base view (mipLevel=0, sliceIndex=0, depthIndex=0). Ignore that and use base view.");
             }
             return std::make_shared<MetalTextureRTV>(mDrawableTexture, mDevice);
         }

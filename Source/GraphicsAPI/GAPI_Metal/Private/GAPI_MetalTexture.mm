@@ -169,13 +169,13 @@ namespace cube
             CHECK_FORMAT(metalTexture->GetTextureUsage() & MTLTextureUsageShaderRead, "Cannot create MetalTextureSRV. Texture was not created with MTLTextureUsageShaderRead.");
 
             Uint32 mipLevels = createInfo.mipLevels != SubresourceRange::AllRange ? createInfo.mipLevels : metalTexture->GetMipLevels() - createInfo.firstMipLevel;
-            Uint32 arraySize = createInfo.arraySize != SubresourceRange::AllRange ? createInfo.arraySize : metalTexture->GetArraySize() - createInfo.firstArrayIndex;
+            Uint32 sliceSize = createInfo.sliceSize != SubresourceRange::AllRange ? createInfo.sliceSize : metalTexture->GetArraySize() - createInfo.firstSliceIndex;
             id<MTLTexture> mtlTexture = metalTexture->GetMTLTexture();
             mSRV = [mtlTexture
                 newTextureViewWithPixelFormat:metalTexture->GetPixelFormat()
                 textureType:metalTexture->GetTextureType()
                 levels:NSMakeRange(createInfo.firstMipLevel, mipLevels)
-                slices:NSMakeRange(createInfo.firstArrayIndex, arraySize)
+                slices:NSMakeRange(createInfo.firstSliceIndex, sliceSize)
             ];
 
             mBindlessId = mSRV.gpuResourceID._impl;
@@ -195,13 +195,13 @@ namespace cube
 
             CHECK_FORMAT(metalTexture->GetTextureUsage() & (MTLTextureUsageShaderRead | MTLTextureUsageShaderWrite), "Cannot create MetalTextureUAV. Texture was not created with MTLTextureUsageShaderRead and MTLTextureUsageShaderWrite.");
 
-            Uint32 arraySize = createInfo.arraySize != SubresourceRange::AllRange ? createInfo.arraySize : metalTexture->GetArraySize() - createInfo.firstArrayIndex;
+            Uint32 sliceSize = createInfo.sliceSize != SubresourceRange::AllRange ? createInfo.sliceSize : metalTexture->GetArraySize() - createInfo.firstSliceIndex;
             id<MTLTexture> mtlTexture = metalTexture->GetMTLTexture();
             mUAV = [mtlTexture
                 newTextureViewWithPixelFormat:metalTexture->GetPixelFormat()
                 textureType:metalTexture->GetTextureType()
                 levels:NSMakeRange(createInfo.mipLevel, 1)
-                slices:NSMakeRange(createInfo.firstArrayIndex, arraySize)
+                slices:NSMakeRange(createInfo.firstSliceIndex, sliceSize)
             ];
 
             mBindlessId = mUAV.gpuResourceID._impl;
@@ -220,12 +220,12 @@ namespace cube
             CHECK(metalTexture);
             CHECK_FORMAT(metalTexture->GetTextureUsage() & MTLTextureUsageRenderTarget, "Cannot create MetalTextureRTV. Texture was not created with MTLTextureUsageRenderTarget.");
 
-            Uint32 arraySize = createInfo.arraySize != SubresourceRange::AllRange ? createInfo.arraySize : metalTexture->GetArraySize() - createInfo.firstArrayIndex;
+            Uint32 sliceSize = createInfo.sliceSize != SubresourceRange::AllRange ? createInfo.sliceSize : metalTexture->GetArraySize() - createInfo.firstSliceIndex;
             mRTV = [metalTexture->GetMTLTexture()
                 newTextureViewWithPixelFormat:metalTexture->GetPixelFormat()
                 textureType:metalTexture->GetTextureType()
                                        levels:NSMakeRange(createInfo.mipLevel, 1)
-                                       slices:NSMakeRange(createInfo.firstArrayIndex, arraySize)
+                                       slices:NSMakeRange(createInfo.firstSliceIndex, sliceSize)
             ];
         }
 
@@ -253,12 +253,12 @@ namespace cube
             CHECK(metalTexture);
             CHECK_FORMAT(metalTexture->GetTextureUsage() & MTLTextureUsageRenderTarget, "Cannot create MetalTextureDSV. Texture was not created with MTLTextureUsageRenderTarget.");
 
-            Uint32 arraySize = createInfo.arraySize != SubresourceRange::AllRange ? createInfo.arraySize : metalTexture->GetArraySize() - createInfo.firstArrayIndex;
+            Uint32 sliceSize = createInfo.sliceSize != SubresourceRange::AllRange ? createInfo.sliceSize : metalTexture->GetArraySize() - createInfo.firstSliceIndex;
             mDSV = [metalTexture->GetMTLTexture()
                 newTextureViewWithPixelFormat:metalTexture->GetPixelFormat()
                                   textureType:metalTexture->GetTextureType()
                                        levels:NSMakeRange(createInfo.mipLevel, 1)
-                                       slices:NSMakeRange(createInfo.firstArrayIndex, arraySize)
+                                       slices:NSMakeRange(createInfo.firstSliceIndex, sliceSize)
             ];
         }
 

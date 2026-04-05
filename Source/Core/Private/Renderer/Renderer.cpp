@@ -203,8 +203,8 @@ namespace cube
                 .subresourceRange = {
                     .firstMipLevel = 0,
                     .mipLevels = 1,
-                    .firstArrayIndex = 0,
-                    .arraySize = 1
+                    .firstSliceIndex = 0,
+                    .sliceSize = 1
                 },
                 .src = gapi::ResourceStateFlag::Present,
                 .dst = gapi::ResourceStateFlag::Common
@@ -236,8 +236,8 @@ namespace cube
                 .subresourceRange = {
                     .firstMipLevel = 0,
                     .mipLevels = 1,
-                    .firstArrayIndex = 0,
-                    .arraySize = 1
+                    .firstSliceIndex = 0,
+                    .sliceSize = 1
                 },
                 .src = gapi::ResourceStateFlag::RenderTarget,
                 .dst = gapi::ResourceStateFlag::Present

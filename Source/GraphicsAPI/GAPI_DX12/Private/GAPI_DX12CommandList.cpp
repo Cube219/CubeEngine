@@ -339,7 +339,7 @@ namespace cube
             {
                 Uint32 arraySize = texture->GetArraySize();
                 Uint32 mipLevels = texture->GetMipLevels();
-                for (Uint32 arrayIndex = range.firstArrayIndex; arrayIndex < range.firstArrayIndex + range.arraySize; ++arrayIndex)
+                for (Uint32 arrayIndex = range.firstSliceIndex; arrayIndex < range.firstSliceIndex + range.sliceSize; ++arrayIndex)
                 {
                     for (Uint32 mipIndex = range.firstMipLevel; mipIndex < range.firstMipLevel + range.mipLevels; ++mipIndex)
                     {
