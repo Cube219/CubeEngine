@@ -71,8 +71,8 @@ namespace cube
         }
         CUBE_LOGGER_EXPORT static void WriteLog(LogType type, const char* fullFileName, int lineNum, StringView category, StringView msg);
 
-        static void UseDefaultAllocator();
-        static void UseLoggerAllocator();
+        CUBE_LOGGER_EXPORT static void UseDefaultAllocator();
+        CUBE_LOGGER_EXPORT static void UseLoggerAllocator();
 
     private:
         Logger() = default;
