@@ -18,7 +18,7 @@ namespace cube
         class DX12Texture : public Texture, public DX12APIObject
         {
         public:
-            DX12Texture(const TextureCreateInfo& info, DX12Device& device);
+            DX12Texture(const TextureCreateInfo& createInfo, DX12Device& device);
             virtual ~DX12Texture();
 
             virtual void* Map() override;
@@ -33,7 +33,7 @@ namespace cube
 
         protected:
             // From existing resource (ex: swapchain backbuffer)
-            DX12Texture(const TextureCreateInfo& info, ID3D12Resource* resource, DX12Device& device);
+            DX12Texture(const TextureCreateInfo& createInfo, ID3D12Resource* resource, DX12Device& device);
 
             DX12Device& mDevice;
 

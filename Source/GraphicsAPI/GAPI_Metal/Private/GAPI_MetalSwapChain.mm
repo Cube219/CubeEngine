@@ -101,15 +101,18 @@ namespace cube
                 [window.contentView addSubview:mView positioned:NSWindowBelow relativeTo:imGUIView];
             });
 
-            TextureCreateInfo texInfo;
-            texInfo.usage = ResourceUsage::GPUOnly;
-            texInfo.format = ElementFormat::RGBA8_UNorm;
-            texInfo.type = TextureType::Texture2D;
-            texInfo.flags = TextureFlag::RenderTarget;
-            texInfo.width = createInfo.width;
-            texInfo.height = createInfo.height;
-            texInfo.debugName = CUBE_T("Backbuffer");
-            mBackbufferTexture = std::make_shared<MetalBackbufferTexture>(texInfo, mDevice);
+            TextureCreateInfo texCreateInfo = {
+                .usage = ResourceUsage::GPUOnly,
+                .textureInfo = {
+                    .format = ElementFormat::RGBA8_UNorm,
+                    .type = TextureType::Texture2D,
+                    .flags = TextureFlag::RenderTarget,
+                    .width = createInfo.width,
+                    .height = createInfo.height
+                },
+                .debugName = CUBE_T("Backbuffer")
+            };
+            mBackbufferTexture = std::make_shared<MetalBackbufferTexture>(texCreateInfo, mDevice);
         }
 
         MetalSwapChain::~MetalSwapChain()

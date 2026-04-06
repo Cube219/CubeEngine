@@ -315,9 +315,9 @@ namespace cube
         return std::make_shared<gapi::DX12Shader>(std::move(res), compileResult.warning, compileResult.error, std::move(compileResult.dependencyFilePaths));
     }
 
-    SharedPtr<gapi::Texture> GAPI_DX12::CreateTexture(const gapi::TextureCreateInfo& info)
+    SharedPtr<gapi::Texture> GAPI_DX12::CreateTexture(const gapi::TextureCreateInfo& createInfo)
     {
-        return std::make_shared<gapi::DX12Texture>(info, *mMainDevice);
+        return std::make_shared<gapi::DX12Texture>(createInfo, *mMainDevice);
     }
 
     SharedPtr<gapi::SwapChain> GAPI_DX12::CreateSwapChain(const gapi::SwapChainCreateInfo& info)

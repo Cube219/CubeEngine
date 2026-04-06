@@ -90,11 +90,13 @@ namespace cube
         });
         mDepthStencilTexture = mGAPI->CreateTexture({
             .usage = gapi::ResourceUsage::GPUOnly,
-            .format = gapi::ElementFormat::D32_Float,
-            .type = gapi::TextureType::Texture2D,
-            .flags = gapi::TextureFlag::DepthStencil,
-            .width = mViewportWidth,
-            .height = mViewportHeight,
+            .textureInfo = {
+                .format = gapi::ElementFormat::D32_Float,
+                .type = gapi::TextureType::Texture2D,
+                .flags = gapi::TextureFlag::DepthStencil,
+                .width = mViewportWidth,
+                .height = mViewportHeight
+            },
             .debugName = CUBE_T("MainDepthStencilTexture")
         });
 
@@ -270,11 +272,13 @@ namespace cube
 
             mDepthStencilTexture = mGAPI->CreateTexture({
                 .usage = gapi::ResourceUsage::GPUOnly,
-                .format = gapi::ElementFormat::D32_Float,
-                .type = gapi::TextureType::Texture2D,
-                .flags = gapi::TextureFlag::DepthStencil,
-                .width = mViewportWidth,
-                .height = mViewportHeight,
+                .textureInfo = {
+                    .format = gapi::ElementFormat::D32_Float,
+                    .type = gapi::TextureType::Texture2D,
+                    .flags = gapi::TextureFlag::DepthStencil,
+                    .width = mViewportWidth,
+                    .height = mViewportHeight
+                },
                 .debugName = CUBE_T("MainDepthStencilTexture")
             });
         }
@@ -466,10 +470,12 @@ namespace cube
         {
             Uint32 dummyValue = 0;
             TextureResourceCreateInfo dummyTextureCreateInfo = {
-                .type = gapi::TextureType::Texture2D,
-                .format = gapi::ElementFormat::RGBA8_UNorm,
-                .width = 1,
-                .height = 1,
+                .textureInfo = {
+                    .format = gapi::ElementFormat::RGBA8_UNorm,
+                    .type = gapi::TextureType::Texture2D,
+                    .width = 1,
+                    .height = 1,
+                },
                 .data = BlobView(&dummyValue, sizeof(Uint32)),
                 .bytesPerElement = sizeof(Uint32),
                 .debugName = CUBE_T("DummyBlackTexture")

@@ -2,19 +2,11 @@
 
 #include "CoreHeader.h"
 
+#include "GAPI_Texture.h"
 #include "ShaderParameter.h"
 
 namespace cube
 {
-    namespace gapi
-    {
-        class Texture;
-        class TextureSRV;
-        class TextureUAV;
-        class TextureRTV;
-        class TextureDSV;
-    } // namespace gapi
-
     class RGBuilder;
 
     // ===== Resources =====
@@ -83,10 +75,12 @@ namespace cube
         friend class RGTextureRTV;
         friend class RGTextureDSV;
 
+        RGTexture(int index, const gapi::TextureInfo& textureInfo);
         RGTexture(int index, SharedPtr<gapi::Texture> texture);
         virtual ~RGTexture() = default;
 
         SharedPtr<gapi::Texture> mTexture;
+        gapi::TextureInfo mTextureInfo;
     };
     using RGTextureHandle = RGResourceHandler<RGTexture>;
 

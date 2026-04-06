@@ -153,12 +153,14 @@ namespace cube
 
             TextureCreateInfo backbufferCreateInfo = {
                 .usage = ResourceUsage::GPUOnly,
-                .format = mFormat,
-                .type = TextureType::Texture2D,
-                .flags = TextureFlag::RenderTarget,
-                .width = mWidth,
-                .height = mHeight,
-                .mipLevels = 1
+                .textureInfo = {
+                    .format = mFormat,
+                    .type = TextureType::Texture2D,
+                    .flags = TextureFlag::RenderTarget,
+                    .width = mWidth,
+                    .height = mHeight,
+                    .mipLevels = 1
+                }
             };
             for (Uint32 i = 0; i < mBackbufferCount; ++i)
             {

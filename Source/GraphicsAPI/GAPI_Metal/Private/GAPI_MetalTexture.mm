@@ -11,11 +11,13 @@ namespace cube
 {
     namespace gapi
     {
-        MetalTexture::MetalTexture(const TextureCreateInfo& info, MetalDevice& device)
-            : Texture(info)
+        MetalTexture::MetalTexture(const TextureCreateInfo& createInfo, MetalDevice& device)
+            : Texture(createInfo)
             , mDevice(device)
             , mMappedPtr(nullptr)
         { @autoreleasepool {
+            const TextureInfo& info = createInfo.textureInfo;
+
             MTLTextureType type;
             // TODO: Support other texture types
             switch (info.type)
@@ -61,7 +63,7 @@ namespace cube
 
             // TODO: Use MTLResourceStorageModePrivate in GPUOnly
             MTLResourceOptions resourceOptions = MTLResourceStorageModeShared;
-            switch (info.usage)
+            switch (mUsage)
             {
             case ResourceUsage::GPUOnly:
             case ResourceUsage::CPUtoGPU:
@@ -83,13 +85,13 @@ namespace cube
             desc.arrayLength = info.arraySize;
             desc.resourceOptions = resourceOptions;
             desc.usage = usage;
-            desc.allowGPUOptimizedContents = (info.usage != ResourceUsage::GPUtoCPU);
+            desc.allowGPUOptimizedContents = (mUsage != ResourceUsage::GPUtoCPU);
 
             mRowPitch = info.width * formatInfo.bytes;
             mTexture = [device.GetMTLDevice() newTextureWithDescriptor:desc];
             [desc release];
             CHECK(mTexture);
-            mTexture.label = String_Convert<NSString*>(info.debugName);
+            mTexture.label = String_Convert<NSString*>(createInfo.debugName);
 
             mTotalSize = mRowPitch * info.height * info.depth * info.arraySize;
         }}
@@ -126,7 +128,7 @@ namespace cube
             case ResourceUsage::CPUtoGPU:
             case ResourceUsage::GPUtoCPU:
                 [mTexture
-                    replaceRegion:MTLRegionMake2D(0, 0, mWidth, mHeight)
+                    replaceRegion:MTLRegionMake2D(0, 0, mInfo.width, mInfo.height)
                     mipmapLevel:0
                     withBytes:mMappedPtr
                     bytesPerRow:mRowPitch

@@ -13,7 +13,7 @@ namespace cube
         class MetalTexture : public Texture, public std::enable_shared_from_this<MetalTexture>
         {
         public:
-            MetalTexture(const TextureCreateInfo& info, MetalDevice& device);
+            MetalTexture(const TextureCreateInfo& createInfo, MetalDevice& device);
             virtual ~MetalTexture();
 
             virtual void* Map() override;

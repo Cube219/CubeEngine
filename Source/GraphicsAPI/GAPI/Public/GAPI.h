@@ -22,6 +22,7 @@ namespace cube
         class Buffer;
         struct BufferCreateInfo;
         class Texture;
+        struct TextureInfo;
         struct TextureCreateInfo;
         class CommandList;
         struct CommandListCreateInfo;
@@ -103,7 +104,7 @@ namespace cube
         virtual SharedPtr<gapi::ComputePipeline> CreateComputePipeline(const gapi::ComputePipelineCreateInfo& info) = 0;
         virtual SharedPtr<gapi::Sampler> CreateSampler(const gapi::SamplerCreateInfo& info) = 0;
         virtual SharedPtr<gapi::Shader> CreateShader(const gapi::ShaderCreateInfo& info) = 0;
-        virtual SharedPtr<gapi::Texture> CreateTexture(const gapi::TextureCreateInfo& info) = 0;
+        virtual SharedPtr<gapi::Texture> CreateTexture(const gapi::TextureCreateInfo& createInfo) = 0;
         virtual SharedPtr<gapi::SwapChain> CreateSwapChain(const gapi::SwapChainCreateInfo& info) = 0;
 
         virtual gapi::TimestampList GetLastTimestampList() = 0;

@@ -686,10 +686,12 @@ namespace cube
                 }
 
                 TextureResourceCreateInfo createInfo = {
-                    .type = gapi::TextureType::Texture2D,
-                    .format = format,
-                    .width = static_cast<Uint32>(image.width),
-                    .height = static_cast<Uint32>(image.height),
+                    .textureInfo = {
+                        .format = format,
+                        .type = gapi::TextureType::Texture2D,
+                        .width = static_cast<Uint32>(image.width),
+                        .height = static_cast<Uint32>(image.height),
+                    },
                     .data = BlobView(image.image.data(), image.image.size()),
                     .bytesPerElement = static_cast<Uint32>(image.component * image.bits / 8),
                     .generateMipMaps = true,
@@ -945,10 +947,12 @@ namespace cube
                         FrameString debugName = Format<FrameString>(CUBE_T("[{0}] {1} ({2})"), modelName, textureName, objTextureNameAnsi);
 
                         TextureResourceCreateInfo createInfo = {
-                            .type = gapi::TextureType::Texture2D,
-                            .format = gapi::ElementFormat::RGBA8_UNorm,
-                            .width = static_cast<Uint32>(width),
-                            .height = static_cast<Uint32>(height),
+                            .textureInfo = {
+                                .format = gapi::ElementFormat::RGBA8_UNorm,
+                                .type = gapi::TextureType::Texture2D,
+                                .width = static_cast<Uint32>(width),
+                                .height = static_cast<Uint32>(height),
+                            },
                             .data = BlobView(imageData, static_cast<Uint64>(width) * height * 4),
                             .bytesPerElement = 4,
                             .generateMipMaps = true,

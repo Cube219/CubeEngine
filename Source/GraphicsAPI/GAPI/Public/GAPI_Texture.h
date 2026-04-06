@@ -38,9 +38,8 @@ namespace cube
         using TextureFlags = Flags<TextureFlag>;
         FLAGS_OPERATOR(TextureFlag);
 
-        struct TextureCreateInfo
+        struct TextureInfo
         {
-            ResourceUsage usage;
             ElementFormat format;
             TextureType type;
             TextureFlags flags;
@@ -49,6 +48,12 @@ namespace cube
             Uint32 depth = 1;
             Uint32 arraySize = 1;
             Uint32 mipLevels = 1;
+        };
+
+        struct TextureCreateInfo
+        {
+            ResourceUsage usage;
+            TextureInfo textureInfo;
 
             StringView debugName;
         };
@@ -56,16 +61,10 @@ namespace cube
         class Texture
         {
         public:
-            Texture(const TextureCreateInfo& info) :
-                mUsage(info.usage),
-                mType(info.type),
-                mFormat(info.format),
-                mWidth(info.width),
-                mHeight(info.height),
-                mDepth(info.depth),
-                mArraySize(info.arraySize),
-                mMipLevels(info.mipLevels),
-                mRowPitch(0) // Set in child class
+            Texture(const TextureCreateInfo& createInfo)
+                : mUsage(createInfo.usage)
+                , mInfo(createInfo.textureInfo)
+                , mRowPitch(0) // Set in child class
             {}
             virtual ~Texture() = default;
 
@@ -73,13 +72,13 @@ namespace cube
             virtual void Unmap() = 0;
 
             ResourceUsage GetUsage() const { return mUsage; }
-            TextureType GetType() const { return mType; }
-            ElementFormat GetFormat() const { return mFormat; }
-            Uint32 GetWidth() const { return mWidth; }
-            Uint32 GetHeight() const { return mHeight; }
-            Uint32 GetDepth() const { return mDepth; }
-            Uint32 GetArraySize() const { return mArraySize; }
-            Uint32 GetMipLevels() const { return mMipLevels; }
+            TextureType GetType() const { return mInfo.type; }
+            ElementFormat GetFormat() const { return mInfo.format; }
+            Uint32 GetWidth() const { return mInfo.width; }
+            Uint32 GetHeight() const { return mInfo.height; }
+            Uint32 GetDepth() const { return mInfo.depth; }
+            Uint32 GetArraySize() const { return mInfo.arraySize; }
+            Uint32 GetMipLevels() const { return mInfo.mipLevels; }
             Uint32 GetRowPitch() const { return mRowPitch; }
 
             virtual SharedPtr<TextureSRV> CreateSRV(const TextureSRVCreateInfo& createInfo) = 0;
@@ -89,13 +88,7 @@ namespace cube
 
         protected:
             ResourceUsage mUsage;
-            TextureType mType;
-            ElementFormat mFormat;
-            Uint32 mWidth;
-            Uint32 mHeight;
-            Uint32 mDepth;
-            Uint32 mArraySize;
-            Uint32 mMipLevels;
+            TextureInfo mInfo;
             Uint32 mRowPitch;
         };
 

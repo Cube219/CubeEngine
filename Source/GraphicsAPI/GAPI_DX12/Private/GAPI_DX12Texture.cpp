@@ -7,10 +7,12 @@ namespace cube
 {
     namespace gapi
     {
-        DX12Texture::DX12Texture(const TextureCreateInfo& info, DX12Device& device) :
-            Texture(info),
+        DX12Texture::DX12Texture(const TextureCreateInfo& createInfo, DX12Device& device)
+            : Texture(createInfo),
             mDevice(device)
         {
+            const TextureInfo& info = createInfo.textureInfo;
+
             D3D12_RESOURCE_DIMENSION dimension;
             switch (info.type)
             {
@@ -91,7 +93,7 @@ namespace cube
                 mAllocation = device.GetMemoryAllocator().Allocate(heapType, desc);
             }
             mResource = mAllocation.allocation->GetResource();
-            SET_DEBUG_NAME(mAllocation.allocation->GetResource(), info.debugName);
+            SET_DEBUG_NAME(mAllocation.allocation->GetResource(), createInfo.debugName);
         }
 
         DX12Texture::~DX12Texture()
