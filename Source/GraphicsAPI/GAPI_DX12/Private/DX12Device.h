@@ -33,6 +33,7 @@ namespace cube
 
         D3D_ROOT_SIGNATURE_VERSION GetMaxRootSignatureVersion() const { return mFeatureSupport.HighestRootSignatureVersion(); }
         bool IsGPUUploadHeapSupported() const { return mFeatureSupport.GPUUploadHeapSupported(); }
+        bool IsTightAlignmentSupported() const { return mFeatureSupport.TightAlignmentSupportTier() >= D3D12_TIGHT_ALIGNMENT_TIER_1; }
 
         DX12MemoryAllocator& GetMemoryAllocator() { return mMemoryAllocator; }
         DX12QueueManager& GetQueueManager() { return mQueueManager; }

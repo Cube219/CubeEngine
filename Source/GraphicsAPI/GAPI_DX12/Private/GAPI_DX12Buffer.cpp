@@ -45,12 +45,14 @@ namespace cube
                 break;
             case ResourceUsage::CPUtoGPU: heapType = D3D12_HEAP_TYPE_UPLOAD; break;
             case ResourceUsage::GPUtoCPU: heapType = D3D12_HEAP_TYPE_READBACK; break;
+            case ResourceUsage::Transient: heapType = D3D12_HEAP_TYPE_DEFAULT; break;
             default:
                 NOT_IMPLEMENTED();
                 heapType = D3D12_HEAP_TYPE_UPLOAD; break;
             }
-            mAllocation = device.GetMemoryAllocator().Allocate(heapType, desc);
-            SET_DEBUG_NAME(mAllocation.allocation->GetResource(), info.debugName);
+            const bool isTransient = (mUsage == ResourceUsage::Transient);
+            mAllocation = device.GetMemoryAllocator().Allocate(heapType, desc, isTransient);
+            SET_DEBUG_NAME(mAllocation.resource, info.debugName);
 
             if (mType == BufferType::Constant)
             {
@@ -58,7 +60,7 @@ namespace cube
 
                 mCBVDescriptor = device.GetDescriptorManager().GetSRVHeap().AllocateCPU();
                 const D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {
-                    .BufferLocation = mAllocation.allocation->GetResource()->GetGPUVirtualAddress(),
+                    .BufferLocation = mAllocation.resource->GetGPUVirtualAddress(),
                     .SizeInBytes = (UINT)mSize
                 };
                 mDevice.GetDevice()->CreateConstantBufferView(&cbvDesc, mCBVDescriptor.handle);
@@ -94,6 +96,9 @@ namespace cube
             case ResourceUsage::CPUtoGPU:
                 mAllocation.Map();
                 return mAllocation.pMapPtr;
+            case ResourceUsage::Transient:
+                NO_ENTRY_FORMAT("Cannot map transient resource.");
+                return nullptr;
             case ResourceUsage::GPUtoCPU:
             default:
                 NOT_IMPLEMENTED();
@@ -113,7 +118,7 @@ namespace cube
                 else
                 {
                     mUploadDesc.type = ResourceType::Buffer;
-                    mUploadDesc.dstResource = mAllocation.allocation->GetResource();
+                    mUploadDesc.dstResource = mAllocation.resource;
                     mUploadDesc.dstAPIObject = this;
 
                     mDevice.GetUploadManager().Submit(mUploadDesc, true);
@@ -121,6 +126,9 @@ namespace cube
                 break;
             case ResourceUsage::CPUtoGPU:
                 mAllocation.Unmap();
+                break;
+            case ResourceUsage::Transient:
+                NO_ENTRY_FORMAT("Cannot unmap transient resource.");
                 break;
             case ResourceUsage::GPUtoCPU:
             default:
@@ -131,7 +139,7 @@ namespace cube
 
         void DX12Buffer::SetDebugName(StringView debugName)
         {
-            SET_DEBUG_NAME(mAllocation.allocation->GetResource(), debugName);
+            SET_DEBUG_NAME(mAllocation.resource, debugName);
         }
     } // namespace gapi
 } // namespace cube

@@ -95,6 +95,12 @@ namespace cube
             case ResourceUsage::GPUtoCPU:
                 resourceOptions = MTLResourceStorageModeShared;
                 break;
+            case ResourceUsage::Transient:
+                resourceOptions = MTLResourceStorageModePrivate;
+                break;
+            default:
+                NOT_IMPLEMENTED();
+                break;
             }
 
             MetalElementFormatInfo formatInfo = GetMetalElementFormatInfo(info.format);
@@ -112,7 +118,22 @@ namespace cube
             desc.usage = usage;
             desc.allowGPUOptimizedContents = (mUsage != ResourceUsage::GPUtoCPU);
 
-            mTexture = [device.GetMTLDevice() newTextureWithDescriptor:desc];
+            mRowPitch = info.width * formatInfo.bytes;
+            if (mUsage == ResourceUsage::Transient)
+            {
+                mTexture = [device.GetTransientHeap().GetMTLHeap() newTextureWithDescriptor:desc];
+                if (mTexture == nil)
+                {
+                    // Failure may be occurred by OOM. Increase transient heap size and try again.
+                    device.GetTransientHeap().IncreaseHeapSize();
+                    mTexture = [device.GetTransientHeap().GetMTLHeap() newTextureWithDescriptor:desc];
+                    // Don't try if still have failure.
+                }
+            }
+            else
+            {
+                mTexture = [device.GetMTLDevice() newTextureWithDescriptor:desc];
+            }
             [desc release];
             CHECK(mTexture);
             mTexture.label = String_Convert<NSString*>(createInfo.debugName);
@@ -161,6 +182,9 @@ namespace cube
             case ResourceUsage::GPUtoCPU:
                 mMappedPtr = platform::Platform::Allocate(mTotalSize);
                 return mMappedPtr;
+            case ResourceUsage::Transient:
+                NO_ENTRY_FORMAT("Cannot map transient resource.");
+                return nullptr;
             default:
                 NOT_IMPLEMENTED();
                 return nullptr;
@@ -228,7 +252,9 @@ namespace cube
                 free(mMappedPtr);
                 mMappedPtr = nullptr;
                 break;
-            }
+            case ResourceUsage::Transient:
+                NO_ENTRY_FORMAT("Cannot unmap transient resource.");
+                break;
             default:
                 NOT_IMPLEMENTED();
                 break;

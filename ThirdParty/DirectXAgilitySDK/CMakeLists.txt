@@ -8,7 +8,7 @@ message(STATUS "CubeEngine: Fetching DirectX Agility SDK...")
 FetchContent_Declare(
     dxagility
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-    URL https://www.nuget.org/api/v2/package/Microsoft.Direct3D.D3D12/1.616.1
+    URL https://www.nuget.org/api/v2/package/Microsoft.Direct3D.D3D12/1.619.1
 )
 FetchContent_MakeAvailable(dxagility)
 

@@ -10,3 +10,8 @@ FetchContent_Declare(
     GIT_TAG        0fa62ed3a0a69b73230a8ec1faa752d4061c8dc8 # v3.1.0
 )
 FetchContent_MakeAvailable(D3D12MemoryAllocator)
+
+target_link_libraries(D3D12MemoryAllocator
+    PRIVATE
+        dxagility
+)

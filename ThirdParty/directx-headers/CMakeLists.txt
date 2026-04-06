@@ -7,6 +7,6 @@ message(STATUS "CubeEngine: Fetching directx-headers...")
 FetchContent_Declare(
     directx-headers
     GIT_REPOSITORY https://github.com/microsoft/DirectX-Headers
-    GIT_TAG        c94b9b23aaadc2034dd1cad656a5a69f1526f98a # v1.616.0
+    GIT_TAG        9e393d6d8a3b30dcc6f2806ef604ec16a27b0d7e # v1.619.1
 )
 FetchContent_MakeAvailable(directx-headers)

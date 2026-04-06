@@ -202,12 +202,6 @@ namespace cube
             mCommandList->ResourceTransition({
                 .resourceType = gapi::TransitionState::ResourceType::Texture,
                 .texture = mCurrentBackbuffer,
-                .subresourceRange = {
-                    .firstMipLevel = 0,
-                    .mipLevels = 1,
-                    .firstSliceIndex = 0,
-                    .sliceSize = 1
-                },
                 .src = gapi::ResourceStateFlag::Present,
                 .dst = gapi::ResourceStateFlag::Common
             });
@@ -235,12 +229,6 @@ namespace cube
             mCommandList->ResourceTransition({
                 .resourceType = gapi::TransitionState::ResourceType::Texture,
                 .texture = mCurrentBackbuffer,
-                .subresourceRange = {
-                    .firstMipLevel = 0,
-                    .mipLevels = 1,
-                    .firstSliceIndex = 0,
-                    .sliceSize = 1
-                },
                 .src = gapi::ResourceStateFlag::RenderTarget,
                 .dst = gapi::ResourceStateFlag::Present
             });
@@ -387,8 +375,25 @@ namespace cube
             globalShaderParameterList->Get()->WriteAllParametersToGPUBuffer();
             builder.BindShaderParameterList(globalShaderParameterList);
 
-            RGTextureHandle color = builder.RegisterTexture(mCurrentBackbuffer);
-            RGTextureHandle depthStencil = builder.RegisterTexture(mDepthStencilTexture);
+            RGTextureHandle externalColor = builder.RegisterTexture(mCurrentBackbuffer);
+            RGTextureHandle externalDepthStencil = builder.RegisterTexture(mDepthStencilTexture);
+            // TODO: For testing. Remove this after testing.
+            gapi::TextureInfo colorTextureInfo = {
+                .format = mCurrentBackbuffer->GetFormat(),
+                .type = gapi::TextureType::Texture2D,
+                .flags = gapi::TextureFlag::RenderTarget,
+                .width = mCurrentBackbuffer->GetWidth(),
+                .height = mCurrentBackbuffer->GetHeight()
+            };
+            RGTextureHandle color = builder.CreateTexture(colorTextureInfo, CUBE_T("Transient Color"));
+            gapi::TextureInfo depthTextureInfo = {
+                .format = mDepthStencilTexture->GetFormat(),
+                .type = gapi::TextureType::Texture2D,
+                .flags = gapi::TextureFlag::DepthStencil,
+                .width = mDepthStencilTexture->GetWidth(),
+                .height = mDepthStencilTexture->GetHeight()
+            };
+            RGTextureHandle depthStencil = builder.CreateTexture(depthTextureInfo, CUBE_T("Transient Depth"));
 
             RGTextureRTVHandle colorRTV = builder.CreateRTV(color);
             RGTextureDSVHandle depthStencilDSV = builder.CreateDSV(depthStencil);
@@ -453,6 +458,19 @@ namespace cube
                 });
                 builder.AddDrawMeshPass(CUBE_T("Draw Axis"), drawAxisMeshInfos);
             }
+
+            builder.AddPass(CUBE_T("Copy To External"), [color, depthStencil, externalColor, externalDepthStencil](gapi::CommandList& commandList)
+            {
+                commandList.CopyTexture(color->GetGAPITexture(), externalColor->GetGAPITexture());
+                commandList.CopyTexture(depthStencil->GetGAPITexture(), externalDepthStencil->GetGAPITexture());
+            }, [color, depthStencil, externalColor, externalDepthStencil](RGBuilder& builder)
+            {
+                builder.UseResource(color, {}, gapi::ResourceStateFlag::CopySrc);
+                builder.UseResource(depthStencil, {}, gapi::ResourceStateFlag::CopySrc);
+
+                builder.UseResource(externalColor, {}, gapi::ResourceStateFlag::CopyDst);
+                builder.UseResource(externalDepthStencil, {}, gapi::ResourceStateFlag::CopyDst);
+            });
 
             builder.EndRenderPass();
         }

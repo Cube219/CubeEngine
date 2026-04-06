@@ -46,7 +46,7 @@ namespace cube
         }
 
         // Buffer
-        if (mTimestampGPUBuffer.allocation != nullptr)
+        if (mTimestampGPUBuffer.resource != nullptr)
         {
             mDevice.GetMemoryAllocator().Free(mTimestampGPUBuffer);
         }
@@ -105,7 +105,7 @@ namespace cube
         const Uint64 bufferSubSize = sizeof(Uint64) * MAX_NUM_TIMESTAMP;
 
         commandList->ResolveQueryData(GetCurrentTimestampHeap(), D3D12_QUERY_TYPE_TIMESTAMP, 0, currentCount,
-            mTimestampGPUBuffer.allocation->GetResource(), bufferSubSize * mCurrentIndex);
+            mTimestampGPUBuffer.resource, bufferSubSize * mCurrentIndex);
     }
 
     

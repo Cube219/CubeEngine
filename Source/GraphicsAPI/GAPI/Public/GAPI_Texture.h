@@ -82,9 +82,9 @@ namespace cube
             Uint32 GetNumSlices() const { return IsCubemap() ? mInfo.arraySize * 6 : mInfo.arraySize; }
             bool IsCubemap() const { return (mInfo.type == TextureType::TextureCube) || (mInfo.type == TextureType::TextureCubeArray); }
 
-            int GetNumSubresources() const { return mSubresourceLayouts.size(); }
-            int GetSubresourceIndex(int sliceIndex, int mipLevel) const { return sliceIndex * mInfo.mipLevels + mipLevel; }
-            const SubresourceLayout& GetSubresourceLayout(int subresourceIndex) const { return mSubresourceLayouts[subresourceIndex]; }
+            Uint32 GetNumSubresources() const { return mSubresourceLayouts.size(); }
+            Uint32 GetSubresourceIndex(Uint32 sliceIndex, Uint32 mipLevel) const { return sliceIndex * mInfo.mipLevels + mipLevel; }
+            const SubresourceLayout& GetSubresourceLayout(Uint32 subresourceIndex) const { return mSubresourceLayouts[subresourceIndex]; }
 
             virtual SharedPtr<TextureSRV> CreateSRV(const TextureSRVCreateInfo& createInfo) = 0;
             virtual SharedPtr<TextureUAV> CreateUAV(const TextureUAVCreateInfo& createInfo) = 0;
@@ -102,11 +102,11 @@ namespace cube
         {
             // [firstMipLevel, firstMipLevel + mipLevels - 1)]
             Uint32 firstMipLevel = 0;
-            Int32 mipLevels = SubresourceRange::AllRange;
+            Int32 mipLevels = -1;
 
             // [firstSliceIndex, firstSliceIndex + sliceSize - 1)]
             Uint32 firstSliceIndex = 0;
-            Int32 sliceSize = SubresourceRange::AllRange;
+            Int32 sliceSize = -1;
         };
 
         class TextureSRV
@@ -116,9 +116,9 @@ namespace cube
                 mTexture(texture),
                 mSubresourceRange({
                     .firstMipLevel = createInfo.firstMipLevel,
-                    .mipLevels = static_cast<Uint32>(createInfo.mipLevels > 0 ? createInfo.mipLevels : texture->GetMipLevels() - createInfo.firstMipLevel),
+                    .mipLevels = createInfo.mipLevels < 0 ? texture->GetMipLevels() - createInfo.firstMipLevel : static_cast<Uint32>(createInfo.mipLevels),
                     .firstSliceIndex = createInfo.firstSliceIndex,
-                    .sliceSize = static_cast<Uint32>(createInfo.sliceSize > 0 ? createInfo.sliceSize : texture->GetArraySize() - createInfo.firstSliceIndex)
+                    .sliceSize = createInfo.sliceSize < 0 ? texture->GetArraySize() - createInfo.firstSliceIndex : static_cast<Uint32>(createInfo.sliceSize)
                 }),
                 mBindlessId(-1) // Set in child class
             {}
@@ -146,11 +146,11 @@ namespace cube
 
             // [firstSliceIndex, firstSliceIndex + sliceSize - 1)]
             Uint32 firstSliceIndex = 0;
-            Int32 sliceSize = SubresourceRange::AllRange;
+            Int32 sliceSize = -1;
 
             // [firstDepthIndex, firstDepthIndex + DepthSize - 1)]
             Uint32 firstDepthIndex = 0;
-            Int32 DepthSize = SubresourceRange::AllRange;
+            Int32 DepthSize = -1;
         };
 
         class TextureUAV
@@ -162,10 +162,10 @@ namespace cube
                     .firstMipLevel = createInfo.mipLevel,
                     .mipLevels = 1,
                     .firstSliceIndex = createInfo.firstSliceIndex,
-                    .sliceSize = static_cast<Uint32>(createInfo.sliceSize > 0 ? createInfo.sliceSize : texture->GetArraySize() - createInfo.firstSliceIndex)
+                    .sliceSize = createInfo.sliceSize < 0 ? texture->GetArraySize() - createInfo.firstSliceIndex : static_cast<Uint32>(createInfo.sliceSize)
                 }),
                 mFirstDepthIndex(createInfo.firstDepthIndex),
-                mDepthSize(createInfo.DepthSize > 0 ? createInfo.DepthSize : texture->GetDepth() - createInfo.firstDepthIndex),
+                mDepthSize(createInfo.DepthSize < 0 ? texture->GetDepth() - createInfo.firstDepthIndex : static_cast<Uint32>(createInfo.DepthSize)),
                 mBindlessId(-1) // Set in child class
             {}
             virtual ~TextureUAV() {}
@@ -194,10 +194,10 @@ namespace cube
             Uint32 mipLevel = 0;
 
             Uint32 firstSliceIndex = 0;
-            Int32 sliceSize = SubresourceRange::AllRange;
+            Int32 sliceSize = -1;
 
             Uint32 firstDepthIndex = 0;
-            Int32 DepthSize = SubresourceRange::AllRange;
+            Int32 DepthSize = -1;
         };
 
         class TextureRTV
@@ -209,10 +209,10 @@ namespace cube
                     .firstMipLevel = createInfo.mipLevel,
                     .mipLevels = 1,
                     .firstSliceIndex = createInfo.firstSliceIndex,
-                    .sliceSize = static_cast<Uint32>(createInfo.sliceSize > 0 ? createInfo.sliceSize : texture->GetArraySize() - createInfo.firstSliceIndex)
+                    .sliceSize = createInfo.sliceSize < 0 ? texture->GetArraySize() - createInfo.firstSliceIndex : static_cast<Uint32>(createInfo.sliceSize)
                 })
                 , mFirstDepthIndex(createInfo.firstDepthIndex)
-                , mDepthSize(createInfo.DepthSize > 0 ? createInfo.DepthSize : texture->GetDepth() - createInfo.firstDepthIndex)
+                , mDepthSize(createInfo.DepthSize < 0 ? texture->GetDepth() - createInfo.firstDepthIndex : static_cast<Uint32>(createInfo.DepthSize))
             {}
             TextureRTV()
                 : mTexture(nullptr)
@@ -242,7 +242,7 @@ namespace cube
             Uint32 mipLevel = 0;
 
             Uint32 firstSliceIndex = 0;
-            Int32 sliceSize = SubresourceRange::AllRange;
+            Int32 sliceSize = -1;
         };
 
         class TextureDSV
@@ -254,7 +254,7 @@ namespace cube
                     .firstMipLevel = createInfo.mipLevel,
                     .mipLevels = 1,
                     .firstSliceIndex = createInfo.firstSliceIndex,
-                    .sliceSize = static_cast<Uint32>(createInfo.sliceSize > 0 ? createInfo.sliceSize : texture->GetArraySize() - createInfo.firstSliceIndex)
+                    .sliceSize = createInfo.sliceSize < 0 ? texture->GetArraySize() - createInfo.firstSliceIndex : static_cast<Uint32>(createInfo.sliceSize)
                 })
             {}
             virtual ~TextureDSV() {}

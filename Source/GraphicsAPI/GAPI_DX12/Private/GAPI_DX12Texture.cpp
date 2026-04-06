@@ -99,7 +99,7 @@ namespace cube
                 .SampleDesc = {
                     .Count = 1,
                     .Quality = 0 },
-                .Layout = (mUsage == ResourceUsage::GPUOnly) ? D3D12_TEXTURE_LAYOUT_UNKNOWN : D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
+                .Layout = (mUsage == ResourceUsage::GPUOnly || mUsage == ResourceUsage::Transient) ? D3D12_TEXTURE_LAYOUT_UNKNOWN : D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
                 .Flags = flags
             };
 
@@ -122,29 +122,16 @@ namespace cube
             case ResourceUsage::GPUOnly: heapType = D3D12_HEAP_TYPE_DEFAULT; break;
             case ResourceUsage::CPUtoGPU: heapType = D3D12_HEAP_TYPE_UPLOAD; break;
             case ResourceUsage::GPUtoCPU: heapType = D3D12_HEAP_TYPE_READBACK; break;
+            case ResourceUsage::Transient: heapType = D3D12_HEAP_TYPE_DEFAULT; break;
             default:
                 NOT_IMPLEMENTED();
                 heapType = D3D12_HEAP_TYPE_UPLOAD;
                 break;
             }
-            // Add a dummy clear value in depth texture to suppress debug warnings.
-            if (info.flags.IsSet(TextureFlag::DepthStencil))
-            {
-                D3D12_CLEAR_VALUE clearValue = {
-                    .Format = GetDX12ElementFormatInfo(info.format).format,
-                    .DepthStencil = {
-                        .Depth = 0.0f,
-                        .Stencil = 0
-                    }
-                };
-                mAllocation = device.GetMemoryAllocator().Allocate(heapType, desc, &clearValue);
-            }
-            else
-            {
-                mAllocation = device.GetMemoryAllocator().Allocate(heapType, desc);
-            }
-            mResource = mAllocation.allocation->GetResource();
-            SET_DEBUG_NAME(mAllocation.allocation->GetResource(), createInfo.debugName);
+            const bool isTransient = (mUsage == ResourceUsage::Transient);
+            mAllocation = device.GetMemoryAllocator().Allocate(heapType, desc, isTransient);
+            mResource = mAllocation.resource;
+            SET_DEBUG_NAME(mAllocation.resource, createInfo.debugName);
         }
 
         DX12Texture::~DX12Texture()
@@ -169,6 +156,9 @@ namespace cube
             case ResourceUsage::CPUtoGPU:
                 mAllocation.Map();
                 return mAllocation.pMapPtr;
+            case ResourceUsage::Transient:
+                NO_ENTRY_FORMAT("Cannot map transient resource.");
+                return nullptr;
             case ResourceUsage::GPUtoCPU:
             default:
                 NOT_IMPLEMENTED();
@@ -182,7 +172,7 @@ namespace cube
             {
             case ResourceUsage::GPUOnly:
                 mUploadDesc.type = ResourceType::Texture;
-                mUploadDesc.dstResource = mAllocation.allocation->GetResource();
+                mUploadDesc.dstResource = mAllocation.resource;
                 mUploadDesc.dstAPIObject = this;
                 mUploadDesc.textureFootprints = mFootprints;
 
@@ -190,6 +180,9 @@ namespace cube
                 break;
             case ResourceUsage::CPUtoGPU:
                 mAllocation.Unmap();
+                break;
+            case ResourceUsage::Transient:
+                NO_ENTRY_FORMAT("Cannot unmap transient resource.");
                 break;
             case ResourceUsage::GPUtoCPU:
             default:

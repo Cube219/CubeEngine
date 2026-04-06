@@ -18,11 +18,24 @@ namespace cube
     {
     }
 
+    Uint64 RGTexture::GetSubresourceHashKey(const gapi::SubresourceRange& range) const
+    {
+        return HashCombine(reinterpret_cast<Uint64>(mTexture.get()), range.GetHash());
+    }
+
+    RGTexture::RGTexture(int index, const gapi::TextureInfo& textureInfo)
+        : RGResource(index)
+        , mTexture(nullptr)
+        , mTextureInfo(textureInfo)
+    {
+        mIsTransient = true;
+    }
+
     RGTexture::RGTexture(int index, SharedPtr<gapi::Texture> texture)
         : RGResource(index)
         , mTexture(texture)
     {
-        mIsTransient = false;
+        mIsTransient = texture->GetUsage() == gapi::ResourceUsage::Transient;
     }
 
     RGTextureView::RGTextureView(int index, RGTexture* rgTexture)
@@ -30,6 +43,7 @@ namespace cube
         , mRGTexture(rgTexture)
         , mSubresourceHashKey(0)
     {
+        mIsTransient = rgTexture->IsTransient();
     }
 
     RGTextureSRV::RGTextureSRV(int index, RGTexture* rgTexture, Uint32 firstMipLevel, Int32 mipLevels)
@@ -40,7 +54,7 @@ namespace cube
             .mipLevels = mipLevels
         });
         mSubresourceRange = mSRV->GetSubresourceRange();
-        mSubresourceHashKey = HashCombine(reinterpret_cast<Uint64>(rgTexture->mTexture.get()), mSubresourceRange.GetHash());
+        mSubresourceHashKey = rgTexture->GetSubresourceHashKey(mSubresourceRange);
     }
     
     RGTextureUAV::RGTextureUAV(int index, RGTexture* rgTexture, Uint32 mipLevel)
@@ -50,7 +64,7 @@ namespace cube
             .mipLevel = mipLevel
         });
         mSubresourceRange = mUAV->GetSubresourceRange();
-        mSubresourceHashKey = HashCombine(reinterpret_cast<Uint64>(rgTexture->mTexture.get()), mSubresourceRange.GetHash());
+        mSubresourceHashKey = rgTexture->GetSubresourceHashKey(mSubresourceRange);
     }
     
     RGTextureRTV::RGTextureRTV(int index, RGTexture* rgTexture, Uint32 mipLevel)
@@ -60,7 +74,7 @@ namespace cube
             .mipLevel = mipLevel
         });
         mSubresourceRange = mRTV->GetSubresourceRange();
-        mSubresourceHashKey = HashCombine(reinterpret_cast<Uint64>(rgTexture->mTexture.get()), mSubresourceRange.GetHash());
+        mSubresourceHashKey = rgTexture->GetSubresourceHashKey(mSubresourceRange);
     }
     
     RGTextureDSV::RGTextureDSV(int index, RGTexture* rgTexture, Uint32 mipLevel)
@@ -70,7 +84,7 @@ namespace cube
             .mipLevel = mipLevel
         });
         mSubresourceRange = mDSV->GetSubresourceRange();
-        mSubresourceHashKey = HashCombine(reinterpret_cast<Uint64>(rgTexture->mTexture.get()), mSubresourceRange.GetHash());
+        mSubresourceHashKey = rgTexture->GetSubresourceHashKey(mSubresourceRange);
     }
 
     RGShaderParameterListBase::RGShaderParameterListBase(int index, const ShaderParameterListInfo& parameterListInfo, SharedPtr<ShaderParameterList> parameterList)
@@ -90,6 +104,24 @@ namespace cube
     RGBuilder::~RGBuilder()
     {
         Reset();
+    }
+
+    RGTextureHandle RGBuilder::CreateTexture(const gapi::TextureInfo& textureInfo, StringView debugName)
+    {
+        // TODO: Defer texture creation.
+        const gapi::TextureCreateInfo createInfo = {
+            .usage = gapi::ResourceUsage::Transient,
+            .textureInfo = textureInfo,
+            .debugName = debugName
+        };
+
+        SharedPtr<gapi::Texture> newTransientTexture = mRenderer.GetGAPI().CreateTexture(createInfo);
+        mTransientTextures.push_back(newTransientTexture);
+
+        RGTexture* rgTexture = new RGTexture(mResources.size(), newTransientTexture);
+        mResources.push_back(rgTexture);
+
+        return RGTextureHandle(rgTexture);
     }
 
     RGTextureHandle RGBuilder::RegisterTexture(SharedPtr<gapi::Texture> texture)
@@ -312,16 +344,23 @@ namespace cube
         });
     }
 
+    void RGBuilder::UseResource(RGTextureHandle rgTexture, gapi::SubresourceRangeInput range, gapi::ResourceStateFlags states)
+    {
+        CHECK(mState == State::ResourceTracking);
+        CHECK(rgTexture.IsValid());
+
+        PassInfo& pass = mPasses[mCurrentPassIndex];
+        pass.resourceUseInfos.push_back({
+            .rgResourceIndex = rgTexture->mIndex,
+            .state = states,
+            .subresourceRange = range.Clamp(rgTexture->mTexture.get())
+        });
+    }
+
     void RGBuilder::ExecuteAndSubmit(gapi::CommandList& commandList)
     {
         CHECK(mState == State::Init);
         CHECK(!mIsInRenderPass);
-
-        AddPass(CUBE_T("##Last Pass"), [](gapi::CommandList& commandList) {},
-        [](RGBuilder& builder)
-        {
-            builder.RollbackResourceStates();
-        });
 
         mState = State::ResourceTracking;
 
@@ -362,6 +401,8 @@ namespace cube
                 commandList.EndEvent();
             }
         }
+
+        commandList.ResourceTransition(mLastPass.transitions);
 
         commandList.InsertTimestamp(CUBE_T("End RGBuilder"));
 
@@ -544,9 +585,19 @@ namespace cube
     {
         CHECK(mState == State::ResourceTracking);
 
-        FrameMap<Uint64, gapi::ResourceStateFlags> currentSubresourceStates;
+        struct SubresourceKey
+        {
+            SharedPtr<gapi::Texture> texture;
+            Uint32 subresourceIndex;
+            bool needRollback;
+            bool operator<(const SubresourceKey& rhs) const
+            {
+                return (texture == rhs.texture) ? subresourceIndex < rhs.subresourceIndex : texture < rhs.texture;
+            }
+        };
+        FrameMap<SubresourceKey, gapi::ResourceStateFlags> currentSubresourceStates;
 
-        int numPasses = mPasses.size();
+        int numPasses = static_cast<int>(mPasses.size());
         for (int i = 0; i < numPasses; ++i)
         {
             PassInfo& pass = mPasses[i];
@@ -561,30 +612,45 @@ namespace cube
             {
                 RGResource* resource = mResources[resourceUseInfo.rgResourceIndex];
 
+                auto TryTransitionTexture = [&](RGTexture* rgTexture, const gapi::SubresourceRange& subresourceRange)
+                {
+                    SharedPtr<gapi::Texture> texture = rgTexture->mTexture;
+
+                    for (Uint32 sliceIndex = subresourceRange.firstSliceIndex; sliceIndex < subresourceRange.firstSliceIndex + subresourceRange.sliceSize; ++sliceIndex)
+                    {
+                        for (Uint32 mipLevel = subresourceRange.firstMipLevel; mipLevel < subresourceRange.firstMipLevel + subresourceRange.mipLevels; ++mipLevel)
+                        {
+                            const Uint32 subresourceIndex = texture->GetSubresourceIndex(sliceIndex, mipLevel);
+                            const SubresourceKey key = { texture, subresourceIndex, !(rgTexture->IsTransient()) };
+                            auto currentStateIt = currentSubresourceStates.find(key);
+                            if (currentStateIt == currentSubresourceStates.end())
+                            {
+                                currentStateIt = currentSubresourceStates.insert({ key, gapi::ResourceStateFlag::Common }).first;
+                            }
+
+                            gapi::ResourceStateFlags currentState = currentStateIt->second;
+                            if (currentState != resourceUseInfo.state)
+                            {
+                                gapi::TransitionState& transition = pass.transitions.emplace_back();
+                                transition.resourceType = gapi::TransitionState::ResourceType::Texture;
+                                transition.texture = texture;
+                                transition.subresourceIndex = subresourceIndex;
+                                transition.src = currentState;
+                                transition.dst = resourceUseInfo.state;
+                            }
+
+                            currentStateIt->second = resourceUseInfo.state;
+                        }
+                    }
+                };
+
                 if (RGTextureView* textureView = dynamic_cast<RGTextureView*>(resource))
                 {
-                    Uint64 subresourceHashKey = textureView->GetSubresourceHashKey();
-                    CHECK(subresourceHashKey);
-                    auto currentStateIt = currentSubresourceStates.find(subresourceHashKey);
-                    if (currentStateIt == currentSubresourceStates.end())
-                    {
-                        currentStateIt = currentSubresourceStates.insert({ subresourceHashKey, gapi::ResourceStateFlag::Common }).first;
-                    }
-                    gapi::ResourceStateFlags currentState = currentStateIt->second;
-
-                    if (currentState != resourceUseInfo.state)
-                    {
-                        RGTexture* texture = textureView->mRGTexture;
-
-                        gapi::TransitionState& transition = pass.transitions.emplace_back();
-                        transition.resourceType = gapi::TransitionState::ResourceType::Texture;
-                        transition.texture = texture->mTexture;
-                        transition.subresourceRange = textureView->mSubresourceRange;
-                        transition.src = currentState;
-                        transition.dst = resourceUseInfo.state;
-                    }
-
-                    currentStateIt->second = resourceUseInfo.state;
+                    TryTransitionTexture(textureView->mRGTexture, textureView->GetSubresourceRange());
+                }
+                else if (RGTexture* texture = dynamic_cast<RGTexture*>(resource))
+                {
+                    TryTransitionTexture(texture, resourceUseInfo.subresourceRange);
                 }
                 else
                 {
@@ -593,24 +659,21 @@ namespace cube
             }
         }
 
-        mCurrentPassIndex = -1;
-    }
-
-    void RGBuilder::RollbackResourceStates()
-    {
-        CHECK(mState == State::ResourceTracking);
-
-        for (RGResource* resource : mResources)
+        // Rollback transition at the last pass for non-transient resources.
+        for (auto& [key, state] : currentSubresourceStates)
         {
-            if (RGTextureView* textureView = dynamic_cast<RGTextureView*>(resource))
+            if (key.needRollback)
             {
-                PassInfo& pass = mPasses[mCurrentPassIndex];
-                pass.resourceUseInfos.push_back({
-                    .rgResourceIndex = textureView->mIndex,
-                    .state = gapi::ResourceStateFlag::Common
-                });
+                gapi::TransitionState& transition = mLastPass.transitions.emplace_back();
+                transition.resourceType = gapi::TransitionState::ResourceType::Texture;
+                transition.texture = key.texture;
+                transition.subresourceIndex = key.subresourceIndex;
+                transition.src = state;
+                transition.dst = gapi::ResourceStateFlag::Common;
             }
         }
+
+        mCurrentPassIndex = -1;
     }
 
     void RGBuilder::Reset()

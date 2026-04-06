@@ -18,7 +18,7 @@ set(PUBLIC_FILES
     Public/GAPITypes.h
 )
 set(PRIVATE_FILES
-    dummy.cpp
+    Private/GAPI_Resource.cpp
 )
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${PUBLIC_FILES} ${PRIVATE_FILES})

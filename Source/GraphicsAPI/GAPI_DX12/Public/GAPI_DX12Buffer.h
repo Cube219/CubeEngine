@@ -26,7 +26,7 @@ namespace cube
 
             virtual void SetDebugName(StringView debugName) override;
 
-            ID3D12Resource* GetResource() const { return mAllocation.allocation->GetResource(); }
+            ID3D12Resource* GetResource() const { return mAllocation.resource; }
             DX12DescriptorHandle GetCBVDescriptor() const { return mCBVDescriptor; }
 
         private:

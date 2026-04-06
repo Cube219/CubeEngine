@@ -32,7 +32,7 @@ namespace cube
 
         CHECK_HR(mFeatureSupport.Init(mDevice.Get()));
 
-        mMemoryAllocator.Initialize();
+        mMemoryAllocator.Initialize(numGPUSync);
         mQueueManager.Initialize();
         mUploadManager.Initialize();
         mDescriptorManager.Initialize();
@@ -88,6 +88,18 @@ namespace cube
             CUBE_LOG(Info, DX12, "Device {0} supports GPU Upload Heap.", WindowsStringView(mAdapterDesc.Description));
         }
 
+        // Resource Heap Tier 2 (Required by transient heap allocator)
+        if (mFeatureSupport.ResourceHeapTier() < D3D12_RESOURCE_HEAP_TIER_2)
+        {
+            CUBE_LOG(Info, DX12, "Device {0} does not support Resource Heap Tier 2 (Maximum: {1}), which is required.", WindowsStringView(mAdapterDesc.Description), (int)mFeatureSupport.ResourceHeapTier());
+            res = false;
+        }
+
+        if (mFeatureSupport.TightAlignmentSupportTier() >= D3D12_TIGHT_ALIGNMENT_TIER_1)
+        {
+            CUBE_LOG(Info, DX12, "Device {0} supports tight alignment. (Tier: {1})", WindowsStringView(mAdapterDesc.Description), (int)mFeatureSupport.TightAlignmentSupportTier());
+        }
+
         return res;
     }
 
@@ -100,6 +112,7 @@ namespace cube
         mNumGPUSync = newNumGPUSync;
         GetCommandListManager().SetNumGPUSync(newNumGPUSync);
         GetQueryManager().SetNumGPUSync(newNumGPUSync);
+        GetMemoryAllocator().SetNumGPUSync(newNumGPUSync);
     }
 
     void DX12Device::BeginGPUFrame(Uint64 gpuFrame)
@@ -111,6 +124,7 @@ namespace cube
 
         GetCommandListManager().MoveToNextIndex(gpuFrame);
         GetQueryManager().MoveToNextIndex(gpuFrame);
+        GetMemoryAllocator().MoveToNextIndex(gpuFrame);
     }
 
     void DX12Device::EndGPUFrame(Uint64 gpuFrame)
