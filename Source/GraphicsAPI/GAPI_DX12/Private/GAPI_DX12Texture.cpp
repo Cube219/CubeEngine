@@ -13,21 +13,61 @@ namespace cube
         {
             const TextureInfo& info = createInfo.textureInfo;
 
+            CHECK_FORMAT(info.width >= 1, "Texture width must be at least 1. (width: {0})", info.width);
+            CHECK_FORMAT(info.mipLevels >= 1, "Texture mipLevels must be at least 1. (mipLevels: {0})", info.mipLevels);
+
             D3D12_RESOURCE_DIMENSION dimension;
+            UINT16 depthOrArraySize = 1;
             switch (info.type)
             {
             case TextureType::Texture1D:
-            case TextureType::Texture1DArray:
+                CHECK_FORMAT(info.height == 1, "Texture1D must have height = 1. (height: {0})", info.height);
+                CHECK_FORMAT(info.depth == 1, "Texture1D must have depth = 1. (depth: {0})", info.depth);
+                CHECK_FORMAT(info.arraySize == 1, "Texture1D must have arraySize = 1. (arraySize: {0})", info.arraySize);
                 dimension = D3D12_RESOURCE_DIMENSION_TEXTURE1D;
                 break;
+            case TextureType::Texture1DArray:
+                CHECK_FORMAT(info.height == 1, "Texture1DArray must have height = 1. (height: {0})", info.height);
+                CHECK_FORMAT(info.depth == 1, "Texture1DArray must have depth = 1. (depth: {0})", info.depth);
+                CHECK_FORMAT(info.arraySize >= 1, "Texture1DArray must have arraySize >= 1. (arraySize: {0})", info.arraySize);
+                dimension = D3D12_RESOURCE_DIMENSION_TEXTURE1D;
+                depthOrArraySize = static_cast<UINT16>(info.arraySize);
+                break;
             case TextureType::Texture2D:
-            case TextureType::Texture2DArray:
-            case TextureType::TextureCube:
-            case TextureType::TextureCubeArray:
+                CHECK_FORMAT(info.height >= 1, "Texture2D must have height >= 1. (height: {0})", info.height);
+                CHECK_FORMAT(info.depth == 1, "Texture2D must have depth = 1. (depth: {0})", info.depth);
+                CHECK_FORMAT(info.arraySize == 1, "Texture2D must have arraySize = 1. (arraySize: {0})", info.arraySize);
                 dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
                 break;
+            case TextureType::Texture2DArray:
+                CHECK_FORMAT(info.height >= 1, "Texture2DArray must have height >= 1. (height: {0})", info.height);
+                CHECK_FORMAT(info.depth == 1, "Texture2DArray must have depth = 1. (depth: {0})", info.depth);
+                CHECK_FORMAT(info.arraySize >= 1, "Texture2DArray must have arraySize >= 1. (arraySize: {0})", info.arraySize);
+                dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+                depthOrArraySize = static_cast<UINT16>(info.arraySize);
+                break;
+            case TextureType::TextureCube:
+                CHECK_FORMAT(info.height >= 1, "TextureCube must have height >= 1. (height: {0})", info.height);
+                CHECK_FORMAT(info.width == info.height, "TextureCube must have width == height. (width: {0}, height: {1})", info.width, info.height);
+                CHECK_FORMAT(info.depth == 1, "TextureCube must have depth = 1. (depth: {0})", info.depth);
+                CHECK_FORMAT(info.arraySize == 1, "TextureCube must have arraySize = 1. (arraySize: {0})", info.arraySize);
+                dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+                depthOrArraySize = 6;
+                break;
+            case TextureType::TextureCubeArray:
+                CHECK_FORMAT(info.height >= 1, "TextureCubeArray must have height >= 1. (height: {0})", info.height);
+                CHECK_FORMAT(info.width == info.height, "TextureCubeArray must have width == height. (width: {0}, height: {1})", info.width, info.height);
+                CHECK_FORMAT(info.depth == 1, "TextureCubeArray must have depth = 1. (depth: {0})", info.depth);
+                CHECK_FORMAT(info.arraySize >= 1, "TextureCubeArray must have arraySize >= 1. (arraySize: {0})", info.arraySize);
+                dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+                depthOrArraySize = static_cast<UINT16>(6 * info.arraySize);
+                break;
             case TextureType::Texture3D:
+                CHECK_FORMAT(info.height >= 1, "Texture3D must have height >= 1. (height: {0})", info.height);
+                CHECK_FORMAT(info.depth >= 1, "Texture3D must have depth >= 1. (depth: {0})", info.depth);
+                CHECK_FORMAT(info.arraySize == 1, "Texture3D must have arraySize = 1. (arraySize: {0})", info.arraySize);
                 dimension = D3D12_RESOURCE_DIMENSION_TEXTURE3D;
+                depthOrArraySize = static_cast<UINT16>(info.depth);
                 break;
             default:
                 NOT_IMPLEMENTED();
@@ -53,7 +93,7 @@ namespace cube
                 .Alignment = 0,
                 .Width = info.width,
                 .Height = info.height,
-                .DepthOrArraySize = static_cast<UINT16>(std::max(info.depth, info.arraySize)),
+                .DepthOrArraySize = depthOrArraySize,
                 .MipLevels = static_cast<UINT16>(info.mipLevels),
                 .Format = GetDX12ElementFormatInfo(info.format).format,
                 .SampleDesc = {
@@ -62,8 +102,19 @@ namespace cube
                 .Layout = (mUsage == ResourceUsage::GPUOnly) ? D3D12_TEXTURE_LAYOUT_UNKNOWN : D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
                 .Flags = flags
             };
-            device.GetDevice()->GetCopyableFootprints(&desc, 0, 1, 0, &mLayout, nullptr, nullptr, &mTotalSize);
-            mRowPitch = mLayout.Footprint.RowPitch;
+
+            const Uint32 numSlices = GetNumSlices();
+            const Uint32 numSubresources = numSlices * info.mipLevels;
+            mSubresourceLayouts.resize(numSubresources);
+            mFootprints.resize(numSubresources);
+            device.GetDevice()->GetCopyableFootprints(&desc, 0, numSubresources, 0, mFootprints.data(), nullptr, nullptr, &mTotalSize);
+            for (int i = 0; i < static_cast<int>(numSubresources); ++i)
+            {
+                mSubresourceLayouts[i] = {
+                    .offset = mFootprints[i].Offset,
+                    .rowPitch = mFootprints[i].Footprint.RowPitch
+                };
+            }
 
             D3D12_HEAP_TYPE heapType;
             switch (mUsage)
@@ -133,7 +184,7 @@ namespace cube
                 mUploadDesc.type = ResourceType::Texture;
                 mUploadDesc.dstResource = mAllocation.allocation->GetResource();
                 mUploadDesc.dstAPIObject = this;
-                mUploadDesc.dstTextureLayout = mLayout;
+                mUploadDesc.textureFootprints = mFootprints;
 
                 mDevice.GetUploadManager().Submit(mUploadDesc, true);
                 break;
@@ -227,7 +278,7 @@ namespace cube
                 srvDesc.TextureCubeArray.MostDetailedMip = createInfo.firstMipLevel;
                 srvDesc.TextureCubeArray.MipLevels = createInfo.mipLevels;
                 srvDesc.TextureCubeArray.First2DArrayFace = createInfo.firstSliceIndex;
-                srvDesc.TextureCubeArray.NumCubes = createInfo.sliceSize / 6;
+                srvDesc.TextureCubeArray.NumCubes = static_cast<UINT>(createInfo.sliceSize) / 6;
                 break;
             default:
                 NOT_IMPLEMENTED();
@@ -280,8 +331,13 @@ namespace cube
                 uavDesc.Texture3D.FirstWSlice = createInfo.firstDepthIndex;
                 uavDesc.Texture3D.WSize = createInfo.DepthSize;
                 break;
-            case TextureType::TextureCube: // TODO
+            case TextureType::TextureCube:
             case TextureType::TextureCubeArray:
+                uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+                uavDesc.Texture2DArray.MipSlice = createInfo.mipLevel;
+                uavDesc.Texture2DArray.FirstArraySlice = createInfo.firstSliceIndex;
+                uavDesc.Texture2DArray.ArraySize = createInfo.sliceSize;
+                break;
             default:
                 NOT_IMPLEMENTED();
             }
@@ -335,7 +391,10 @@ namespace cube
                 break;
             case TextureType::TextureCube:
             case TextureType::TextureCubeArray:
-                CHECK_FORMAT(false, "Render target view does not support TexutureCube texture.");
+                rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+                rtvDesc.Texture2DArray.MipSlice = createInfo.mipLevel;
+                rtvDesc.Texture2DArray.FirstArraySlice = createInfo.firstSliceIndex;
+                rtvDesc.Texture2DArray.ArraySize = createInfo.sliceSize;
                 break;
             default:
                 NOT_IMPLEMENTED();
@@ -381,10 +440,15 @@ namespace cube
                 dsvDesc.Texture2DArray.FirstArraySlice = createInfo.firstSliceIndex;
                 dsvDesc.Texture2DArray.ArraySize = createInfo.sliceSize;
                 break;
-            case TextureType::Texture3D:
             case TextureType::TextureCube:
             case TextureType::TextureCubeArray:
-                CHECK_FORMAT(false, "Depth stencil view does not support Texture3D and TexutureCube texture.");
+                dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
+                dsvDesc.Texture2DArray.MipSlice = createInfo.mipLevel;
+                dsvDesc.Texture2DArray.FirstArraySlice = createInfo.firstSliceIndex * 6;
+                dsvDesc.Texture2DArray.ArraySize = createInfo.sliceSize * 6;
+                break;
+            case TextureType::Texture3D:
+                CHECK_FORMAT(false, "Depth stencil view does not support Texture3D texture (D3D12 has no DSV_DIMENSION_TEXTURE3D).");
                 break;
             default:
                 NOT_IMPLEMENTED();

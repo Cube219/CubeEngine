@@ -23,7 +23,7 @@ namespace cube
 
         ID3D12Resource* dstResource;
         DX12APIObject* dstAPIObject;
-        D3D12_PLACED_SUBRESOURCE_FOOTPRINT dstTextureLayout;
+        ArrayView<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> textureFootprints;
 
         int pageId;
         Uint64 offsetInPage;

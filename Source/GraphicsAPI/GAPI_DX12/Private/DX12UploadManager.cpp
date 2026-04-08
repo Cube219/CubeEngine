@@ -77,7 +77,6 @@ namespace cube
             .size = size,
             .dstResource = nullptr,
             .dstAPIObject = nullptr,
-            .dstTextureLayout = {},
             .pageId = pageId,
             .offsetInPage = page.offset,
         };
@@ -107,19 +106,24 @@ namespace cube
         }
         else if (desc.type == gapi::ResourceType::Texture)
         {
-            D3D12_PLACED_SUBRESOURCE_FOOTPRINT srcFootprint = desc.dstTextureLayout;
-            srcFootprint.Offset = desc.offsetInPage;
-            D3D12_TEXTURE_COPY_LOCATION src = {
-                .pResource = page.allocation.allocation->GetResource(),
-                .Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
-                .PlacedFootprint = srcFootprint
-            };
-            D3D12_TEXTURE_COPY_LOCATION dst = {
-                .pResource = desc.dstResource,
-                .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
-                .SubresourceIndex = 0
-            };
-            commandList->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
+            const int numSubresources = static_cast<int>(desc.textureFootprints.size());
+            for (int i = 0; i < numSubresources; ++i)
+            {
+                D3D12_PLACED_SUBRESOURCE_FOOTPRINT srcFootprint = desc.textureFootprints[i];
+                srcFootprint.Offset += desc.offsetInPage;
+
+                D3D12_TEXTURE_COPY_LOCATION srcLocation = {
+                    .pResource = page.allocation.allocation->GetResource(),
+                    .Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
+                    .PlacedFootprint = srcFootprint
+                };
+                D3D12_TEXTURE_COPY_LOCATION dstLocation = {
+                    .pResource = desc.dstResource,
+                    .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+                    .SubresourceIndex = (UINT)i
+                };
+                commandList->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, nullptr);
+            }
         }
         else
         {

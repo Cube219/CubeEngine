@@ -18,31 +18,56 @@ namespace cube
         { @autoreleasepool {
             const TextureInfo& info = createInfo.textureInfo;
 
+            CHECK_FORMAT(info.width >= 1, "Texture width must be at least 1. (width: {0})", info.width);
+            CHECK_FORMAT(info.mipLevels >= 1, "Texture mipLevels must be at least 1. (mipLevels: {0})", info.mipLevels);
+
             MTLTextureType type;
-            // TODO: Support other texture types
             switch (info.type)
             {
-            // case TextureType::Texture1D:
-            //     type = MTLTextureType1D;
-            //     break;
-            // case TextureType::Texture1DArray:
-            //     type = MTLTextureType1DArray;
-            //     break;
+            case TextureType::Texture1D:
+                CHECK_FORMAT(info.height == 1, "Texture1D must have height = 1. (height: {0})", info.height);
+                CHECK_FORMAT(info.depth == 1, "Texture1D must have depth = 1. (depth: {0})", info.depth);
+                CHECK_FORMAT(info.arraySize == 1, "Texture1D must have arraySize = 1. (arraySize: {0})", info.arraySize);
+                type = MTLTextureType1D;
+                break;
+            case TextureType::Texture1DArray:
+                CHECK_FORMAT(info.height == 1, "Texture1DArray must have height = 1. (height: {0})", info.height);
+                CHECK_FORMAT(info.depth == 1, "Texture1DArray must have depth = 1. (depth: {0})", info.depth);
+                CHECK_FORMAT(info.arraySize >= 1, "Texture1DArray must have arraySize >= 1. (arraySize: {0})", info.arraySize);
+                type = MTLTextureType1DArray;
+                break;
             case TextureType::Texture2D:
+                CHECK_FORMAT(info.height >= 1, "Texture2D must have height >= 1. (height: {0})", info.height);
+                CHECK_FORMAT(info.depth == 1, "Texture2D must have depth = 1. (depth: {0})", info.depth);
+                CHECK_FORMAT(info.arraySize == 1, "Texture2D must have arraySize = 1. (arraySize: {0})", info.arraySize);
                 type = MTLTextureType2D;
                 break;
-            // case TextureType::Texture2DArray:
-            //     type = MTLTextureType2DArray;
-            //     break;
-            // case TextureType::TextureCube:
-            //     type = MTLTextureTypeCube;
-            //     break;
-            // case TextureType::TextureCubeArray:
-            //     type = MTLTextureTypeCubeArray;
-            //     break;
-            // case TextureType::Texture3D:
-            //     type = MTLTextureType3D;
-            //     break;
+            case TextureType::Texture2DArray:
+                CHECK_FORMAT(info.height >= 1, "Texture2DArray must have height >= 1. (height: {0})", info.height);
+                CHECK_FORMAT(info.depth == 1, "Texture2DArray must have depth = 1. (depth: {0})", info.depth);
+                CHECK_FORMAT(info.arraySize >= 1, "Texture2DArray must have arraySize >= 1. (arraySize: {0})", info.arraySize);
+                type = MTLTextureType2DArray;
+                break;
+            case TextureType::Texture3D:
+                CHECK_FORMAT(info.height >= 1, "Texture3D must have height >= 1. (height: {0})", info.height);
+                CHECK_FORMAT(info.depth >= 1, "Texture3D must have depth >= 1. (depth: {0})", info.depth);
+                CHECK_FORMAT(info.arraySize == 1, "Texture3D must have arraySize = 1. (arraySize: {0})", info.arraySize);
+                type = MTLTextureType3D;
+                break;
+            case TextureType::TextureCube:
+                CHECK_FORMAT(info.height >= 1, "TextureCube must have height >= 1. (height: {0})", info.height);
+                CHECK_FORMAT(info.width == info.height, "TextureCube must have width == height. (width: {0}, height: {1})", info.width, info.height);
+                CHECK_FORMAT(info.depth == 1, "TextureCube must have depth = 1. (depth: {0})", info.depth);
+                CHECK_FORMAT(info.arraySize == 1, "TextureCube must have arraySize = 1. (arraySize: {0})", info.arraySize);
+                type = MTLTextureTypeCube;
+                break;
+            case TextureType::TextureCubeArray:
+                CHECK_FORMAT(info.height >= 1, "TextureCubeArray must have height >= 1. (height: {0})", info.height);
+                CHECK_FORMAT(info.width == info.height, "TextureCubeArray must have width == height. (width: {0}, height: {1})", info.width, info.height);
+                CHECK_FORMAT(info.depth == 1, "TextureCubeArray must have depth = 1. (depth: {0})", info.depth);
+                CHECK_FORMAT(info.arraySize >= 1, "TextureCubeArray must have arraySize >= 1. (arraySize: {0})", info.arraySize);
+                type = MTLTextureTypeCubeArray;
+                break;
             default:
                 NOT_IMPLEMENTED();
                 type = MTLTextureType2D;
@@ -82,18 +107,42 @@ namespace cube
             desc.height = info.height;
             desc.depth = info.depth;
             desc.mipmapLevelCount = info.mipLevels;
-            desc.arrayLength = info.arraySize;
+            desc.arrayLength = info.arraySize; // arraySize is already in cube/array units
             desc.resourceOptions = resourceOptions;
             desc.usage = usage;
             desc.allowGPUOptimizedContents = (mUsage != ResourceUsage::GPUtoCPU);
 
-            mRowPitch = info.width * formatInfo.bytes;
             mTexture = [device.GetMTLDevice() newTextureWithDescriptor:desc];
             [desc release];
             CHECK(mTexture);
             mTexture.label = String_Convert<NSString*>(createInfo.debugName);
 
-            mTotalSize = mRowPitch * info.height * info.depth * info.arraySize;
+            // Calculate subresource layouts.
+            const Uint32 numSlices = GetNumSlices();
+            const Uint32 numSubresources = numSlices * mInfo.mipLevels;
+            mSubresourceLayouts.resize(numSubresources);
+            Uint32 subresourceIndex = 0;
+            Uint64 offset = 0;
+            for (Uint32 sliceIndex = 0; sliceIndex < numSlices; ++sliceIndex)
+            {
+                Uint32 width  = mInfo.width;
+                Uint32 height = mInfo.height;
+                Uint32 depth  = mInfo.depth;
+                for (Uint32 mipLevel = 0; mipLevel < mInfo.mipLevels; ++mipLevel)
+                {
+                    SubresourceLayout& layout = mSubresourceLayouts[subresourceIndex];
+                    layout.rowPitch = width * formatInfo.bytes;
+                    layout.offset   = offset;
+
+                    offset += static_cast<Uint64>(layout.rowPitch) * height * depth;
+
+                    width  = std::max(1u, width  >> 1);
+                    height = std::max(1u, height >> 1);
+                    depth  = std::max(1u, depth  >> 1);
+                    subresourceIndex++;
+                }
+            }
+            mTotalSize = offset;
         }}
 
         MetalTexture::~MetalTexture()
@@ -127,15 +176,59 @@ namespace cube
             case ResourceUsage::GPUOnly:
             case ResourceUsage::CPUtoGPU:
             case ResourceUsage::GPUtoCPU:
-                [mTexture
-                    replaceRegion:MTLRegionMake2D(0, 0, mInfo.width, mInfo.height)
-                    mipmapLevel:0
-                    withBytes:mMappedPtr
-                    bytesPerRow:mRowPitch
-                ];
+            {
+                const Uint32 numSlices = GetNumSlices();
+                const bool is1D = (mTextureType == MTLTextureType1D || mTextureType == MTLTextureType1DArray);
+                const bool is3D = (mTextureType == MTLTextureType3D);
+
+                Uint32 subresourceIndex = 0;
+                for (Uint32 sliceIndex = 0; sliceIndex < numSlices; ++sliceIndex)
+                {
+                    Uint32 width  = mInfo.width;
+                    Uint32 height = is1D ? 1 : mInfo.height;
+                    Uint32 depth  = is3D ? mInfo.depth : 1;
+                    for (Uint32 mipLevel = 0; mipLevel < mInfo.mipLevels; ++mipLevel)
+                    {
+                        const SubresourceLayout& layout = mSubresourceLayouts[subresourceIndex];
+                        const void* ptr = (const Byte*)mMappedPtr + layout.offset;
+
+                        MTLRegion region;
+                        if (is1D)
+                        {
+                            region = MTLRegionMake1D(0, width);
+                        }
+                        else if (is3D)
+                        {
+                            region = MTLRegionMake3D(0, 0, 0, width, height, depth);
+                        }
+                        else
+                        {
+                            region = MTLRegionMake2D(0, 0, width, height);
+                        }
+
+                        const NSUInteger bytesPerImage = is3D
+                            ? static_cast<NSUInteger>(layout.rowPitch) * height
+                            : 0;
+
+                        [mTexture
+                            replaceRegion:region
+                            mipmapLevel:mipLevel
+                            slice:sliceIndex
+                            withBytes:ptr
+                            bytesPerRow:layout.rowPitch
+                            bytesPerImage:bytesPerImage
+                        ];
+
+                        width  = std::max(1u, width  >> 1);
+                        height = std::max(1u, height >> 1);
+                        depth  = std::max(1u, depth  >> 1);
+                        subresourceIndex++;
+                    }
+                }
                 free(mMappedPtr);
                 mMappedPtr = nullptr;
                 break;
+            }
             default:
                 NOT_IMPLEMENTED();
                 break;

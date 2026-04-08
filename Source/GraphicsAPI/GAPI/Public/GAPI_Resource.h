@@ -56,6 +56,12 @@ namespace cube
         using ResourceStateFlags = Flags<ResourceStateFlag>;
         FLAGS_OPERATOR(ResourceStateFlag);
 
+        struct SubresourceLayout
+        {
+            Uint64 offset;
+            Uint64 rowPitch;
+        };
+
         struct SubresourceRange
         {
             static constexpr Int32 AllRange = -1;

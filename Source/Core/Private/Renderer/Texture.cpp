@@ -50,7 +50,7 @@ namespace cube
         Uint64 srcRowSize = info.width * createInfo.bytesPerElement;
             
         Byte* pDst = (Byte*)mGAPITexture->Map();
-        Uint64 dstRowPitch = mGAPITexture->GetRowPitch();
+        Uint64 dstRowPitch = mGAPITexture->GetSubresourceLayout(0).rowPitch;
 
         CHECK(srcRowSize <= dstRowPitch);
 
