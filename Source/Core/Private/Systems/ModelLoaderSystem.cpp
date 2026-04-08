@@ -640,10 +640,11 @@ namespace cube
 
         // Load materials
         Vector<SharedPtr<Material>> materials;
+        HashMap<int, SharedPtr<TextureResource>> loadedImageCache;
 
         for (const tinygltf::Material& gltfMaterial : model.materials)
         {
-            auto LoadTexture = [&model, &modelName](const Character* textureName, int textureIndex) -> SharedPtr<TextureResource>
+            auto LoadTexture = [&model, &modelName, &loadedImageCache](const Character* textureName, int textureIndex) -> SharedPtr<TextureResource>
             {
                 FrameString debugName = Format<FrameString>(CUBE_T("[{0}] {1}"), modelName, textureName);
 
@@ -657,6 +658,11 @@ namespace cube
                 {
                     CUBE_LOG(Warning, ModelLoaderSystem, "Cannot load {0}: invalid image index", debugName);
                     return nullptr;
+                }
+                HashMap<int, SharedPtr<TextureResource>>::iterator cacheIt = loadedImageCache.find(imageIndex);
+                if (cacheIt != loadedImageCache.end())
+                {
+                    return cacheIt->second;
                 }
                 tinygltf::Image& image = model.images[imageIndex];
                 if (image.image.empty())
@@ -698,6 +704,7 @@ namespace cube
                     .debugName = debugName
                 };
                 SharedPtr<TextureResource> texture = std::make_shared<TextureResource>(createInfo);
+                loadedImageCache.emplace(imageIndex, texture);
 
                 return texture;
             };
@@ -705,7 +712,6 @@ namespace cube
             FrameString materialName = Format<FrameString>(CUBE_T("[{0}] {1}"), modelName, gltfMaterial.name);
             materials.push_back(std::make_shared<Material>(materialName));
 
-            // TODO: Remove duplication - check the image is used first
             SharedPtr<Material> material = materials.back();
 
             FrameString channelMappingCode;
