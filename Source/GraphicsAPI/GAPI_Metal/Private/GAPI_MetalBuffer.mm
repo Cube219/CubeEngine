@@ -12,7 +12,6 @@ namespace cube
             Buffer(info)
         {
             // TODO: Handle managed resource for Intel-based MAC?
-            // TODO: Use MTLResourceStorageModePrivate in GPUOnly
             MTLResourceOptions resourceOptions = MTLResourceStorageModeShared;
             switch (info.usage)
             {

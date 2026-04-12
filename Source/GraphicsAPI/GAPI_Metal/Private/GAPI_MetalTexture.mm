@@ -5,6 +5,7 @@
 #include "MacOS/MacOSString.h"
 #include "MetalDevice.h"
 #include "MetalTypes.h"
+#include "MetalUploadManager.h"
 #include "Platform.h"
 
 namespace cube
@@ -86,7 +87,6 @@ namespace cube
             }
             mTextureUsage = usage;
 
-            // TODO: Use MTLResourceStorageModePrivate in GPUOnly
             MTLResourceOptions resourceOptions = MTLResourceStorageModeShared;
             switch (mUsage)
             {
@@ -227,6 +227,11 @@ namespace cube
                 }
                 free(mMappedPtr);
                 mMappedPtr = nullptr;
+
+                if (mUsage == ResourceUsage::GPUOnly)
+                {
+                    mDevice.GetUploadManager().SubmitTexture(mTexture, true);
+                }
                 break;
             }
             default:

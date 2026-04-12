@@ -7,6 +7,7 @@ namespace cube
 {
     MetalDevice::MetalDevice()
         : mTimestampManager(*this)
+        , mUploadManager(*this)
     {
     }
 
@@ -27,12 +28,14 @@ namespace cube
         mMainCommandQueue.label = @"MainCommandQueue";
 
         mTimestampManager.Initialize(mNumGPUSync);
+        mUploadManager.Initialize();
     }
 
     void MetalDevice::Shutdown()
     {
         WaitAllGPUSync();
 
+        mUploadManager.Shutdown();
         mTimestampManager.Shutdown();
 
         [mMainCommandQueue release];

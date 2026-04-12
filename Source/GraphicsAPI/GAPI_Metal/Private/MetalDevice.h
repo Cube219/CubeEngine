@@ -3,6 +3,7 @@
 #include "MetalHeader.h"
 
 #include "MetalTimestampManager.h"
+#include "MetalUploadManager.h"
 
 namespace cube
 {
@@ -21,6 +22,7 @@ namespace cube
         bool CheckFeatureRequirements();
 
         MetalTimestampManager& GetTimestampManager() { return mTimestampManager; }
+        MetalUploadManager& GetUploadManager() { return mUploadManager; }
 
         id<MTLDevice> GetMTLDevice() const { return mDevice; }
 
@@ -35,6 +37,7 @@ namespace cube
         id<MTLDevice> mDevice;
 
         MetalTimestampManager mTimestampManager;
+        MetalUploadManager mUploadManager;
 
         Uint32 mNumGPUSync;
         id<MTLSharedEvent> mGPUSyncEvent;

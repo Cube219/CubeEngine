@@ -31,6 +31,8 @@ set(PRIVATE_FILES
     Private/MetalTimestampManager.mm
     Private/MetalTypes.h
     Private/MetalTypes.mm
+    Private/MetalUploadManager.h
+    Private/MetalUploadManager.mm
     Private/MetalUtility.h
 )
 # Objective-C does not support precompiled headers
