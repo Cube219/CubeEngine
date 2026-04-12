@@ -88,7 +88,7 @@ taskkill //PID $WIN_PID
 
 ```bash
 # Run the app in background, wait 60s for rendering, then quit via osascript
-<path-to>/CE-Main.app/Contents/MacOS/CE-Main <parameter> &
+MTL_DEBUG_LAYER=1 <path-to>/CE-Main.app/Contents/MacOS/CE-Main <parameter> &
 APP_PID=$!
 sleep 60
 osascript -e 'tell application "CE-Main" to quit'
