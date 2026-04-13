@@ -16,12 +16,15 @@
 #include "Platform.h"
 #include "Renderer/RenderGraphTypes.h"
 #include "RenderGraph.h"
+#include "Shader.h"
+#include "ShaderManager.h"
 #include "Texture.h"
 
 namespace cube
 {
     CUBE_REGISTER_SHADER_PARAMETER_LIST(GlobalShaderParameterList);
     CUBE_REGISTER_SHADER_PARAMETER_LIST(ObjectShaderParameterList);
+    CUBE_REGISTER_SHADER_PARAMETER_LIST(SkyboxShaderParameterList);
 
     Renderer::Renderer()
         : mTextureManager(*this)
@@ -159,6 +162,8 @@ namespace cube
 
                 mDirectionalLightIntensity = Vector3(intensityFloat3.x, intensityFloat3.y, intensityFloat3.z);
             }
+            ImGui::SeparatorText("Environment Mapping");
+            ImGui::Checkbox("Enable", &mEnvironmentMapping);
         }
 
         if (ImGui::CollapsingHeader("Shader", ImGuiTreeNodeFlags_DefaultOpen))
@@ -179,7 +184,10 @@ namespace cube
             ImGui::SeparatorText("Gizmos");
 
             ImGui::Checkbox("Show Axis", &mShowAxis);
-            ImGui::Checkbox("Wireframe", &mWireframe);
+            if (ImGui::Checkbox("Wireframe", &mWireframe))
+            {
+                mNeedRecreatingPipelines = true;
+            }
         }
 
         ImGui::End();
@@ -336,6 +344,8 @@ namespace cube
         {
             mBoxMesh = std::make_shared<Mesh>(MeshHelper::GenerateBoxMeshData(), mMeshMetadata);
             mShaderManager.GetMaterialShaderManager().ClearPipelineCache();
+
+            mNeedRecreatingPipelines = true;
         }
     }
 
@@ -346,8 +356,6 @@ namespace cube
 
     void Renderer::SetGlobalConstantBuffers()
     {
-        bool updateNeeded = false;
-
         if (mIsViewPerspectiveMatrixDirty)
         {
             mViewPerspectiveMatirx = mViewMatrix * mPerspectiveMatrix;
@@ -357,6 +365,8 @@ namespace cube
 
     void Renderer::RenderImpl()
     {
+        RecreatePipelinesIfNeeded();
+
         gapi::RasterizerState::FillMode fillMode = mWireframe
             ? gapi::RasterizerState::FillMode::Line
             : gapi::RasterizerState::FillMode::Solid;
@@ -454,6 +464,29 @@ namespace cube
                 builder.AddDrawMeshPass(CUBE_T("Draw Axis"), drawAxisMeshInfos);
             }
 
+            if (mEnvironmentMapping)
+            {
+                RGTextureHandle IBLTexture = builder.RegisterTexture(mIBLTexture->GetGAPITexture());
+                RGTextureSRVHandle IBLSRV = builder.CreateSRV(IBLTexture);
+
+                RGShaderParameterListHandle<SkyboxShaderParameterList> skyboxParams = builder.CreateShaderParameterList<SkyboxShaderParameterList>();
+                skyboxParams->Get()->skyboxTexture = IBLSRV;
+                skyboxParams->Get()->skyboxSampler.id = mSamplerManager.GetDefaultLinearSamplerId();
+                skyboxParams->Get()->WriteAllParametersToGPUBuffer();
+
+                builder.AddPass(CUBE_T("Skybox"), mSkyboxPipeline, skyboxParams,
+                [boxMesh = mBoxMesh](gapi::CommandList& commandList)
+                {
+                    const SubMesh& boxSubMesh = boxMesh->GetSubMeshes()[0];
+                    Uint32 vbOffset = 0;
+                    SharedPtr<gapi::Buffer> vb = boxMesh->GetVertexBuffer();
+                    commandList.BindVertexBuffers(0, { &vb, 1 }, { &vbOffset, 1 });
+                    commandList.BindIndexBuffer(boxMesh->GetIndexBuffer(), 0);
+
+                    commandList.DrawIndexed(boxSubMesh.numIndices, 0, 0);
+                });
+            }
+
             builder.EndRenderPass();
         }
 
@@ -499,10 +532,77 @@ namespace cube
             mZAxisMaterial = std::make_shared<Material>(CUBE_T("ZAxisMaterial"));
             mZAxisMaterial->SetBaseColor({ 0.0f, 0.0f, 1.0f, 1.0f });
         }
+
+        {
+            platform::FilePath IBLPath = Engine::GetRootDirectoryPath() / CUBE_T("Resources/Textures/IBL/NissiBeach2");
+            TextureRawData negXData = TextureHelper::LoadFromFile(IBLPath / CUBE_T("negx.jpg"));
+            TextureRawData negYData = TextureHelper::LoadFromFile(IBLPath / CUBE_T("negy.jpg"));
+            TextureRawData negZData = TextureHelper::LoadFromFile(IBLPath / CUBE_T("negz.jpg"));
+            TextureRawData posXData = TextureHelper::LoadFromFile(IBLPath / CUBE_T("posx.jpg"));
+            TextureRawData posYData = TextureHelper::LoadFromFile(IBLPath / CUBE_T("posy.jpg"));
+            TextureRawData posZData = TextureHelper::LoadFromFile(IBLPath / CUBE_T("posz.jpg"));
+
+            const Uint64 totalSize = negXData.data.GetSize() + negYData.data.GetSize() + negZData.data.GetSize()
+                + posXData.data.GetSize() + posYData.data.GetSize() + posZData.data.GetSize();
+            Blob totalData = Blob(totalSize);
+            {
+                Byte* pData = (Byte*)totalData.GetData();
+#define CUBE_APPEND_DATA(v) \
+                memcpy(pData, (v).data.GetData(), (v).data.GetSize()); \
+                pData += (v).data.GetSize();
+
+                CUBE_APPEND_DATA(posXData);
+                CUBE_APPEND_DATA(negXData);
+                CUBE_APPEND_DATA(posYData);
+                CUBE_APPEND_DATA(negYData);
+                CUBE_APPEND_DATA(posZData);
+                CUBE_APPEND_DATA(negZData);
+#undef CUBE_APPEND_DATA
+            }
+
+            TextureResourceCreateInfo createInfo = {
+                .textureInfo = {
+                    .format = negXData.format,
+                    .type = gapi::TextureType::TextureCube,
+                    .width = negXData.width,
+                    .height = negYData.height,
+                },
+                .data = BlobView(totalData),
+                .bytesPerElement = negXData.bytesPerElement,
+                .debugName = CUBE_T("IBLTexture")
+            };
+            mIBLTexture = std::make_shared<TextureResource>(createInfo);
+
+            platform::FilePath skyboxShaderFilePath = Engine::GetShaderDirectoryPath() / CUBE_T("Skybox.slang");
+
+            mSkyboxVS = mShaderManager.CreateShader({
+                .type = gapi::ShaderType::Vertex,
+                .language = gapi::ShaderLanguage::Slang,
+                .filePaths = { &skyboxShaderFilePath, 1 },
+                .entryPoint = "VSMain",
+                .debugName = CUBE_T("SkyboxVS")
+            });
+            mSkyboxPS = mShaderManager.CreateShader({
+                .type = gapi::ShaderType::Pixel,
+                .language = gapi::ShaderLanguage::Slang,
+                .filePaths = { &skyboxShaderFilePath, 1 },
+                .entryPoint = "PSMain",
+                .debugName = CUBE_T("SkyboxPS")
+            });
+
+        }
+
+        mNeedRecreatingPipelines = true;
+        RecreatePipelinesIfNeeded();
     }
 
     void Renderer::ClearResources()
     {
+        mSkyboxPipeline = nullptr;
+        mSkyboxPS = nullptr;
+        mSkyboxVS = nullptr;
+        mIBLTexture = nullptr;
+
         mZAxisMaterial = nullptr;
         mYAxisMaterial = nullptr;
         mXAxisMaterial = nullptr;
@@ -514,5 +614,32 @@ namespace cube
         mMaterials.clear();
         mMesh = nullptr;
         mBoxMesh = nullptr;
+    }
+
+    void Renderer::RecreatePipelinesIfNeeded()
+    {
+        if (!mNeedRecreatingPipelines)
+        {
+            return;
+        }
+
+        mSkyboxPipeline = mShaderManager.CreateGraphicsPipeline({
+            .vertexShader = mSkyboxVS,
+            .pixelShader = mSkyboxPS,
+            .inputLayouts = Mesh::GetInputElements(mMeshMetadata),
+            .rasterizerState = {
+                .fillMode = mWireframe ? gapi::RasterizerState::FillMode::Line : gapi::RasterizerState::FillMode::Solid,
+                .cullMode = gapi::RasterizerState::CullMode::Front
+            },
+            .depthStencilState = {
+                .enableDepth = true,
+                .depthFunction = gapi::CompareFunction::GreaterEqual
+            },
+            .numRenderTargets = 1,
+            .renderTargetFormats = { gapi::ElementFormat::RGBA8_UNorm },
+            .debugName = CUBE_T("SkyboxPipeline")
+        });
+
+        mNeedRecreatingPipelines = false;
     }
 } // namespace cube

@@ -13,7 +13,7 @@ namespace cube
     struct ShaderCreateInfo
     {
         gapi::ShaderType type;
-        gapi::ShaderLanguage language;
+        gapi::ShaderLanguage language = gapi::ShaderLanguage::Slang;
 
         // Only slang can support multiple shader code and material shader code.
         ArrayView<platform::FilePath> filePaths;
@@ -95,6 +95,7 @@ namespace cube
 
     // ===== GraphicsPipeline =====
 
+    // TODO: Separate info data and replace RecreateInfo
     struct GraphisPipelineCreateInfo
     {
         SharedPtr<Shader> vertexShader = nullptr;

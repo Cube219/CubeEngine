@@ -1,6 +1,7 @@
 module Material;
 
 import Common;
+import Global;
 import MainInterface;
 
 public struct MaterialShaderParameterList

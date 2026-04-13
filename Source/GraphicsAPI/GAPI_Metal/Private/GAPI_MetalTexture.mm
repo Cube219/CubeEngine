@@ -174,6 +174,7 @@ namespace cube
             switch (mUsage)
             {
             case ResourceUsage::GPUOnly:
+                // TODO: Use optimizeContentsForGPUAccess in MTLBlitCommandEncoder.
             case ResourceUsage::CPUtoGPU:
             case ResourceUsage::GPUtoCPU:
             {
@@ -270,6 +271,10 @@ namespace cube
 
             Uint32 mipLevels = createInfo.mipLevels != SubresourceRange::AllRange ? createInfo.mipLevels : metalTexture->GetMipLevels() - createInfo.firstMipLevel;
             Uint32 sliceSize = createInfo.sliceSize != SubresourceRange::AllRange ? createInfo.sliceSize : metalTexture->GetArraySize() - createInfo.firstSliceIndex;
+            if (texture->IsCubemap())
+            {
+                sliceSize *= 6;
+            }
             id<MTLTexture> mtlTexture = metalTexture->GetMTLTexture();
             mSRV = [mtlTexture
                 newTextureViewWithPixelFormat:metalTexture->GetPixelFormat()
@@ -296,6 +301,10 @@ namespace cube
             CHECK_FORMAT(metalTexture->GetTextureUsage() & (MTLTextureUsageShaderRead | MTLTextureUsageShaderWrite), "Cannot create MetalTextureUAV. Texture was not created with MTLTextureUsageShaderRead and MTLTextureUsageShaderWrite.");
 
             Uint32 sliceSize = createInfo.sliceSize != SubresourceRange::AllRange ? createInfo.sliceSize : metalTexture->GetArraySize() - createInfo.firstSliceIndex;
+            if (texture->IsCubemap())
+            {
+                sliceSize *= 6;
+            }
             id<MTLTexture> mtlTexture = metalTexture->GetMTLTexture();
             mUAV = [mtlTexture
                 newTextureViewWithPixelFormat:metalTexture->GetPixelFormat()
@@ -321,6 +330,10 @@ namespace cube
             CHECK_FORMAT(metalTexture->GetTextureUsage() & MTLTextureUsageRenderTarget, "Cannot create MetalTextureRTV. Texture was not created with MTLTextureUsageRenderTarget.");
 
             Uint32 sliceSize = createInfo.sliceSize != SubresourceRange::AllRange ? createInfo.sliceSize : metalTexture->GetArraySize() - createInfo.firstSliceIndex;
+            if (texture->IsCubemap())
+            {
+                sliceSize *= 6;
+            }
             mRTV = [metalTexture->GetMTLTexture()
                 newTextureViewWithPixelFormat:metalTexture->GetPixelFormat()
                 textureType:metalTexture->GetTextureType()
@@ -354,6 +367,10 @@ namespace cube
             CHECK_FORMAT(metalTexture->GetTextureUsage() & MTLTextureUsageRenderTarget, "Cannot create MetalTextureDSV. Texture was not created with MTLTextureUsageRenderTarget.");
 
             Uint32 sliceSize = createInfo.sliceSize != SubresourceRange::AllRange ? createInfo.sliceSize : metalTexture->GetArraySize() - createInfo.firstSliceIndex;
+            if (texture->IsCubemap())
+            {
+                sliceSize *= 6;
+            }
             mDSV = [metalTexture->GetMTLTexture()
                 newTextureViewWithPixelFormat:metalTexture->GetPixelFormat()
                                   textureType:metalTexture->GetTextureType()

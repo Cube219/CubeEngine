@@ -40,6 +40,14 @@ namespace cube
         CUBE_END_SHADER_PARAMETER_LIST
     };
 
+    class SkyboxShaderParameterList : public ShaderParameterList
+    {
+        CUBE_BEGIN_SHADER_PARAMETER_LIST(SkyboxShaderParameterList)
+            CUBE_SHADER_PARAMETER(RGTextureSRVHandle, skyboxTexture)
+            CUBE_SHADER_PARAMETER(BindlessSampler, skyboxSampler)
+        CUBE_END_SHADER_PARAMETER_LIST
+    };
+
     class Renderer
     {
     public:
@@ -80,6 +88,8 @@ namespace cube
         void LoadResources();
         void ClearResources();
 
+        void RecreatePipelinesIfNeeded();
+
         SharedPtr<platform::DLib> mGAPI_DLib;
         SharedPtr<GAPI> mGAPI;
 
@@ -119,8 +129,17 @@ namespace cube
         SharedPtr<TextureResource> mDummyBlackTexture;
         SharedPtr<TextureResource> mDummyWhiteTexture;
 
+        SharedPtr<TextureResource> mIBLTexture;
+        SharedPtr<Shader> mSkyboxVS;
+        SharedPtr<Shader> mSkyboxPS;
+        SharedPtr<GraphicsPipeline> mSkyboxPipeline;
+
+        // TODO: Create pipeline cache manager
+        bool mNeedRecreatingPipelines = false;
+
         bool mShowAxis = true;
         bool mWireframe = false;
+        bool mEnvironmentMapping = true;
         SharedPtr<Mesh> mBoxMesh;
         Matrix mXAxisModelMatrix;
         SharedPtr<Material> mXAxisMaterial;

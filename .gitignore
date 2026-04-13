@@ -473,6 +473,7 @@ Resources/Models/*
 !Resources/Models/FetchDefaultModels.ps1
 !Resources/Models/FetchglTFSampleAssets.bat
 !Resources/Models/FetchglTFSampleAssets.sh
+Resources/Textures/*
 
 # VSCode
 .vscode/

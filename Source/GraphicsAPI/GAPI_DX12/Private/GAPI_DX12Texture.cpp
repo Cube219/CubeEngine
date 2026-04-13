@@ -98,7 +98,8 @@ namespace cube
                 .Format = GetDX12ElementFormatInfo(info.format).format,
                 .SampleDesc = {
                     .Count = 1,
-                    .Quality = 0 },
+                    .Quality = 0
+                },
                 .Layout = (mUsage == ResourceUsage::GPUOnly) ? D3D12_TEXTURE_LAYOUT_UNKNOWN : D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
                 .Flags = flags
             };
