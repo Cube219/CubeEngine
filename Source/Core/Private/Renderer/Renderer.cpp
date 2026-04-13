@@ -269,6 +269,7 @@ namespace cube
 
         mGAPI->WaitAllGPUSync();
 
+        mCurrentBackbuffer = nullptr;
         if (mSwapChain)
         {
             mSwapChain->Resize(width, height);
