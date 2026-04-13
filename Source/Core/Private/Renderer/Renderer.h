@@ -72,6 +72,8 @@ namespace cube
         SharedPtr<gapi::Texture> GetDummyBlackTexture() const { return mDummyBlackTexture->GetGAPITexture(); }
         SharedPtr<gapi::Texture> GetDummyWhiteTexture() const { return mDummyWhiteTexture->GetGAPITexture(); }
 
+        bool IsSupportEnvironmentMapping() const { return mIBLTexture != nullptr; }
+
         void SetObjectModelMatrix(const Vector3& position, const Vector3& rotation, const Vector3& scale);
         void SetViewMatrix(const Vector3& eye, const Vector3& target, const Vector3& upDir);
         void SetPerspectiveMatrix(float fovAngleY, float aspectRatio, float nearZ, float farZ);
