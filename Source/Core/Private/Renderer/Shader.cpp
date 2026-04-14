@@ -83,13 +83,13 @@ namespace cube
     String Shader::GetFilePathsString() const
     {
         String result;
-        if (mMetaData.fileInfos.size() > 0)
+        if (mFileInfos.size() > 0)
         {
-            result = mMetaData.fileInfos[0].path.ToString();
+            result = mFileInfos[0].path.ToString();
         }
-        for (int i = 1; i < mMetaData.fileInfos.size(); ++i)
+        for (int i = 1; i < mFileInfos.size(); ++i)
         {
-            result += Format<FrameString>(CUBE_T(";{0}"), mMetaData.fileInfos[i].path.ToString());
+            result += Format<FrameString>(CUBE_T(";{0}"), mFileInfos[i].path.ToString());
         }
 
         return result;
@@ -98,9 +98,14 @@ namespace cube
     Shader::Shader(ShaderManager& manager, const ShaderCreateInfo& createInfo) :
         mManager(manager)
     {
+        mShaderInfo = createInfo.shaderInfo;
+        mDebugName = createInfo.debugName;
+        mMaterialShaderCode = createInfo.materialShaderCode;
+
         FrameVector<Blob> shaderCodes;
         FrameVector<ShaderFileInfo> shaderFileInfos;
         GetShaderFileInfosAndCodes(createInfo.filePaths, createInfo.materialShaderCode, shaderFileInfos, shaderCodes);
+        mFileInfos = { shaderFileInfos.begin(), shaderFileInfos.end() };
 
         FrameVector<gapi::ShaderCreateInfo::ShaderCodeInfo> shaderCodeInfos;
         for (int i = 0; i < shaderFileInfos.size(); ++i)
@@ -114,11 +119,11 @@ namespace cube
 
         mGAPIShader = Engine::GetRenderer()->GetGAPI().CreateShader(
         {
-            .type = createInfo.type,
-            .language = createInfo.language,
+            .type = mShaderInfo.type,
+            .language = mShaderInfo.language,
             .shaderCodeInfos = shaderCodeInfos,
-            .entryPoint = createInfo.entryPoint,
-            .preprocessorDefines = createInfo.defines,
+            .entryPoint = mShaderInfo.entryPoint,
+            .preprocessorDefines = mShaderInfo.defines,
             .withDebugSymbol = manager.IsUsingDebugMode(),
             .debugName = createInfo.debugName
         });
@@ -132,20 +137,8 @@ namespace cube
         }
         CHECK(mGAPIShader->IsValid());
 
-        mMetaData.type = createInfo.type;
-        mMetaData.language = createInfo.language;
-        mMetaData.fileInfos = Vector<ShaderFileInfo>(shaderFileInfos.begin(), shaderFileInfos.end());
-        mMetaData.materialShaderCode = createInfo.materialShaderCode;
-        mMetaData.entryPoint = createInfo.entryPoint;
-        mMetaData.defines.clear();
-        for (const gapi::PreprocessorDefine& define : createInfo.defines)
-        {
-            mMetaData.defines.push_back({ AnsiString(define.name), AnsiString(define.value) });
-        }
-        mMetaData.debugName = createInfo.debugName;
-
-        FrameVector<ShaderFileInfo> dependencyFileInfos = GetDependencyFileInfos(mGAPIShader->GetDependencyFilePaths(), mMetaData.fileInfos);
-        mMetaData.dependencyFileInfos = { dependencyFileInfos.begin(), dependencyFileInfos.end() };
+        FrameVector<ShaderFileInfo> dependencyFileInfos = GetDependencyFileInfos(mGAPIShader->GetDependencyFilePaths(), mFileInfos);
+        mDependencyFileInfos = { dependencyFileInfos.begin(), dependencyFileInfos.end() };
 
         mRecompiledGAPIShader = nullptr;
         mRecompileCount = 0;
@@ -167,7 +160,7 @@ namespace cube
         }
 
         FrameVector<platform::FilePath> shaderFilePaths;
-        for (const ShaderFileInfo& shaderFileInfo : mMetaData.fileInfos)
+        for (const ShaderFileInfo& shaderFileInfo : mFileInfos)
         {
             if (!shaderFileInfo.isGeneratedShader)
             {
@@ -176,10 +169,10 @@ namespace cube
         }
         FrameVector<Blob> shaderCodes;
         FrameVector<ShaderFileInfo> shaderFileInfos;
-        GetShaderFileInfosAndCodes(shaderFilePaths, mMetaData.materialShaderCode, shaderFileInfos, shaderCodes);
+        GetShaderFileInfosAndCodes(shaderFilePaths, mMaterialShaderCode, shaderFileInfos, shaderCodes);
 
         FrameVector<platform::FilePath> dependencyFilePaths;
-        for (const ShaderFileInfo& dependencyFileInfo : mMetaData.dependencyFileInfos)
+        for (const ShaderFileInfo& dependencyFileInfo : mDependencyFileInfos)
         {
             dependencyFilePaths.push_back(dependencyFileInfo.path);
         }
@@ -213,8 +206,8 @@ namespace cube
 
             return RecompileResult::Unmodified;
         }
-        CHECK(shaderFileInfos.size() == mMetaData.fileInfos.size());
-        CHECK(dependencyFileInfos.size() == mMetaData.dependencyFileInfos.size());
+        CHECK(shaderFileInfos.size() == mFileInfos.size());
+        CHECK(dependencyFileInfos.size() == mDependencyFileInfos.size());
 
         bool hasModified = force ? true : false;
         if (!hasModified)
@@ -223,7 +216,7 @@ namespace cube
             {
                 const ShaderFileInfo& shaderFileInfo = shaderFileInfos[i];
 
-                if (shaderFileInfo.lastModifiedTimes != mMetaData.fileInfos[i].lastModifiedTimes)
+                if (shaderFileInfo.lastModifiedTimes != mFileInfos[i].lastModifiedTimes)
                 {
                     hasModified = true;
                     break;
@@ -237,7 +230,7 @@ namespace cube
             {
                 const ShaderFileInfo& dependencyFileInfo = dependencyFileInfos[i];
 
-                if (dependencyFileInfo.lastModifiedTimes != mMetaData.dependencyFileInfos[i].lastModifiedTimes)
+                if (dependencyFileInfo.lastModifiedTimes != mDependencyFileInfos[i].lastModifiedTimes)
                 {
                     hasModified = true;
                     break;
@@ -260,21 +253,15 @@ namespace cube
             });
         }
 
-        FrameVector<gapi::PreprocessorDefine> recompileDefines;
-        for (const StoredPreprocessorDefine& define : mMetaData.defines)
-        {
-            recompileDefines.push_back({ define.name, define.value });
-        }
-
         mRecompiledGAPIShader = Engine::GetRenderer()->GetGAPI().CreateShader(
         {
-            .type = mMetaData.type,
-            .language = mMetaData.language,
+            .type = mShaderInfo.type,
+            .language = mShaderInfo.language,
             .shaderCodeInfos = shaderCodeInfos,
-            .entryPoint = mMetaData.entryPoint,
-            .preprocessorDefines = recompileDefines,
+            .entryPoint = mShaderInfo.entryPoint,
+            .preprocessorDefines = mShaderInfo.defines,
             .withDebugSymbol = mManager.IsUsingDebugMode(),
-            .debugName = Format<String>(CUBE_T("{0}:{1}"), mMetaData.debugName, mRecompileCount + 1)
+            .debugName = Format<String>(CUBE_T("{0}:{1}"), mDebugName, mRecompileCount + 1)
         });
 
         StringView warningMessage = mRecompiledGAPIShader->GetWarningMessage();
@@ -302,9 +289,9 @@ namespace cube
             return;
         }
 
-        CHECK(mMetaData.fileInfos.size() == mRecompiledShaderFileInfos.size());
-        mMetaData.fileInfos = mRecompiledShaderFileInfos;
-        mMetaData.dependencyFileInfos = mRecompiledDependencyFileInfos;
+        CHECK(mFileInfos.size() == mRecompiledShaderFileInfos.size());
+        mFileInfos = mRecompiledShaderFileInfos;
+        mDependencyFileInfos = mRecompiledDependencyFileInfos;
         mGAPIShader = mRecompiledGAPIShader;
 
         mRecompiledShaderFileInfos.clear();
@@ -322,24 +309,26 @@ namespace cube
     GraphicsPipeline::GraphicsPipeline(ShaderManager& manager, const GraphisPipelineCreateInfo& createInfo) :
         mManager(manager)
     {
+        mInfo = createInfo.pipelineInfo;
+        mDebugName = createInfo.debugName;
+
         mGAPIGraphicsPipeline = Engine::GetRenderer()->GetGAPI().CreateGraphicsPipeline({
-            .vertexShader = createInfo.vertexShader ? createInfo.vertexShader->GetGAPIShader() : nullptr,
-            .pixelShader = createInfo.pixelShader ? createInfo.pixelShader->GetGAPIShader() : nullptr,
-            .inputLayouts = createInfo.inputLayouts,
-            .rasterizerState = createInfo.rasterizerState,
-            .blendStates = createInfo.blendStates,
-            .depthStencilState = createInfo.depthStencilState,
-            .primitiveTopologyType = createInfo.primitiveTopologyType,
-            .numRenderTargets = createInfo.numRenderTargets,
-            .renderTargetFormats = createInfo.renderTargetFormats,
-            .depthStencilFormat = createInfo.depthStencilFormat,
+            .vertexShader = mInfo.vertexShader ? mInfo.vertexShader->GetGAPIShader() : nullptr,
+            .pixelShader = mInfo.pixelShader ? mInfo.pixelShader->GetGAPIShader() : nullptr,
+            .inputLayouts = mInfo.inputLayouts,
+            .rasterizerState = mInfo.rasterizerState,
+            .blendStates = mInfo.blendStates,
+            .depthStencilState = mInfo.depthStencilState,
+            .primitiveTopologyType = mInfo.primitiveTopologyType,
+            .numRenderTargets = mInfo.numRenderTargets,
+            .renderTargetFormats = mInfo.renderTargetFormats,
+            .depthStencilFormat = mInfo.depthStencilFormat,
             .debugName = createInfo.debugName
         });
 
-        mRecreateInfo.CopyFromCreateInfo(createInfo);
         mRecreateCount = 0;
 
-        CacheShaderReflection(createInfo.vertexShader, createInfo.pixelShader);
+        CacheShaderReflection(mInfo.vertexShader, mInfo.pixelShader);
     }
 
     GraphicsPipeline::~GraphicsPipeline()
@@ -353,11 +342,11 @@ namespace cube
     {
         bool result = false;
 
-        if (mRecreateInfo.vertexShader && mRecreateInfo.vertexShader->HasRecompiledShader())
+        if (mInfo.vertexShader && mInfo.vertexShader->HasRecompiledShader())
         {
             result = true;
         }
-        else if (mRecreateInfo.pixelShader && mRecreateInfo.pixelShader->HasRecompiledShader())
+        else if (mInfo.pixelShader && mInfo.pixelShader->HasRecompiledShader())
         {
             result = true;
         }
@@ -368,36 +357,38 @@ namespace cube
     void GraphicsPipeline::RecreateGraphicsPipeline()
     {
         mGAPIGraphicsPipeline = Engine::GetRenderer()->GetGAPI().CreateGraphicsPipeline({
-            .vertexShader = mRecreateInfo.vertexShader ? mRecreateInfo.vertexShader->GetGAPIShader() : nullptr,
-            .pixelShader = mRecreateInfo.pixelShader ? mRecreateInfo.pixelShader->GetGAPIShader() : nullptr,
-            .inputLayouts = mRecreateInfo.inputLayouts,
-            .rasterizerState = mRecreateInfo.rasterizerState,
-            .blendStates = mRecreateInfo.blendStates,
-            .depthStencilState = mRecreateInfo.depthStencilState,
-            .primitiveTopologyType = mRecreateInfo.primitiveTopologyType,
-            .numRenderTargets = mRecreateInfo.numRenderTargets,
-            .renderTargetFormats = mRecreateInfo.renderTargetFormats,
-            .depthStencilFormat = mRecreateInfo.depthStencilFormat,
-            .debugName = Format<String>(CUBE_T("{0}:{1}"), mRecreateInfo.debugName, mRecreateCount + 1)
+            .vertexShader = mInfo.vertexShader ? mInfo.vertexShader->GetGAPIShader() : nullptr,
+            .pixelShader = mInfo.pixelShader ? mInfo.pixelShader->GetGAPIShader() : nullptr,
+            .inputLayouts = mInfo.inputLayouts,
+            .rasterizerState = mInfo.rasterizerState,
+            .blendStates = mInfo.blendStates,
+            .depthStencilState = mInfo.depthStencilState,
+            .primitiveTopologyType = mInfo.primitiveTopologyType,
+            .numRenderTargets = mInfo.numRenderTargets,
+            .renderTargetFormats = mInfo.renderTargetFormats,
+            .depthStencilFormat = mInfo.depthStencilFormat,
+            .debugName = Format<String>(CUBE_T("{0}:{1}"), mDebugName, mRecreateCount + 1)
         });
 
         mRecreateCount++;
 
-        CacheShaderReflection(mRecreateInfo.vertexShader, mRecreateInfo.pixelShader);
+        CacheShaderReflection(mInfo.vertexShader, mInfo.pixelShader);
     }
 
     ComputePipeline::ComputePipeline(ShaderManager& manager, const ComputePipelineCreateInfo& createInfo) :
         mManager(manager)
     {
+        mInfo = createInfo.pipelineInfo;
+        mDebugName = createInfo.debugName;
+
         mGAPIComputePipeline = Engine::GetRenderer()->GetGAPI().CreateComputePipeline({
-            .shader = createInfo.shader ? createInfo.shader->GetGAPIShader() : nullptr,
+            .shader = mInfo.shader ? mInfo.shader->GetGAPIShader() : nullptr,
             .debugName = createInfo.debugName
         });
 
-        mRecreateInfo.CopyFromCreateInfo(createInfo);
         mRecreateCount = 0;
 
-        CacheShaderReflection(createInfo.shader);
+        CacheShaderReflection(mInfo.shader);
     }
 
     ComputePipeline::~ComputePipeline()
@@ -409,19 +400,19 @@ namespace cube
 
     bool ComputePipeline::HasRecompiledShaderInPipeline() const
     {
-        return mRecreateInfo.shader && mRecreateInfo.shader->HasRecompiledShader() ? true : false;
+        return mInfo.shader && mInfo.shader->HasRecompiledShader() ? true : false;
     }
 
     void ComputePipeline::RecreateComputePipeline()
     {
         mGAPIComputePipeline = Engine::GetRenderer()->GetGAPI().CreateComputePipeline({
-            .shader = mRecreateInfo.shader ? mRecreateInfo.shader->GetGAPIShader() : nullptr,
-            .debugName = Format<String>(CUBE_T("{0}:{1}"), mRecreateInfo.debugName, mRecreateCount + 1)
+            .shader = mInfo.shader ? mInfo.shader->GetGAPIShader() : nullptr,
+            .debugName = Format<String>(CUBE_T("{0}:{1}"), mDebugName, mRecreateCount + 1)
         });
 
         mRecreateCount++;
 
-        CacheShaderReflection(mRecreateInfo.shader);
+        CacheShaderReflection(mInfo.shader);
     }
 
     void ComputePipeline::CacheShaderReflection(SharedPtr<Shader> shader)

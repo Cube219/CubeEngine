@@ -70,8 +70,8 @@ namespace cube
 
         struct PreprocessorDefine
         {
-            AnsiStringView name;
-            AnsiStringView value;
+            AnsiString name;
+            AnsiString value;
         };
 
         struct ShaderCreateInfo

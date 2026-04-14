@@ -30,16 +30,20 @@ namespace cube
             platform::FilePath shaderFilePath = Engine::GetShaderDirectoryPath() / CUBE_T("GenerateMipmaps.slang");
         
             mGenerateMipmapsShader = mRenderer.GetShaderManager().CreateShader({
-                .type = gapi::ShaderType::Compute,
-                .language = gapi::ShaderLanguage::Slang,
+                .shaderInfo = {
+                    .type = gapi::ShaderType::Compute,
+                    .language = gapi::ShaderLanguage::Slang,
+                    .entryPoint = "CSMain"
+                },
                 .filePaths = { &shaderFilePath, 1 },
-                .entryPoint = "CSMain",
                 .debugName = CUBE_T("GenerateMipmapsShaderCS")
             });
             CHECK(mGenerateMipmapsShader);
         
             mGenerateMipmapsPipeline = mRenderer.GetShaderManager().CreateComputePipeline({
-                .shader = mGenerateMipmapsShader,
+                .pipelineInfo = {
+                    .shader = mGenerateMipmapsShader
+                },
                 .debugName = CUBE_T("GenerateMipmapsComputePipeline")
             });
         }

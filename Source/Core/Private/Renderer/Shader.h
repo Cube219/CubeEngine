@@ -8,24 +8,30 @@
 
 namespace cube
 {
+    class ShaderManager;
+
     // ===== Shader =====
 
-    struct ShaderCreateInfo
+    struct ShaderInfo
     {
         gapi::ShaderType type;
         gapi::ShaderLanguage language = gapi::ShaderLanguage::Slang;
 
+        AnsiString entryPoint;
+
+        Vector<gapi::PreprocessorDefine> defines;
+    };
+
+    struct ShaderCreateInfo
+    {
+        ShaderInfo shaderInfo;
+
         // Only slang can support multiple shader code and material shader code.
         ArrayView<platform::FilePath> filePaths;
         StringView materialShaderCode;
-        AnsiStringView entryPoint;
-
-        ArrayView<gapi::PreprocessorDefine> defines;
 
         StringView debugName;
     };
-
-    class ShaderManager;
 
     struct ShaderFileInfo
     {
@@ -43,8 +49,8 @@ namespace cube
         SharedPtr<gapi::Shader> GetGAPIShader() const { return mGAPIShader; }
 
         String GetFilePathsString() const;
-        AnsiStringView GetEntryPoint() const { return mMetaData.entryPoint; }
-        StringView GetDebugName() const { return mMetaData.debugName; }
+        AnsiStringView GetEntryPoint() const { return mShaderInfo.entryPoint; }
+        StringView GetDebugName() const { return mDebugName; }
 
         bool HasRecompiledShader() const { return mRecompiledGAPIShader != nullptr; }
 
@@ -65,27 +71,12 @@ namespace cube
 
         SharedPtr<gapi::Shader> mGAPIShader;
 
-        struct StoredPreprocessorDefine
-        {
-            AnsiString name;
-            AnsiString value;
-        };
+        ShaderInfo mShaderInfo;
+        Vector<ShaderFileInfo> mFileInfos;
+        Vector<ShaderFileInfo> mDependencyFileInfos;
+        String mMaterialShaderCode;
 
-        struct MetaData
-        {
-            gapi::ShaderType type;
-            gapi::ShaderLanguage language;
-
-            Vector<ShaderFileInfo> fileInfos;
-            Vector<ShaderFileInfo> dependencyFileInfos;
-            String materialShaderCode;
-            AnsiString entryPoint;
-
-            Vector<StoredPreprocessorDefine> defines;
-
-            String debugName;
-        };
-        MetaData mMetaData;
+        String mDebugName;
 
         SharedPtr<gapi::Shader> mRecompiledGAPIShader;
         Vector<ShaderFileInfo> mRecompiledShaderFileInfos;
@@ -95,8 +86,7 @@ namespace cube
 
     // ===== GraphicsPipeline =====
 
-    // TODO: Separate info data and replace RecreateInfo
-    struct GraphisPipelineCreateInfo
+    struct GraphicsPipelineInfo
     {
         SharedPtr<Shader> vertexShader = nullptr;
         SharedPtr<Shader> pixelShader = nullptr;
@@ -114,6 +104,11 @@ namespace cube
         Uint32 numRenderTargets;
         Array<gapi::ElementFormat, gapi::MAX_NUM_RENDER_TARGETS> renderTargetFormats;
         gapi::ElementFormat depthStencilFormat = gapi::ElementFormat::D32_Float;
+    };
+
+    struct GraphisPipelineCreateInfo
+    {
+        GraphicsPipelineInfo pipelineInfo;
 
         StringView debugName;
     };
@@ -141,58 +136,22 @@ namespace cube
         SharedPtr<gapi::GraphicsPipeline> mGAPIGraphicsPipeline;
         gapi::ShaderReflection mMergedShaderReflection;
 
-        struct RecreateInfo
-        {
-            SharedPtr<Shader> vertexShader = nullptr;
-            SharedPtr<Shader> pixelShader = nullptr;
+        GraphicsPipelineInfo mInfo;
+        String mDebugName;
 
-            Vector<gapi::InputElement> inputLayouts;
-
-            gapi::RasterizerState rasterizerState;
-
-            Array<gapi::BlendState, gapi::MAX_NUM_RENDER_TARGETS> blendStates;
-
-            gapi::DepthStencilState depthStencilState;
-
-            gapi::PrimitiveTopologyType primitiveTopologyType = gapi::PrimitiveTopologyType::Triangle;
-
-            Uint32 numRenderTargets;
-            Array<gapi::ElementFormat, gapi::MAX_NUM_RENDER_TARGETS> renderTargetFormats;
-            gapi::ElementFormat depthStencilFormat = gapi::ElementFormat::D32_Float;
-
-            String debugName;
-
-            void CopyFromCreateInfo(const GraphisPipelineCreateInfo& createInfo)
-            {
-                vertexShader = createInfo.vertexShader;
-                pixelShader = createInfo.pixelShader;
-
-                inputLayouts = Vector<gapi::InputElement>(createInfo.inputLayouts.begin(), createInfo.inputLayouts.end());
-
-                rasterizerState = createInfo.rasterizerState;
-
-                std::copy(createInfo.blendStates.begin(), createInfo.blendStates.end(), blendStates.begin());
-
-                depthStencilState = createInfo.depthStencilState;
-
-                primitiveTopologyType = createInfo.primitiveTopologyType;
-
-                numRenderTargets = createInfo.numRenderTargets;
-                std::copy(createInfo.renderTargetFormats.begin(), createInfo.renderTargetFormats.end(), renderTargetFormats.begin());
-                depthStencilFormat = createInfo.depthStencilFormat;
-
-                debugName = createInfo.debugName;
-            }
-        };
-        RecreateInfo mRecreateInfo;
         int mRecreateCount;
     };
 
     // ===== ComputePipeline =====
 
-    struct ComputePipelineCreateInfo
+    struct ComputePipelineInfo
     {
         SharedPtr<Shader> shader;
+    };
+
+    struct ComputePipelineCreateInfo
+    {
+        ComputePipelineInfo pipelineInfo;
 
         StringView debugName;
     };
@@ -219,20 +178,9 @@ namespace cube
         SharedPtr<gapi::ComputePipeline> mGAPIComputePipeline;
         gapi::ShaderReflection mShaderReflection;
 
-        struct RecreateInfo
-        {
-            SharedPtr<Shader> shader;
+        ComputePipelineInfo mInfo;
+        String mDebugName;
 
-            StringView debugName;
-
-            void CopyFromCreateInfo(const ComputePipelineCreateInfo& createInfo)
-            {
-                shader = createInfo.shader;
-
-                debugName = createInfo.debugName;
-            }
-        };
-        RecreateInfo mRecreateInfo;
         int mRecreateCount;
     };
 } // namespace cube

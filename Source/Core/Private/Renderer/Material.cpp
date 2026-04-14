@@ -215,11 +215,13 @@ namespace cube
         {
             platform::FilePath vertexShaderFilePath = Engine::GetShaderDirectoryPath() / CUBE_T("Main.slang");
             vertexShader = mShaderManager.CreateShader({
-                .type = gapi::ShaderType::Vertex,
-                .language = gapi::ShaderLanguage::Slang,
+                .shaderInfo = {
+                    .type = gapi::ShaderType::Vertex,
+                    .language = gapi::ShaderLanguage::Slang,
+                    .entryPoint = "VSMain",
+                    .defines = { shaderDefines.begin(), shaderDefines.end() }
+                },
                 .filePaths = { &vertexShaderFilePath, 1 },
-                .entryPoint = "VSMain",
-                .defines = shaderDefines,
                 .debugName = Format<FrameString>(CUBE_T("MaterialVS ({0})"), shaderHash)
             });
         }
@@ -230,12 +232,14 @@ namespace cube
             platform::FilePath pixelShaderFilePath = Engine::GetShaderDirectoryPath() / CUBE_T("Main.slang");
 
             pixelShader = mShaderManager.CreateShader({
-                .type = gapi::ShaderType::Pixel,
-                .language = gapi::ShaderLanguage::Slang,
+                .shaderInfo = {
+                    .type = gapi::ShaderType::Pixel,
+                    .language = gapi::ShaderLanguage::Slang,
+                    .entryPoint = "PSMain",
+                    .defines = { shaderDefines.begin(), shaderDefines.end() }
+                },
                 .filePaths = { &pixelShaderFilePath, 1 },
                 .materialShaderCode = materialShaderCode,
-                .entryPoint = "PSMain",
-                .defines = shaderDefines,
                 .debugName = Format<FrameString>(CUBE_T("MaterialPS ({0})"), shaderHash)
             });
         }
@@ -243,18 +247,20 @@ namespace cube
         SharedPtr<GraphicsPipeline>& pipeline = mMaterialPipelines[pipelineHash];
         {
             pipeline = mShaderManager.CreateGraphicsPipeline({
-                .vertexShader = vertexShader,
-                .pixelShader = pixelShader,
-                .inputLayouts = Mesh::GetInputElements(meshMeta),
-                .rasterizerState = {
-                    .fillMode = fillMode
+                .pipelineInfo = {
+                    .vertexShader = vertexShader,
+                    .pixelShader = pixelShader,
+                    .inputLayouts = Mesh::GetInputElements(meshMeta),
+                    .rasterizerState = {
+                        .fillMode = fillMode
+                    },
+                    .depthStencilState = {
+                        .enableDepth = true,
+                        .depthFunction = gapi::CompareFunction::Greater
+                    },
+                    .numRenderTargets = 1,
+                    .renderTargetFormats = { gapi::ElementFormat::RGBA8_UNorm }
                 },
-                .depthStencilState = {
-                    .enableDepth = true,
-                    .depthFunction = gapi::CompareFunction::Greater
-                },
-                .numRenderTargets = 1,
-                .renderTargetFormats = { gapi::ElementFormat::RGBA8_UNorm },
                 .debugName = Format<FrameString>(CUBE_T("MaterialPipeline ({0})"), pipelineHash)
             });
         }

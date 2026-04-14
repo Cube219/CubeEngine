@@ -584,17 +584,21 @@ namespace cube
                 platform::FilePath skyboxShaderFilePath = Engine::GetShaderDirectoryPath() / CUBE_T("Skybox.slang");
 
                 mSkyboxVS = mShaderManager.CreateShader({
-                    .type = gapi::ShaderType::Vertex,
-                    .language = gapi::ShaderLanguage::Slang,
+                    .shaderInfo = {
+                        .type = gapi::ShaderType::Vertex,
+                        .language = gapi::ShaderLanguage::Slang,
+                        .entryPoint = "VSMain"
+                    },
                     .filePaths = { &skyboxShaderFilePath, 1 },
-                    .entryPoint = "VSMain",
                     .debugName = CUBE_T("SkyboxVS")
                 });
                 mSkyboxPS = mShaderManager.CreateShader({
-                    .type = gapi::ShaderType::Pixel,
-                    .language = gapi::ShaderLanguage::Slang,
+                    .shaderInfo = {
+                        .type = gapi::ShaderType::Pixel,
+                        .language = gapi::ShaderLanguage::Slang,
+                        .entryPoint = "PSMain"
+                    },
                     .filePaths = { &skyboxShaderFilePath, 1 },
-                    .entryPoint = "PSMain",
                     .debugName = CUBE_T("SkyboxPS")
                 });
             }
@@ -634,19 +638,21 @@ namespace cube
         if (IsSupportEnvironmentMapping())
         {        
             mSkyboxPipeline = mShaderManager.CreateGraphicsPipeline({
-                .vertexShader = mSkyboxVS,
-                .pixelShader = mSkyboxPS,
-                .inputLayouts = Mesh::GetInputElements(mMeshMetadata),
-                .rasterizerState = {
-                    .fillMode = mWireframe ? gapi::RasterizerState::FillMode::Line : gapi::RasterizerState::FillMode::Solid,
-                    .cullMode = gapi::RasterizerState::CullMode::Front
+                .pipelineInfo = {
+                    .vertexShader = mSkyboxVS,
+                    .pixelShader = mSkyboxPS,
+                    .inputLayouts = Mesh::GetInputElements(mMeshMetadata),
+                    .rasterizerState = {
+                        .fillMode = mWireframe ? gapi::RasterizerState::FillMode::Line : gapi::RasterizerState::FillMode::Solid,
+                        .cullMode = gapi::RasterizerState::CullMode::Front
+                    },
+                    .depthStencilState = {
+                        .enableDepth = true,
+                        .depthFunction = gapi::CompareFunction::GreaterEqual
+                    },
+                    .numRenderTargets = 1,
+                    .renderTargetFormats = { gapi::ElementFormat::RGBA8_UNorm }
                 },
-                .depthStencilState = {
-                    .enableDepth = true,
-                    .depthFunction = gapi::CompareFunction::GreaterEqual
-                },
-                .numRenderTargets = 1,
-                .renderTargetFormats = { gapi::ElementFormat::RGBA8_UNorm },
                 .debugName = CUBE_T("SkyboxPipeline")
             });
         }
