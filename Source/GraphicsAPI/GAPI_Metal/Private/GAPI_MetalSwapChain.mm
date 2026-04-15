@@ -91,7 +91,7 @@ namespace cube
                 ];
                 mView.delegate = mView;
                 mView.paused = YES;
-                mView.enableSetNeedsDisplay = YES;
+                mView.enableSetNeedsDisplay = NO;
                 mView.autoResizeDrawable = NO;
                 CGSize size;
                 size.width = width;
@@ -129,12 +129,17 @@ namespace cube
                 mBackbufferDescriptor = mView.currentRenderPassDescriptor;
             } while (mBackbufferDescriptor == nil);
 
-            mBackbufferTexture->UpdateDrawableTexture(mView.currentDrawable.texture);
+            mCurrentDrawable = mView.currentDrawable;
+            mBackbufferTexture->UpdateDrawableTexture(mCurrentDrawable.texture);
         }
 
         void MetalSwapChain::Present()
         {
-            [mView.currentDrawable present];
+            id<MTLCommandBuffer> commandBuffer = [mDevice.GetMainCommandQueue() commandBuffer];
+            [commandBuffer presentDrawable:mCurrentDrawable];
+            [commandBuffer commit];
+            mCurrentDrawable = nil;
+
             [mView draw];
         }
 

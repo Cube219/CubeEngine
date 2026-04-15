@@ -64,6 +64,7 @@ namespace cube
 
         ImGUIContext mImGUIContext;
         CubeImGUIMTKView* mImGUIView;
+        id<CAMetalDrawable> mImGUIDrawable;
 
         UniquePtr<gapi::MetalShaderParameterHelper> mShaderParameterHelper;
 

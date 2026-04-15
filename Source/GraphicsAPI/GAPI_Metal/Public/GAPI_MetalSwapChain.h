@@ -60,6 +60,7 @@ namespace cube
 
             CubeMTKView* mView;
             MTLRenderPassDescriptor* mBackbufferDescriptor;
+            id<CAMetalDrawable> mCurrentDrawable;
             SharedPtr<MetalBackbufferTexture> mBackbufferTexture;
         };
     } // namespace rapi

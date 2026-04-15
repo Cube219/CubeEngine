@@ -111,6 +111,8 @@ namespace cube
             } while (mRenderPassDescriptor == nil);
             ImGui_ImplMetal_NewFrame(mRenderPassDescriptor);
 
+            mImGUIDrawable = mImGUIView.currentDrawable;
+
             id<MTLCommandBuffer> commandBuffer = [mMainDevice->GetMainCommandQueue() commandBuffer];
 
             ImDrawData* draw_data = ImGui::GetDrawData();
@@ -123,6 +125,7 @@ namespace cube
             [renderEncoder popDebugGroup];
             [renderEncoder endEncoding];
 
+            [commandBuffer presentDrawable:mImGUIDrawable];
             [commandBuffer commit];
         }
     }
@@ -131,7 +134,7 @@ namespace cube
     {
         if (mImGUIContext.context)
         {
-            [mImGUIView.currentDrawable present];
+            mImGUIDrawable = nil;
             [mImGUIView draw];
 
             // Does not call Metal_NewFrame at this point because currentRenderPassDescriptor
@@ -255,7 +258,7 @@ namespace cube
             ];
             mImGUIView.delegate = mImGUIView;
             mImGUIView.paused = YES;
-            mImGUIView.enableSetNeedsDisplay = YES;
+            mImGUIView.enableSetNeedsDisplay = NO;
             mImGUIView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
             mImGUIView.layer.opaque = NO;
             [window.contentView addSubview:mImGUIView];
