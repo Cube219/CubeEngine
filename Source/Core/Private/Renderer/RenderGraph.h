@@ -40,6 +40,7 @@ namespace cube
             return RGShaderParameterListHandle<ShaderParameterListType>(rgParameterList);
         }
 
+        // TODO: Remove duplication
         RGTextureSRVHandle CreateSRV(RGTextureHandle rgTexture, Uint32 firstMipLevel = 0, Int32 mipLevels = gapi::SubresourceRange::AllRange);
         RGTextureUAVHandle CreateUAV(RGTextureHandle rgTexture, Uint32 mipLevel = 0);
         RGTextureRTVHandle CreateRTV(RGTextureHandle rgTexture, Uint32 mipLevel = 0);

@@ -12,6 +12,7 @@
 #include "TextureManager.h"
 #include "Renderer/Mesh.h"
 #include "DLib.h"
+#include "EnvironmentMapping.h"
 #include "Vector.h"
 
 namespace cube
@@ -68,11 +69,12 @@ namespace cube
         TextureManager& GetTextureManager() { return mTextureManager; }
         SamplerManager& GetSamplerManager() { return mSamplerManager; }
 
+        bool IsDrawInWireframe() const { return mWireframe; }
+
+        SharedPtr<Mesh> GetBoxMesh() const { return mBoxMesh; }
         SharedPtr<Material> GetDefaultMaterial() const { return mDefaultMaterial; }
         SharedPtr<gapi::Texture> GetDummyBlackTexture() const { return mDummyBlackTexture->GetGAPITexture(); }
         SharedPtr<gapi::Texture> GetDummyWhiteTexture() const { return mDummyWhiteTexture->GetGAPITexture(); }
-
-        bool IsSupportEnvironmentMapping() const { return mIBLTexture != nullptr; }
 
         void SetObjectModelMatrix(const Vector3& position, const Vector3& rotation, const Vector3& scale);
         void SetViewMatrix(const Vector3& eye, const Vector3& target, const Vector3& upDir);
@@ -80,6 +82,7 @@ namespace cube
 
         float GetGPUTimeMS() const;
 
+        const MeshMetadata& GetMeshMetadata() const { return mMeshMetadata; }
         void SetMesh(SharedPtr<MeshData> meshData, const MeshMetadata& meshMeta);
         void SetMaterials(const Vector<SharedPtr<Material>>& materials);
 
@@ -102,6 +105,8 @@ namespace cube
         ShaderManager mShaderManager;
         TextureManager mTextureManager;
         SamplerManager mSamplerManager;
+
+        EnvironmentMapping mEnvironmentMapping;
 
         bool mRenderImGUI;
 
@@ -131,17 +136,11 @@ namespace cube
         SharedPtr<TextureResource> mDummyBlackTexture;
         SharedPtr<TextureResource> mDummyWhiteTexture;
 
-        SharedPtr<TextureResource> mIBLTexture;
-        SharedPtr<Shader> mSkyboxVS;
-        SharedPtr<Shader> mSkyboxPS;
-        SharedPtr<GraphicsPipeline> mSkyboxPipeline;
-
         // TODO: Create pipeline cache manager
         bool mNeedRecreatingPipelines = false;
 
         bool mShowAxis = true;
         bool mWireframe = false;
-        bool mEnvironmentMapping = true;
         SharedPtr<Mesh> mBoxMesh;
         Matrix mXAxisModelMatrix;
         SharedPtr<Material> mXAxisMaterial;
