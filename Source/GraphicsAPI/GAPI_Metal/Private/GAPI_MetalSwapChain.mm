@@ -133,7 +133,7 @@ namespace cube
         MetalSwapChain::~MetalSwapChain()
         {
             platform::MacOSUtility::DispatchToMainThreadAndWait([this] {
-                [mView release];
+                mView = nil;
             });
         }
 

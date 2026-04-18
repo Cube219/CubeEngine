@@ -37,10 +37,22 @@ set(PRIVATE_FILES
     Private/MetalUploadManager.mm
     Private/MetalUtility.h
 )
+# Collect Objective-C++ source files (.mm) for ARC and PCH exclusion
+set(OBJCXX_FILES)
+foreach(file ${PRIVATE_FILES})
+    if(file MATCHES "\\.mm$")
+        list(APPEND OBJCXX_FILES ${file})
+    endif()
+endforeach()
 # Objective-C does not support precompiled headers
 set_source_files_properties(${PRIVATE_FILES}
     PROPERTIES
         SKIP_PRECOMPILE_HEADERS ON
+)
+# Enable Automatic Reference Counting (ARC) for Objective-C++ files
+set_source_files_properties(${OBJCXX_FILES}
+    PROPERTIES
+        COMPILE_FLAGS "-fobjc-arc"
 )
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${PUBLIC_FILES} ${PRIVATE_FILES})

@@ -33,7 +33,9 @@ namespace cube
             static constexpr bool Available = true;
             static constexpr bool NeedConvert = true;
 
-            static void ConvertAndAppend(NSString*& dst, const SrcStringViewable& src)
+            // ARC: reference-to-pointer parameters default to __autoreleasing; explicitly use __strong
+            // to match __strong locals (e.g. the 'res' temporary inside String_Convert).
+            static void ConvertAndAppend(NSString* __strong& dst, const SrcStringViewable& src)
             {
                 FormatString<U8Character> u8Src;
                 String_ConvertAndAppend(u8Src, src);

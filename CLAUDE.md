@@ -252,7 +252,7 @@ Most modules use precompiled headers for faster builds, except:
 When adding platform-specific functionality:
 1. Add platform check: `#if defined(CUBE_PLATFORM_WINDOWS)` or `#if defined(CUBE_PLATFORM_MACOS)`
 2. For Platform module: implement in `Public/Windows/WindowsPlatform_*.cpp` or `Public/MacOS/MacOSPlatform_*.mm`
-3. For macOS Objective-C++ files: use `.mm` extension and ensure ARC is enabled
+3. For macOS Objective-C++ files: use `.mm` extension. ARC is enabled per-source via `set_source_files_properties(<file> PROPERTIES COMPILE_FLAGS "-fobjc-arc")` in the module's CMakeLists.txt (see `Source/GraphicsAPI/GAPI_Metal/CMakeLists.txt` and `Source/Platform/CMakeLists.txt`). Do not call `retain`, `release`, `autorelease`, or `dispatch_release` — they will not compile.
 
 ### Shader Development
 

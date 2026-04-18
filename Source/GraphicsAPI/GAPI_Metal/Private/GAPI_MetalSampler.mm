@@ -101,7 +101,6 @@ namespace cube
             samplerDesc.label = String_Convert<NSString*>(info.debugName);
 
             mSamplerState = [device.GetMTLDevice() newSamplerStateWithDescriptor:samplerDesc];
-            [samplerDesc release];
             CHECK(mSamplerState);
 
             mBindlessId = mSamplerState.gpuResourceID._impl;
@@ -109,7 +108,7 @@ namespace cube
 
         MetalSampler::~MetalSampler()
         {
-            [mSamplerState release];
+            mSamplerState = nil;
         }
     } // namespace gapi
 } // namespace cube

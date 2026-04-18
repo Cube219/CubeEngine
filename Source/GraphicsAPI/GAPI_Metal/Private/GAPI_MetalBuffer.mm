@@ -42,7 +42,7 @@ namespace cube
 
         MetalBuffer::~MetalBuffer()
         {
-            [mBuffer release];
+            mBuffer = nil;
         }
 
         void* MetalBuffer::Map()

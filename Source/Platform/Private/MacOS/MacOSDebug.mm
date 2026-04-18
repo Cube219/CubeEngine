@@ -367,9 +367,9 @@ namespace cube
 
             if (mIsLoggerWindowCreated)
             {
-                [mLoggerTextView release];
+                mLoggerTextView = nil;
                 [mLoggerWindow close];
-                [mLoggerWindowDelegate release];
+                mLoggerWindowDelegate = nil;
 
                 mIsLoggerWindowCreated = false;
             }

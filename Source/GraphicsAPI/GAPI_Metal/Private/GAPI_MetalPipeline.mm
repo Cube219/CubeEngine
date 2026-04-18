@@ -265,8 +265,6 @@ namespace cube
 
             NSError* error = nil;
             mPipelineState = [device.GetMTLDevice() newRenderPipelineStateWithDescriptor:desc error:&error];
-            [desc release];
-            [vertexDesc release];
             if (error != nil)
             {
                 CHECK_FORMAT(false, "Failed to create render pipeline state. ({0})", [error localizedDescription]);
@@ -287,7 +285,6 @@ namespace cube
                 frontStencilDesc.readMask = info.depthStencilState.stencilReadMask;
                 frontStencilDesc.writeMask = info.depthStencilState.stencilWriteMask;
                 depthStencilDesc.frontFaceStencil = frontStencilDesc;
-                [frontStencilDesc release];
 
                 MTLStencilDescriptor* backStencilDesc = [[MTLStencilDescriptor alloc] init];
                 backStencilDesc.stencilCompareFunction = ConvertToMTLCompareFunction(info.depthStencilState.stencilBackFaceDesc.function);
@@ -297,19 +294,17 @@ namespace cube
                 backStencilDesc.readMask = info.depthStencilState.stencilReadMask;
                 backStencilDesc.writeMask = info.depthStencilState.stencilWriteMask;
                 depthStencilDesc.backFaceStencil = backStencilDesc;
-                [backStencilDesc release];
             }
             depthStencilDesc.label = String_Convert<NSString*>(Format<FrameString>(CUBE_T("{0} (DepthStencilState)"), info.debugName));
 
             mDepthStencilState = [device.GetMTLDevice() newDepthStencilStateWithDescriptor:depthStencilDesc];
-            [depthStencilDesc release];
             CHECK(mDepthStencilState);
         }}
 
         MetalGraphicsPipeline::~MetalGraphicsPipeline()
         {
-            [mDepthStencilState release];
-            [mPipelineState release];
+            mDepthStencilState = nil;
+            mPipelineState = nil;
         }
 
         MetalComputePipeline::MetalComputePipeline(const ComputePipelineCreateInfo& info, MetalDevice& device)
@@ -324,7 +319,6 @@ namespace cube
 
             NSError* error = nil;
             mPipelineState = [device.GetMTLDevice() newComputePipelineStateWithDescriptor:desc options:MTLPipelineOptionNone reflection:nil error:&error];
-            [desc release];
 
             if (error != nil)
             {
@@ -337,7 +331,7 @@ namespace cube
 
         MetalComputePipeline::~MetalComputePipeline()
         {
-            [mPipelineState release];
+            mPipelineState = nil;
         }
     } // namespace gapi
 } // namespace cube

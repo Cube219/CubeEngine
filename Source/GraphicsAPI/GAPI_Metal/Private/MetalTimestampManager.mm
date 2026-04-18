@@ -27,10 +27,6 @@ namespace cube
 
     void MetalTimestampManager::SetNumGPUSync(Uint32 newNumGPUSync)
     { @autoreleasepool {
-        for (id<MTLCounterSampleBuffer> buffer : mCounterSampleBuffers)
-        {
-            [buffer release];
-        }
         mCounterSampleBuffers.clear();
 
         id<MTLCounterSet> timestampCounterSet = nil;
@@ -51,7 +47,7 @@ namespace cube
 
         NSError* error = nil;
         mCounterSampleBuffers.resize(newNumGPUSync);
-        for (id<MTLCounterSampleBuffer>& buffer : mCounterSampleBuffers)
+        for (id<MTLCounterSampleBuffer> __strong& buffer : mCounterSampleBuffers)
         {
             buffer = [mDevice.GetMTLDevice() newCounterSampleBufferWithDescriptor:desc error:&error];
             if (error != nil)
@@ -60,7 +56,6 @@ namespace cube
             }
             CHECK(buffer);
         }
-        [desc release];
 
         // Name
         mTimestampNames.clear();

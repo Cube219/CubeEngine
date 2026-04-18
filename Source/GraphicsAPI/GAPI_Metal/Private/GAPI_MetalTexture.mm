@@ -133,7 +133,6 @@ namespace cube
             {
                 mMTLTexture = [device.GetMTLDevice() newTextureWithDescriptor:desc];
             }
-            [desc release];
             CHECK(mMTLTexture);
             mMTLTexture.label = String_Convert<NSString*>(createInfo.debugName);
 
@@ -167,10 +166,7 @@ namespace cube
 
         MetalTexture::~MetalTexture()
         {
-            if (!mFromExisted && mMTLTexture)
-            {
-                [mMTLTexture release];
-            }
+            mMTLTexture = nil;
         }
 
         void* MetalTexture::Map()
@@ -308,7 +304,7 @@ namespace cube
 
         MetalTextureSRV::~MetalTextureSRV()
         {
-            [mSRV release];
+            mSRV = nil;
         }
 
         MetalTextureUAV::MetalTextureUAV(const TextureUAVCreateInfo& createInfo, SharedPtr<Texture> texture, MetalDevice& device)
@@ -340,7 +336,7 @@ namespace cube
 
         MetalTextureUAV::~MetalTextureUAV()
         {
-            [mUAV release];
+            mUAV = nil;
         }
 
         MetalTextureRTV::MetalTextureRTV(const TextureRTVCreateInfo& createInfo, SharedPtr<Texture> texture, MetalDevice& device)
@@ -361,7 +357,7 @@ namespace cube
 
         MetalTextureRTV::~MetalTextureRTV()
         {
-            [mRTV release];
+            mRTV = nil;
         }
 
         MetalTextureDSV::MetalTextureDSV(const TextureDSVCreateInfo& createInfo, SharedPtr<Texture> texture, MetalDevice& device)
@@ -382,7 +378,7 @@ namespace cube
 
         MetalTextureDSV::~MetalTextureDSV()
         {
-            [mDSV release];
+            mDSV = nil;
         }
     } // namespace gapi
 } // namespace cube

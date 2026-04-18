@@ -41,10 +41,10 @@ namespace cube
         mTransientHeapManager.Shutdown();
         mTimestampManager.Shutdown();
 
-        [mMainCommandQueue release];
-        [mGPUSyncEvent release];
+        mMainCommandQueue = nil;
+        mGPUSyncEvent = nil;
 
-        [mDevice release];
+        mDevice = nil;
     }
 
     bool MetalDevice::CheckFeatureRequirements()

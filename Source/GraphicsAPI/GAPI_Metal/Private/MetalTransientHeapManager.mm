@@ -29,7 +29,7 @@ namespace cube
     {
         for (TransientHeap& heap : mTransientHeaps)
         {
-            [heap.mtlHeap release];
+            heap.mtlHeap = nil;
         }
         mTransientHeaps.clear();
     }
@@ -77,7 +77,6 @@ namespace cube
 
         id<MTLHeap> newHeap = [mDevice.GetMTLDevice() newHeapWithDescriptor:desc];
         CHECK(newHeap);
-        [desc release];
 
         mTransientHeaps.push_back({
             .mtlHeap = newHeap,
@@ -105,7 +104,6 @@ namespace cube
                     const int lastIndex = static_cast<int>(mTransientHeaps.size()) - 1;
                     if (lastIndex > i)
                     {
-                        [mTransientHeaps[i].mtlHeap release];
                         mTransientHeaps[i] = std::move(mTransientHeaps[lastIndex]);
                     }
                     mTransientHeaps.pop_back();

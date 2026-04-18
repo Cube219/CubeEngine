@@ -305,7 +305,6 @@ namespace cube
             }
 
             mRenderEncoder = [mCommandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
-            [renderPassDescriptor release];
             mCurrentEncoderState.ApplyAll(mRenderEncoder);
         }
 
@@ -543,7 +542,6 @@ namespace cube
             MTLCommandBufferDescriptor* commandBufferDesc = [[MTLCommandBufferDescriptor alloc] init];
             commandBufferDesc.errorOptions = MTLCommandBufferErrorOptionEncoderExecutionStatus;
             mCommandBuffer = [mCommandQueueRef commandBufferWithDescriptor:commandBufferDesc];
-            [commandBufferDesc release];
 
             [mCommandBuffer addCompletedHandler:^(id<MTLCommandBuffer> commandBuffer) {
                 for (id<MTLFunctionLog> log in commandBuffer.logs)

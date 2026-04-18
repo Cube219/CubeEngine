@@ -21,7 +21,7 @@ namespace cube
     {
         Wait(mLastFenceValue);
 
-        [mFenceEvent release];
+        mFenceEvent = nil;
     }
 
     MetalFenceValue MetalUploadManager::SubmitTexture(id<MTLTexture> texture, bool waitForCompletion)

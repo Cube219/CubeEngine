@@ -611,9 +611,9 @@ namespace cube
 
             MacOSDebug::CloseAndDestroyLoggerWindow();
 
-            [mWindowDelegate release];
+            mWindowDelegate = nil;
 
-            [mAppDelegate release];
+            mAppDelegate = nil;
         }
 
         void MacOSPlatform::ForceTerminateMainLoopThread()

@@ -83,7 +83,6 @@ namespace cube
 
         dispatch_data_t data = dispatch_data_create(code.GetData(), code.GetSize(), nil, nil);
         result.library = [mDevice->GetMTLDevice() newLibraryWithData:data error:&error];
-        dispatch_release(data);
         if (error)
         {
             compileResult.AddError(Format<FrameString>(CUBE_T("Failed to load the metal shader. ({0})"), [error localizedDescription]));

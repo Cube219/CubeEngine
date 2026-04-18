@@ -51,6 +51,11 @@ if(PLATFORM_MACOS)
         PROPERTIES
             SKIP_PRECOMPILE_HEADERS ON
     )
+    # Enable Automatic Reference Counting (ARC) for Objective-C++ files (.mm)
+    set_source_files_properties(${PLATFORM_PRIVATE_FILES}
+        PROPERTIES
+            COMPILE_FLAGS "-fobjc-arc"
+    )
 endif()
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${PUBLIC_FILES} ${PRIVATE_FILES} ${PLATFORM_PUBLIC_FILES} ${PLATFORM_PRIVATE_FILES})

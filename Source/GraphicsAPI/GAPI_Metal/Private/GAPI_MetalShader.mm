@@ -27,14 +27,8 @@ namespace cube
 
         MetalShader::~MetalShader()
         {
-            if (mFunction)
-            {
-                [mFunction release];
-            }
-            if (mLibrary)
-            {
-                [mLibrary release];
-            }
+            mFunction = nil;
+            mLibrary = nil;
         }
     } // namespace gapi
 } // namespace cube

@@ -305,7 +305,7 @@ namespace cube
         // Wait until the main queue will flush.
         platform::MacOSUtility::DispatchToMainThreadAndWait([] {});
 
-        [mImGUIView release];
+        mImGUIView = nil;
 
         ImGui_ImplMetal_Shutdown();
         ImGui_ImplOSX_Shutdown();
