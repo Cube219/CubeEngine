@@ -27,6 +27,7 @@ namespace cube
         CUBE_BEGIN_SHADER_PARAMETER_LIST(GlobalShaderParameterList)
             CUBE_SHADER_PARAMETER(Vector3, viewPosition)
             CUBE_SHADER_PARAMETER(Matrix, viewProjection)
+            CUBE_SHADER_PARAMETER(bool, isDirectionalLightEnabled)
             CUBE_SHADER_PARAMETER(Vector3, directionalLightDirection)
             CUBE_SHADER_PARAMETER(Vector3, directionalLightIntensity)
         CUBE_END_SHADER_PARAMETER_LIST
@@ -38,14 +39,6 @@ namespace cube
             CUBE_SHADER_PARAMETER(Matrix, model)
             CUBE_SHADER_PARAMETER(Matrix, modelInverse)
             CUBE_SHADER_PARAMETER(Matrix, modelInverseTranspose)
-        CUBE_END_SHADER_PARAMETER_LIST
-    };
-
-    class SkyboxShaderParameterList : public ShaderParameterList
-    {
-        CUBE_BEGIN_SHADER_PARAMETER_LIST(SkyboxShaderParameterList)
-            CUBE_SHADER_PARAMETER(RGTextureSRVHandle, skyboxTexture)
-            CUBE_SHADER_PARAMETER(BindlessSampler, skyboxSampler)
         CUBE_END_SHADER_PARAMETER_LIST
     };
 
@@ -73,8 +66,9 @@ namespace cube
 
         SharedPtr<Mesh> GetBoxMesh() const { return mBoxMesh; }
         SharedPtr<Material> GetDefaultMaterial() const { return mDefaultMaterial; }
-        SharedPtr<gapi::Texture> GetDummyBlackTexture() const { return mDummyBlackTexture->GetGAPITexture(); }
-        SharedPtr<gapi::Texture> GetDummyWhiteTexture() const { return mDummyWhiteTexture->GetGAPITexture(); }
+        SharedPtr<gapi::Texture> GetDummyBlackTexture2D() const { return mDummyBlackTexture2D->GetGAPITexture(); }
+        SharedPtr<gapi::Texture> GetDummyBlackTextureCube() const { return mDummyBlackTextureCube->GetGAPITexture(); }
+        SharedPtr<gapi::Texture> GetDummyWhiteTexture2D() const { return mDummyWhiteTexture2D->GetGAPITexture(); }
 
         void SetObjectModelMatrix(const Vector3& position, const Vector3& rotation, const Vector3& scale);
         void SetViewMatrix(const Vector3& eye, const Vector3& target, const Vector3& upDir);
@@ -124,6 +118,7 @@ namespace cube
         SharedPtr<gapi::Texture> mCurrentBackbuffer;
         SharedPtr<gapi::Texture> mDepthStencilTexture;
 
+        bool mIsDirectionalLightEnabled;
         Vector3 mDirectionalLightDirection;
         Vector3 mDirectionalLightIntensity;
 
@@ -133,8 +128,9 @@ namespace cube
         Vector<SharedPtr<Material>> mMaterials;
         SharedPtr<Material> mDefaultMaterial;
 
-        SharedPtr<TextureResource> mDummyBlackTexture;
-        SharedPtr<TextureResource> mDummyWhiteTexture;
+        SharedPtr<TextureResource> mDummyBlackTexture2D;
+        SharedPtr<TextureResource> mDummyWhiteTexture2D;
+        SharedPtr<TextureResource> mDummyBlackTextureCube;
 
         // TODO: Create pipeline cache manager
         bool mNeedRecreatingPipelines = false;

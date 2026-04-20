@@ -60,7 +60,7 @@ namespace cube
         InitializeImGUI(initInfo.imGUI);
         MetalShaderCompiler::Initialize(mMainDevice);
 
-        mCurrentGPUFrame = 0;
+        mCurrentGPUFrame = 1;
         SetNumGPUSync(initInfo.numGPUSync);
 
         mShaderParameterHelper = std::make_unique<gapi::MetalShaderParameterHelper>();

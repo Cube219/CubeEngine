@@ -329,10 +329,8 @@ namespace cube
         outReflection.threadGroupSizeY = threadGroupSize[1];
         outReflection.threadGroupSizeZ = threadGroupSize[2];
 
-        const Uint32 numParameterBlocks = layout->getParameterCount();
-        for (Uint32 blockIndex = 0; blockIndex < numParameterBlocks; ++blockIndex)
+        auto ProcessParameterBlock = [&](VariableLayoutReflection* blockVariableLayout)
         {
-            VariableLayoutReflection* blockVariableLayout = layout->getParameterByIndex(blockIndex);
             TypeLayoutReflection* blockTypeLayout = blockVariableLayout->getTypeLayout();
 
             if (blockTypeLayout->getKind() == TypeReflection::Kind::ParameterBlock)
@@ -343,7 +341,7 @@ namespace cube
                 const char* parameterTypeName = parameterTypeLayout->getName();
                 Uint32 index = blockVariableLayout->getBindingIndex();
                 gapi::ShaderParameterBlockReflection& outBlockReflection = outReflection.blocks.emplace_back(String_Convert<String>(parameterTypeName), index);
-                
+
                 if (parameterTypeLayout->getKind() == TypeReflection::Kind::Struct)
                 {
                     Uint32 fieldCount = parameterTypeLayout->getFieldCount();
@@ -486,10 +484,22 @@ namespace cube
                     CUBE_LOG(Warning, Slang, "Only structure is allowed in ParameterBlock. Ignore it. (name: {0})", parameterTypeLayout->getName());
                 }
             }
-            else
-            {
-                CUBE_LOG(Warning, Slang, "Only ParameterBlock is allowed at the global scope. Ignore it. (name: {0})", blockVariableLayout->getName());
-            }
+        };
+
+        // Parameter blocks in global scope. (used in VS/PS)
+        const Uint32 numParameterBlocks = layout->getParameterCount();
+        for (Uint32 blockIndex = 0; blockIndex < numParameterBlocks; ++blockIndex)
+        {
+            VariableLayoutReflection* blockVariableLayout = layout->getParameterByIndex(blockIndex);
+            ProcessParameterBlock(blockVariableLayout);
+        }
+
+        // Parameter blocks in entry point parameters. (used in CS)
+        const Uint32 numParameterBlocksInEntryPoint = entryPoint->getParameterCount();
+        for (Uint32 blockIndex = 0; blockIndex < numParameterBlocksInEntryPoint; ++blockIndex)
+        {
+            VariableLayoutReflection* blockVariableLayout = entryPoint->getParameterByIndex(blockIndex);
+            ProcessParameterBlock(blockVariableLayout);
         }
     }
 

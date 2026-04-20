@@ -164,6 +164,11 @@ public struct TBRDF<D, S>
         float3 Lo = kD * D.Calculate(param) + specular;
         return Lo;
     }
+
+    public static float3 DiffuseWeight(BRDFParam param)
+    {
+        return S.DiffuseWeight(param);
+    }
 }
 
 public typealias BRDF = TBRDF<Diffuse_Lambert, Specular_CookTorrance<Fresnel_Schlick, Geometry_SmithGGX, NDF_GGX>>;

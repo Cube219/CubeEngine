@@ -1,4 +1,5 @@
 module Light;
+__include "Light/EnvironmentMapLight";
 __include "Light/DirectionalLight";
 
 import Material;

@@ -75,6 +75,7 @@ namespace cube
     {
         if (gpuFrame >= mNumGPUSync)
         {
+            // TODO: Use other way? It causes freezing UI update in long GPU work.
             [mGPUSyncEvent waitUntilSignaledValue:gpuFrame-1 timeoutMS:100000000000];
         }
 

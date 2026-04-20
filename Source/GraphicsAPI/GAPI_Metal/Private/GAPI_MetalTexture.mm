@@ -306,9 +306,16 @@ namespace cube
                 sliceSize *= 6;
             }
             id<MTLTexture> mtlTexture = metalTexture->GetMTLTexture();
+            MTLTextureType mtlTextureType = metalTexture->GetTextureType();
+            if (mtlTextureType == MTLTextureTypeCube || mtlTextureType == MTLTextureTypeCubeArray)
+            {
+                // Use texture 2d array type instead of cubemap type in UAV. Slang does not support RWTextureCube(Array)
+                // and it cannot be rendered correctly in cubemap type through texture2d_array in shader.
+                mtlTextureType = MTLTextureType2DArray;
+            }
             mUAV = [mtlTexture
                 newTextureViewWithPixelFormat:metalTexture->GetPixelFormat()
-                textureType:metalTexture->GetTextureType()
+                textureType:mtlTextureType
                 levels:NSMakeRange(createInfo.mipLevel, 1)
                 slices:NSMakeRange(createInfo.firstSliceIndex, sliceSize)
             ];

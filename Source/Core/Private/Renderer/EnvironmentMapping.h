@@ -6,11 +6,25 @@
 
 namespace cube
 {
+    class ComputePipeline;
     class GraphicsPipeline;
     class Renderer;
     class RGBuilder;
     class Shader;
     class TextureResource;
+
+    namespace gapi
+    {
+        class CommandList;
+    } // namespace gapi
+
+    class EnvironmentMapLightShaderParameterList : public ShaderParameterList
+    {
+        CUBE_BEGIN_SHADER_PARAMETER_LIST(EnvironmentMapLightShaderParameterList)
+            CUBE_SHADER_PARAMETER(RGTextureSRVHandle, diffuseIrradianceMap)
+            CUBE_SHADER_PARAMETER(BindlessSampler, sampler)
+        CUBE_END_SHADER_PARAMETER_LIST
+    };
 
     class EnvironmentMapping
     {
@@ -20,6 +34,8 @@ namespace cube
 
         void Initialize(bool enable);
         void Shutdown();
+
+        void OnLoopImGUI();
 
         void LoadResources();
         void ClearReaources();
@@ -36,14 +52,35 @@ namespace cube
         RGTextureSRVHandle GetDiffuseIrradianceMap(RGBuilder& builder) const;
 
     private:
+        void GenerateIrradianceMap();
+
         Renderer& mRenderer;
 
         bool mIsEnabled;
+
+        enum class SkyboxType
+        {
+            None,
+            IBL,
+            DiffuseIrradianceMap,
+
+            Num
+        };
+        static constexpr Array<const char*, 3> SkyboxTypeToString = {
+            "None",
+            "IBL",
+            "DiffuseIrradianceMap",
+        };
+        SkyboxType mCurrentSkyboxType;
 
         SharedPtr<TextureResource> mIBLTexture;
         SharedPtr<Shader> mSkyboxVS;
         SharedPtr<Shader> mSkyboxPS;
         SharedPtr<GraphicsPipeline> mSkyboxPipeline;
+
+        SharedPtr<Shader> mGenerateIrradianceMapShader;
+        SharedPtr<ComputePipeline> mGenerateIrradianceMapPipeline;
+        SharedPtr<gapi::CommandList> mCommandList;
 
         SharedPtr<gapi::Texture> mDiffuseIrradianceMap;
     };

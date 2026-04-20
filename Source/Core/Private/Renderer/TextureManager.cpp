@@ -94,9 +94,9 @@ namespace cube
                 params->Get()->WriteAllParametersToGPUBuffer();
 
                 builder.AddPass(Format<FrameString>(CUBE_T("GenerateMipmaps ({0}->{1})"), mipIndex - 1, mipIndex),
-                mGenerateMipmapsPipeline,
-                params,
-                [width, height](gapi::CommandList& commandList)
+                    mGenerateMipmapsPipeline,
+                    params,
+                    [width, height](gapi::CommandList& commandList)
                 {
                     commandList.DispatchThreads(width, height, 1);
                 });

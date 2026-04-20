@@ -87,52 +87,114 @@ namespace cube
         mGAPITexture = nullptr;
     }
 
-    TextureRawData TextureHelper::LoadFromFile(platform::FilePath path)
+    TextureRawData TextureHelper::LoadFromFile(platform::FilePath path, LoadElementType loadElementType)
     {
         SharedPtr<platform::File> file = platform::FileSystem::OpenFile(path, platform::FileAccessModeFlag::Read);
         CHECK(file);
         const Uint64 fileSize = file->GetFileSize();
-        FrameVector<stbi_uc> fileData(fileSize);
-        file->Read(fileData.data(), fileSize);
+        Blob fileData(fileSize);
+        file->Read(fileData.GetData(), fileSize);
         file = nullptr;
 
+        stbi_uc* stbiFileData = static_cast<stbi_uc*>(fileData.GetData());
         int width, height, numChannels;
-        stbi_info_from_memory(fileData.data(), fileSize, &width, &height, &numChannels);
-        int desiredChannels = numChannels;
-        if (numChannels == 3)
-        {
-            // Use RGBA16
-            desiredChannels = 4;
-        }
-        stbi_us* data = stbi_load_16_from_memory(fileData.data(), fileSize, &width, &height, &numChannels, desiredChannels);
+        stbi_info_from_memory(stbiFileData, fileSize, &width, &height, &numChannels);
 
-        Blob blobData(data, width * height * desiredChannels * sizeof(stbi_us));
-        stbi_image_free(data);
-
+        Blob blobData;
         gapi::ElementFormat format = gapi::ElementFormat::Unknown;
-        switch (desiredChannels)
+        Uint32 bytesPerElement = 1;
+        switch (loadElementType)
         {
-        case 1:
-            format = gapi::ElementFormat::R16_UNorm;
+        case LoadElementType::U8:
+        {
+            int desiredChannels = numChannels;
+            switch (numChannels)
+            {
+            case 1:
+                format = gapi::ElementFormat::R8_UNorm;
+                break;
+            case 2:
+                format = gapi::ElementFormat::RG8_UNorm;
+                break;
+            case 3:
+            case 4:
+                format = gapi::ElementFormat::RGBA8_UNorm;
+                desiredChannels = 4;
+                break;
+            default:
+                NO_ENTRY_FORMAT("Unsupported channel number.");
+                break;
+            }
+            bytesPerElement = sizeof(stbi_uc) * desiredChannels;
+
+            stbi_uc* data = stbi_load_from_memory(stbiFileData, fileSize, &width, &height, &numChannels, desiredChannels);
+            blobData = Blob(data, width * height * desiredChannels * sizeof(stbi_uc));
+            stbi_image_free(data);
             break;
-        case 2:
-            format = gapi::ElementFormat::RG16_UNorm;
+        }
+        case LoadElementType::U16:
+        {
+            int desiredChannels = numChannels;
+            switch (numChannels)
+            {
+            case 1:
+                format = gapi::ElementFormat::R16_UNorm;
+                break;
+            case 2:
+                format = gapi::ElementFormat::RG16_UNorm;
+                break;
+            case 3:
+            case 4:
+                format = gapi::ElementFormat::RGBA16_UNorm;
+                desiredChannels = 4;
+                break;
+            default:
+                NO_ENTRY_FORMAT("Unsupported channel number.");
+                break;
+            }
+            bytesPerElement = sizeof(stbi_us) * desiredChannels;
+
+            stbi_us* data = stbi_load_16_from_memory(stbiFileData, fileSize, &width, &height, &numChannels, desiredChannels);
+            blobData = Blob(data, width * height * desiredChannels * sizeof(stbi_us));
+            stbi_image_free(data);
             break;
-        case 3: // Use RGBA16
-        case 4:
-            format = gapi::ElementFormat::RGBA16_UNorm;
+        }
+        case LoadElementType::Float:
+        {
+            int desiredChannels = numChannels;
+            switch (numChannels)
+            {
+            case 1:
+                format = gapi::ElementFormat::R32_Float;
+                break;
+            case 2:
+                format = gapi::ElementFormat::RG32_Float;
+                break;
+            case 3:
+            case 4:
+                format = gapi::ElementFormat::RGBA32_Float;
+                desiredChannels = 4;
+                break;
+            default:
+                NO_ENTRY_FORMAT("Unsupported channel number.");
+                break;
+            }
+            bytesPerElement = sizeof(float) * desiredChannels;
+
+            float* data = stbi_loadf_from_memory(stbiFileData, fileSize, &width, &height, &numChannels, desiredChannels);
+            blobData = Blob(data, width * height * desiredChannels * sizeof(float));
+            stbi_image_free(data);
             break;
+        }
         default:
-            NO_ENTRY_FORMAT("Unsupported channel number.");
-            format = gapi::ElementFormat::Unknown;
-            break;
+            NOT_IMPLEMENTED();
         }
 
         return {
             .format = format,
             .width = static_cast<Uint32>(width),
             .height = static_cast<Uint32>(height),
-            .bytesPerElement = static_cast<Uint32>(sizeof(stbi_us) * desiredChannels),
+            .bytesPerElement = bytesPerElement,
             .data = std::move(blobData)
         };
     }

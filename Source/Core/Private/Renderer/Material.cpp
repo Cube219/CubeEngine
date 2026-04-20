@@ -97,7 +97,7 @@ namespace cube
         }
         else
         {
-            parameters->Get()->textureSlot0 = builder.GetDummyBlackTexture();
+            parameters->Get()->textureSlot0 = builder.GetDummyBlackTexture2D();
         }
         if (mTextures[1])
         {
@@ -107,7 +107,7 @@ namespace cube
         }
         else
         {
-            parameters->Get()->textureSlot1 = builder.GetDummyBlackTexture();
+            parameters->Get()->textureSlot1 = builder.GetDummyBlackTexture2D();
         }
         if (mTextures[2])
         {
@@ -117,7 +117,7 @@ namespace cube
         }
         else
         {
-            parameters->Get()->textureSlot2 = builder.GetDummyBlackTexture();
+            parameters->Get()->textureSlot2 = builder.GetDummyBlackTexture2D();
         }
         if (mTextures[3])
         {
@@ -127,7 +127,7 @@ namespace cube
         }
         else
         {
-            parameters->Get()->textureSlot3 = builder.GetDummyBlackTexture();
+            parameters->Get()->textureSlot3 = builder.GetDummyBlackTexture2D();
         }
         if (mTextures[4])
         {
@@ -137,7 +137,7 @@ namespace cube
         }
         else
         {
-            parameters->Get()->textureSlot4 = builder.GetDummyBlackTexture();
+            parameters->Get()->textureSlot4 = builder.GetDummyBlackTexture2D();
         }
         parameters->Get()->materialSampler.id = mSamplerId;
 

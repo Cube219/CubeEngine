@@ -44,6 +44,13 @@ namespace cube
     class TextureHelper
     {
     public:
-        static TextureRawData LoadFromFile(platform::FilePath path);
+        enum class LoadElementType
+        {
+            U8,
+            U16,
+            Float
+        };
+
+        static TextureRawData LoadFromFile(platform::FilePath path, LoadElementType loadElementType = LoadElementType::U8);
     };
 } // namespace cube

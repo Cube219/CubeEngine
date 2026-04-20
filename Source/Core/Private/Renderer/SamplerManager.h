@@ -18,7 +18,7 @@ namespace cube
         void Shutdown();
 
         // Note: Add SharedPtr<gapi::Sampler> version if needed
-        Uint64 GetDefaultLinearSamplerId();
+        Uint64 GetDefaultLinearSamplerId(); // TODO: use static sampler?
         Uint64 GetSamplerId(const gapi::SamplerCreateInfo& createInfo);
 
     private:

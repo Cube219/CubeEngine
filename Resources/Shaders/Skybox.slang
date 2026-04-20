@@ -40,5 +40,8 @@ SkyboxPSOutput PSMain(SkyboxPSInput input) : SV_TARGET
     SkyboxPSOutput output;
     output.color = skyboxParams.skyboxTexture.Sample(skyboxParams.skyboxSampler, input.uvw);
 
+    float gamma = 2.2;
+    output.color = float4(pow(output.color.xyz, float3(1.0/gamma)), 1);
+
     return output;
 }

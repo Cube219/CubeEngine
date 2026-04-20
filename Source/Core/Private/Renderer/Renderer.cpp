@@ -24,7 +24,6 @@ namespace cube
 {
     CUBE_REGISTER_SHADER_PARAMETER_LIST(GlobalShaderParameterList);
     CUBE_REGISTER_SHADER_PARAMETER_LIST(ObjectShaderParameterList);
-    CUBE_REGISTER_SHADER_PARAMETER_LIST(SkyboxShaderParameterList);
 
     Renderer::Renderer()
         : mShaderManager(*this)
@@ -104,8 +103,11 @@ namespace cube
             .debugName = CUBE_T("MainDepthStencilTexture")
         });
 
+        mIsDirectionalLightEnabled = true;
         mDirectionalLightDirection = Vector3(1.0f, 1.0f, 1.0f).Normalized();
-        mDirectionalLightIntensity = Vector3(3.0f, 3.0f, 3.0f);
+        mDirectionalLightIntensity = Vector3(1.0f, 1.0f, 1.0f);
+
+        mEnvironmentMapping.Initialize(true);
 
         LoadResources();
     }
@@ -117,6 +119,8 @@ namespace cube
         mGAPI->WaitAllGPUSync();
 
         ClearResources();
+
+        mEnvironmentMapping.Shutdown();
 
         mDepthStencilTexture = nullptr;
         mCurrentBackbuffer = nullptr;
@@ -141,6 +145,8 @@ namespace cube
         if (ImGui::CollapsingHeader("Lighting", ImGuiTreeNodeFlags_DefaultOpen))
         {
             ImGui::SeparatorText("Directional Light");
+            ImGui::Checkbox("Enable##Directional Light", &mIsDirectionalLightEnabled);
+            ImGui::BeginDisabled(!mIsDirectionalLightEnabled);
             {
                 vec3 directionVec3 = { mDirectionalLightDirection.GetFloat3().x, mDirectionalLightDirection.GetFloat3().y, mDirectionalLightDirection.GetFloat3().z };
                 ImGui::Text("Direction: %.3f %.3f %.3f", directionVec3.x, directionVec3.y, directionVec3.z);
@@ -163,17 +169,9 @@ namespace cube
 
                 mDirectionalLightIntensity = Vector3(intensityFloat3.x, intensityFloat3.y, intensityFloat3.z);
             }
+            ImGui::EndDisabled();
 
-            ImGui::SeparatorText("Environment Mapping");
-            {
-                ImGui::BeginDisabled(!mEnvironmentMapping.IsSupported());
-                bool isEnabled = mEnvironmentMapping.IsEnabled();
-                if (ImGui::Checkbox("Enable", &isEnabled))
-                {
-                    mEnvironmentMapping.SetEnable(isEnabled);
-                }
-                ImGui::EndDisabled();
-            }
+            mEnvironmentMapping.OnLoopImGUI();
         }
 
         if (ImGui::CollapsingHeader("Shader", ImGuiTreeNodeFlags_DefaultOpen))
@@ -403,10 +401,16 @@ namespace cube
             RGShaderParameterListHandle<GlobalShaderParameterList> globalShaderParameterList = builder.CreateShaderParameterList<GlobalShaderParameterList>();
             globalShaderParameterList->Get()->viewPosition = mViewPosition;
             globalShaderParameterList->Get()->viewProjection = mViewPerspectiveMatirx;
+            globalShaderParameterList->Get()->isDirectionalLightEnabled = mIsDirectionalLightEnabled;
             globalShaderParameterList->Get()->directionalLightDirection = mDirectionalLightDirection;
             globalShaderParameterList->Get()->directionalLightIntensity = mDirectionalLightIntensity;
             globalShaderParameterList->Get()->WriteAllParametersToGPUBuffer();
             builder.BindShaderParameterList(globalShaderParameterList);
+
+            RGShaderParameterListHandle<EnvironmentMapLightShaderParameterList> envMapShaderParameterList = builder.CreateShaderParameterList<EnvironmentMapLightShaderParameterList>();
+            envMapShaderParameterList->Get()->diffuseIrradianceMap = mEnvironmentMapping.GetDiffuseIrradianceMap(builder);
+            envMapShaderParameterList->Get()->sampler.id = mSamplerManager.GetDefaultLinearSamplerId();
+            envMapShaderParameterList->Get()->WriteAllParametersToGPUBuffer();
 
             RGTextureHandle color = builder.RegisterTexture(mCurrentBackbuffer);
             RGTextureHandle depthStencil = builder.RegisterTexture(mDepthStencilTexture);
@@ -446,7 +450,7 @@ namespace cube
                 .materials = mMaterials,
                 .model = mModelMatrix
             });
-            builder.AddDrawMeshPass(CUBE_T("Draw Center Object"), drawMeshInfos);
+            builder.AddDrawMeshPass(CUBE_T("Draw Center Object"), drawMeshInfos, RGBuilder::MakeParameterListArray(envMapShaderParameterList));
 
             if (mShowAxis)
             {
@@ -472,14 +476,13 @@ namespace cube
                     .materials = { &mZAxisMaterial, 1 },
                     .model = mZAxisModelMatrix
                 });
-                builder.AddDrawMeshPass(CUBE_T("Draw Axis"), drawAxisMeshInfos);
+                builder.AddDrawMeshPass(CUBE_T("Draw Axis"), drawAxisMeshInfos, RGBuilder::MakeParameterListArray(envMapShaderParameterList));
             }
 
             mEnvironmentMapping.DrawSkybox(builder);
 
             builder.EndRenderPass();
         }
-
         builder.ExecuteAndSubmit(*mCommandList);
     }
 
@@ -491,7 +494,8 @@ namespace cube
         mDefaultMaterial = std::make_shared<Material>(CUBE_T("DefaultMaterial"));
 
         {
-            Uint32 dummyValue = 0;
+            Array<Uint32, 6> dummyValue;
+            memset(dummyValue.data(), 0, sizeof(Uint32) * dummyValue.size());
             TextureResourceCreateInfo dummyTextureCreateInfo = {
                 .textureInfo = {
                     .format = gapi::ElementFormat::RGBA8_UNorm,
@@ -499,14 +503,21 @@ namespace cube
                     .width = 1,
                     .height = 1,
                 },
-                .data = BlobView(&dummyValue, sizeof(Uint32)),
+                .data = BlobView(dummyValue.data(), sizeof(Uint32)),
                 .bytesPerElement = sizeof(Uint32),
-                .debugName = CUBE_T("DummyBlackTexture")
+                .debugName = CUBE_T("DummyBlackTexture2D")
             };
-            mDummyBlackTexture = std::make_shared<TextureResource>(dummyTextureCreateInfo);
-            dummyValue = 0xFFFFFFFF;
-            dummyTextureCreateInfo.debugName = CUBE_T("DummyWhiteTexture");
-            mDummyWhiteTexture = std::make_shared<TextureResource>(dummyTextureCreateInfo);
+            mDummyBlackTexture2D = std::make_shared<TextureResource>(dummyTextureCreateInfo);
+            dummyTextureCreateInfo.textureInfo.type  = gapi::TextureType::TextureCube;
+            dummyTextureCreateInfo.data = BlobView(dummyValue.data(), sizeof(Uint32) * 6);
+            dummyTextureCreateInfo.debugName = CUBE_T("DummyBlackTextureCube");
+            mDummyBlackTextureCube = std::make_shared<TextureResource>(dummyTextureCreateInfo);
+
+            memset(dummyValue.data(), 0xFF, sizeof(Uint32) * dummyValue.size());
+            dummyTextureCreateInfo.textureInfo.type  = gapi::TextureType::Texture2D;
+            dummyTextureCreateInfo.data = BlobView(dummyValue.data(), sizeof(Uint32));
+            dummyTextureCreateInfo.debugName = CUBE_T("DummyWhiteTexture2D");
+            mDummyWhiteTexture2D = std::make_shared<TextureResource>(dummyTextureCreateInfo);
         }
 
         {
@@ -537,8 +548,9 @@ namespace cube
         mYAxisMaterial = nullptr;
         mXAxisMaterial = nullptr;
 
-        mDummyWhiteTexture = nullptr;
-        mDummyBlackTexture = nullptr;
+        mDummyWhiteTexture2D = nullptr;
+        mDummyBlackTextureCube = nullptr;
+        mDummyBlackTexture2D = nullptr;
         mDefaultMaterial = nullptr;
 
         mMaterials.clear();

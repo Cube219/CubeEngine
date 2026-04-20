@@ -6,6 +6,7 @@ import Material;
 ParameterBlock<GlobalShaderParameterList> globalParams;
 ParameterBlock<ObjectShaderParameterList> perObjectParams;
 ParameterBlock<MaterialShaderParameterList> materialParams;
+ParameterBlock<EnvironmentMapLightShaderParameterList> envMapParams;
 
 extern struct Material : IMaterial;
 
@@ -44,8 +45,18 @@ PSOutput PSMain(PSInput input) : SV_TARGET
 
     float3 view = normalize(globalParams.viewPosition - input.worldPosition.xyz);
 
-    ILight directionalLight = DirectionalLight(normalize(globalParams.directionalLightDirection), globalParams.directionalLightIntensity);
-    float3 color = directionalLight.CalculateLight(view, normal, materialValue);
+    float3 color = 0;
+    if (globalParams.isDirectionalLightEnabled)
+    {
+        DirectionalLight directionalLight = DirectionalLight(normalize(globalParams.directionalLightDirection), globalParams.directionalLightIntensity);
+        color += directionalLight.CalculateLight(view, normal, materialValue);
+    }
+
+    EnvironmentMapLight envMapLight = EnvironmentMapLight(envMapParams.diffuseIrradianceMap, envMapParams.sampler);
+    color += envMapLight.CalculateLight(view, normal, materialValue);
+    
+    float gamma = 2.2;
+    color = pow(color, float3(1.0/gamma));
 
     PSOutput output;
     output.color = float4(color, 1);

@@ -72,6 +72,8 @@ namespace cube
         // Name
         mTimestampNames.clear();
         mTimestampNames.resize(newNumGPUSync);
+
+        mCurrentIndex = 0;
     }
 
     void DX12QueryManager::MoveToNextIndex(Uint64 nextGPUFrame)

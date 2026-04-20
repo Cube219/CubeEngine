@@ -42,12 +42,13 @@ namespace cube
 
         // TODO: Remove duplication
         RGTextureSRVHandle CreateSRV(RGTextureHandle rgTexture, Uint32 firstMipLevel = 0, Int32 mipLevels = gapi::SubresourceRange::AllRange);
-        RGTextureUAVHandle CreateUAV(RGTextureHandle rgTexture, Uint32 mipLevel = 0);
+        RGTextureUAVHandle CreateUAV(RGTextureHandle rgTexture, Uint32 mipLevel = 0, Uint32 firstSliceIndex = 0, Int32 sliceSize = gapi::SubresourceRange::AllRange);
         RGTextureRTVHandle CreateRTV(RGTextureHandle rgTexture, Uint32 mipLevel = 0);
         RGTextureDSVHandle CreateDSV(RGTextureHandle rgTexture, Uint32 mipLevel = 0);
 
-        RGTextureSRVHandle GetDummyBlackTexture();
-        RGTextureSRVHandle GetDummyWhiteTexture();
+        RGTextureSRVHandle GetDummyBlackTexture2D();
+        RGTextureSRVHandle GetDummyBlackTextureCube();
+        RGTextureSRVHandle GetDummyWhiteTexture2D();
 
         RGTextureHandle RegisterTexture(SharedPtr<gapi::Texture> texture);
 
@@ -90,26 +91,39 @@ namespace cube
             BindShaderParameterListInternal(ShaderParameterListType::GetName(), parameterList);
         }
 
+        template <typename... T>
+            requires (std::derived_from<T, ShaderParameterList>, ...)
+        static Array<RGShaderParameterListBaseHandle, sizeof...(T)> MakeParameterListArray(RGShaderParameterListHandle<T>... params)
+        {
+            return { params... };
+        }
+
         void AddPass(StringView name, PassFunction&& passFunction, UseResourceFunction&& useResourceFunction = [](RGBuilder&) {}, bool isCompute = false)
         {
             AddPassInternal(name, nullptr, nullptr, {}, std::move(passFunction), std::move(useResourceFunction));
         }
 
-        template <typename ShaderParameterListType>
-            requires std::derived_from<ShaderParameterListType, ShaderParameterList>
-        void AddPass(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, RGShaderParameterListHandle<ShaderParameterListType> parameterList, PassFunction&& passFunction)
+        void AddPass(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, RGShaderParameterListBaseHandle parameterList, PassFunction&& passFunction)
         {
-            AddPassInternal(name, graphicsPipeline, nullptr, parameterList, std::move(passFunction), nullptr);
+            AddPassInternal(name, graphicsPipeline, nullptr, { &parameterList, 1 }, std::move(passFunction), nullptr);
         }
 
-        template <typename ShaderParameterListType>
-            requires std::derived_from<ShaderParameterListType, ShaderParameterList>
-        void AddPass(StringView name, SharedPtr<ComputePipeline> computePipeline, RGShaderParameterListHandle<ShaderParameterListType> parameterList, PassFunction&& passFunction)
+        void AddPass(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists, PassFunction&& passFunction)
         {
-            AddPassInternal(name, nullptr, computePipeline, parameterList, std::move(passFunction), nullptr);
+            AddPassInternal(name, graphicsPipeline, nullptr, parameterLists, std::move(passFunction), nullptr);
         }
 
-        void AddDrawMeshPass(StringView name, ArrayView<DrawMeshInfo> drawMeshInfos);
+        void AddPass(StringView name, SharedPtr<ComputePipeline> computePipeline, RGShaderParameterListBaseHandle parameterList, PassFunction&& passFunction)
+        {
+            AddPassInternal(name, nullptr, computePipeline, { &parameterList, 1 }, std::move(passFunction), nullptr);
+        }
+
+        void AddPass(StringView name, SharedPtr<ComputePipeline> computePipeline, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists, PassFunction&& passFunction)
+        {
+            AddPassInternal(name, nullptr, computePipeline, parameterLists, std::move(passFunction), nullptr);
+        }
+
+        void AddDrawMeshPass(StringView name, ArrayView<DrawMeshInfo> drawMeshInfos, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists);
 
         void UseResource(RGTextureSRVHandle rgSRV);
         void UseResource(RGTextureUAVHandle rgUAV);
@@ -125,7 +139,7 @@ namespace cube
             String name;
             int index = -1;
 
-            RGShaderParameterListBaseHandle shaderParameterList;
+            Vector<RGShaderParameterListBaseHandle> shaderParameterLists;
 
             SharedPtr<GraphicsPipeline> graphicsPipeline = nullptr;
             SharedPtr<ComputePipeline> computePipeline = nullptr;
@@ -146,9 +160,9 @@ namespace cube
 
         void BindShaderParameterListInternal(StringView name, RGShaderParameterListBaseHandle parameterList);
 
-        void AddPassInternal(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, SharedPtr<ComputePipeline> computePipeline, RGShaderParameterListBaseHandle parameterList, PassFunction&& passFunction, UseResourceFunction&& useResourceFunction);
+        void AddPassInternal(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, SharedPtr<ComputePipeline> computePipeline, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists, PassFunction&& passFunction, UseResourceFunction&& useResourceFunction);
 
-        void ResolveShaderParameterListAndPipeline(PassInfo& pass, gapi::CommandList& commandList);
+        void ResolveShaderParameterListsAndPipeline(PassInfo& pass, gapi::CommandList& commandList);
         void MarkUseResources(PassInfo& pass, gapi::CommandList& commandList);
 
         void UpdateResourceUsagesInShaderParameterList();
@@ -164,8 +178,9 @@ namespace cube
 
         Vector<RGResource*> mResources;
         Map<gapi::Texture*, RGTextureHandle> mRegisteredTextures;
-        RGTextureSRVHandle mDummyBlackTexture;
-        RGTextureSRVHandle mDummyWhiteTexture;
+        RGTextureSRVHandle mDummyBlackTexture2D;
+        RGTextureSRVHandle mDummyBlackTextureCube;
+        RGTextureSRVHandle mDummyWhiteTexture2D;
 
         enum class State
         {
@@ -210,5 +225,4 @@ namespace cube
         RGBuilder& mCurrentBuilder;
 	};
 #define RG_GPU_EVENT_SCOPE(builder, name) RGGPUEventScope CUBE_MACRO_JOIN(_eventScope, __LINE__)(builder, name)
-
 } // namespace cube

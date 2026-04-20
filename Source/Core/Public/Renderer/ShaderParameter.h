@@ -107,6 +107,13 @@ namespace cube
     };
 
     template <>
+    struct ShaderParameterTypeInfo<int>
+    {
+        static constexpr ShaderParameterType type = ShaderParameterType::Int;
+        static constexpr Uint32 size = sizeof(int);
+    };
+
+    template <>
     struct ShaderParameterTypeInfo<float>
     {
         static constexpr ShaderParameterType type = ShaderParameterType::Float;

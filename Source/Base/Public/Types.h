@@ -57,6 +57,9 @@ namespace cube
     template <typename Type, size_t Extent = std::dynamic_extent>
     using ArrayView = std::span<Type, Extent>;
 
+    template <typename Type, size_t Extent = std::dynamic_extent>
+    using ConstArrayView = std::span<const Type, Extent>;
+
     template <typename Value>
     using Set = std::set<Value>;
 

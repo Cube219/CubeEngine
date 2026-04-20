@@ -128,7 +128,7 @@ namespace cube
     private:
         friend class RGBuilder;
 
-        RGTextureUAV(int index, RGTexture* rgTexture, Uint32 mipLevel);
+        RGTextureUAV(int index, RGTexture* rgTexture, Uint32 mipLevel, Uint32 firstSliceIndex, Int32 sliceSize);
         virtual ~RGTextureUAV() = default;
 
         SharedPtr<gapi::TextureUAV> mUAV;
