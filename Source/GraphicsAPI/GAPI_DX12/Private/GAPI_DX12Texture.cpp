@@ -323,7 +323,7 @@ namespace cube
                 uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
                 uavDesc.Texture3D.MipSlice = createInfo.mipLevel;
                 uavDesc.Texture3D.FirstWSlice = createInfo.firstDepthIndex;
-                uavDesc.Texture3D.WSize = createInfo.DepthSize;
+                uavDesc.Texture3D.WSize = createInfo.depthSize;
                 break;
             case TextureType::TextureCube:
             case TextureType::TextureCubeArray:
@@ -381,7 +381,7 @@ namespace cube
                 rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE3D;
                 rtvDesc.Texture3D.MipSlice = createInfo.mipLevel;
                 rtvDesc.Texture3D.FirstWSlice = createInfo.firstDepthIndex;
-                rtvDesc.Texture3D.WSize = createInfo.DepthSize;
+                rtvDesc.Texture3D.WSize = createInfo.depthSize;
                 break;
             case TextureType::TextureCube:
             case TextureType::TextureCubeArray:
