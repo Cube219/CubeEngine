@@ -25,10 +25,10 @@ namespace cube
         // MetalBackbufferTexture
 
         MetalBackbufferTexture::MetalBackbufferTexture(const TextureCreateInfo& createInfo, MetalDevice& device)
-            : Texture(createInfo)
-            , mDevice(device)
-            , mDrawableTexture(nil)
+            : MetalTexture(createInfo, device, true)
+            , mViewReferenceCount(0)
         {
+            mFromExisted = true;
         }
 
         MetalBackbufferTexture::~MetalBackbufferTexture()
@@ -37,42 +37,56 @@ namespace cube
 
         void* MetalBackbufferTexture::Map()
         {
-            CHECK_FORMAT(false, "Cannot map backbuffer texture.");
+            NO_ENTRY_FORMAT("Cannot map backbuffer texture.");
             return nullptr;
         }
 
         void MetalBackbufferTexture::Unmap()
         {
-            CHECK_FORMAT(false, "Cannot unmap backbuffer texture.");
+            NO_ENTRY_FORMAT("Cannot unmap backbuffer texture.");
         }
 
         SharedPtr<TextureSRV> MetalBackbufferTexture::CreateSRV(const TextureSRVCreateInfo& createInfo)
         {
-            CHECK_FORMAT(false, "Cannot create SRV for backbuffer texture.");
+            NO_ENTRY_FORMAT("Cannot create SRV for backbuffer texture.");
             return nullptr;
         }
 
         SharedPtr<TextureUAV> MetalBackbufferTexture::CreateUAV(const TextureUAVCreateInfo& createInfo)
         {
-            CHECK_FORMAT(false, "Cannot create UAV for backbuffer texture.");
+            NO_ENTRY_FORMAT("Cannot create UAV for backbuffer texture.");
             return nullptr;
         }
 
         SharedPtr<TextureRTV> MetalBackbufferTexture::CreateRTV(const TextureRTVCreateInfo& createInfo)
         {
-            CHECK(mDrawableTexture);
-            
-            if (createInfo.mipLevel != 0 || createInfo.firstSliceIndex != 0 || createInfo.firstDepthIndex != 0)
-            {
-                CUBE_LOG(Warning, MetalSwapChain, "Try to create RTV for backbuffer which is not base view (mipLevel=0, sliceIndex=0, depthIndex=0). Ignore that and use base view.");
-            }
-            return std::make_shared<MetalTextureRTV>(mDrawableTexture, mDevice);
+            return std::make_shared<MetalBackbufferRTV>(createInfo, shared_from_this(), mDevice);
         }
 
         SharedPtr<TextureDSV> MetalBackbufferTexture::CreateDSV(const TextureDSVCreateInfo& createInfo)
         {
             CHECK_FORMAT(false, "Cannot create DSV for backbuffer texture.");
             return nullptr;
+        }
+
+        void MetalBackbufferTexture::UpdateDrawableTexture(id<MTLTexture> texture)
+        {
+            CHECK_FORMAT(mViewReferenceCount == 0, "You must release all related views before update drawable texture.");
+
+            mMTLTexture = texture;
+        }
+
+        MetalBackbufferRTV::MetalBackbufferRTV(const TextureRTVCreateInfo& createInfo, SharedPtr<MetalTexture> texture, MetalDevice& device)
+            : MetalTextureRTV(createInfo, texture, device)
+            , mParentBackbufferTexture(dynamic_cast<MetalBackbufferTexture*>(texture.get()))
+        {
+            CHECK(mParentBackbufferTexture);
+            mParentBackbufferTexture->mViewReferenceCount++;
+        }
+
+        MetalBackbufferRTV::~MetalBackbufferRTV()
+        {
+            mParentBackbufferTexture->mViewReferenceCount--;
         }
 
         // MetalSwapChain
@@ -93,6 +107,7 @@ namespace cube
                 mView.paused = YES;
                 mView.enableSetNeedsDisplay = NO;
                 mView.autoResizeDrawable = NO;
+                mView.framebufferOnly = NO;
                 CGSize size;
                 size.width = width;
                 size.height = height;

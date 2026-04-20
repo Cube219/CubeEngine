@@ -32,7 +32,9 @@ namespace cube
         ID3D12Device* GetDevice() const { return mDevice.Get(); }
 
         D3D_ROOT_SIGNATURE_VERSION GetMaxRootSignatureVersion() const { return mFeatureSupport.HighestRootSignatureVersion(); }
+        bool IsNonZeroInHeapCreationSupported() const { return mIsNonZeroInHeapCreationSupported; }
         bool IsGPUUploadHeapSupported() const { return mFeatureSupport.GPUUploadHeapSupported(); }
+        bool IsTightAlignmentSupported() const { return mFeatureSupport.TightAlignmentSupportTier() >= D3D12_TIGHT_ALIGNMENT_TIER_1; }
 
         DX12MemoryAllocator& GetMemoryAllocator() { return mMemoryAllocator; }
         DX12QueueManager& GetQueueManager() { return mQueueManager; }
@@ -55,6 +57,7 @@ namespace cube
         ComPtr<ID3D12Device> mDevice;
 
         CD3DX12FeatureSupport mFeatureSupport;
+        bool mIsNonZeroInHeapCreationSupported = false;
 
         DX12MemoryAllocator mMemoryAllocator;
         DX12QueueManager mQueueManager;

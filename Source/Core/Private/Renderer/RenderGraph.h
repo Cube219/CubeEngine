@@ -25,7 +25,7 @@ namespace cube
         RGBuilder(Renderer& renderer);
         ~RGBuilder();
 
-        // void CreateTexture();
+        RGTextureHandle CreateTexture(const gapi::TextureInfo& textureInfo, StringView debugName);
         template <typename ShaderParameterListType>
             requires std::derived_from<ShaderParameterListType, ShaderParameterList>
         RGShaderParameterListHandle<ShaderParameterListType> CreateShaderParameterList()
@@ -41,8 +41,8 @@ namespace cube
         }
 
         // TODO: Remove duplication
-        RGTextureSRVHandle CreateSRV(RGTextureHandle rgTexture, Uint32 firstMipLevel = 0, Int32 mipLevels = gapi::SubresourceRange::AllRange);
-        RGTextureUAVHandle CreateUAV(RGTextureHandle rgTexture, Uint32 mipLevel = 0, Uint32 firstSliceIndex = 0, Int32 sliceSize = gapi::SubresourceRange::AllRange);
+        RGTextureSRVHandle CreateSRV(RGTextureHandle rgTexture, Uint32 firstMipLevel = 0, Int32 mipLevels = -1);
+        RGTextureUAVHandle CreateUAV(RGTextureHandle rgTexture, Uint32 mipLevel = 0, Uint32 firstSliceIndex = 0, Int32 sliceSize = -1);
         RGTextureRTVHandle CreateRTV(RGTextureHandle rgTexture, Uint32 mipLevel = 0);
         RGTextureDSVHandle CreateDSV(RGTextureHandle rgTexture, Uint32 mipLevel = 0);
 
@@ -129,6 +129,8 @@ namespace cube
         void UseResource(RGTextureUAVHandle rgUAV);
         void UseResource(RGTextureRTVHandle rgRTV);
         void UseResource(RGTextureDSVHandle rgDSV);
+        // TODO: Use shader parameter?
+        void UseResource(RGTextureHandle rgTexture, gapi::SubresourceRangeInput range, gapi::ResourceStateFlags states);
 
         void ExecuteAndSubmit(gapi::CommandList& commandList);
 
@@ -152,6 +154,7 @@ namespace cube
             {
                 int rgResourceIndex;
                 gapi::ResourceStateFlags state;
+                gapi::SubresourceRange subresourceRange;
             };
             Vector<ResourceUseInfo> resourceUseInfos;
 
@@ -167,7 +170,6 @@ namespace cube
 
         void UpdateResourceUsagesInShaderParameterList();
         void ResolveTransitions();
-        void RollbackResourceStates();
 
         void Reset();
 
@@ -175,8 +177,10 @@ namespace cube
 
         Vector<PassInfo> mPasses;
         int mCurrentPassIndex = -1;
+        PassInfo mLastPass;
 
         Vector<RGResource*> mResources;
+        Vector<SharedPtr<gapi::Texture>> mTransientTextures;
         Map<gapi::Texture*, RGTextureHandle> mRegisteredTextures;
         RGTextureSRVHandle mDummyBlackTexture2D;
         RGTextureSRVHandle mDummyBlackTextureCube;

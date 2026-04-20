@@ -13,7 +13,7 @@ namespace cube
         class MetalTexture : public Texture, public std::enable_shared_from_this<MetalTexture>
         {
         public:
-            MetalTexture(const TextureCreateInfo& createInfo, MetalDevice& device);
+            MetalTexture(const TextureCreateInfo& createInfo, MetalDevice& device, bool skipResourceCreation = false);
             virtual ~MetalTexture();
 
             virtual void* Map() override;
@@ -24,21 +24,23 @@ namespace cube
             virtual SharedPtr<TextureRTV> CreateRTV(const TextureRTVCreateInfo& createInfo) override;
             virtual SharedPtr<TextureDSV> CreateDSV(const TextureDSVCreateInfo& createInfo) override;
 
-            id<MTLTexture> GetMTLTexture() const { return mTexture; }
-            MTLPixelFormat GetPixelFormat() const { return mPixelFormat; }
-            MTLTextureType GetTextureType() const { return mTextureType; }
-            MTLTextureUsage GetTextureUsage() const { return mTextureUsage; }
+            id<MTLTexture> GetMTLTexture() const { return mMTLTexture; }
+            MTLPixelFormat GetPixelFormat() const { return mMTLPixelFormat; }
+            MTLTextureType GetMTLTextureType() const { return mMTLTextureType; }
+            MTLTextureUsage GetMTLTextureUsage() const { return mMTLTextureUsage; }
 
-        private:
+        protected:
             MetalDevice& mDevice;
 
-            id<MTLTexture> mTexture;
-            MTLPixelFormat mPixelFormat;
-            MTLTextureType mTextureType;
-            MTLTextureUsage mTextureUsage;
+            id<MTLTexture> mMTLTexture;
+            MTLPixelFormat mMTLPixelFormat;
+            MTLTextureType mMTLTextureType;
+            MTLTextureUsage mMTLTextureUsage;
 
             Uint64 mTotalSize;
             void* mMappedPtr;
+
+            bool mFromExisted;
         };
 
         class MetalTextureSRV : public TextureSRV
@@ -73,8 +75,6 @@ namespace cube
         {
         public:
             MetalTextureRTV(const TextureRTVCreateInfo& createInfo, SharedPtr<Texture> texture, MetalDevice& device);
-            // Constructor for existed MTLTexture. (Used in backbuffer in swap chain)
-            MetalTextureRTV(id<MTLTexture> mtlRTV, MetalDevice& device);
             ~MetalTextureRTV() override;
 
             id<MTLTexture> GetMTLTexture() const { return mRTV; }
@@ -82,7 +82,6 @@ namespace cube
         private:
             MetalDevice& mDevice;
 
-            bool mFromExisted = false;
             id<MTLTexture> mRTV;
         };
 

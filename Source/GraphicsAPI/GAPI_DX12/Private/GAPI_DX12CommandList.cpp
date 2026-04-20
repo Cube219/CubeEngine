@@ -335,21 +335,7 @@ namespace cube
             FrameVector<D3D12_RESOURCE_BARRIER> barriers;
             barriers.reserve(states.size());
 
-            auto AddTextureSubresourceBarriers = [&barriers, this](const DX12Texture* texture, SubresourceRange range, D3D12_RESOURCE_BARRIER barrier)
-            {
-                Uint32 arraySize = texture->GetArraySize();
-                Uint32 mipLevels = texture->GetMipLevels();
-                for (Uint32 arrayIndex = range.firstSliceIndex; arrayIndex < range.firstSliceIndex + range.sliceSize; ++arrayIndex)
-                {
-                    for (Uint32 mipIndex = range.firstMipLevel; mipIndex < range.firstMipLevel + range.mipLevels; ++mipIndex)
-                    {
-                        barrier.Transition.Subresource = D3D12CalcSubresource(mipIndex, arrayIndex, 0, mipLevels, arraySize);
-                        barriers.push_back(barrier);
-                    }
-                }
-            };
-
-            for (const TransitionState state : states)
+            for (const TransitionState& state : states)
             {
                 D3D12_RESOURCE_BARRIER barrier = {
                     .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
@@ -379,7 +365,8 @@ namespace cube
                 {
                     const DX12Texture* dx12Texture = dynamic_cast<DX12Texture*>(state.texture.get());
                     barrier.Transition.pResource = dx12Texture->GetResource();
-                    AddTextureSubresourceBarriers(dx12Texture, state.subresourceRange, barrier);
+                    barrier.Transition.Subresource = state.subresourceIndex;
+                    barriers.push_back(barrier);
 
                     CUBE_DX12_BOUND_OBJECT(state.texture);
                     break;
@@ -421,6 +408,22 @@ namespace cube
             Uint32 threadGroupZ = (numThreadsZ + mComputeThreadGroupSizeZ - 1) / mComputeThreadGroupSizeZ;
 
             mCommandList->Dispatch(threadGroupX, threadGroupY, threadGroupZ);
+        }
+
+        void DX12CommandList::CopyTexture(SharedPtr<Texture> srcTexture, SharedPtr<Texture> dstTexture)
+        {
+            // Currently support only entire copy textures. Implement other version if needed.
+            CHECK(IsWriting());
+
+            DX12Texture* dx12SrcTexture = dynamic_cast<DX12Texture*>(srcTexture.get());
+            DX12Texture* dx12DstTexture = dynamic_cast<DX12Texture*>(dstTexture.get());
+            CHECK(dx12SrcTexture);
+            CHECK(dx12DstTexture);
+
+            mCommandList->CopyResource(dx12DstTexture->GetResource(), dx12SrcTexture->GetResource());
+
+            CUBE_DX12_BOUND_OBJECT(srcTexture);
+            CUBE_DX12_BOUND_OBJECT(dstTexture);
         }
 
         void DX12CommandList::InsertTimestamp(const String& name)

@@ -13,6 +13,9 @@ namespace cube
 
     class RGResource
     {
+    public:
+        bool IsTransient() const { return mIsTransient; }
+
     protected:
         friend class RGBuilder;
 
@@ -68,6 +71,10 @@ namespace cube
 
     class RGTexture : public RGResource
     {
+    public:
+        SharedPtr<gapi::Texture> GetGAPITexture() const { return mTexture; }
+        Uint64 GetSubresourceHashKey(const gapi::SubresourceRange& range) const;
+
     protected:
         friend class RGBuilder;
         friend class RGTextureSRV;
@@ -87,6 +94,10 @@ namespace cube
     class RGTextureView : public RGResource
     {
     public:
+        const gapi::SubresourceRange GetSubresourceRange() const
+        {
+            return mSubresourceRange;
+        }
         Uint64 GetSubresourceHashKey() const
         {
             CHECK(mSubresourceHashKey);

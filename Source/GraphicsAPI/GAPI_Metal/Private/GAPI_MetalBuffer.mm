@@ -20,9 +20,22 @@ namespace cube
             case ResourceUsage::GPUtoCPU:
                 resourceOptions = MTLResourceStorageModeShared;
                 break;
+            case ResourceUsage::Transient:
+                resourceOptions = MTLResourceStorageModePrivate;
+                break;
+            default:
+                NOT_IMPLEMENTED();
+                break;
             }
 
-            mBuffer = [device.GetMTLDevice() newBufferWithLength:info.size options:resourceOptions];
+            if (info.usage == ResourceUsage::Transient)
+            {
+                mBuffer = [device.GetTransientHeapManager().GetMTLHeap(MTLSizeAndAlign(info.size, 0)) newBufferWithLength:info.size options:resourceOptions];
+            }
+            else
+            {
+                mBuffer = [device.GetMTLDevice() newBufferWithLength:info.size options:resourceOptions];
+            }
             CHECK(mBuffer);
             mBuffer.label = String_Convert<NSString*>(info.debugName);
         }
@@ -40,6 +53,9 @@ namespace cube
             case ResourceUsage::CPUtoGPU:
             case ResourceUsage::GPUtoCPU:
                 return mBuffer.contents;
+            case ResourceUsage::Transient:
+                NO_ENTRY_FORMAT("Cannot map transient resource.");
+                return nullptr;
             default:
                 NOT_IMPLEMENTED();
                 return nullptr;
@@ -55,6 +71,9 @@ namespace cube
             case ResourceUsage::CPUtoGPU:
             case ResourceUsage::GPUtoCPU:
                 // Do nothing
+                break;
+            case ResourceUsage::Transient:
+                NO_ENTRY_FORMAT("Cannot unmap transient resource.");
                 break;
             default:
                 NOT_IMPLEMENTED();

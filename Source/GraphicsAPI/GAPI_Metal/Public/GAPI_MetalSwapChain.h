@@ -3,8 +3,8 @@
 #include "MetalHeader.h"
 
 #include "GAPI_Metal.h"
-#include "GAPI_SwapChain.h"
 #include "GAPI_MetalTexture.h"
+#include "GAPI_SwapChain.h"
 
 @interface CubeMTKView : MTKView <MTKViewDelegate>
 
@@ -16,14 +16,13 @@ namespace cube
 
     namespace gapi
     {
-        class MetalBackbufferTexture : public Texture
+        class MetalBackbufferTexture : public MetalTexture
         {
         public:
             MetalBackbufferTexture(const TextureCreateInfo& createInfo, MetalDevice& device);
             virtual ~MetalBackbufferTexture();
 
-            void UpdateDrawableTexture(id<MTLTexture> texture) { mDrawableTexture = texture; }
-            id<MTLTexture> GetMTLTexture() const { return mDrawableTexture; }
+            void UpdateDrawableTexture(id<MTLTexture> texture);
 
             virtual void* Map() override;
             virtual void Unmap() override;
@@ -34,8 +33,19 @@ namespace cube
             virtual SharedPtr<TextureDSV> CreateDSV(const TextureDSVCreateInfo& createInfo) override;
 
         private:
-            MetalDevice& mDevice;
-            id<MTLTexture> mDrawableTexture;
+            friend class MetalBackbufferRTV;
+
+            Uint32 mViewReferenceCount;
+        };
+
+        class MetalBackbufferRTV : public MetalTextureRTV
+        {
+        public:
+            MetalBackbufferRTV(const TextureRTVCreateInfo& createInfo, SharedPtr<MetalTexture> texture, MetalDevice& device);
+            virtual ~MetalBackbufferRTV();
+
+        private:
+            MetalBackbufferTexture* mParentBackbufferTexture;
         };
 
         class MetalSwapChain : public SwapChain

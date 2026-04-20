@@ -78,6 +78,20 @@ namespace cube
             infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, true);
             infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, true);
 
+            D3D12_INFO_QUEUE_FILTER filter = {};
+            D3D12_MESSAGE_SEVERITY infoSeverity = D3D12_MESSAGE_SEVERITY_INFO;
+            filter.DenyList.NumSeverities = 1;
+            filter.DenyList.pSeverityList = &infoSeverity;
+            
+            FrameVector<D3D12_MESSAGE_ID> denyIDs;
+            // Ignore optimized clear values warnings.
+            denyIDs.push_back(D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE);
+            denyIDs.push_back(D3D12_MESSAGE_ID_CLEARDEPTHSTENCILVIEW_MISMATCHINGCLEARVALUE);
+
+            filter.DenyList.NumIDs = static_cast<UINT>(denyIDs.size());
+            filter.DenyList.pIDList = denyIDs.data();
+            infoQueue->PushStorageFilter(&filter);
+
             ComPtr<ID3D12InfoQueue1> infoQueue1;
             if (SUCCEEDED(device.GetDevice()->QueryInterface(IID_PPV_ARGS(&infoQueue1))))
             {

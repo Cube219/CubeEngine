@@ -7,6 +7,7 @@ namespace cube
 {
     MetalDevice::MetalDevice()
         : mTimestampManager(*this)
+        , mTransientHeapManager(*this)
         , mUploadManager(*this)
     {
     }
@@ -28,6 +29,7 @@ namespace cube
         mMainCommandQueue.label = @"MainCommandQueue";
 
         mTimestampManager.Initialize(mNumGPUSync);
+        mTransientHeapManager.Initialize(mNumGPUSync);
         mUploadManager.Initialize();
     }
 
@@ -36,6 +38,7 @@ namespace cube
         WaitAllGPUSync();
 
         mUploadManager.Shutdown();
+        mTransientHeapManager.Shutdown();
         mTimestampManager.Shutdown();
 
         [mMainCommandQueue release];
@@ -69,6 +72,8 @@ namespace cube
         WaitAllGPUSync();
 
         mNumGPUSync = newNumGPUSync;
+        mTimestampManager.SetNumGPUSync(newNumGPUSync);
+        mTransientHeapManager.SetNumGPUSync(newNumGPUSync);
     }
 
     void MetalDevice::BeginGPUFrame(Uint64 gpuFrame)
@@ -79,7 +84,8 @@ namespace cube
             [mGPUSyncEvent waitUntilSignaledValue:gpuFrame-1 timeoutMS:100000000000];
         }
 
-        GetTimestampManager().MoveToNextIndex(gpuFrame);
+        mTimestampManager.MoveToNextIndex(gpuFrame);
+        mTransientHeapManager.MoveToNextIndex(gpuFrame);
     }
 
     void MetalDevice::EndGPUFrame(Uint64 gpuFrame)

@@ -60,6 +60,8 @@ namespace cube
             void SetComputePipeline(SharedPtr<ComputePipeline> computePipeline) override;
             virtual void DispatchThreads(Uint32 numThreadsX, Uint32 numThreadsY, Uint32 numThreadsZ) override;
 
+            virtual void CopyTexture(SharedPtr<Texture> srcTexture, SharedPtr<Texture> dstTexture) override;
+
             void InsertTimestamp(const String& name) override;
 
             void Submit() override;

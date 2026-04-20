@@ -12,10 +12,11 @@ namespace cube
 {
     namespace gapi
     {
-        MetalTexture::MetalTexture(const TextureCreateInfo& createInfo, MetalDevice& device)
+        MetalTexture::MetalTexture(const TextureCreateInfo& createInfo, MetalDevice& device, bool skipResourceCreation)
             : Texture(createInfo)
             , mDevice(device)
             , mMappedPtr(nullptr)
+            , mFromExisted(false)
         { @autoreleasepool {
             const TextureInfo& info = createInfo.textureInfo;
 
@@ -73,7 +74,7 @@ namespace cube
                 NOT_IMPLEMENTED();
                 type = MTLTextureType2D;
             }
-            mTextureType = type;
+            mMTLTextureType = type;
 
             MTLTextureUsage usage = MTLTextureUsageShaderRead;
             // Metal treat depth and stencil usage as render target.
@@ -85,7 +86,15 @@ namespace cube
             {
                 usage |= MTLTextureUsageShaderWrite;
             }
-            mTextureUsage = usage;
+            mMTLTextureUsage = usage;
+
+            MetalElementFormatInfo formatInfo = GetMetalElementFormatInfo(info.format);
+            mMTLPixelFormat = formatInfo.pixelFormat;
+
+            if (skipResourceCreation)
+            {
+                return;
+            }
 
             MTLResourceOptions resourceOptions = MTLResourceStorageModeShared;
             switch (mUsage)
@@ -95,27 +104,38 @@ namespace cube
             case ResourceUsage::GPUtoCPU:
                 resourceOptions = MTLResourceStorageModeShared;
                 break;
+            case ResourceUsage::Transient:
+                resourceOptions = MTLResourceStorageModePrivate;
+                break;
+            default:
+                NOT_IMPLEMENTED();
+                break;
             }
 
-            MetalElementFormatInfo formatInfo = GetMetalElementFormatInfo(info.format);
-            mPixelFormat = formatInfo.pixelFormat;
-
             MTLTextureDescriptor* desc = [[MTLTextureDescriptor alloc] init];
-            desc.textureType = type;
-            desc.pixelFormat = formatInfo.pixelFormat;
+            desc.textureType = mMTLTextureType;
+            desc.pixelFormat = mMTLPixelFormat;
             desc.width = info.width;
             desc.height = info.height;
             desc.depth = info.depth;
             desc.mipmapLevelCount = info.mipLevels;
             desc.arrayLength = info.arraySize; // arraySize is already in cube/array units
             desc.resourceOptions = resourceOptions;
-            desc.usage = usage;
+            desc.usage = mMTLTextureUsage;
             desc.allowGPUOptimizedContents = (mUsage != ResourceUsage::GPUtoCPU);
 
-            mTexture = [device.GetMTLDevice() newTextureWithDescriptor:desc];
+            if (mUsage == ResourceUsage::Transient)
+            {
+                MTLSizeAndAlign sizeAndAlign = [device.GetMTLDevice() heapTextureSizeAndAlignWithDescriptor:desc];
+                mMTLTexture = [device.GetTransientHeapManager().GetMTLHeap(sizeAndAlign) newTextureWithDescriptor:desc];
+            }
+            else
+            {
+                mMTLTexture = [device.GetMTLDevice() newTextureWithDescriptor:desc];
+            }
             [desc release];
-            CHECK(mTexture);
-            mTexture.label = String_Convert<NSString*>(createInfo.debugName);
+            CHECK(mMTLTexture);
+            mMTLTexture.label = String_Convert<NSString*>(createInfo.debugName);
 
             // Calculate subresource layouts.
             const Uint32 numSlices = GetNumSlices();
@@ -147,7 +167,10 @@ namespace cube
 
         MetalTexture::~MetalTexture()
         {
-            [mTexture release];
+            if (!mFromExisted && mMTLTexture)
+            {
+                [mMTLTexture release];
+            }
         }
 
         void* MetalTexture::Map()
@@ -161,6 +184,9 @@ namespace cube
             case ResourceUsage::GPUtoCPU:
                 mMappedPtr = platform::Platform::Allocate(mTotalSize);
                 return mMappedPtr;
+            case ResourceUsage::Transient:
+                NO_ENTRY_FORMAT("Cannot map transient resource.");
+                return nullptr;
             default:
                 NOT_IMPLEMENTED();
                 return nullptr;
@@ -179,15 +205,15 @@ namespace cube
             case ResourceUsage::GPUtoCPU:
             {
                 const Uint32 numSlices = GetNumSlices();
-                const bool is1D = (mTextureType == MTLTextureType1D || mTextureType == MTLTextureType1DArray);
-                const bool is3D = (mTextureType == MTLTextureType3D);
+                const bool is1D = (mMTLTextureType == MTLTextureType1D || mMTLTextureType == MTLTextureType1DArray);
+                const bool is3D = (mMTLTextureType == MTLTextureType3D);
 
                 Uint32 subresourceIndex = 0;
                 for (Uint32 sliceIndex = 0; sliceIndex < numSlices; ++sliceIndex)
                 {
-                    Uint32 width  = mInfo.width;
+                    Uint32 width = mInfo.width;
                     Uint32 height = is1D ? 1 : mInfo.height;
-                    Uint32 depth  = is3D ? mInfo.depth : 1;
+                    Uint32 depth = is3D ? mInfo.depth : 1;
                     for (Uint32 mipLevel = 0; mipLevel < mInfo.mipLevels; ++mipLevel)
                     {
                         const SubresourceLayout& layout = mSubresourceLayouts[subresourceIndex];
@@ -207,22 +233,19 @@ namespace cube
                             region = MTLRegionMake2D(0, 0, width, height);
                         }
 
-                        const NSUInteger bytesPerImage = is3D
-                            ? static_cast<NSUInteger>(layout.rowPitch) * height
-                            : 0;
+                        const NSUInteger bytesPerImage = is3D ? static_cast<NSUInteger>(layout.rowPitch) * height : 0;
 
-                        [mTexture
+                        [mMTLTexture
                             replaceRegion:region
                             mipmapLevel:mipLevel
                             slice:sliceIndex
                             withBytes:ptr
                             bytesPerRow:layout.rowPitch
-                            bytesPerImage:bytesPerImage
-                        ];
+                            bytesPerImage:bytesPerImage];
 
-                        width  = std::max(1u, width  >> 1);
+                        width = std::max(1u, width >> 1);
                         height = std::max(1u, height >> 1);
-                        depth  = std::max(1u, depth  >> 1);
+                        depth = std::max(1u, depth >> 1);
                         subresourceIndex++;
                     }
                 }
@@ -231,10 +254,13 @@ namespace cube
 
                 if (mUsage == ResourceUsage::GPUOnly)
                 {
-                    mDevice.GetUploadManager().SubmitTexture(mTexture, true);
+                    mDevice.GetUploadManager().SubmitTexture(mMTLTexture, true);
                 }
                 break;
             }
+            case ResourceUsage::Transient:
+                NO_ENTRY_FORMAT("Cannot unmap transient resource.");
+                break;
             default:
                 NOT_IMPLEMENTED();
                 break;
@@ -267,20 +293,14 @@ namespace cube
         {
             SharedPtr<MetalTexture> metalTexture = std::dynamic_pointer_cast<MetalTexture>(texture);
             CHECK(metalTexture);
-            CHECK_FORMAT(metalTexture->GetTextureUsage() & MTLTextureUsageShaderRead, "Cannot create MetalTextureSRV. Texture was not created with MTLTextureUsageShaderRead.");
+            CHECK_FORMAT(metalTexture->GetMTLTextureUsage() & MTLTextureUsageShaderRead, "Cannot create MetalTextureSRV. Texture was not created with MTLTextureUsageShaderRead.");
 
-            Uint32 mipLevels = createInfo.mipLevels != SubresourceRange::AllRange ? createInfo.mipLevels : metalTexture->GetMipLevels() - createInfo.firstMipLevel;
-            Uint32 sliceSize = createInfo.sliceSize != SubresourceRange::AllRange ? createInfo.sliceSize : metalTexture->GetArraySize() - createInfo.firstSliceIndex;
-            if (texture->IsCubemap())
-            {
-                sliceSize *= 6;
-            }
             id<MTLTexture> mtlTexture = metalTexture->GetMTLTexture();
             mSRV = [mtlTexture
                 newTextureViewWithPixelFormat:metalTexture->GetPixelFormat()
-                textureType:metalTexture->GetTextureType()
-                levels:NSMakeRange(createInfo.firstMipLevel, mipLevels)
-                slices:NSMakeRange(createInfo.firstSliceIndex, sliceSize)
+                textureType:metalTexture->GetMTLTextureType()
+                levels:NSMakeRange(mSubresourceRange.firstMipLevel, mSubresourceRange.mipLevels)
+                slices:NSMakeRange(mSubresourceRange.firstSliceIndex, mSubresourceRange.sliceSize)
             ];
 
             mBindlessId = mSRV.gpuResourceID._impl;
@@ -298,15 +318,10 @@ namespace cube
             SharedPtr<MetalTexture> metalTexture = std::dynamic_pointer_cast<MetalTexture>(texture);
             CHECK(metalTexture);
 
-            CHECK_FORMAT(metalTexture->GetTextureUsage() & (MTLTextureUsageShaderRead | MTLTextureUsageShaderWrite), "Cannot create MetalTextureUAV. Texture was not created with MTLTextureUsageShaderRead and MTLTextureUsageShaderWrite.");
+            CHECK_FORMAT(metalTexture->GetMTLTextureUsage() & (MTLTextureUsageShaderRead | MTLTextureUsageShaderWrite), "Cannot create MetalTextureUAV. Texture was not created with MTLTextureUsageShaderRead and MTLTextureUsageShaderWrite.");
 
-            Uint32 sliceSize = createInfo.sliceSize != SubresourceRange::AllRange ? createInfo.sliceSize : metalTexture->GetArraySize() - createInfo.firstSliceIndex;
-            if (texture->IsCubemap())
-            {
-                sliceSize *= 6;
-            }
             id<MTLTexture> mtlTexture = metalTexture->GetMTLTexture();
-            MTLTextureType mtlTextureType = metalTexture->GetTextureType();
+            MTLTextureType mtlTextureType = metalTexture->GetMTLTextureType();
             if (mtlTextureType == MTLTextureTypeCube || mtlTextureType == MTLTextureTypeCubeArray)
             {
                 // Use texture 2d array type instead of cubemap type in UAV. Slang does not support RWTextureCube(Array)
@@ -316,8 +331,8 @@ namespace cube
             mUAV = [mtlTexture
                 newTextureViewWithPixelFormat:metalTexture->GetPixelFormat()
                 textureType:mtlTextureType
-                levels:NSMakeRange(createInfo.mipLevel, 1)
-                slices:NSMakeRange(createInfo.firstSliceIndex, sliceSize)
+                levels:NSMakeRange(mSubresourceRange.firstMipLevel, mSubresourceRange.mipLevels)
+                slices:NSMakeRange(mSubresourceRange.firstSliceIndex, mSubresourceRange.sliceSize)
             ];
 
             mBindlessId = mUAV.gpuResourceID._impl;
@@ -334,35 +349,19 @@ namespace cube
         {
             SharedPtr<MetalTexture> metalTexture = std::dynamic_pointer_cast<MetalTexture>(texture);
             CHECK(metalTexture);
-            CHECK_FORMAT(metalTexture->GetTextureUsage() & MTLTextureUsageRenderTarget, "Cannot create MetalTextureRTV. Texture was not created with MTLTextureUsageRenderTarget.");
+            CHECK_FORMAT(metalTexture->GetMTLTextureUsage() & MTLTextureUsageRenderTarget, "Cannot create MetalTextureRTV. Texture was not created with MTLTextureUsageRenderTarget.");
 
-            Uint32 sliceSize = createInfo.sliceSize != SubresourceRange::AllRange ? createInfo.sliceSize : metalTexture->GetArraySize() - createInfo.firstSliceIndex;
-            if (texture->IsCubemap())
-            {
-                sliceSize *= 6;
-            }
             mRTV = [metalTexture->GetMTLTexture()
                 newTextureViewWithPixelFormat:metalTexture->GetPixelFormat()
-                textureType:metalTexture->GetTextureType()
-                                       levels:NSMakeRange(createInfo.mipLevel, 1)
-                                       slices:NSMakeRange(createInfo.firstSliceIndex, sliceSize)
+                textureType:metalTexture->GetMTLTextureType()
+                levels:NSMakeRange(mSubresourceRange.firstMipLevel, mSubresourceRange.mipLevels)
+                slices:NSMakeRange(mSubresourceRange.firstSliceIndex, mSubresourceRange.sliceSize)
             ];
         }
 
         MetalTextureRTV::~MetalTextureRTV()
         {
-            if (!mFromExisted)
-            {
-                [mRTV release];
-            }
-        }
-
-        MetalTextureRTV::MetalTextureRTV(id<MTLTexture> mtlRTV, MetalDevice& device)
-            : mDevice(device)
-        {
-            mFromExisted = true;
-
-            mRTV = mtlRTV;
+            [mRTV release];
         }
 
         MetalTextureDSV::MetalTextureDSV(const TextureDSVCreateInfo& createInfo, SharedPtr<Texture> texture, MetalDevice& device)
@@ -371,18 +370,13 @@ namespace cube
         {
             SharedPtr<MetalTexture> metalTexture = std::dynamic_pointer_cast<MetalTexture>(texture);
             CHECK(metalTexture);
-            CHECK_FORMAT(metalTexture->GetTextureUsage() & MTLTextureUsageRenderTarget, "Cannot create MetalTextureDSV. Texture was not created with MTLTextureUsageRenderTarget.");
+            CHECK_FORMAT(metalTexture->GetMTLTextureUsage() & MTLTextureUsageRenderTarget, "Cannot create MetalTextureDSV. Texture was not created with MTLTextureUsageRenderTarget.");
 
-            Uint32 sliceSize = createInfo.sliceSize != SubresourceRange::AllRange ? createInfo.sliceSize : metalTexture->GetArraySize() - createInfo.firstSliceIndex;
-            if (texture->IsCubemap())
-            {
-                sliceSize *= 6;
-            }
             mDSV = [metalTexture->GetMTLTexture()
                 newTextureViewWithPixelFormat:metalTexture->GetPixelFormat()
-                                  textureType:metalTexture->GetTextureType()
-                                       levels:NSMakeRange(createInfo.mipLevel, 1)
-                                       slices:NSMakeRange(createInfo.firstSliceIndex, sliceSize)
+                textureType:metalTexture->GetMTLTextureType()
+                levels:NSMakeRange(mSubresourceRange.firstMipLevel, mSubresourceRange.mipLevels)
+                slices:NSMakeRange(mSubresourceRange.firstSliceIndex, mSubresourceRange.sliceSize)
             ];
         }
 

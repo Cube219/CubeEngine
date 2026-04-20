@@ -95,7 +95,7 @@ namespace cube
 
             SharedPtr<Buffer> buffer = nullptr;
             SharedPtr<Texture> texture = nullptr;
-            SubresourceRange subresourceRange = {};
+            Uint32 subresourceIndex = 0;
 
             ResourceStateFlags src;
             ResourceStateFlags dst;
@@ -143,6 +143,8 @@ namespace cube
 
             virtual void SetComputePipeline(SharedPtr<ComputePipeline> computePipeline) = 0;
             virtual void DispatchThreads(Uint32 numThreadsX, Uint32 numThreadsY, Uint32 numThreadsZ) = 0;
+
+            virtual void CopyTexture(SharedPtr<Texture> srcTexture, SharedPtr<Texture> dstTexture) = 0;
 
             virtual void InsertTimestamp(const String& name) = 0;
 

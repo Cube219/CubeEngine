@@ -8,6 +8,9 @@ namespace cube
 {
     namespace gapi
     {
+        class Buffer;
+        class Texture;
+
         enum class ResourceType
         {
             Buffer,
@@ -18,7 +21,8 @@ namespace cube
         {
             GPUOnly,
             CPUtoGPU,
-            GPUtoCPU
+            GPUtoCPU,
+            Transient
         };
         inline const Character* ResourceUsageToString(ResourceUsage resourceUsage)
         {
@@ -30,6 +34,8 @@ namespace cube
                 return CUBE_T("CPUtoGPU");
             case ResourceUsage::GPUtoCPU:
                 return CUBE_T("GPUtoCPU");
+            case ResourceUsage::Transient:
+                return CUBE_T("Transient");
             default:
                 return CUBE_T("Unknown");
             }
@@ -64,8 +70,6 @@ namespace cube
 
         struct SubresourceRange
         {
-            static constexpr Int32 AllRange = -1;
-
             Uint32 firstMipLevel;
             Uint32 mipLevels;
 
@@ -75,6 +79,27 @@ namespace cube
             Uint64 GetHash() const
             {
                 return HashCombine(firstMipLevel, mipLevels, firstSliceIndex, sliceSize);
+            }
+        };
+
+        struct SubresourceRangeInput
+        {
+            Uint32 firstMipLevel = 0;
+            Int32 mipLevels = -1;
+
+            Uint32 firstSliceIndex = 0;
+            Int32 sliceSize = -1;
+
+            SubresourceRange Clamp(const Buffer* buffer) const;
+            SubresourceRange Clamp(const Texture* texture) const;
+
+            SubresourceRangeInput() = default;
+            SubresourceRangeInput(const SubresourceRange& other)
+                : firstMipLevel(other.firstMipLevel)
+                , mipLevels(other.mipLevels)
+                , firstSliceIndex(other.firstSliceIndex)
+                , sliceSize(other.sliceSize)
+            {
             }
         };
     } // namespace gapi

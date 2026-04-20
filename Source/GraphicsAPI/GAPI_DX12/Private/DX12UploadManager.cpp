@@ -102,7 +102,7 @@ namespace cube
 
         if (desc.type == gapi::ResourceType::Buffer)
         {
-            commandList->CopyBufferRegion(desc.dstResource, 0, page.allocation.allocation->GetResource(), desc.offsetInPage, desc.size);
+            commandList->CopyBufferRegion(desc.dstResource, 0, page.allocation.resource, desc.offsetInPage, desc.size);
         }
         else if (desc.type == gapi::ResourceType::Texture)
         {

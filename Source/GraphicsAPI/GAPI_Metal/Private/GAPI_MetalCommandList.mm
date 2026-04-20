@@ -175,6 +175,7 @@ namespace cube
             , mIsWriting(false)
             , mRenderEncoder(nil)
             , mComputeEncoder(nil)
+            , mBlitEncoder(nil)
         {
             mCommandQueueRef = device.GetMainCommandQueue();
             AllocateNewCommandBuffer();
@@ -196,6 +197,7 @@ namespace cube
             mCurrentEncoderState.Clear();
             mRenderEncoder = nil;
             mComputeEncoder = nil;
+            mBlitEncoder = nil;
             mIndexBuffer = nil;
             mIndexBufferOffset = 0;
             mComputeThreadGroupSize = MTLSizeMake(0, 0, 0);
@@ -492,6 +494,29 @@ namespace cube
             ];
         }
 
+        void MetalCommandList::CopyTexture(SharedPtr<Texture> srcTexture, SharedPtr<Texture> dstTexture)
+        {
+            CHECK(IsWriting());
+            CHECK(!IsInRenderPass());
+
+            if (!mBlitEncoder)
+            {
+                EndEncoding();
+
+                mBlitEncoder = [mCommandBuffer blitCommandEncoder];
+            }
+
+            MetalTexture* metalSrcTexture = dynamic_cast<MetalTexture*>(srcTexture.get());
+            MetalTexture* metalDstTexture = dynamic_cast<MetalTexture*>(dstTexture.get());
+            CHECK(metalSrcTexture);
+            CHECK(metalDstTexture);
+
+            [mBlitEncoder
+                copyFromTexture:metalSrcTexture->GetMTLTexture()
+                toTexture:metalDstTexture->GetMTLTexture()
+            ];
+        }
+
         void MetalCommandList::InsertTimestamp(const String& name)
         {
             CHECK(IsWriting());
@@ -548,6 +573,12 @@ namespace cube
             {
                 [mComputeEncoder endEncoding];
                 mComputeEncoder = nil;
+            }
+
+            if (mBlitEncoder)
+            {
+                [mBlitEncoder endEncoding];
+                mBlitEncoder = nil;
             }
         }
 

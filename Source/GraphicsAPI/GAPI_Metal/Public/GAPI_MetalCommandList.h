@@ -85,6 +85,8 @@ namespace cube
             virtual void SetComputePipeline(SharedPtr<ComputePipeline> computePipeline) override;
             virtual void DispatchThreads(Uint32 numThreadsX, Uint32 numThreadsY, Uint32 numThreadsZ) override;
 
+            virtual void CopyTexture(SharedPtr<Texture> srcTexture, SharedPtr<Texture> dstTexture) override;
+
             virtual void InsertTimestamp(const String& name) override;
 
             virtual void Submit() override;
@@ -106,6 +108,7 @@ namespace cube
             MetalEncoderState mCurrentEncoderState;
             id<MTLRenderCommandEncoder> mRenderEncoder;
             id<MTLComputeCommandEncoder> mComputeEncoder;
+            id<MTLBlitCommandEncoder> mBlitEncoder;
 
             id<MTLBuffer> mIndexBuffer;
             NSUInteger mIndexBufferOffset;
