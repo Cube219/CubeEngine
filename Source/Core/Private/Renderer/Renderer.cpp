@@ -397,7 +397,6 @@ namespace cube
 
             RGShaderParameterListHandle<EnvironmentMapLightShaderParameterList> envMapShaderParameterList = builder.CreateShaderParameterList<EnvironmentMapLightShaderParameterList>();
             envMapShaderParameterList->Get()->diffuseIrradianceMap = mEnvironmentMapping.GetDiffuseIrradianceMap(builder);
-            envMapShaderParameterList->Get()->sampler.id = mSamplerManager.GetDefaultLinearSamplerId();
             envMapShaderParameterList->Get()->WriteAllParametersToGPUBuffer();
 
             RGTextureHandle externalColor = builder.RegisterTexture(mCurrentBackbuffer);

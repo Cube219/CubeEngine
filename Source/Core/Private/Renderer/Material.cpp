@@ -23,9 +23,7 @@ namespace cube
 
         mTextures.fill(nullptr);
 
-        mSamplerId = Engine::GetRenderer()->GetSamplerManager().GetDefaultLinearSamplerId();
-
-        static const Character* defaultChannelMappingCode = 
+        static const Character* defaultChannelMappingCode =
             CUBE_T("value.albedo = materialData.baseColor.rgb;\n")
         ;
 
@@ -74,11 +72,6 @@ namespace cube
         CHECK_FORMAT(0 <= slotIndex && slotIndex < 5, "Texture slot out of range! ({0})", slotIndex);
 
         mTextures[slotIndex] = texture;
-    }
-
-    void Material::SetSampler(Uint64 samplerId)
-    {
-        mSamplerId = samplerId;
     }
 
     RGShaderParameterListHandle<MaterialShaderParameterList> Material::GenerateShaderParameterList(RGBuilder& builder) const
@@ -139,7 +132,6 @@ namespace cube
         {
             parameters->Get()->textureSlot4 = builder.GetDummyBlackTexture2D();
         }
-        parameters->Get()->materialSampler.id = mSamplerId;
 
         parameters->Get()->WriteAllParametersToGPUBuffer();
 
@@ -192,6 +184,7 @@ namespace cube
         FrameString materialShaderCode = Format<FrameString>(
             CUBE_T("import MainInterface;\n")
             CUBE_T("import Material;\n")
+            CUBE_T("import StaticSampler;\n")
             CUBE_T("\n")
             CUBE_T("export struct Material : IMaterial\n")
             CUBE_T("{{\n")

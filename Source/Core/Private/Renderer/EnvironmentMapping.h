@@ -22,7 +22,6 @@ namespace cube
     {
         CUBE_BEGIN_SHADER_PARAMETER_LIST(EnvironmentMapLightShaderParameterList)
             CUBE_SHADER_PARAMETER(RGTextureSRVHandle, diffuseIrradianceMap)
-            CUBE_SHADER_PARAMETER(BindlessSampler, sampler)
         CUBE_END_SHADER_PARAMETER_LIST
     };
 

@@ -16,7 +16,6 @@ public struct MaterialShaderParameterList
     public Bindless<Texture2D> textureSlot2;
     public Bindless<Texture2D> textureSlot3;
     public Bindless<Texture2D> textureSlot4;
-    public Bindless<SamplerState> materialSampler;
 };
 
 public struct MaterialValue

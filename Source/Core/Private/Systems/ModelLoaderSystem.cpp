@@ -718,19 +718,19 @@ namespace cube
             if (gltfMaterial.pbrMetallicRoughness.baseColorTexture.index != -1)
             {
                 material->SetTexture(0, LoadTexture(CUBE_T("baseColorTexture"), gltfMaterial.pbrMetallicRoughness.baseColorTexture.index));
-                channelMappingCode += CUBE_T("value.albedo = materialData.textureSlot0.Sample(materialData.materialSampler, input.uv).rgb;\n");
+                channelMappingCode += CUBE_T("value.albedo = materialData.textureSlot0.Sample(GetStaticLinearWrapSampler(), input.uv).rgb;\n");
             }
             if (gltfMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index != -1)
             {
                 material->SetTexture(1, LoadTexture(CUBE_T("metallicRoughnessTexture"), gltfMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index));
-                channelMappingCode += CUBE_T("float3 t1 = materialData.textureSlot1.Sample(materialData.materialSampler, input.uv).rgb;\n");
+                channelMappingCode += CUBE_T("float3 t1 = materialData.textureSlot1.Sample(GetStaticLinearWrapSampler(), input.uv).rgb;\n");
                 channelMappingCode += CUBE_T("value.metallic = t1.b;\n");
                 channelMappingCode += CUBE_T("value.roughness = t1.g;\n");
             }
             if (gltfMaterial.normalTexture.index != -1)
             {
                 material->SetTexture(2, LoadTexture(CUBE_T("normalTexture"), gltfMaterial.normalTexture.index));
-                channelMappingCode += CUBE_T("float3 t2 = normalize(materialData.textureSlot2.Sample(materialData.materialSampler, input.uv).rgb * 2.0f - 1.0f);\n");
+                channelMappingCode += CUBE_T("float3 t2 = normalize(materialData.textureSlot2.Sample(GetStaticLinearWrapSampler(), input.uv).rgb * 2.0f - 1.0f);\n");
                 channelMappingCode += CUBE_T("value.normal = t2;\n");
             }
 
@@ -985,24 +985,24 @@ namespace cube
                     if (!objMaterial.diffuse_texname.empty())
                     {
                         material->SetTexture(0, LoadTexture(CUBE_T("baseColorTexture"), objMaterial.diffuse_texname));
-                        channelMappingCode += CUBE_T("value.albedo = materialData.textureSlot0.Sample(materialData.materialSampler, input.uv).rgb;\n");
+                        channelMappingCode += CUBE_T("value.albedo = materialData.textureSlot0.Sample(GetStaticLinearWrapSampler(), input.uv).rgb;\n");
                     }
                     if (!objMaterial.metallic_texname.empty())
                     {
                         material->SetTexture(1, LoadTexture(CUBE_T("metallicTexture"), objMaterial.metallic_texname));
-                        channelMappingCode += CUBE_T("float t1 = materialData.textureSlot1.Sample(materialData.materialSampler, input.uv).r;\n");
+                        channelMappingCode += CUBE_T("float t1 = materialData.textureSlot1.Sample(GetStaticLinearWrapSampler(), input.uv).r;\n");
                         channelMappingCode += CUBE_T("value.metallic = t1;\n");
                     }
                     if (!objMaterial.roughness_texname.empty())
                     {
                         material->SetTexture(2, LoadTexture(CUBE_T("roughnessTexture"), objMaterial.roughness_texname));
-                        channelMappingCode += CUBE_T("float t2 = materialData.textureSlot2.Sample(materialData.materialSampler, input.uv).r;\n");
+                        channelMappingCode += CUBE_T("float t2 = materialData.textureSlot2.Sample(GetStaticLinearWrapSampler(), input.uv).r;\n");
                         channelMappingCode += CUBE_T("value.roughness = t2;\n");
                     }
                     if (!objMaterial.normal_texname.empty())
                     {
                         material->SetTexture(3, LoadTexture(CUBE_T("normalTexture"), objMaterial.normal_texname));
-                        channelMappingCode += CUBE_T("float3 t3 = normalize(materialData.textureSlot3.Sample(materialData.materialSampler, input.uv).rgb * 2.0f - 1.0f);\n");
+                        channelMappingCode += CUBE_T("float3 t3 = normalize(materialData.textureSlot3.Sample(GetStaticLinearWrapSampler(), input.uv).rgb * 2.0f - 1.0f);\n");
                         channelMappingCode += CUBE_T("value.normal = t3;\n");
                     }
                 }
@@ -1011,7 +1011,7 @@ namespace cube
                     if (!objMaterial.diffuse_texname.empty())
                     {
                         material->SetTexture(0, LoadTexture(CUBE_T("diffuseTexture"), objMaterial.diffuse_texname));
-                        channelMappingCode += CUBE_T("value.diffuseColor = materialData.textureSlot0.Sample(materialData.materialSampler, input.uv).rgb;\n");
+                        channelMappingCode += CUBE_T("value.diffuseColor = materialData.textureSlot0.Sample(GetStaticLinearWrapSampler(), input.uv).rgb;\n");
                     }
                     else
                     {
@@ -1021,7 +1021,7 @@ namespace cube
                     if (!objMaterial.specular_texname.empty())
                     {
                         material->SetTexture(1, LoadTexture(CUBE_T("specularTexture"), objMaterial.specular_texname));
-                        channelMappingCode += CUBE_T("value.specularColor = materialData.textureSlot1.Sample(materialData.materialSampler, input.uv).rgb;\n");
+                        channelMappingCode += CUBE_T("value.specularColor = materialData.textureSlot1.Sample(GetStaticLinearWrapSampler(), input.uv).rgb;\n");
                     }
                     else
                     {
@@ -1034,7 +1034,7 @@ namespace cube
                     if (!objMaterial.normal_texname.empty())
                     {
                         material->SetTexture(2, LoadTexture(CUBE_T("normalTexture"), objMaterial.normal_texname));
-                        channelMappingCode += CUBE_T("value.normal = normalize(materialData.textureSlot2.Sample(materialData.materialSampler, input.uv).rgb * 2.0f - 1.0f);\n");
+                        channelMappingCode += CUBE_T("value.normal = normalize(materialData.textureSlot2.Sample(GetStaticLinearWrapSampler(), input.uv).rgb * 2.0f - 1.0f);\n");
                     }
                 }
                 material->SetChannelMappingCode(channelMappingCode);

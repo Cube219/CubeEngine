@@ -44,13 +44,37 @@ namespace cube
                 }
             }
 
+            auto SetStaticSampler = [](D3D12_STATIC_SAMPLER_DESC& outStaticSampler, D3D12_FILTER filter, D3D12_TEXTURE_ADDRESS_MODE addressMode, UINT reg)
+            {
+                outStaticSampler = {
+                    .Filter = filter,
+                    .AddressU = addressMode,
+                    .AddressV = addressMode,
+                    .AddressW = addressMode,
+                    .MipLODBias = 0.0f,
+                    .MaxAnisotropy = 0,
+                    .ComparisonFunc = D3D12_COMPARISON_FUNC_NONE,
+                    .BorderColor = D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK,
+                    .MinLOD = 0.0f,
+                    .MaxLOD = D3D12_FLOAT32_MAX,
+                    .ShaderRegister = reg,
+                    .RegisterSpace = 0,
+                    .ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL
+                };
+            };
+            Array<D3D12_STATIC_SAMPLER_DESC, 4> staticSamplers;
+            SetStaticSampler(staticSamplers[0], D3D12_FILTER_MIN_MAG_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 1000);
+            SetStaticSampler(staticSamplers[1], D3D12_FILTER_MIN_MAG_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_WRAP, 1001);
+            SetStaticSampler(staticSamplers[2], D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 1002);
+            SetStaticSampler(staticSamplers[3], D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_WRAP, 1003);
+
             const D3D12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc = {
                 .Version = D3D_ROOT_SIGNATURE_VERSION_1_1,
                 .Desc_1_1 = {
                     .NumParameters = static_cast<Uint32>(parameters.size()),
                     .pParameters = parameters.data(),
-                    .NumStaticSamplers = 0,
-                    .pStaticSamplers = nullptr,
+                    .NumStaticSamplers = static_cast<Uint32>(staticSamplers.size()),
+                    .pStaticSamplers = staticSamplers.data(),
                     .Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
                         | D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED
                         | D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED

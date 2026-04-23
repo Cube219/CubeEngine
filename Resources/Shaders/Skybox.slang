@@ -1,11 +1,11 @@
 import Common;
 import Global;
 import MainInterface;
+import StaticSampler;
 
 struct SkyboxShaderParameterList
 {
     Bindless<TextureCube> skyboxTexture;
-    Bindless<SamplerState> skyboxSampler;
 };
 ParameterBlock<GlobalShaderParameterList> globalParams;
 ParameterBlock<SkyboxShaderParameterList> skyboxParams;
@@ -38,7 +38,7 @@ SkyboxPSInput VSMain(VSInput input)
 SkyboxPSOutput PSMain(SkyboxPSInput input) : SV_TARGET
 {
     SkyboxPSOutput output;
-    output.color = skyboxParams.skyboxTexture.Sample(skyboxParams.skyboxSampler, input.uvw);
+    output.color = skyboxParams.skyboxTexture.Sample(GetStaticLinearWrapSampler(), input.uvw);
 
     float gamma = 2.2;
     output.color = float4(pow(output.color.xyz, float3(1.0/gamma)), 1);

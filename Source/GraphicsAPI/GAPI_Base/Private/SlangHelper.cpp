@@ -123,6 +123,10 @@ namespace cube
 
         FrameVector<slang::PreprocessorMacroDesc> macros;
         macros.push_back({
+            .name = "CUBE_SLANG_HLSL",
+            .value = (options.target == gapi::ShaderLanguage::HLSL || options.target == gapi::ShaderLanguage::DXIL) ? "1" : "0"
+        });
+        macros.push_back({
             .name = "CUBE_SLANG_METAL",
             .value = (options.target == gapi::ShaderLanguage::Metal || options.target == gapi::ShaderLanguage::MetalLib) ? "1" : "0"
         });

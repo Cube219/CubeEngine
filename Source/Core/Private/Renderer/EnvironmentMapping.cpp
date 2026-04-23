@@ -14,7 +14,6 @@ namespace cube
             CUBE_SHADER_PARAMETER(int, numSlices)
             CUBE_SHADER_PARAMETER(Vector2, widthAndInvWidth)
             CUBE_SHADER_PARAMETER(RGTextureSRVHandle, srcIBL)
-            CUBE_SHADER_PARAMETER(BindlessSampler, srcSampler)
             CUBE_SHADER_PARAMETER(RGTextureUAVHandle, dstDiffuseIrradianceMap)
         CUBE_END_SHADER_PARAMETER_LIST
     };
@@ -24,7 +23,6 @@ namespace cube
     {
         CUBE_BEGIN_SHADER_PARAMETER_LIST(SkyboxShaderParameterList)
             CUBE_SHADER_PARAMETER(RGTextureSRVHandle, skyboxTexture)
-            CUBE_SHADER_PARAMETER(BindlessSampler, skyboxSampler)
         CUBE_END_SHADER_PARAMETER_LIST
     };
     CUBE_REGISTER_SHADER_PARAMETER_LIST(SkyboxShaderParameterList);
@@ -242,7 +240,6 @@ namespace cube
 
         RGShaderParameterListHandle<SkyboxShaderParameterList> skyboxParams = builder.CreateShaderParameterList<SkyboxShaderParameterList>();
         skyboxParams->Get()->skyboxTexture = skyboxSRV;
-        skyboxParams->Get()->skyboxSampler.id = mRenderer.GetSamplerManager().GetDefaultLinearSamplerId();
         skyboxParams->Get()->WriteAllParametersToGPUBuffer();
 
         builder.AddPass(CUBE_T("Skybox"), mSkyboxPipeline, skyboxParams,
@@ -304,7 +301,6 @@ namespace cube
             params->Get()->numSlices = 128;
             params->Get()->widthAndInvWidth = Vector2(static_cast<float>(width), 1.0f / static_cast<float>(width));
             params->Get()->srcIBL = srcIBLSRV;
-            params->Get()->srcSampler.id = mRenderer.GetSamplerManager().GetDefaultLinearSamplerId();
             params->Get()->dstDiffuseIrradianceMap = dstDiffuseEnvMapUAV;
             params->Get()->WriteAllParametersToGPUBuffer();
 

@@ -37,7 +37,6 @@ namespace cube
             CUBE_SHADER_PARAMETER(RGTextureSRVHandle, textureSlot2)
             CUBE_SHADER_PARAMETER(RGTextureSRVHandle, textureSlot3)
             CUBE_SHADER_PARAMETER(RGTextureSRVHandle, textureSlot4)
-            CUBE_SHADER_PARAMETER(BindlessSampler, materialSampler)
         CUBE_END_SHADER_PARAMETER_LIST
     };
 
@@ -57,8 +56,6 @@ namespace cube
 
         void SetTexture(int slotIndex, SharedPtr<TextureResource> texture);
 
-        void SetSampler(Uint64 samplerId);
-
         RGShaderParameterListHandle<MaterialShaderParameterList> GenerateShaderParameterList(RGBuilder& builder) const;
 
         StringView GetDebugName() const { return mDebugName; }
@@ -77,7 +74,6 @@ namespace cube
         Vector4 mConstantSpecularColor;
         float mConstantShininess = 0.0f;
         Array<SharedPtr<TextureResource>, 5> mTextures;
-        Uint64 mSamplerId;
 
         String mDebugName;
     };
