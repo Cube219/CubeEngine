@@ -433,6 +433,9 @@ namespace cube
                             case TypeReflection::ScalarType::Int32:
                                 type = gapi::ShaderParameterReflection::Type::Int;
                                 break;
+                            case TypeReflection::ScalarType::UInt32:
+                                type = gapi::ShaderParameterReflection::Type::Uint;
+                                break;
                             case TypeReflection::ScalarType::Float32:
                                 type = gapi::ShaderParameterReflection::Type::Float;
                                 break;

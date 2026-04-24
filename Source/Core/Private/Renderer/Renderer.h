@@ -65,6 +65,8 @@ namespace cube
         SamplerManager& GetSamplerManager() { return mSamplerManager; }
         PipelineManager& GetPipelineManager() { return mPipelineManager; }
 
+        TextureViewer& GetTextureViewer() { return mTextureViewer; }
+
         bool IsDrawInWireframe() const { return mWireframe; }
 
         SharedPtr<Mesh> GetBoxMesh() const { return mBoxMesh; }

@@ -15,6 +15,7 @@ namespace cube
                 Unknown,
                 Bool,
                 Int,
+                Uint,
                 Float,
                 Float2,
                 Float3,
@@ -43,6 +44,8 @@ namespace cube
                 return CUBE_T("Bool");
             case ShaderParameterReflection::Type::Int:
                 return CUBE_T("Int");
+            case ShaderParameterReflection::Type::Uint:
+                return CUBE_T("Uint");
             case ShaderParameterReflection::Type::Float:
                 return CUBE_T("Float");
             case ShaderParameterReflection::Type::Float2:

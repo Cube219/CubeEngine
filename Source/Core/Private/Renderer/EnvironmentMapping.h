@@ -49,8 +49,9 @@ namespace cube
         // Return black cube texture if disabled.
         RGTextureSRVHandle GetDiffuseIrradianceMap(RGBuilder& builder) const;
 
-    private:
+    public:
         void GenerateIrradianceMap();
+        void GenerateIntegratedBRDF();
 
         Renderer& mRenderer;
 
@@ -78,8 +79,11 @@ namespace cube
 
         SharedPtr<Shader> mGenerateIrradianceMapShader;
         ComputePipelineInfo mGenerateIrradianceMapPipelineInfo;
+        SharedPtr<Shader> mGenerateIntegratedBRDFShader;
+        ComputePipelineInfo mGenerateIntegratedBRDFPipelineInfo;
         SharedPtr<gapi::CommandList> mCommandList;
 
         SharedPtr<gapi::Texture> mDiffuseIrradianceMap;
+        SharedPtr<gapi::Texture> mIntegratedBRDF;
     };
 } // namespace cube

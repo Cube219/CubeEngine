@@ -20,6 +20,16 @@ namespace cube
     };
     CUBE_REGISTER_SHADER_PARAMETER_LIST(GenerateIrradianceMapShaderParameterList);
 
+    class GenerateIntegratedBRDFShaderParameterList : public ShaderParameterList
+    {
+        CUBE_BEGIN_SHADER_PARAMETER_LIST(GenerateIntegratedBRDFShaderParameterList)
+            CUBE_SHADER_PARAMETER(Uint32, sampleCount)
+            CUBE_SHADER_PARAMETER(float, width)
+            CUBE_SHADER_PARAMETER(RGTextureUAVHandle, dstIntegratedBRDF)
+        CUBE_END_SHADER_PARAMETER_LIST
+    };
+    CUBE_REGISTER_SHADER_PARAMETER_LIST(GenerateIntegratedBRDFShaderParameterList);
+
     class SkyboxShaderParameterList : public ShaderParameterList
     {
         CUBE_BEGIN_SHADER_PARAMETER_LIST(SkyboxShaderParameterList)
@@ -90,7 +100,7 @@ namespace cube
                     .entryPoint = "GenerateIrradianceMapCS"
                 },
                 .filePaths = { &environmentMappingShaderFilePath, 1 },
-                .debugName = CUBE_T("GenerateIrradianceMapCS")
+                .debugName = CUBE_T("GenerateIrradianceMap CS")
             });
             CHECK(mGenerateIrradianceMapShader);
 
@@ -98,6 +108,22 @@ namespace cube
                 .shader = mGenerateIrradianceMapShader
             };
             mGenerateIrradianceMapPipelineInfo.CalculateHashValue();
+
+            platform::FilePath environmentMappingShaderFilePath2 = Engine::GetShaderDirectoryPath() / CUBE_T("EnvironmentMapping2.slang");
+            mGenerateIntegratedBRDFShader = mRenderer.GetShaderManager().CreateShader({
+                .shaderInfo = {
+                    .type = gapi::ShaderType::Compute,
+                    .entryPoint = "GenerateIntegratedBRDFCS"
+                },
+                .filePaths = { &environmentMappingShaderFilePath2, 1 },
+                .debugName = CUBE_T("GenerateIntegratedBRDF CS")
+            });
+            CHECK(mGenerateIntegratedBRDFShader);
+
+            mGenerateIntegratedBRDFPipelineInfo = {
+                .shader = mGenerateIntegratedBRDFShader
+            };
+            mGenerateIntegratedBRDFPipelineInfo.CalculateHashValue();
         }
 
         mCommandList = mRenderer.GetGAPI().CreateCommandList({
@@ -109,6 +135,8 @@ namespace cube
     {
         mCommandList = nullptr;
 
+        mGenerateIntegratedBRDFPipelineInfo = {};
+        mGenerateIntegratedBRDFShader = nullptr;
         mGenerateIrradianceMapPipelineInfo = {};
         mGenerateIrradianceMapShader = nullptr;
 
@@ -200,10 +228,16 @@ namespace cube
 
             GenerateIrradianceMap();
         }
+
+        if (!mIntegratedBRDF)
+        {
+            GenerateIntegratedBRDF();
+        }
     }
 
     void EnvironmentMapping::ClearReaources()
     {
+        mIntegratedBRDF = nullptr;
         mDiffuseIrradianceMap = nullptr;
         mIBLTexture = nullptr;
     }
@@ -292,8 +326,6 @@ namespace cube
 
         RGBuilder builder(mRenderer);
         {
-            RG_GPU_EVENT_SCOPE(builder, CUBE_T("GenerateIrradianceMap"));
-
             RGTextureHandle srcIBL = builder.RegisterTexture(mIBLTexture->GetGAPITexture());
             RGTextureSRVHandle srcIBLSRV = builder.CreateSRV(srcIBL);
             RGTextureHandle dstDiffuseEnvMap = builder.RegisterTexture(mDiffuseIrradianceMap);
@@ -317,6 +349,51 @@ namespace cube
             {
                 commandList.DispatchThreads(width, height, 6);
             });
+        }
+        builder.ExecuteAndSubmit(*mCommandList);
+    }
+
+    void EnvironmentMapping::GenerateIntegratedBRDF()
+    {
+        const gapi::ElementFormat format = gapi::ElementFormat::RG16_Float;
+        const Uint32 width = 512;
+        const Uint32 height = 512;
+
+        mIntegratedBRDF = mRenderer.GetGAPI().CreateTexture({
+            .usage = gapi::ResourceUsage::GPUOnly,
+            .textureInfo = {
+                .format = format,
+                .type = gapi::TextureType::Texture2D,
+                .flags = gapi::TextureFlag::UAV,
+                .width = width,
+                .height = height,
+            },
+            .debugName = CUBE_T("IntegratedBRDF LUT")
+        });
+
+        RGBuilder builder(mRenderer);
+        {
+            RGTextureHandle dstIntegratedBRDF = builder.RegisterTexture(mIntegratedBRDF);
+            RGTextureUAVHandle dstIntegratedBRDFUAV = builder.CreateUAV(dstIntegratedBRDF);
+
+            RGShaderParameterListHandle<GenerateIntegratedBRDFShaderParameterList> params = builder.CreateShaderParameterList<GenerateIntegratedBRDFShaderParameterList>();
+            params->Get()->sampleCount = 1024;
+            params->Get()->width = width;
+            params->Get()->dstIntegratedBRDF = dstIntegratedBRDFUAV;
+
+            SharedPtr<ComputePipeline> generateIntegratedBRDFPipeline = mRenderer.GetPipelineManager().GetOrCreateComputePipeline({
+                .pipelineInfo = mGenerateIntegratedBRDFPipelineInfo,
+                .debugName = CUBE_T("GenerateIntegratedBRDF Pipeline")
+            });
+            builder.AddPass(CUBE_T("GenerateIntegratedBRDF"),
+                generateIntegratedBRDFPipeline,
+                params,
+                [width, height](gapi::CommandList& commandList)
+            {
+                commandList.DispatchThreads(width, height, 1);
+            });
+
+            mRenderer.GetTextureViewer().SetTexture(builder, dstIntegratedBRDF, {});
         }
         builder.ExecuteAndSubmit(*mCommandList);
     }

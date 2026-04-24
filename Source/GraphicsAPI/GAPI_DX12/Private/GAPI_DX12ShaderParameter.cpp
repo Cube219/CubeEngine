@@ -116,6 +116,10 @@ namespace cube
                     size = sizeof(Int32);
                     alignment = sizeof(Int32);
                     break;
+                case ShaderParameterType::Uint:
+                    size = sizeof(Uint32);
+                    alignment = sizeof(Uint32);
+                    break;
                 case ShaderParameterType::Float:
                     size = sizeof(float);
                     alignment = sizeof(float);
@@ -293,6 +297,7 @@ namespace cube
                     break;
                 }
                 case ShaderParameterType::Int:
+                case ShaderParameterType::Uint:
                 case ShaderParameterType::Float:
                 {
                     CHECK_PARAMS(paramInfo.sizeInCPU == paramInfo.sizeInGPU);
@@ -317,6 +322,9 @@ namespace cube
             };
             mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::Int)] = {
                 ShaderParameterReflection::Type::Int
+            };
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::Uint)] = {
+                ShaderParameterReflection::Type::Uint
             };
             mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::Float)] = {
                 ShaderParameterReflection::Type::Float

@@ -151,6 +151,7 @@ namespace cube
     void GAPI_DX12::OnBeforePresent(gapi::Texture* backbuffer)
     {
         // TODO: Fix transition error when imgui is off.
+        // TODO: Guard pix event.
         if (mImGUIContext.context)
         {
             mImGUIRenderCommandList->Reset(mMainDevice->GetCommandListManager().GetCurrentAllocator(), nullptr);

@@ -65,7 +65,7 @@ namespace cube
 
         mGAPI->Initialize({
             .numGPUSync = numGPUSync,
-            .enableDebugLayer = true,
+            .enableDebugLayer = false,
             .imGUI = imGUIContext
         });
 
@@ -375,6 +375,8 @@ namespace cube
         gapi::RasterizerState::FillMode fillMode = mWireframe
             ? gapi::RasterizerState::FillMode::Line
             : gapi::RasterizerState::FillMode::Solid;
+
+        mEnvironmentMapping.GenerateIntegratedBRDF();
 
         RGBuilder builder(*this);
 

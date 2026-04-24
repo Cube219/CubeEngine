@@ -38,6 +38,7 @@ namespace cube
         Unknown,
         Bool,
         Int,
+        Uint,
         Float,
         Float2,
         Float3,
@@ -118,6 +119,13 @@ namespace cube
     {
         static constexpr ShaderParameterType type = ShaderParameterType::Int;
         static constexpr Uint32 size = sizeof(int);
+    };
+
+    template <>
+    struct ShaderParameterTypeInfo<Uint32>
+    {
+        static constexpr ShaderParameterType type = ShaderParameterType::Uint;
+        static constexpr Uint32 size = sizeof(Uint32);
     };
 
     template <>

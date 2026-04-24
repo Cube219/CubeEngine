@@ -76,19 +76,21 @@ void GenerateIrradianceMapCS(
     uint3 groupID : SV_GroupID,
 )
 {
+    GenerateIrradianceMapShaderParameterList params = generateIrradianceMapParams;
+
     const uint3 dstCoord = uint3(threadID.xy, groupID.z);
-    if (any(dstCoord.xy >= generateIrradianceMapParams.widthAndInvWidth.xx))
+    if (any(dstCoord.xy >= params.widthAndInvWidth.xx))
     {
         return;
     }
 
     // [-1, 1]
-    const float2 snormUV = (float2(dstCoord.xy) + 0.5) * generateIrradianceMapParams.widthAndInvWidth.yy * 2 - 1;
+    const float2 snormUV = (float2(dstCoord.xy) + 0.5) * params.widthAndInvWidth.yy * 2 - 1;
     const float3 normal = normalize(
         baseDirections[dstCoord.z]
         + axisOfU[dstCoord.z] * snormUV.x
         + axisOfV[dstCoord.z] * snormUV.y
     );
 
-    generateIrradianceMapParams.dstDiffuseIrradianceMap[dstCoord] = float4(CalculateDiffuseIrradiance(generateIrradianceMapParams.srcIBL, normal, generateIrradianceMapParams.numSlices), 1);
+    params.dstDiffuseIrradianceMap[dstCoord] = float4(CalculateDiffuseIrradiance(params.srcIBL, normal, params.numSlices), 1);
 }

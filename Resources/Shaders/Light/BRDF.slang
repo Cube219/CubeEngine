@@ -4,17 +4,17 @@ import Common;
 
 public struct BRDFParam
 {
-    float VoH;
-    float VoN;
-    float LoN;
-    float NoH;
+    public float VoH;
+    public float VoN;
+    public float LoN;
+    public float NoH;
 
-    float3 albedo;
-    float metallic;
-    float roughness;
+    public float3 albedo;
+    public float metallic;
+    public float roughness;
 
-    float3 specularColor;
-    float shininess;
+    public float3 specularColor;
+    public float shininess;
 
     public __init(float3 L, float3 V, float3 N, float3 inAlbedo, float inMetallic, float inRoughness, float3 inSpecularColor, float inShininess)
     {
@@ -68,7 +68,7 @@ interface IGeometry
 
 public struct Geometry_SmithGGX : IGeometry
 {
-    static float Calculate(BRDFParam param)
+    public static float Calculate(BRDFParam param)
     {
         float ggx2 = SchlickGGX(max(param.VoN, 0.0), param.roughness);
         float ggx1 = SchlickGGX(max(param.LoN, 0.0), param.roughness);
