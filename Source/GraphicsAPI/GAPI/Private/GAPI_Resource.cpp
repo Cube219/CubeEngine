@@ -23,9 +23,9 @@ namespace cube
         {
             return {
                 .firstMipLevel = firstMipLevel,
-                .mipLevels = mipLevels < 0 ? texture->GetMipLevels() - firstMipLevel : static_cast<Uint32>(mipLevels),
+                .mipLevels = mipLevels == SubresourceRangeInput::AllRange ? texture->GetMipLevels() - firstMipLevel : static_cast<Uint32>(mipLevels),
                 .firstSliceIndex = firstSliceIndex,
-                .sliceSize = sliceSize < 0 ? texture->GetNumSlices() - firstSliceIndex : static_cast<Uint32>(sliceSize)
+                .sliceSize = sliceSize == SubresourceRangeInput::AllRange ? texture->GetNumSlices() - firstSliceIndex : static_cast<Uint32>(sliceSize)
             };
         }
     } // namespace gapi

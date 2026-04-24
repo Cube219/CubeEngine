@@ -91,7 +91,6 @@ namespace cube
                 RGShaderParameterListHandle<GenerateMipmapsShaderParameterList> params = builder.CreateShaderParameterList<GenerateMipmapsShaderParameterList>();
                 params->Get()->srcTexture = srcSRV;
                 params->Get()->dstTexture = dstUAV;
-                params->Get()->WriteAllParametersToGPUBuffer();
 
                 builder.AddPass(Format<FrameString>(CUBE_T("GenerateMipmaps ({0}->{1})"), mipIndex - 1, mipIndex),
                     mGenerateMipmapsPipeline,

@@ -10,11 +10,12 @@ namespace cube
 {
     // ===== Resources =====
 
-    RGResource::RGResource(Int32 index)
+    RGResource::RGResource(Int32 index, StringView debugName)
         : mIsTransient(false)
         , mIndex(index)
         , mBeginPass(-1)
         , mEndPass(-1)
+        , mDebugName(debugName)
     {
     }
 
@@ -23,8 +24,20 @@ namespace cube
         return HashCombine(reinterpret_cast<Uint64>(mTexture.get()), range.GetHash());
     }
 
-    RGTexture::RGTexture(int index, const gapi::TextureInfo& textureInfo)
-        : RGResource(index)
+    void RGTexture::CreateResource(GAPI& gapi)
+    {
+        if (mIsTransient && !mTexture)
+        {
+            mTexture = gapi.CreateTexture({
+                .usage = gapi::ResourceUsage::Transient,
+                .textureInfo = mTextureInfo,
+                .debugName = mDebugName
+            });
+        }
+    }
+
+    RGTexture::RGTexture(int index, const gapi::TextureInfo& textureInfo, StringView debugName)
+        : RGResource(index, debugName)
         , mTexture(nullptr)
         , mTextureInfo(textureInfo)
     {
@@ -32,65 +45,109 @@ namespace cube
     }
 
     RGTexture::RGTexture(int index, SharedPtr<gapi::Texture> texture)
-        : RGResource(index)
+        : RGResource(index, texture->GetDebugName())
         , mTexture(texture)
     {
         mIsTransient = texture->GetUsage() == gapi::ResourceUsage::Transient;
+        CHECK_FORMAT(!mIsTransient, "Cannot register transient texture!");
     }
 
     RGTextureView::RGTextureView(int index, RGTexture* rgTexture)
-        : RGResource(index)
+        : RGResource(index, rgTexture->GetDebugName())
         , mRGTexture(rgTexture)
         , mSubresourceHashKey(0)
     {
         mIsTransient = rgTexture->IsTransient();
     }
 
-    RGTextureSRV::RGTextureSRV(int index, RGTexture* rgTexture, Uint32 firstMipLevel, Int32 mipLevels)
+    void RGTextureSRV::CreateResource(GAPI& gapi)
+    {
+        if (!mSRV)
+        {
+            mRGTexture->CreateResource(gapi);
+
+            mSRV = mRGTexture->mTexture->CreateSRV({
+                .subresourceRange = mSubresourceRangeInput
+            });
+            mSubresourceRange = mSRV->GetSubresourceRange();
+            mSubresourceHashKey = mRGTexture->GetSubresourceHashKey(mSubresourceRange);
+        }
+    }
+
+    RGTextureSRV::RGTextureSRV(int index, RGTexture* rgTexture, Uint32 firstMipLevel, Uint32 mipLevels)
         : RGTextureView(index, rgTexture)
     {
-        mSRV = rgTexture->mTexture->CreateSRV({
-            .firstMipLevel = firstMipLevel,
-            .mipLevels = mipLevels
-        });
-        mSubresourceRange = mSRV->GetSubresourceRange();
-        mSubresourceHashKey = rgTexture->GetSubresourceHashKey(mSubresourceRange);
+        mSubresourceRangeInput.firstMipLevel = firstMipLevel;
+        mSubresourceRangeInput.mipLevels = mipLevels;
     }
-    
-    RGTextureUAV::RGTextureUAV(int index, RGTexture* rgTexture, Uint32 mipLevel, Uint32 firstSliceIndex, Int32 sliceSize)
+
+    void RGTextureUAV::CreateResource(GAPI& gapi)
+    {
+        if (!mUAV)
+        {
+            mRGTexture->CreateResource(gapi);
+
+            mUAV = mRGTexture->mTexture->CreateUAV({
+                .subresourceRange = mSubresourceRangeInput
+            });
+            mSubresourceRange = mUAV->GetSubresourceRange();
+            mSubresourceHashKey = mRGTexture->GetSubresourceHashKey(mSubresourceRange);
+        }
+    }
+
+    RGTextureUAV::RGTextureUAV(int index, RGTexture* rgTexture, Uint32 mipLevel, Uint32 firstSliceIndex, Uint32 sliceSize)
         : RGTextureView(index, rgTexture)
     {
-        mUAV = rgTexture->mTexture->CreateUAV({
-            .mipLevel = mipLevel,
-            .firstSliceIndex = firstSliceIndex,
-            .sliceSize = sliceSize
-        });
-        mSubresourceRange = mUAV->GetSubresourceRange();
-        mSubresourceHashKey = rgTexture->GetSubresourceHashKey(mSubresourceRange);
+        mSubresourceRangeInput.firstMipLevel = mipLevel;
+        mSubresourceRangeInput.mipLevels = 1;
+        mSubresourceRangeInput.firstSliceIndex = firstSliceIndex;
+        mSubresourceRangeInput.sliceSize = sliceSize;
     }
-    
+
+    void RGTextureRTV::CreateResource(GAPI& gapi)
+    {
+        if (!mRTV)
+        {
+            mRGTexture->CreateResource(gapi);
+
+            mRTV = mRGTexture->mTexture->CreateRTV({
+                .subresourceRange = mSubresourceRangeInput
+            });
+            mSubresourceRange = mRTV->GetSubresourceRange();
+            mSubresourceHashKey = mRGTexture->GetSubresourceHashKey(mSubresourceRange);
+        }
+    }
+
     RGTextureRTV::RGTextureRTV(int index, RGTexture* rgTexture, Uint32 mipLevel)
         : RGTextureView(index, rgTexture)
     {
-        mRTV = rgTexture->mTexture->CreateRTV({
-            .mipLevel = mipLevel
-        });
-        mSubresourceRange = mRTV->GetSubresourceRange();
-        mSubresourceHashKey = rgTexture->GetSubresourceHashKey(mSubresourceRange);
+        mSubresourceRangeInput.firstMipLevel = mipLevel;
+        mSubresourceRangeInput.mipLevels = 1;
     }
-    
+
+    void RGTextureDSV::CreateResource(GAPI& gapi)
+    {
+        if (!mDSV)
+        {
+            mRGTexture->CreateResource(gapi);
+
+            mDSV = mRGTexture->mTexture->CreateDSV({
+                .subresourceRange = mSubresourceRangeInput
+            });
+            mSubresourceRange = mDSV->GetSubresourceRange();
+            mSubresourceHashKey = mRGTexture->GetSubresourceHashKey(mSubresourceRange);
+        }
+    }
+
     RGTextureDSV::RGTextureDSV(int index, RGTexture* rgTexture, Uint32 mipLevel)
         : RGTextureView(index, rgTexture)
     {
-        mDSV = rgTexture->mTexture->CreateDSV({
-            .mipLevel = mipLevel
-        });
-        mSubresourceRange = mDSV->GetSubresourceRange();
-        mSubresourceHashKey = rgTexture->GetSubresourceHashKey(mSubresourceRange);
+        mSubresourceRangeInput.firstMipLevel = mipLevel;
+        mSubresourceRangeInput.mipLevels = 1;
     }
 
     RGShaderParameterListBase::RGShaderParameterListBase(int index, const ShaderParameterListInfo& parameterListInfo, SharedPtr<ShaderParameterList> parameterList)
-        : RGResource(index)
+        : RGResource(index, parameterListInfo.name)
         , mParameterListInfo(parameterListInfo)
         , mParameterList(std::move(parameterList))
     {
@@ -110,17 +167,7 @@ namespace cube
 
     RGTextureHandle RGBuilder::CreateTexture(const gapi::TextureInfo& textureInfo, StringView debugName)
     {
-        // TODO: Defer texture creation.
-        const gapi::TextureCreateInfo createInfo = {
-            .usage = gapi::ResourceUsage::Transient,
-            .textureInfo = textureInfo,
-            .debugName = debugName
-        };
-
-        SharedPtr<gapi::Texture> newTransientTexture = mRenderer.GetGAPI().CreateTexture(createInfo);
-        mTransientTextures.push_back(newTransientTexture);
-
-        RGTexture* rgTexture = new RGTexture(mResources.size(), newTransientTexture);
+        RGTexture* rgTexture = new RGTexture(mResources.size(), textureInfo, debugName);
         mResources.push_back(rgTexture);
 
         return RGTextureHandle(rgTexture);
@@ -243,11 +290,18 @@ namespace cube
             {
                 builder.UseResource(info.depthstencil.dsv);
             }
+
+            builder.mAttachedRTVsInRenderPass.reserve(info.colors.size());
+            for (const RenderPassInfo::ColorAttachment& colorAttachment : info.colors)
+            {
+                builder.mAttachedRTVsInRenderPass.push_back(colorAttachment.color);
+            }
+            builder.mAttachedDSVInRenderPass = info.depthstencil.dsv;
+            builder.mRenderPassIndex = builder.mCurrentPassIndex;
+            builder.mIsInRenderPass = true;
         });
 
         mIsInRenderPass = true;
-        // TODO: Extend resource usage lifetime until ending render pass?
-        // TODO: Check if the resources bounded in render pass is used in other usage.
     }
 
     void RGBuilder::EndRenderPass()
@@ -258,6 +312,23 @@ namespace cube
         AddPass(CUBE_T("##EndRenderPass"), [](gapi::CommandList& commandList)
         {
             commandList.EndRenderPass();
+        },
+        [](RGBuilder& builder)
+        {
+            // Just mark use in RG resource to prevent duplicated transition.
+            for (const RGTextureRTVHandle attachedRTV : builder.mAttachedRTVsInRenderPass)
+            {
+                attachedRTV->UpdateUsePassIndex(builder.mCurrentPassIndex);
+            }
+            if (builder.mAttachedDSVInRenderPass.IsValid())
+            {
+                builder.mAttachedDSVInRenderPass->UpdateUsePassIndex(builder.mCurrentPassIndex);
+            }
+
+            builder.mAttachedDSVInRenderPass = {};
+            builder.mAttachedRTVsInRenderPass.clear();
+            builder.mRenderPassIndex = -1;
+            builder.mIsInRenderPass = false;
         });
 
         mIsInRenderPass = false;
@@ -276,7 +347,6 @@ namespace cube
             objectShaderParameterList->Get()->model = drawMeshInfo.model;
             objectShaderParameterList->Get()->modelInverse = drawMeshInfo.model.Inversed();
             objectShaderParameterList->Get()->modelInverseTranspose = drawMeshInfo.model.Inversed().Transposed();
-            objectShaderParameterList->Get()->WriteAllParametersToGPUBuffer();
             paramListArray[0] = objectShaderParameterList;
 
             AddPassInternal(CUBE_T("##DrawMeshPass - Bind Vertex/Index buffer"), nullptr, nullptr, {},
@@ -320,7 +390,6 @@ namespace cube
     void RGBuilder::UseResource(RGTextureSRVHandle rgSRV)
     {
         CHECK(mState == State::ResourceTracking);
-        CHECK(rgSRV->mSRV);
 
         PassInfo& pass = mPasses[mCurrentPassIndex];
         pass.resourceUseInfos.push_back({
@@ -332,7 +401,6 @@ namespace cube
     void RGBuilder::UseResource(RGTextureUAVHandle rgUAV)
     {
         CHECK(mState == State::ResourceTracking);
-        CHECK(rgUAV->mUAV);
 
         PassInfo& pass = mPasses[mCurrentPassIndex];
         pass.resourceUseInfos.push_back({
@@ -344,7 +412,6 @@ namespace cube
     void RGBuilder::UseResource(RGTextureRTVHandle rgRTV)
     {
         CHECK(mState == State::ResourceTracking);
-        CHECK(rgRTV->mRTV);
 
         PassInfo& pass = mPasses[mCurrentPassIndex];
         pass.resourceUseInfos.push_back({
@@ -356,7 +423,6 @@ namespace cube
     void RGBuilder::UseResource(RGTextureDSVHandle rgDSV)
     {
         CHECK(mState == State::ResourceTracking);
-        CHECK(rgDSV->mDSV);
 
         PassInfo& pass = mPasses[mCurrentPassIndex];
         pass.resourceUseInfos.push_back({
@@ -374,7 +440,7 @@ namespace cube
         pass.resourceUseInfos.push_back({
             .rgResourceIndex = rgTexture->mIndex,
             .state = states,
-            .subresourceRange = range.Clamp(rgTexture->mTexture.get())
+            .subresourceRange = range
         });
     }
 
@@ -385,7 +451,8 @@ namespace cube
 
         mState = State::ResourceTracking;
 
-        UpdateResourceUsagesInShaderParameterList();
+        UpdateResourceUsages();
+        CreateAllResources();
         ResolveTransitions();
 
         mState = State::Executing;
@@ -559,7 +626,7 @@ namespace cube
         }
     }
 
-    void RGBuilder::UpdateResourceUsagesInShaderParameterList()
+    void RGBuilder::UpdateResourceUsages()
     {
         CHECK(mState == State::ResourceTracking);
 
@@ -567,6 +634,11 @@ namespace cube
 
         for (PassInfo& pass : mPasses)
         {
+            if (pass.useResourceFunction)
+            {
+                pass.useResourceFunction(*this);
+            }
+
             for (RGShaderParameterListBaseHandle& paramList : pass.shaderParameterLists)
             {
                 ShaderParameterList* shaderParameterList = paramList->mParameterList.get();
@@ -580,7 +652,7 @@ namespace cube
                     case ShaderParameterType::RGTextureSRV:
                     {
                         RGTextureSRVHandle& srv = *reinterpret_cast<RGTextureSRVHandle*>(src);
-                        CHECK_FORMAT(srv.IsValid(), "Null srv in shader parameter '{0}.", shaderParameterInfo.name);
+                        CHECK_FORMAT(srv.IsValid(), "Null srv in shader parameter '{0}'.", shaderParameterInfo.name);
 
                         UseResource(srv);
                         break;
@@ -588,7 +660,7 @@ namespace cube
                     case ShaderParameterType::RGTextureUAV:
                     {
                         RGTextureUAVHandle& uav = *reinterpret_cast<RGTextureUAVHandle*>(src);
-                        CHECK_FORMAT(uav.IsValid(), "Null uav in shader parameter '{0}.", shaderParameterInfo.name);
+                        CHECK_FORMAT(uav.IsValid(), "Null uav in shader parameter '{0}'.", shaderParameterInfo.name);
 
                         UseResource(uav);
                         break;
@@ -599,10 +671,77 @@ namespace cube
                 }
             }
 
+            // Check if the resources will be used currently attached to render pass.
+#if CUBE_USE_CHECK
+            if (mRenderPassIndex != mCurrentPassIndex)
+            {
+                for (const PassInfo::ResourceUseInfo& resourceUseInfo : pass.resourceUseInfos)
+                {
+                    RGResource* resource = mResources[resourceUseInfo.rgResourceIndex];
+
+                    if (RGTexture* rgTexture = dynamic_cast<RGTexture*>(resource))
+                    {
+                        for (RGTextureRTVHandle attachedRTV : mAttachedRTVsInRenderPass)
+                        {
+                            CHECK_FORMAT(rgTexture != attachedRTV->mRGTexture || !resourceUseInfo.subresourceRange.IsOverlap(attachedRTV->mSubresourceRangeInput),
+                                "Cannot use subresource currently attached to render pass.");
+                        }
+                        if (mAttachedDSVInRenderPass.IsValid())
+                        {
+                            CHECK_FORMAT(rgTexture != mAttachedDSVInRenderPass->mRGTexture || !resourceUseInfo.subresourceRange.IsOverlap(mAttachedDSVInRenderPass->mSubresourceRangeInput),
+                                "Cannot use subresource currently attached to render pass.");
+                        }
+                    }
+                    else if (RGTextureView* rgTextureView = dynamic_cast<RGTextureView*>(resource))
+                    {
+                        for (RGTextureRTVHandle attachedRTV : mAttachedRTVsInRenderPass)
+                        {
+                            CHECK_FORMAT(!(attachedRTV->IsOverlap(rgTextureView)), "Cannot use subresource currently attached to render pass.");
+                        }
+                        if (mAttachedDSVInRenderPass.IsValid())
+                        {
+                            CHECK_FORMAT(!(mAttachedDSVInRenderPass->IsOverlap(rgTextureView)), "Cannot use subresource currently attached to render pass.");
+                        }
+                    }
+                }
+            }
+#endif
+
             mCurrentPassIndex++;
         }
 
         mCurrentPassIndex = -1;
+    }
+
+    void RGBuilder::CreateAllResources()
+    {
+        CHECK(mState == State::ResourceTracking);
+
+        GAPI& gapi = mRenderer.GetGAPI();
+
+        const int numPasses = static_cast<int>(mPasses.size());
+        for (int i = 0; i < numPasses; ++i)
+        {
+            PassInfo& pass = mPasses[i];
+            mCurrentPassIndex = i;
+
+            for (const PassInfo::ResourceUseInfo& resourceUseInfo : pass.resourceUseInfos)
+            {
+                RGResource* resource = mResources[resourceUseInfo.rgResourceIndex];
+                resource->CreateResource(gapi);
+                resource->UpdateUsePassIndex(i);
+            }
+        }
+        mCurrentPassIndex = -1;
+
+        // All RG resources were created, so write shader parameter lists at this time.
+        for (RGResource* resource : mResources)
+        {
+            if (RGShaderParameterListBase* shaderParameterList = dynamic_cast<RGShaderParameterListBase*>(resource))
+            {
+                shaderParameterList->mParameterList->WriteAllParametersToGPUBuffer();
+            }
+        }
     }
 
     void RGBuilder::ResolveTransitions()
@@ -626,11 +765,6 @@ namespace cube
         {
             PassInfo& pass = mPasses[i];
             mCurrentPassIndex = i;
-
-            if (pass.useResourceFunction)
-            {
-                pass.useResourceFunction(*this);
-            }
 
             for (const PassInfo::ResourceUseInfo& resourceUseInfo : pass.resourceUseInfos)
             {
@@ -674,7 +808,7 @@ namespace cube
                 }
                 else if (RGTexture* texture = dynamic_cast<RGTexture*>(resource))
                 {
-                    TryTransitionTexture(texture, resourceUseInfo.subresourceRange);
+                    TryTransitionTexture(texture, resourceUseInfo.subresourceRange.Clamp(texture->GetGAPITexture().get()));
                 }
                 else
                 {
@@ -709,9 +843,11 @@ namespace cube
         {
             delete resource;
         }
-        mTransientTextures.clear();
         mResources.clear();
 
+        mRenderPassIndex = -1;
+        mAttachedDSVInRenderPass = {};
+        mAttachedRTVsInRenderPass.clear();
         mIsInRenderPass = false;
 
         mState = State::Init;

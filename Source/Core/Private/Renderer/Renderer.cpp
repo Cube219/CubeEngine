@@ -392,12 +392,10 @@ namespace cube
             globalShaderParameterList->Get()->isDirectionalLightEnabled = mIsDirectionalLightEnabled;
             globalShaderParameterList->Get()->directionalLightDirection = mDirectionalLightDirection;
             globalShaderParameterList->Get()->directionalLightIntensity = mDirectionalLightIntensity;
-            globalShaderParameterList->Get()->WriteAllParametersToGPUBuffer();
             builder.BindShaderParameterList(globalShaderParameterList);
 
             RGShaderParameterListHandle<EnvironmentMapLightShaderParameterList> envMapShaderParameterList = builder.CreateShaderParameterList<EnvironmentMapLightShaderParameterList>();
             envMapShaderParameterList->Get()->diffuseIrradianceMap = mEnvironmentMapping.GetDiffuseIrradianceMap(builder);
-            envMapShaderParameterList->Get()->WriteAllParametersToGPUBuffer();
 
             RGTextureHandle externalColor = builder.RegisterTexture(mCurrentBackbuffer);
             RGTextureHandle externalDepthStencil = builder.RegisterTexture(mDepthStencilTexture);

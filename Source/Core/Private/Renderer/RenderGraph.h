@@ -154,7 +154,7 @@ namespace cube
             {
                 int rgResourceIndex;
                 gapi::ResourceStateFlags state;
-                gapi::SubresourceRange subresourceRange;
+                gapi::SubresourceRangeInput subresourceRange;
             };
             Vector<ResourceUseInfo> resourceUseInfos;
 
@@ -168,7 +168,8 @@ namespace cube
         void ResolveShaderParameterListsAndPipeline(PassInfo& pass, gapi::CommandList& commandList);
         void MarkUseResources(PassInfo& pass, gapi::CommandList& commandList);
 
-        void UpdateResourceUsagesInShaderParameterList();
+        void UpdateResourceUsages();
+        void CreateAllResources();
         void ResolveTransitions();
 
         void Reset();
@@ -180,7 +181,6 @@ namespace cube
         PassInfo mLastPass;
 
         Vector<RGResource*> mResources;
-        Vector<SharedPtr<gapi::Texture>> mTransientTextures;
         Map<gapi::Texture*, RGTextureHandle> mRegisteredTextures;
         RGTextureSRVHandle mDummyBlackTexture2D;
         RGTextureSRVHandle mDummyBlackTextureCube;
@@ -195,6 +195,10 @@ namespace cube
         };
         State mState = State::Init;
         bool mIsInRenderPass = false;
+        // TODO: Group variables in each used states.
+        int mRenderPassIndex = -1;
+        Vector<RGTextureRTVHandle> mAttachedRTVsInRenderPass;
+        RGTextureDSVHandle mAttachedDSVInRenderPass;
 
         struct ShaderParameterListBindInfo
         {

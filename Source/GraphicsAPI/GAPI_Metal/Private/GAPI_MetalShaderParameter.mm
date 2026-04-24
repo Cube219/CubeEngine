@@ -178,7 +178,8 @@ namespace cube
                 case ShaderParameterType::RGTextureSRV:
                 {
                     const RGTextureSRVHandle& srv = *reinterpret_cast<const RGTextureSRVHandle*>(src);
-                    CHECK_FORMAT(srv.IsValid(), "Null srv in shader parameter '{0}.", paramInfo.name);
+                    CHECK_FORMAT(srv.IsValid(), "Null srv in shader parameter '{0}'.", paramInfo.name);
+                    CHECK_FORMAT(srv->IsResourceCreated(), "RGTextureSRV '{0}' is not created. Maybe call WriteAllParametersToGPUBuffer outside of RGBuilder?", paramInfo.name);
 
                     Uint64 id = srv->GetSRV()->GetBindlessId();
                     memcpy(dst, &id, sizeof(Uint64));
@@ -187,7 +188,8 @@ namespace cube
                 case ShaderParameterType::RGTextureUAV:
                 {
                     const RGTextureUAVHandle& uav = *reinterpret_cast<const RGTextureUAVHandle*>(src);
-                    CHECK_FORMAT(uav.IsValid(), "Null uav in shader parameter '{0}.", paramInfo.name);
+                    CHECK_FORMAT(uav.IsValid(), "Null uav in shader parameter '{0}'.", paramInfo.name);
+                    CHECK_FORMAT(uav->IsResourceCreated(), "RGTextureUAV '{0}' is not created. Maybe call WriteAllParametersToGPUBuffer outside of RGBuilder?", paramInfo.name);
 
                     Uint64 id = uav->GetUAV()->GetBindlessId();
                     memcpy(dst, &id, sizeof(Uint64));

@@ -80,18 +80,52 @@ namespace cube
             {
                 return HashCombine(firstMipLevel, mipLevels, firstSliceIndex, sliceSize);
             }
+
+            bool IsOverlap(const SubresourceRange& rhs) const
+            {
+                if (firstSliceIndex + sliceSize <= rhs.firstSliceIndex || rhs.firstSliceIndex + rhs.sliceSize <= firstSliceIndex)
+                {
+                    return false;
+                }
+
+                if (firstMipLevel + mipLevels <= rhs.firstMipLevel || rhs.firstMipLevel + rhs.mipLevels <= firstMipLevel)
+                {
+                    return false;
+                }
+                return true;
+            }
         };
 
         struct SubresourceRangeInput
         {
-            Uint32 firstMipLevel = 0;
-            Int32 mipLevels = -1;
+            static constexpr Uint32 AllRange = std::numeric_limits<Uint32>::max();
 
+            // [firstMipLevel, firstMipLevel + mipLevels - 1]
+            Uint32 firstMipLevel = 0;
+            Uint32 mipLevels = SubresourceRangeInput::AllRange;
+
+            // [firstSliceIndex, firstSliceIndex + sliceSize - 1]
             Uint32 firstSliceIndex = 0;
-            Int32 sliceSize = -1;
+            Uint32 sliceSize = SubresourceRangeInput::AllRange;
 
             SubresourceRange Clamp(const Buffer* buffer) const;
             SubresourceRange Clamp(const Texture* texture) const;
+
+            bool IsOverlap(const SubresourceRangeInput& rhs) const
+            {
+                if ((sliceSize != SubresourceRangeInput::AllRange && firstSliceIndex + sliceSize <= rhs.firstSliceIndex)
+                    || (rhs.sliceSize != SubresourceRangeInput::AllRange && rhs.firstSliceIndex + rhs.sliceSize <= firstSliceIndex))
+                {
+                    return false;
+                }
+
+                if ((mipLevels != SubresourceRangeInput::AllRange && firstMipLevel + mipLevels <= rhs.firstMipLevel)
+                    || (rhs.mipLevels != SubresourceRangeInput::AllRange && rhs.firstMipLevel + rhs.mipLevels <= firstMipLevel))
+                {
+                    return false;
+                }
+                return true;
+            }
 
             SubresourceRangeInput() = default;
             SubresourceRangeInput(const SubresourceRange& other)

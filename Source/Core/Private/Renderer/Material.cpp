@@ -133,8 +133,6 @@ namespace cube
             parameters->Get()->textureSlot4 = builder.GetDummyBlackTexture2D();
         }
 
-        parameters->Get()->WriteAllParametersToGPUBuffer();
-
         return parameters;
     }
 

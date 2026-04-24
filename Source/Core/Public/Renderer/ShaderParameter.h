@@ -207,6 +207,8 @@ namespace cube
         SharedPtr<gapi::Buffer> GetBuffer() const { return mPooledBuffer.buffer; }
         ShaderParameterListManager& GetManager() const { return mManager; }
 
+        virtual void WriteAllParametersToGPUBuffer() = 0;
+
     protected:
         // Only manager can create shader parameter list
         friend class ShaderParameterListManager;
@@ -283,7 +285,7 @@ public: \
         ParameterIterHelperEnd::InitializeParameterInfo(infos); \
         shaderParemeterHelper.UpdateShaderParameterListInfo(infos); \
     } \
-    void WriteAllParametersToGPUBuffer() \
+    virtual void WriteAllParametersToGPUBuffer() override \
     { \
         mManager.GetShaderParameterHelper().WriteParametersToGPUBuffer( \
             mPooledBuffer.buffer, \

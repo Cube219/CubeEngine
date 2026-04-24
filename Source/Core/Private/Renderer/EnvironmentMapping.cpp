@@ -240,7 +240,6 @@ namespace cube
 
         RGShaderParameterListHandle<SkyboxShaderParameterList> skyboxParams = builder.CreateShaderParameterList<SkyboxShaderParameterList>();
         skyboxParams->Get()->skyboxTexture = skyboxSRV;
-        skyboxParams->Get()->WriteAllParametersToGPUBuffer();
 
         builder.AddPass(CUBE_T("Skybox"), mSkyboxPipeline, skyboxParams,
         [boxMesh = mRenderer.GetBoxMesh()](gapi::CommandList& commandList)
@@ -302,7 +301,6 @@ namespace cube
             params->Get()->widthAndInvWidth = Vector2(static_cast<float>(width), 1.0f / static_cast<float>(width));
             params->Get()->srcIBL = srcIBLSRV;
             params->Get()->dstDiffuseIrradianceMap = dstDiffuseEnvMapUAV;
-            params->Get()->WriteAllParametersToGPUBuffer();
 
             builder.AddPass(CUBE_T("GenerateIrradianceMap"),
                 mGenerateIrradianceMapPipeline,

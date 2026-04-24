@@ -16,10 +16,26 @@ namespace cube
     public:
         bool IsTransient() const { return mIsTransient; }
 
+        StringView GetDebugName() const { return mDebugName; }
+
+        virtual void CreateResource(GAPI& gapi) {}
+        virtual bool IsResourceCreated() const = 0;
+        virtual void UpdateUsePassIndex(int passIndex)
+        {
+            if (mBeginPass == -1 || mBeginPass > passIndex)
+            {
+                mBeginPass = passIndex;
+            }
+            if (mEndPass < passIndex)
+            {
+                mEndPass = passIndex;
+            }
+        }
+
     protected:
         friend class RGBuilder;
 
-        RGResource(int index);
+        RGResource(int index, StringView debugName);
         virtual ~RGResource() = default;
 
         bool mIsTransient;
@@ -27,6 +43,8 @@ namespace cube
         int mIndex;
         int mBeginPass;
         int mEndPass;
+
+        String mDebugName;
     };
 
     template <typename RGResourceType>
@@ -75,6 +93,9 @@ namespace cube
         SharedPtr<gapi::Texture> GetGAPITexture() const { return mTexture; }
         Uint64 GetSubresourceHashKey(const gapi::SubresourceRange& range) const;
 
+        virtual void CreateResource(GAPI& gapi) override;
+        virtual bool IsResourceCreated() const override { return mTexture != nullptr; }
+
     protected:
         friend class RGBuilder;
         friend class RGTextureSRV;
@@ -82,7 +103,7 @@ namespace cube
         friend class RGTextureRTV;
         friend class RGTextureDSV;
 
-        RGTexture(int index, const gapi::TextureInfo& textureInfo);
+        RGTexture(int index, const gapi::TextureInfo& textureInfo, StringView debugName);
         RGTexture(int index, SharedPtr<gapi::Texture> texture);
         virtual ~RGTexture() = default;
 
@@ -94,14 +115,32 @@ namespace cube
     class RGTextureView : public RGResource
     {
     public:
+        virtual void UpdateUsePassIndex(int passIndex) override
+        {
+            RGResource::UpdateUsePassIndex(passIndex);
+
+            mRGTexture->UpdateUsePassIndex(passIndex);
+        }
+
         const gapi::SubresourceRange GetSubresourceRange() const
         {
+            CHECK(mRGTexture->GetGAPITexture());
             return mSubresourceRange;
         }
         Uint64 GetSubresourceHashKey() const
         {
             CHECK(mSubresourceHashKey);
             return mSubresourceHashKey;
+        }
+
+        bool IsOverlap(RGTextureView* rhs) const
+        {
+            if (mRGTexture != rhs->mRGTexture)
+            {
+                return false;
+            }
+            // Use subresource range input so it can be called before creating resource.
+            return mSubresourceRangeInput.IsOverlap(rhs->mSubresourceRangeInput);
         }
 
     protected:
@@ -111,6 +150,7 @@ namespace cube
         virtual ~RGTextureView() = default;
 
         RGTexture* mRGTexture;
+        gapi::SubresourceRangeInput mSubresourceRangeInput;
         gapi::SubresourceRange mSubresourceRange;
         Uint64 mSubresourceHashKey;
     };
@@ -121,10 +161,13 @@ namespace cube
     public:
         SharedPtr<gapi::TextureSRV> GetSRV() const { return mSRV; }
 
+        virtual void CreateResource(GAPI& gapi) override;
+        virtual bool IsResourceCreated() const override { return mSRV != nullptr; }
+
     private:
         friend class RGBuilder;
 
-        RGTextureSRV(int index, RGTexture* rgTexture, Uint32 firstMipLevel, Int32 mipLevels);
+        RGTextureSRV(int index, RGTexture* rgTexture, Uint32 firstMipLevel, Uint32 mipLevels);
         virtual ~RGTextureSRV() = default;
 
         SharedPtr<gapi::TextureSRV> mSRV;
@@ -136,10 +179,13 @@ namespace cube
     public:
         SharedPtr<gapi::TextureUAV> GetUAV() const { return mUAV; }
 
+        virtual void CreateResource(GAPI& gapi) override;
+        virtual bool IsResourceCreated() const override { return mUAV != nullptr; }
+
     private:
         friend class RGBuilder;
 
-        RGTextureUAV(int index, RGTexture* rgTexture, Uint32 mipLevel, Uint32 firstSliceIndex, Int32 sliceSize);
+        RGTextureUAV(int index, RGTexture* rgTexture, Uint32 mipLevel, Uint32 firstSliceIndex, Uint32 sliceSize);
         virtual ~RGTextureUAV() = default;
 
         SharedPtr<gapi::TextureUAV> mUAV;
@@ -150,6 +196,9 @@ namespace cube
     {
     public:
         SharedPtr<gapi::TextureRTV> GetRTV() const { return mRTV; }
+
+        virtual void CreateResource(GAPI& gapi) override;
+        virtual bool IsResourceCreated() const override { return mRTV != nullptr; }
 
     private:
         friend class RGBuilder;
@@ -165,6 +214,9 @@ namespace cube
     {
     public:
         SharedPtr<gapi::TextureDSV> GetDSV() const { return mDSV; }
+
+        virtual void CreateResource(GAPI& gapi) override;
+        virtual bool IsResourceCreated() const override { return mDSV != nullptr; }
 
     private:
         friend class RGBuilder;
@@ -183,6 +235,8 @@ namespace cube
 
         RGShaderParameterListBase(int index, const ShaderParameterListInfo& parameterListInfo, SharedPtr<ShaderParameterList> parameterList);
         virtual ~RGShaderParameterListBase() = default;
+
+        virtual bool IsResourceCreated() const override { return true; }
 
         const ShaderParameterListInfo& mParameterListInfo;
         SharedPtr<ShaderParameterList> mParameterList;

@@ -235,44 +235,44 @@ namespace cube
             {
             case TextureType::Texture1D:
                 srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1D;
-                srvDesc.Texture1D.MostDetailedMip = createInfo.firstMipLevel;
-                srvDesc.Texture1D.MipLevels = createInfo.mipLevels;
+                srvDesc.Texture1D.MostDetailedMip = GetFirstMipLevel();
+                srvDesc.Texture1D.MipLevels = GetMipLevels();
                 break;
             case TextureType::Texture1DArray:
                 srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1DARRAY;
-                srvDesc.Texture1DArray.MostDetailedMip = createInfo.firstMipLevel;
-                srvDesc.Texture1DArray.MipLevels = createInfo.mipLevels;
-                srvDesc.Texture1DArray.FirstArraySlice = createInfo.firstSliceIndex;
-                srvDesc.Texture1DArray.ArraySize = createInfo.sliceSize;
+                srvDesc.Texture1DArray.MostDetailedMip = GetFirstMipLevel();
+                srvDesc.Texture1DArray.MipLevels = GetMipLevels();
+                srvDesc.Texture1DArray.FirstArraySlice = GetFirstSliceIndex();
+                srvDesc.Texture1DArray.ArraySize = GetSliceSize();
                 break;
             case TextureType::Texture2D:
                 srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-                srvDesc.Texture2D.MostDetailedMip = createInfo.firstMipLevel;
-                srvDesc.Texture2D.MipLevels = createInfo.mipLevels;
+                srvDesc.Texture2D.MostDetailedMip = GetFirstMipLevel();
+                srvDesc.Texture2D.MipLevels = GetMipLevels();
                 break;
             case TextureType::Texture2DArray:
                 srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
-                srvDesc.Texture2DArray.MostDetailedMip = createInfo.firstMipLevel;
-                srvDesc.Texture2DArray.MipLevels = createInfo.mipLevels;
-                srvDesc.Texture2DArray.FirstArraySlice = createInfo.firstSliceIndex;
-                srvDesc.Texture2DArray.ArraySize = createInfo.sliceSize;
+                srvDesc.Texture2DArray.MostDetailedMip = GetFirstMipLevel();
+                srvDesc.Texture2DArray.MipLevels = GetMipLevels();
+                srvDesc.Texture2DArray.FirstArraySlice = GetFirstSliceIndex();
+                srvDesc.Texture2DArray.ArraySize = GetSliceSize();
                 break;
             case TextureType::Texture3D:
                 srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
-                srvDesc.Texture3D.MostDetailedMip = createInfo.firstMipLevel;
-                srvDesc.Texture3D.MipLevels = createInfo.mipLevels;
+                srvDesc.Texture3D.MostDetailedMip = GetFirstMipLevel();
+                srvDesc.Texture3D.MipLevels = GetMipLevels();
                 break;
             case TextureType::TextureCube:
                 srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
-                srvDesc.TextureCube.MostDetailedMip = createInfo.firstMipLevel;
-                srvDesc.TextureCube.MipLevels = createInfo.mipLevels;
+                srvDesc.TextureCube.MostDetailedMip = GetFirstMipLevel();
+                srvDesc.TextureCube.MipLevels = GetMipLevels();
                 break;
             case TextureType::TextureCubeArray:
                 srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBEARRAY;
-                srvDesc.TextureCubeArray.MostDetailedMip = createInfo.firstMipLevel;
-                srvDesc.TextureCubeArray.MipLevels = createInfo.mipLevels;
-                srvDesc.TextureCubeArray.First2DArrayFace = createInfo.firstSliceIndex;
-                srvDesc.TextureCubeArray.NumCubes = static_cast<UINT>(createInfo.sliceSize) / 6;
+                srvDesc.TextureCubeArray.MostDetailedMip = GetFirstMipLevel();
+                srvDesc.TextureCubeArray.MipLevels = GetMipLevels();
+                srvDesc.TextureCubeArray.First2DArrayFace = GetFirstSliceIndex();
+                srvDesc.TextureCubeArray.NumCubes = static_cast<UINT>(GetSliceSize()) / 6;
                 break;
             default:
                 NOT_IMPLEMENTED();
@@ -301,36 +301,36 @@ namespace cube
             {
             case TextureType::Texture1D:
                 uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1D;
-                uavDesc.Texture1D.MipSlice = createInfo.mipLevel;
+                uavDesc.Texture1D.MipSlice = GetMipLevel();
                 break;
             case TextureType::Texture1DArray:
                 uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1DARRAY;
-                uavDesc.Texture1DArray.MipSlice = createInfo.mipLevel;
-                uavDesc.Texture1DArray.FirstArraySlice = createInfo.firstSliceIndex;
-                uavDesc.Texture1DArray.ArraySize = createInfo.sliceSize;
+                uavDesc.Texture1DArray.MipSlice = GetMipLevel();
+                uavDesc.Texture1DArray.FirstArraySlice = GetFirstSliceIndex();
+                uavDesc.Texture1DArray.ArraySize = GetSliceSize();
                 break;
             case TextureType::Texture2D:
                 uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-                uavDesc.Texture2D.MipSlice = createInfo.mipLevel;
+                uavDesc.Texture2D.MipSlice = GetMipLevel();
                 break;
             case TextureType::Texture2DArray:
                 uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
-                uavDesc.Texture2DArray.MipSlice = createInfo.mipLevel;
-                uavDesc.Texture2DArray.FirstArraySlice = createInfo.firstSliceIndex;
-                uavDesc.Texture2DArray.ArraySize = createInfo.sliceSize;
+                uavDesc.Texture2DArray.MipSlice = GetMipLevel();
+                uavDesc.Texture2DArray.FirstArraySlice = GetFirstSliceIndex();
+                uavDesc.Texture2DArray.ArraySize = GetSliceSize();
                 break;
             case TextureType::Texture3D:
                 uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
-                uavDesc.Texture3D.MipSlice = createInfo.mipLevel;
+                uavDesc.Texture3D.MipSlice = GetMipLevel();
                 uavDesc.Texture3D.FirstWSlice = createInfo.firstDepthIndex;
                 uavDesc.Texture3D.WSize = createInfo.depthSize;
                 break;
             case TextureType::TextureCube:
             case TextureType::TextureCubeArray:
                 uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
-                uavDesc.Texture2DArray.MipSlice = createInfo.mipLevel;
-                uavDesc.Texture2DArray.FirstArraySlice = createInfo.firstSliceIndex;
-                uavDesc.Texture2DArray.ArraySize = createInfo.sliceSize;
+                uavDesc.Texture2DArray.MipSlice = GetMipLevel();
+                uavDesc.Texture2DArray.FirstArraySlice = GetFirstSliceIndex();
+                uavDesc.Texture2DArray.ArraySize = GetSliceSize();
                 break;
             default:
                 NOT_IMPLEMENTED();
@@ -359,36 +359,36 @@ namespace cube
             {
             case TextureType::Texture1D:
                 rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1D;
-                rtvDesc.Texture1D.MipSlice = createInfo.mipLevel;
+                rtvDesc.Texture1D.MipSlice = GetMipLevel();
                 break;
             case TextureType::Texture1DArray:
                 rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1DARRAY;
-                rtvDesc.Texture1DArray.MipSlice = createInfo.mipLevel;
-                rtvDesc.Texture1DArray.FirstArraySlice = createInfo.firstSliceIndex;
-                rtvDesc.Texture1DArray.ArraySize = createInfo.sliceSize;
+                rtvDesc.Texture1DArray.MipSlice = GetMipLevel();
+                rtvDesc.Texture1DArray.FirstArraySlice = GetFirstSliceIndex();
+                rtvDesc.Texture1DArray.ArraySize = GetSliceSize();
                 break;
             case TextureType::Texture2D:
                 rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-                rtvDesc.Texture2D.MipSlice = createInfo.mipLevel;
+                rtvDesc.Texture2D.MipSlice = GetMipLevel();
                 break;
             case TextureType::Texture2DArray:
                 rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
-                rtvDesc.Texture2DArray.MipSlice = createInfo.mipLevel;
-                rtvDesc.Texture2DArray.FirstArraySlice = createInfo.firstSliceIndex;
-                rtvDesc.Texture2DArray.ArraySize = createInfo.sliceSize;
+                rtvDesc.Texture2DArray.MipSlice = GetMipLevel();
+                rtvDesc.Texture2DArray.FirstArraySlice = GetFirstSliceIndex();
+                rtvDesc.Texture2DArray.ArraySize = GetSliceSize();
                 break;
             case TextureType::Texture3D:
                 rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE3D;
-                rtvDesc.Texture3D.MipSlice = createInfo.mipLevel;
+                rtvDesc.Texture3D.MipSlice = GetMipLevel();
                 rtvDesc.Texture3D.FirstWSlice = createInfo.firstDepthIndex;
                 rtvDesc.Texture3D.WSize = createInfo.depthSize;
                 break;
             case TextureType::TextureCube:
             case TextureType::TextureCubeArray:
                 rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
-                rtvDesc.Texture2DArray.MipSlice = createInfo.mipLevel;
-                rtvDesc.Texture2DArray.FirstArraySlice = createInfo.firstSliceIndex;
-                rtvDesc.Texture2DArray.ArraySize = createInfo.sliceSize;
+                rtvDesc.Texture2DArray.MipSlice = GetMipLevel();
+                rtvDesc.Texture2DArray.FirstArraySlice = GetFirstSliceIndex();
+                rtvDesc.Texture2DArray.ArraySize = GetSliceSize();
                 break;
             default:
                 NOT_IMPLEMENTED();
@@ -416,30 +416,30 @@ namespace cube
             {
             case TextureType::Texture1D:
                 dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1D;
-                dsvDesc.Texture1D.MipSlice = createInfo.mipLevel;
+                dsvDesc.Texture1D.MipSlice = GetMipLevel();
                 break;
             case TextureType::Texture1DArray:
                 dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1DARRAY;
-                dsvDesc.Texture1DArray.MipSlice = createInfo.mipLevel;
-                dsvDesc.Texture1DArray.FirstArraySlice = createInfo.firstSliceIndex;
-                dsvDesc.Texture1DArray.ArraySize = createInfo.sliceSize;
+                dsvDesc.Texture1DArray.MipSlice = GetMipLevel();
+                dsvDesc.Texture1DArray.FirstArraySlice = GetFirstSliceIndex();
+                dsvDesc.Texture1DArray.ArraySize = GetSliceSize();
                 break;
             case TextureType::Texture2D:
                 dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-                dsvDesc.Texture2D.MipSlice = createInfo.mipLevel;
+                dsvDesc.Texture2D.MipSlice = GetMipLevel();
                 break;
             case TextureType::Texture2DArray:
                 dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
-                dsvDesc.Texture2DArray.MipSlice = createInfo.mipLevel;
-                dsvDesc.Texture2DArray.FirstArraySlice = createInfo.firstSliceIndex;
-                dsvDesc.Texture2DArray.ArraySize = createInfo.sliceSize;
+                dsvDesc.Texture2DArray.MipSlice = GetMipLevel();
+                dsvDesc.Texture2DArray.FirstArraySlice = GetFirstSliceIndex();
+                dsvDesc.Texture2DArray.ArraySize = GetSliceSize();
                 break;
             case TextureType::TextureCube:
             case TextureType::TextureCubeArray:
                 dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
-                dsvDesc.Texture2DArray.MipSlice = createInfo.mipLevel;
-                dsvDesc.Texture2DArray.FirstArraySlice = createInfo.firstSliceIndex * 6;
-                dsvDesc.Texture2DArray.ArraySize = createInfo.sliceSize * 6;
+                dsvDesc.Texture2DArray.MipSlice = GetMipLevel();
+                dsvDesc.Texture2DArray.FirstArraySlice = GetFirstSliceIndex() * 6;
+                dsvDesc.Texture2DArray.ArraySize = GetSliceSize() * 6;
                 break;
             case TextureType::Texture3D:
                 CHECK_FORMAT(false, "Depth stencil view does not support Texture3D texture (D3D12 has no DSV_DIMENSION_TEXTURE3D).");
