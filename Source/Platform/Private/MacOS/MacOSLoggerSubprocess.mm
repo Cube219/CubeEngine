@@ -2,6 +2,8 @@
 
 #include "MacOS/MacOSLoggerSubprocess.h"
 
+#if CUBE_MACOS_USE_LOGGER_WINDOW
+
 #include <AppKit/AppKit.h>
 #include <atomic>
 #include <cstdint>
@@ -25,203 +27,13 @@
 @interface CubeLoggerSubprocessAppDelegate : NSObject <NSApplicationDelegate>
 @end
 
-namespace cube
-{
-    namespace platform
-    {
-        // === Parent-side static state ===
-        NSTask* MacOSLoggerSubprocess::mLoggerTask = nil;
-        NSFileHandle* MacOSLoggerSubprocess::mLoggerWriteHandle = nil;
-        std::mutex MacOSLoggerSubprocess::mLoggerWriteMutex;
-        std::atomic<bool> MacOSLoggerSubprocess::mIsAlive = false;
-    } // namespace platform
-} // namespace cube
-
-namespace
-{
-    // === Child-side state ===
-    // Only the subprocess process touches these (set up by Run() and accessed by the Obj-C
-    // delegates / reader thread). File-local statics are sufficient.
-    CubeLoggerSubprocessWindow* gWindow = nil;
-    CubeLoggerSubprocessTextView* gTextView = nil;
-    CubeLoggerSubprocessWindowDelegate* gWindowDelegate = nil;
-    CubeLoggerSubprocessAppDelegate* gAppDelegate = nil;
-    std::atomic<bool> gPromptActive = false;
-    std::thread gReaderThread;
-
-    void AppendAttributed(NSString* text, cube::platform::PrintColorCategory colorCategory)
-    {
-        if (gTextView == nil)
-        {
-            return;
-        }
-
-        NSColor* color = nil;
-        switch (colorCategory)
-        {
-        case cube::platform::PrintColorCategory::Warning:
-            color = [NSColor systemOrangeColor];
-            break;
-        case cube::platform::PrintColorCategory::Error:
-            color = [NSColor systemRedColor];
-            break;
-        case cube::platform::PrintColorCategory::Default:
-        default:
-            color = [NSColor textColor];
-            break;
-        }
-
-        NSAttributedString* attrText = [[NSAttributedString alloc]
-            initWithString:text
-                attributes:@{
-                    NSForegroundColorAttributeName: color,
-                    NSBackgroundColorAttributeName: [NSColor textBackgroundColor],
-                    NSFontAttributeName: [NSFont fontWithName:@"Menlo" size:12]
-                }
-        ];
-        NSTextStorage* storage = gTextView.textStorage;
-        [storage appendAttributedString:attrText];
-        [gTextView scrollRangeToVisible:NSMakeRange(storage.length, 0)];
-    }
-
-    bool ReadExact(int fd, void* buf, size_t len)
-    {
-        uint8_t* p = (uint8_t*)buf;
-        size_t remaining = len;
-        while (remaining > 0)
-        {
-            ssize_t n = read(fd, p, remaining);
-            if (n > 0)
-            {
-                p += n;
-                remaining -= (size_t)n;
-            }
-            else if (n == 0)
-            {
-                return false; // EOF
-            }
-            else
-            {
-                if (errno == EINTR)
-                {
-                    continue;
-                }
-                return false;
-            }
-        }
-        return true;
-    }
-
-    void ReaderThreadMain()
-    {
-        const int fd = STDIN_FILENO;
-        while (true)
-        {
-            uint8_t header[5];
-            if (!ReadExact(fd, header, sizeof(header)))
-            {
-                break;
-            }
-
-            uint8_t colorByte = header[0];
-            uint32_t length = 0;
-            length |= (uint32_t)header[1];
-            length |= (uint32_t)header[2] << 8;
-            length |= (uint32_t)header[3] << 16;
-            length |= (uint32_t)header[4] << 24;
-
-            NSMutableData* payload = [NSMutableData dataWithLength:length];
-            if (length > 0)
-            {
-                if (!ReadExact(fd, [payload mutableBytes], length))
-                {
-                    break;
-                }
-            }
-
-            NSString* msg = [[NSString alloc] initWithData:payload encoding:NSUTF8StringEncoding];
-            if (msg == nil)
-            {
-                msg = @"<invalid UTF-8 log message>";
-            }
-            NSString* lineWithNewline = [msg stringByAppendingString:@"\n"];
-
-            cube::platform::PrintColorCategory category;
-            switch (colorByte)
-            {
-            case 1:
-                category = cube::platform::PrintColorCategory::Warning;
-                break;
-            case 2:
-                category = cube::platform::PrintColorCategory::Error;
-                break;
-            default:
-                category = cube::platform::PrintColorCategory::Default;
-                break;
-            }
-
-            cube::platform::MacOSUtility::DispatchToMainThread([lineWithNewline, category] {
-                AppendAttributed(lineWithNewline, category);
-            });
-        }
-
-        // EOF or error. Show the "press any key" prompt on the main thread.
-        cube::platform::MacOSUtility::DispatchToMainThread([] {
-            AppendAttributed(@"\nPress any key to close the application...\n",
-                             cube::platform::PrintColorCategory::Default);
-            gPromptActive.store(true);
-        });
-    }
-
-    void CreateWindow()
-    {
-        NSUInteger style = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable;
-
-        gWindow = [[CubeLoggerSubprocessWindow alloc]
-            initWithContentRect:NSMakeRect(0, 0, 1280, 720)
-                      styleMask:style
-                        backing:NSBackingStoreBuffered
-                          defer:NO
-        ];
-        [gWindow setTitle:@"CubeEngine Logger"];
-        [gWindow setReleasedWhenClosed:NO];
-
-        NSScrollView* scrollView = [[NSScrollView alloc] initWithFrame:[[gWindow contentView] bounds]];
-        [scrollView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
-
-        gTextView = [[CubeLoggerSubprocessTextView alloc] initWithFrame:[[gWindow contentView] bounds]];
-        gTextView.editable = NO;
-        gTextView.selectable = YES;
-
-        [scrollView setDocumentView:gTextView];
-        [scrollView setHasVerticalScroller:YES];
-
-        [[gWindow contentView] addSubview:scrollView];
-
-        gWindowDelegate = [[CubeLoggerSubprocessWindowDelegate alloc] init];
-        [gWindow setDelegate:gWindowDelegate];
-
-        [gWindow makeKeyAndOrderFront:nil];
-
-        // Move to top-left of the main screen.
-        NSScreen* screen = [gWindow screen] ?: [NSScreen mainScreen];
-        NSRect screenFrame = [screen visibleFrame];
-        NSRect windowFrame = [gWindow frame];
-
-        NSPoint topLeft;
-        topLeft.x = screenFrame.origin.x;
-        topLeft.y = NSMaxY(screenFrame) - windowFrame.size.height;
-        [gWindow setFrameOrigin:topLeft];
-    }
-} // namespace
-
 @implementation CubeLoggerSubprocessWindow
 
 - (void)keyDown:(NSEvent*)event
 {
-    if (gPromptActive.load())
+    if (cube::platform::MacOSLoggerSubprocess::IsPressAnyKeyActivated())
     {
-        cube::platform::MacOSLoggerSubprocess::TerminateFromUI();
+        [NSApp terminate:nil];
     }
 }
 
@@ -231,9 +43,9 @@ namespace
 
 - (void)keyDown:(NSEvent*)event
 {
-    if (gPromptActive.load())
+    if (cube::platform::MacOSLoggerSubprocess::IsPressAnyKeyActivated())
     {
-        cube::platform::MacOSLoggerSubprocess::TerminateFromUI();
+        [NSApp terminate:nil];
         return;
     }
     [super keyDown:event];
@@ -245,7 +57,7 @@ namespace
 
 - (BOOL)windowShouldClose:(NSWindow*)sender
 {
-    cube::platform::MacOSLoggerSubprocess::TerminateFromUI();
+    [NSApp terminate:nil];
     return NO;
 }
 
@@ -255,6 +67,19 @@ namespace
 
 - (void)applicationDidFinishLaunching:(NSNotification*)notification
 {
+    // Yield activation to the parent so the logger window does not hide the main window.
+    pid_t parentPid = getppid();
+    NSRunningApplication* parentApp = [NSRunningApplication runningApplicationWithProcessIdentifier:parentPid];
+    if (parentApp != nil)
+    {
+        [NSApp yieldActivationToApplication:parentApp];
+        [parentApp activateWithOptions:0];
+    }
+}
+
+- (void)applicationWillTerminate:(NSNotification*)notification
+{
+    cube::platform::MacOSLoggerSubprocess::OnAppWillTerminate();
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication*)sender
@@ -268,6 +93,20 @@ namespace cube
 {
     namespace platform
     {
+        // === Parent-side static state ===
+        NSTask* MacOSLoggerSubprocess::mLoggerTask = nil;
+        NSFileHandle* MacOSLoggerSubprocess::mLoggerWriteHandle = nil;
+        std::mutex MacOSLoggerSubprocess::mLoggerWriteMutex;
+        std::atomic<bool> MacOSLoggerSubprocess::mIsAlive = false;
+
+        // === Child-side static state ===
+        CubeLoggerSubprocessWindow* MacOSLoggerSubprocess::mWindow = nil;
+        CubeLoggerSubprocessTextView* MacOSLoggerSubprocess::mTextView = nil;
+        CubeLoggerSubprocessWindowDelegate* MacOSLoggerSubprocess::mWindowDelegate = nil;
+        CubeLoggerSubprocessAppDelegate* MacOSLoggerSubprocess::mAppDelegate = nil;
+        std::atomic<bool> MacOSLoggerSubprocess::mIsPressAnyKeyActivated = false;
+        std::thread MacOSLoggerSubprocess::mReaderThread;
+
         // === Parent side ===
 
         void MacOSLoggerSubprocess::Spawn()
@@ -287,14 +126,12 @@ namespace cube
             mLoggerTask.arguments = @[@"--logger-subprocess"];
 
             NSPipe* stdinPipe = [NSPipe pipe];
-            mLoggerTask.standardInput = stdinPipe;
             // Inherit stdout/stderr so subprocess's std::cout lands in the same terminal.
-
+            mLoggerTask.standardInput = stdinPipe;
             mLoggerTask.terminationHandler = ^(NSTask* task) {
                 mIsAlive.store(false);
 
-                // If the main app hasn't started its own shutdown, the user closed the
-                // logger window first. Kick off the standard termination flow.
+                // Force terminate main app.
                 if (!MacOSPlatform::IsApplicationClosed())
                 {
                     MacOSUtility::DispatchToMainThread([] {
@@ -338,7 +175,16 @@ namespace cube
                 mLoggerWriteHandle = nil;
             }
 
-            // Wait until the subprocess exits (user presses a key, or it is already gone).
+            // Yield activation to the logger process so it can get keyboard events immediately
+            // without the user needing to click the logger window.
+            pid_t loggerPID = [mLoggerTask processIdentifier];
+            NSRunningApplication* loggerApp = [NSRunningApplication runningApplicationWithProcessIdentifier:loggerPID];
+            if (loggerApp != nil)
+            {
+                [NSApp yieldActivationToApplication:loggerApp];
+                [loggerApp activateWithOptions:0];
+            }
+
             if (mIsAlive.load())
             {
                 [mLoggerTask waitUntilExit];
@@ -355,8 +201,8 @@ namespace cube
             }
 
             MacOSString osStr = String_Convert<MacOSString>(str);
-            Uint8 colorByte = static_cast<Uint8>(colorCategory);
-            Uint32 length = static_cast<Uint32>(osStr.size());
+            const Uint8 colorByte = static_cast<Uint8>(colorCategory);
+            const Uint32 length = static_cast<Uint32>(osStr.size());
 
             NSMutableData* data = [NSMutableData dataWithCapacity:5 + length];
             [data appendBytes:&colorByte length:1];
@@ -374,16 +220,179 @@ namespace cube
 
         // === Child side ===
 
-        void MacOSLoggerSubprocess::TerminateFromUI()
+        void MacOSLoggerSubprocess::AppendLogString(NSString* text, PrintColorCategory colorCategory)
         {
-            // [NSApp terminate:] calls exit() directly without returning. Detach the reader thread
-            // first so its std::thread destructor (run during __cxa_finalize_ranges) doesn't call
-            // std::terminate on a still-joinable thread.
-            if (gReaderThread.joinable())
+            CHECK_MACOS_MAIN_THREAD()
+
+            if (mTextView == nil)
             {
-                gReaderThread.detach();
+                return;
             }
-            [NSApp terminate:nil];
+
+            NSColor* color = nil;
+            switch (colorCategory)
+            {
+            case PrintColorCategory::Warning:
+                color = [NSColor systemOrangeColor];
+                break;
+            case PrintColorCategory::Error:
+                color = [NSColor systemRedColor];
+                break;
+            case PrintColorCategory::Default:
+            default:
+                color = [NSColor textColor];
+                break;
+            }
+
+            NSAttributedString* attrText = [[NSAttributedString alloc]
+                initWithString:text
+                    attributes:@{
+                        NSForegroundColorAttributeName: color,
+                        NSBackgroundColorAttributeName: [NSColor textBackgroundColor],
+                        NSFontAttributeName: [NSFont fontWithName:@"Menlo" size:12]
+                    }
+            ];
+            NSTextStorage* storage = mTextView.textStorage;
+            [storage appendAttributedString:attrText];
+            [mTextView scrollRangeToVisible:NSMakeRange(storage.length, 0)];
+        }
+
+        bool MacOSLoggerSubprocess::ReadExact(int fd, void* buf, Uint64 len)
+        {
+            Byte* p = (Byte*)buf;
+            Uint64 remaining = len;
+            while (remaining > 0)
+            {
+                ssize_t n = read(fd, p, remaining);
+                if (n > 0)
+                {
+                    p += n;
+                    remaining -= (size_t)n;
+                }
+                else if (n == 0)
+                {
+                    return false; // EOF
+                }
+                else
+                {
+                    if (errno == EINTR)
+                    {
+                        continue;
+                    }
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        void MacOSLoggerSubprocess::ReaderThreadMain()
+        {
+            const int fd = STDIN_FILENO;
+            while (true)
+            { @autoreleasepool {
+                Byte header[5];
+                if (!ReadExact(fd, header, sizeof(header)))
+                {
+                    break;
+                }
+
+                Uint8 colorByte = header[0];
+                Uint32 length;
+                memcpy(&length, &header[1], sizeof(length));
+
+                NSMutableData* payload = [NSMutableData dataWithLength:length];
+                if (length > 0)
+                {
+                    if (!ReadExact(fd, [payload mutableBytes], length))
+                    {
+                        break;
+                    }
+                }
+
+                NSString* msg = [[NSString alloc] initWithData:payload encoding:NSUTF8StringEncoding];
+                if (msg == nil)
+                {
+                    msg = @"<invalid UTF-8 log message>";
+                }
+                NSString* lineWithNewline = [msg stringByAppendingString:@"\n"];
+
+                PrintColorCategory category;
+                switch (colorByte)
+                {
+                case 1:
+                    category = PrintColorCategory::Warning;
+                    break;
+                case 2:
+                    category = PrintColorCategory::Error;
+                    break;
+                default:
+                    category = PrintColorCategory::Default;
+                    break;
+                }
+
+                MacOSUtility::DispatchToMainThread([lineWithNewline, category] {
+                    AppendLogString(lineWithNewline, category);
+                });
+            }}
+
+            // EOF or error. Show the "press any key" prompt on the main thread.
+            MacOSUtility::DispatchToMainThread([] {
+                AppendLogString(@"\nPress any key to close the application...\n", PrintColorCategory::Default);
+                mIsPressAnyKeyActivated.store(true);
+            });
+        }
+
+        void MacOSLoggerSubprocess::CreateWindow()
+        {
+            NSUInteger style = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable;
+
+            mWindow = [[CubeLoggerSubprocessWindow alloc]
+                initWithContentRect:NSMakeRect(0, 0, 1280, 720)
+                styleMask:style
+                backing:NSBackingStoreBuffered
+                defer:NO
+            ];
+            [mWindow setTitle:@"CubeEngine Logger"];
+            [mWindow setReleasedWhenClosed:NO];
+
+            NSScrollView* scrollView = [[NSScrollView alloc] initWithFrame:[[mWindow contentView] bounds]];
+            [scrollView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
+
+            mTextView = [[CubeLoggerSubprocessTextView alloc] initWithFrame:[[mWindow contentView] bounds]];
+            mTextView.editable = NO;
+            mTextView.selectable = YES;
+
+            [scrollView setDocumentView:mTextView];
+            [scrollView setHasVerticalScroller:YES];
+
+            [[mWindow contentView] addSubview:scrollView];
+
+            mWindowDelegate = [[CubeLoggerSubprocessWindowDelegate alloc] init];
+            [mWindow setDelegate:mWindowDelegate];
+
+            // Show the window without making this app foreground. The parent's [NSApp activate]
+            // would otherwise be ignored under macOS 14+ cooperative activation, leaving the
+            // logger window above the main window. The logger window can still become key when
+            // the user clicks it (e.g., during a breakpoint or to dismiss the prompt).
+            [mWindow orderFrontRegardless];
+
+            // Move to top-left of the main screen.
+            NSScreen* screen = [mWindow screen] ?: [NSScreen mainScreen];
+            NSRect screenFrame = [screen visibleFrame];
+            NSRect windowFrame = [mWindow frame];
+
+            NSPoint topLeft;
+            topLeft.x = screenFrame.origin.x;
+            topLeft.y = NSMaxY(screenFrame) - windowFrame.size.height;
+            [mWindow setFrameOrigin:topLeft];
+        }
+
+        void MacOSLoggerSubprocess::OnAppWillTerminate()
+        {
+            if (mReaderThread.joinable())
+            {
+                mReaderThread.detach();
+            }
         }
 
         void MacOSLoggerSubprocess::Run()
@@ -392,26 +401,35 @@ namespace cube
             {
                 [NSApplication sharedApplication];
 
-                gAppDelegate = [[CubeLoggerSubprocessAppDelegate alloc] init];
-                [NSApp setDelegate:gAppDelegate];
+                mAppDelegate = [[CubeLoggerSubprocessAppDelegate alloc] init];
+                [NSApp setDelegate:mAppDelegate];
+
+                // Install a minimal main menu so AppKit binds Cmd+Q to terminate:.
+                NSMenu* mainMenu = [[NSMenu alloc] init];
+                NSMenuItem* appMenuItem = [[NSMenuItem alloc] init];
+                [mainMenu addItem:appMenuItem];
+                NSMenu* appMenu = [[NSMenu alloc] init];
+                [appMenu addItemWithTitle:@"Quit Logger"
+                    action:@selector(terminate:)
+                    keyEquivalent:@"q"
+                ];
+                [appMenuItem setSubmenu:appMenu];
+                [NSApp setMainMenu:mainMenu];
 
                 CreateWindow();
 
-                gReaderThread = std::thread(&ReaderThreadMain);
+                mReaderThread = std::thread(&MacOSLoggerSubprocess::ReaderThreadMain);
 
                 [NSApp run];
             }
 
-            // Belt-and-braces: if [NSApp run] ever returned without going through TerminateFromUI
-            // (it currently always exits via terminate:), still detach before exit().
-            if (gReaderThread.joinable())
-            {
-                gReaderThread.detach();
-            }
+            OnAppWillTerminate();
 
             exit(0);
         }
     } // namespace platform
 } // namespace cube
+
+#endif // CUBE_MACOS_USE_LOGGER_WINDOW
 
 #endif // CUBE_PLATFORM_MACOS

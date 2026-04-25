@@ -30,7 +30,9 @@ namespace cube
 
             std::cout << osStr << std::endl;
 
+#if CUBE_MACOS_USE_LOGGER_WINDOW
             MacOSLoggerSubprocess::Send(str, colorCategory);
+#endif
         }
 
         void MacOSDebug::ProcessFatalError(StringView msg)
