@@ -9,18 +9,6 @@
 #include <AppKit/AppKit.h>
 
 #include "MacOSString.h"
-
-@interface CubeLoggerWindow : NSWindow
-
-@end
-
-@interface CubeLoggerTextView : NSTextView
-
-@end
-
-@interface CubeLoggerWindowDelegate : NSObject <NSWindowDelegate>
-
-@end
 #endif // __OBJC__
 
 namespace cube
@@ -46,20 +34,9 @@ namespace cube
             // === Base member functions ===
 
 #ifdef __OBJC__
-            static bool IsLoggerWindowCreated() { return mIsLoggerWindowCreated; }
-            static void CreateAndShowLoggerWindow();
-            static void AppendLogText(NSString* text, PrintColorCategory colorCategory);
-            static void CloseAndDestroyLoggerWindow();
-
         private:
             static void ShowDebugMessageAlert(StringView title, StringView msg);
             static void ShowDebugMessageAlert_MainThread(StringView title, StringView msg);
-
-            static CubeLoggerWindow* mLoggerWindow;
-            static CubeLoggerWindowDelegate* mLoggerWindowDelegate;
-            static CubeLoggerTextView* mLoggerTextView;
-
-            static bool mIsLoggerWindowCreated;
 
             static bool mIsDebugBreakSetFromDebugMessageAlert;
             static bool mIsForceTerminationSetFromDebugMessageAlert;

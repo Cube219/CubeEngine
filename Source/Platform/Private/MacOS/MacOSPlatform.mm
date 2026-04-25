@@ -11,6 +11,7 @@
 #include "CubeString.h"
 #include "MacOS/MacOSDebug.h"
 #include "MacOS/MacOSDLib.h"
+#include "MacOS/MacOSLoggerSubprocess.h"
 #include "MacOS/MacOSString.h"
 #include "MacOS/MacOSUtility.h"
 
@@ -351,6 +352,17 @@ namespace cube
                 return;
             }
 
+            // If this process was launched as the logger subprocess, branch into the logger entry
+            // point instead of initializing the engine. RunLoggerSubprocess never returns.
+            NSArray<NSString*>* procArgs = [[NSProcessInfo processInfo] arguments];
+            for (NSString* arg in procArgs)
+            {
+                if ([arg isEqualToString:@"--logger-subprocess"])
+                {
+                    MacOSLoggerSubprocess::Run();
+                }
+            }
+
             InitializeKeyCodeMapping();
             // Register modifier key event
             mModifierEventHandler = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskFlagsChanged handler:^(NSEvent* event)
@@ -371,7 +383,7 @@ namespace cube
 #if CUBE_DEBUG
             if (!MacOSDebug::IsTestMode())
             {
-                MacOSDebug::CreateAndShowLoggerWindow();
+                MacOSLoggerSubprocess::Spawn();
             }
 #endif
             mMainLoopThread = std::thread(&MacOSPlatform::MainLoop);
@@ -397,9 +409,18 @@ namespace cube
 
                 [NSEvent removeMonitor:mModifierEventHandler];
 
-                if (!MacOSDebug::IsTestMode() && MacOSDebug::IsLoggerWindowCreated())
+                if (!MacOSDebug::IsTestMode() && MacOSLoggerSubprocess::IsAlive())
                 {
-                    MacOSDebug::AppendLogText(@"Press any key to close the application...", PrintColorCategory::Default);
+                    // Close the pipe so the subprocess sees EOF and shows the "press any key"
+                    // prompt; block on waitUntilExit until the user dismisses it. This has to
+                    // happen off the main queue so NSApp can keep pumping events (the user can
+                    // still interact with the subprocess during this wait).
+                    dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+                        MacOSLoggerSubprocess::Shutdown();
+                        MacOSUtility::DispatchToMainThread([] {
+                            [NSApp terminate:nil];
+                        });
+                    });
                 }
                 else
                 {
@@ -446,6 +467,13 @@ namespace cube
                 {
                     // Hide windows in test mode.
                     [mWindow orderBack:nil];
+                }
+                else
+                {
+                    // The logger subprocess shows its window first and activates its own app, so
+                    // without this the main window appears below the logger. Force activation of
+                    // this app so the main window is raised above the logger subprocess window.
+                    [NSApp activateIgnoringOtherApps:YES];
                 }
             });
         }
@@ -608,8 +636,6 @@ namespace cube
         void MacOSPlatform::LastCleanup()
         {
             CHECK_MACOS_MAIN_THREAD();
-
-            MacOSDebug::CloseAndDestroyLoggerWindow();
 
             mWindowDelegate = nil;
 

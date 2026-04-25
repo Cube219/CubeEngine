@@ -10,58 +10,15 @@
 #include <mach-o/dyld.h>
 
 #include "Checker.h"
+#include "MacOS/MacOSLoggerSubprocess.h"
 #include "MacOS/MacOSPlatform.h"
 #include "MacOS/MacOSString.h"
 #include "MacOS/MacOSUtility.h"
-
-@implementation CubeLoggerWindow
-
-- (void)keyDown:(NSEvent* )event
-{
-    if (cube::platform::MacOSPlatform::IsApplicationClosed())
-    {
-        cube::platform::MacOSDebug::CloseAndDestroyLoggerWindow();
-    }
-}
-
-@end
-
-@implementation CubeLoggerTextView
-
-- (void)keyDown:(NSEvent* ) event
-{
-    if (cube::platform::MacOSPlatform::IsApplicationClosed())
-    {
-        cube::platform::MacOSDebug::CloseAndDestroyLoggerWindow();
-    }
-    
-    [super keyDown:event];
-}
-
-@end
-
-@implementation CubeLoggerWindowDelegate
-
-- (BOOL)windowShouldClose:(NSWindow* ) sender
-{
-    // Just call termination. Remain logic will be processed in applicationShouldTerminate.
-    [NSApp terminate:nil];
-
-    return YES;
-}
-
-@end
 
 namespace cube
 {
     namespace platform
     {
-        CubeLoggerWindow* MacOSDebug::mLoggerWindow;
-        CubeLoggerWindowDelegate* MacOSDebug::mLoggerWindowDelegate;
-        CubeLoggerTextView* MacOSDebug::mLoggerTextView;
-
-        bool MacOSDebug::mIsLoggerWindowCreated = false;
-
         bool MacOSDebug::mIsDebugBreakSetFromDebugMessageAlert = false;
         bool MacOSDebug::mIsForceTerminationSetFromDebugMessageAlert = false;
 
@@ -73,13 +30,7 @@ namespace cube
 
             std::cout << osStr << std::endl;
 
-            if (mIsLoggerWindowCreated)
-            {
-                osStr.push_back('\n');
-                MacOSUtility::DispatchToMainThread([osStr, colorCategory] {
-                    AppendLogText(String_Convert<NSString*>(osStr), colorCategory);
-                });
-            }
+            MacOSLoggerSubprocess::Send(str, colorCategory);
         }
 
         void MacOSDebug::ProcessFatalError(StringView msg)
@@ -276,103 +227,6 @@ namespace cube
         bool MacOSDebug::IsTestMode()
         {
             return mIsTestMode;
-        }
-
-        void MacOSDebug::CreateAndShowLoggerWindow()
-        {
-            CHECK_MACOS_MAIN_THREAD()
-            CHECK(!mIsLoggerWindowCreated);
-
-            NSUInteger style = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable;
-            
-            mLoggerWindow = [[CubeLoggerWindow alloc]
-                initWithContentRect:NSMakeRect(0, 0, 1280, 720)
-                styleMask:style
-                backing:NSBackingStoreBuffered
-                defer:NO
-            ];
-            [mLoggerWindow setTitle:@"CubeEngine Logger"];
-
-            NSScrollView* scrollView = [[NSScrollView alloc] initWithFrame:[[mLoggerWindow contentView] bounds]];
-            [scrollView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
-
-            mLoggerTextView = [[CubeLoggerTextView alloc] initWithFrame:[[mLoggerWindow contentView] bounds]];
-            mLoggerTextView.editable = NO;
-            mLoggerTextView.selectable = YES;
-
-            [scrollView setDocumentView:mLoggerTextView];
-            [scrollView setHasVerticalScroller:YES];
-
-            [[mLoggerWindow contentView] addSubview:scrollView];
-
-            mLoggerWindowDelegate = [[CubeLoggerWindowDelegate alloc] init];
-            [mLoggerWindow setDelegate:mLoggerWindowDelegate];
-
-            [mLoggerWindow makeKeyAndOrderFront:nil];
-            mIsLoggerWindowCreated = true;
-
-            // Move to top-left
-            NSScreen* screen = [mLoggerWindow screen] ?: [NSScreen mainScreen];
-            NSRect screenFrame = [screen visibleFrame];
-            NSRect windowFrame = [mLoggerWindow frame];
-
-            NSPoint topLeft;
-            topLeft.x = screenFrame.origin.x;
-            topLeft.y = NSMaxY(screenFrame) - windowFrame.size.height;
-
-            [mLoggerWindow setFrameOrigin:topLeft];
-        }
-
-        void MacOSDebug::AppendLogText(NSString* text, PrintColorCategory colorCategory)
-        {
-            CHECK_MACOS_MAIN_THREAD()
-            CHECK(mIsLoggerWindowCreated);
-
-            @autoreleasepool {
-                NSColor* color;
-                switch (colorCategory)
-                {
-                case PrintColorCategory::Warning:
-                    color = [NSColor systemOrangeColor];
-                    break;
-                case PrintColorCategory::Error:
-                    color = [NSColor systemRedColor];
-                    break;
-                case PrintColorCategory::Default:
-                default:
-                    color = [NSColor textColor];
-                    break;
-                }
-                
-                NSTextStorage* textStorage = mLoggerTextView.textStorage;
-                NSAttributedString* attrText = [[NSAttributedString alloc]
-                    initWithString:text
-                        attributes:@{
-                            NSForegroundColorAttributeName: color,
-                            NSBackgroundColorAttributeName: [NSColor textBackgroundColor],
-                            NSFontAttributeName: [NSFont fontWithName:@"Menlo" size:12]
-                    }
-                ];
-                [textStorage appendAttributedString:attrText];
-
-                // Scroll to bottom
-                [mLoggerTextView scrollRangeToVisible:NSMakeRange(textStorage.length, 0)];
-            }
-        }
-        
-
-        void MacOSDebug::CloseAndDestroyLoggerWindow()
-        {
-            CHECK_MACOS_MAIN_THREAD()
-
-            if (mIsLoggerWindowCreated)
-            {
-                mLoggerTextView = nil;
-                [mLoggerWindow close];
-                mLoggerWindowDelegate = nil;
-
-                mIsLoggerWindowCreated = false;
-            }
         }
 
         void MacOSDebug::ShowDebugMessageAlert(StringView title, StringView msg)

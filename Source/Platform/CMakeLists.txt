@@ -36,6 +36,7 @@ if(PLATFORM_MACOS)
         Public/MacOS/MacOSDebug.h
         Public/MacOS/MacOSDLib.h
         Public/MacOS/MacOSFileSystem.h
+        Public/MacOS/MacOSLoggerSubprocess.h
         Public/MacOS/MacOSPlatform.h
         Public/MacOS/MacOSString.h
     )
@@ -43,6 +44,7 @@ if(PLATFORM_MACOS)
         Private/MacOS/MacOSDebug.mm
         Private/MacOS/MacOSDLib.mm
         Private/MacOS/MacOSFileSystem.mm
+        Private/MacOS/MacOSLoggerSubprocess.mm
         Private/MacOS/MacOSPlatform.mm
         Private/MacOS/MacOSString.mm
     )
