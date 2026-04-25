@@ -6,8 +6,11 @@ set(METAL_SUPPORTED FALSE)
 
 # - DX12
 if(PLATFORM_WINDOWS)
-    # TODO: check dx12 sdk
-    set(DX12_SUPPORTED TRUE)
+    find_library(D3D12_LIBRARY d3d12)
+    find_library(DXGI_LIBRARY dxgi)
+    if(D3D12_LIBRARY AND DXGI_LIBRARY)
+        set(DX12_SUPPORTED TRUE)
+    endif()
 endif()
 if(DX12_SUPPORTED)
     message(STATUS "CubeEngine: DX12 supported.")
@@ -15,8 +18,10 @@ endif()
 
 # - Metal
 if(PLATFORM_MACOS)
-    # TODO check
-    set(METAL_SUPPORTED TRUE)
+    find_library(METAL_FRAMEWORK Metal)
+    if(METAL_FRAMEWORK)
+        set(METAL_SUPPORTED TRUE)
+    endif()
 endif()
 if(METAL_SUPPORTED)
     message(STATUS "CubeEngine: Metal supported.")
