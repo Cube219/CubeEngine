@@ -19,6 +19,8 @@ set(PRIVATE_FILES
     Private/Renderer/Mesh.h
     Private/Renderer/MeshHelper.cpp
     Private/Renderer/MeshHelper.h
+    Private/Renderer/PipelineManager.cpp
+    Private/Renderer/PipelineManager.h
     Private/Renderer/Renderer.cpp
     Private/Renderer/Renderer.h
     Private/Renderer/RenderGraph.cpp

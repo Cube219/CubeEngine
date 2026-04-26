@@ -48,20 +48,20 @@ namespace cube
 
     MetalShaderCompileResult MetalShaderCompiler::CompileFromMetal(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult)
     { @autoreleasepool {
+        BlobView code = createInfo.shaderCodeInfos[0].code;
+
         FrameAnsiString source;
         {
-            BlobView code = createInfo.shaderCodeInfos[0].code;
-
             source.resize(code.GetSize() + 1);
             memcpy(source.data(), code.GetData(), code.GetSize());
             source.back() = '\0';
         }
 
-        NSString* code = String_Convert<NSString*>(source);
+        NSString* nsCode = String_Convert<NSString*>(source);
         NSError* error = nil;
 
         MetalShaderCompileResult result;
-        result.library = [mDevice->GetMTLDevice() newLibraryWithSource:code options:nil error:&error];
+        result.library = [mDevice->GetMTLDevice() newLibraryWithSource:nsCode options:nil error:&error];
         if (error)
         {
             compileResult.AddError(Format<FrameString>(CUBE_T("Failed to load the metal shader. ({0})"), [error localizedDescription]));
@@ -70,6 +70,8 @@ namespace cube
 
         NSString* entryPoint = String_Convert<NSString*>(createInfo.entryPoint);
         result.function = [result.library newFunctionWithName:entryPoint];
+
+        result.contentHash = HashBytes(code.GetData(), code.GetSize());
 
         return result;
     }}
@@ -91,6 +93,8 @@ namespace cube
 
         NSString* entryPoint = String_Convert<NSString*>(createInfo.entryPoint);
         result.function = [result.library newFunctionWithName:entryPoint];
+
+        result.contentHash = HashBytes(code.GetData(), code.GetSize());
 
         return result;
     }}

@@ -306,6 +306,31 @@ namespace cube
         mRecompiledGAPIShader = nullptr;
     }
 
+    Uint64 GraphicsPipelineInfo::GetHashValue() const
+    {
+        gapi::GraphicsPipelineCreateInfo gapiInfo = {
+            .vertexShader = vertexShader ? vertexShader->GetGAPIShader() : nullptr,
+            .pixelShader = pixelShader ? pixelShader->GetGAPIShader() : nullptr,
+            .inputLayouts = inputLayouts,
+            .rasterizerState = rasterizerState,
+            .blendStates = blendStates,
+            .depthStencilState = depthStencilState,
+            .primitiveTopologyType = primitiveTopologyType,
+            .numRenderTargets = numRenderTargets,
+            .renderTargetFormats = renderTargetFormats,
+            .depthStencilFormat = depthStencilFormat
+        };
+        return gapiInfo.GetHashValue();
+    }
+
+    Uint64 ComputePipelineInfo::GetHashValue() const
+    {
+        gapi::ComputePipelineCreateInfo gapiInfo = {
+            .shader = shader ? shader->GetGAPIShader() : nullptr
+        };
+        return gapiInfo.GetHashValue();
+    }
+
     GraphicsPipeline::GraphicsPipeline(ShaderManager& manager, const GraphisPipelineCreateInfo& createInfo) :
         mManager(manager)
     {

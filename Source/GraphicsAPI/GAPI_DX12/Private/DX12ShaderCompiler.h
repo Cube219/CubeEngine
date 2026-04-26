@@ -21,6 +21,8 @@ namespace cube
         Blob shader;
 
         gapi::ShaderReflection reflection;
+
+        Uint64 contentHash = 0;
     };
 
     class DX12ShaderCompiler

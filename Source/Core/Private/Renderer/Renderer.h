@@ -7,6 +7,7 @@
 #include "GAPI.h"
 #include "GAPI_Texture.h"
 #include "Matrix.h"
+#include "PipelineManager.h"
 #include "Renderer/Mesh.h"
 #include "Renderer/ShaderParameter.h"
 #include "SamplerManager.h"
@@ -62,6 +63,7 @@ namespace cube
         ShaderManager& GetShaderManager() { return mShaderManager; }
         TextureManager& GetTextureManager() { return mTextureManager; }
         SamplerManager& GetSamplerManager() { return mSamplerManager; }
+        PipelineManager& GetPipelineManager() { return mPipelineManager; }
 
         bool IsDrawInWireframe() const { return mWireframe; }
 
@@ -101,6 +103,7 @@ namespace cube
         ShaderManager mShaderManager;
         TextureManager mTextureManager;
         SamplerManager mSamplerManager;
+        PipelineManager mPipelineManager;
 
         EnvironmentMapping mEnvironmentMapping;
 

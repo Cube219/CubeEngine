@@ -3,6 +3,7 @@
 #include "GAPIHeader.h"
 
 #include "CubeString.h"
+#include "GAPI_Shader.h"
 
 namespace cube
 {
@@ -161,6 +162,23 @@ namespace cube
             ElementFormat depthStencilFormat = ElementFormat::D32_Float;
 
             StringView debugName;
+
+            Uint64 GetHashValue() const
+            {
+                Uint64 h = 0;
+                h = HashCombine(h, vertexShader ? vertexShader->GetContentHash() : 0);
+                h = HashCombine(h, pixelShader ? pixelShader->GetContentHash() : 0);
+                h = HashCombine(h, HashBytes(inputLayouts.data(), inputLayouts.size_bytes()));
+                h = HashCombine(h, HashBytes(&rasterizerState, sizeof(rasterizerState)));
+                h = HashCombine(h, HashBytes(blendStates.data(), sizeof(BlendState) * numRenderTargets));
+                h = HashCombine(h, HashBytes(&depthStencilState, sizeof(depthStencilState)));
+                h = HashCombine(h, static_cast<Uint64>(primitiveTopologyType));
+                h = HashCombine(h, static_cast<Uint64>(numRenderTargets));
+                h = HashCombine(h, HashBytes(renderTargetFormats.data(), sizeof(ElementFormat) * numRenderTargets));
+                h = HashCombine(h, static_cast<Uint64>(depthStencilFormat));
+                // Ignore debugName
+                return h;
+            }
         };
 
         class GraphicsPipeline
@@ -173,8 +191,13 @@ namespace cube
         struct ComputePipelineCreateInfo
         {
             SharedPtr<Shader> shader;
-            
+
             StringView debugName;
+
+            Uint64 GetHashValue() const
+            {
+                return shader ? shader->GetContentHash() : 0;
+            }
         };
 
         class ComputePipeline

@@ -19,6 +19,8 @@ namespace cube
             mThreadGroupSizeX = mReflection.threadGroupSizeX;
             mThreadGroupSizeY = mReflection.threadGroupSizeY;
             mThreadGroupSizeZ = mReflection.threadGroupSizeZ;
+
+            mContentHash = result.contentHash;
         }
 
         DX12Shader::~DX12Shader()

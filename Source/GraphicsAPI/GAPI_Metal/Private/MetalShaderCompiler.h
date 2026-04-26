@@ -19,6 +19,8 @@ namespace cube
         id<MTLFunction> function = nil;
 
         gapi::ShaderReflection reflection;
+
+        Uint64 contentHash = 0;
     };
 
     class MetalShaderCompiler

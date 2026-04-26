@@ -111,6 +111,8 @@ namespace cube
 
             const Vector<platform::FilePath>& GetDependencyFilePaths() const { return mDependencyFilePaths; }
 
+            Uint64 GetContentHash() const { return mContentHash; }
+
         protected:
             bool mCreated;
             String mWarningMessage;
@@ -123,6 +125,9 @@ namespace cube
             ShaderReflection mReflection;
 
             Vector<platform::FilePath> mDependencyFilePaths;
+
+            // Content hash of the compiled shader. Populated by backends from compile result.
+            Uint64 mContentHash = 0;
         };
 
         struct ShaderCompileResult

@@ -23,6 +23,8 @@ namespace cube
             mThreadGroupSizeX = mReflection.threadGroupSizeX;
             mThreadGroupSizeY = mReflection.threadGroupSizeY;
             mThreadGroupSizeZ = mReflection.threadGroupSizeZ;
+
+            mContentHash = result.contentHash;
         }
 
         MetalShader::~MetalShader()

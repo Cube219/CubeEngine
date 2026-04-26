@@ -103,6 +103,17 @@ namespace cube
             DX12ShaderCompilerResult result;
             result.shader = Blob(shader->GetBufferPointer(), shader->GetBufferSize());
 
+            ComPtr<IDxcBlob> hashBlob;
+            if (SUCCEEDED(dxcResult->GetOutput(DXC_OUT_SHADER_HASH, IID_PPV_ARGS(&hashBlob), nullptr)) && hashBlob)
+            {
+                const DxcShaderHash* hash = static_cast<const DxcShaderHash*>(hashBlob->GetBufferPointer());
+                result.contentHash = HashBytes(hash->HashDigest, sizeof(hash->HashDigest));
+            }
+            else
+            {
+                result.contentHash = HashBytes(result.shader.GetData(), result.shader.GetSize());
+            }
+
             return result;
         }
         else
@@ -130,6 +141,7 @@ namespace cube
         compileResult.isSuccess = true;
         DX12ShaderCompilerResult result;
         result.shader = Blob(shader->GetBufferPointer(), shader->GetBufferSize());
+        result.contentHash = HashBytes(result.shader.GetData(), result.shader.GetSize());
         return result;
     }
 
@@ -191,6 +203,7 @@ namespace cube
             }
             // Use reflection from slang compiler first.
             result.reflection = reflection;
+            // contentHash is already populated by CompileFromHLSL / CompileFromDXIL above.
             return result;
         }
 

@@ -104,6 +104,8 @@ namespace cube
         Uint32 numRenderTargets;
         Array<gapi::ElementFormat, gapi::MAX_NUM_RENDER_TARGETS> renderTargetFormats;
         gapi::ElementFormat depthStencilFormat = gapi::ElementFormat::D32_Float;
+
+        Uint64 GetHashValue() const;
     };
 
     struct GraphisPipelineCreateInfo
@@ -147,6 +149,8 @@ namespace cube
     struct ComputePipelineInfo
     {
         SharedPtr<Shader> shader;
+
+        Uint64 GetHashValue() const;
     };
 
     struct ComputePipelineCreateInfo

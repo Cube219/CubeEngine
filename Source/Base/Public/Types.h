@@ -103,4 +103,17 @@ namespace cube
     {
         return HashCombine(lhs, HashCombine(values...));
     }
+
+    // FNV-1a 64-bit. Used for hashing arbitrary byte buffers (shader binaries, struct bytes, etc.).
+    inline Uint64 HashBytes(const void* data, Uint64 size)
+    {
+        Uint64 h = 0xcbf29ce484222325ULL;
+        const Uint8* p = static_cast<const Uint8*>(data);
+        for (Uint64 i = 0; i < size; ++i)
+        {
+            h ^= p[i];
+            h *= 0x100000001b3ULL;
+        }
+        return h;
+    }
 } // namespace cube
