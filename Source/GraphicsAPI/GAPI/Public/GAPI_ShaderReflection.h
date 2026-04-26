@@ -31,7 +31,7 @@ namespace cube
             Uint32 offset;
             Uint32 size;
         };
-        // TODO: Use formatter style?
+
         inline const Character* ToString(ShaderParameterReflection::Type type)
         {
             switch (type)

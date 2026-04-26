@@ -50,7 +50,7 @@ namespace cube
 
         Num
     };
-    // TODO: Use formatter style?
+
     inline const Character* ToString(ShaderParameterType type)
     {
         switch (type)

@@ -196,7 +196,6 @@ namespace cube
             switch (mUsage)
             {
             case ResourceUsage::GPUOnly:
-                // TODO: Use optimizeContentsForGPUAccess in MTLBlitCommandEncoder.
             case ResourceUsage::CPUtoGPU:
             case ResourceUsage::GPUtoCPU:
             {

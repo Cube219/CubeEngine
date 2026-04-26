@@ -129,7 +129,6 @@ namespace cube
         void UseResource(RGTextureUAVHandle rgUAV);
         void UseResource(RGTextureRTVHandle rgRTV);
         void UseResource(RGTextureDSVHandle rgDSV);
-        // TODO: Use shader parameter?
         void UseResource(RGTextureHandle rgTexture, gapi::SubresourceRangeInput range, gapi::ResourceStateFlags states);
 
         void ExecuteAndSubmit(gapi::CommandList& commandList);
