@@ -548,25 +548,28 @@ namespace cube
 
         void MacOSPlatform::MoveCursor(int x, int y)
         {
-            y = mWindow.contentView.frame.size.height - y; // Flip y
-            NSPoint screenLocation = [mWindow convertPointToScreen:NSMakePoint(x, y)];
+            mMousePositionX = x;
+            mMousePositionY = y;
 
-            // CG's y coordinate moves from top to bottom. So flip again.
-            float cgY = [[NSScreen mainScreen] frame].size.height - screenLocation.y;
+            MacOSUtility::DispatchToMainThreadAndWait([x, y]{
+                int flippedY = static_cast<int>(mWindowHeight) - y; // Flip y
+                NSPoint screenLocation = [mWindow convertPointToScreen:NSMakePoint(x, flippedY)];
 
-            CGWarpMouseCursorPosition(CGPointMake(screenLocation.x, cgY));
-            // The mouse movement events are suppressed around 0.3s after warp the mouse cursor.
-            // CGEventSourceSetLocalEventsSuppressionInterval can help but I don't know how to use.
-            // Instead, call CGAssociateMouseAndMouseCursorPosition to reset suppression.
-            CGAssociateMouseAndMouseCursorPosition(true);
+                // CG's y coordinate moves from top to bottom. So flip again.
+                float cgY = [[NSScreen mainScreen] frame].size.height - screenLocation.y;
+
+                CGWarpMouseCursorPosition(CGPointMake(screenLocation.x, cgY));
+                // The mouse movement events are suppressed around 0.3s after warp the mouse cursor.
+                // CGEventSourceSetLocalEventsSuppressionInterval can help but I don't know how to use.
+                // Instead, call CGAssociateMouseAndMouseCursorPosition to reset suppression.
+                CGAssociateMouseAndMouseCursorPosition(true);
+            });
         }
 
         void MacOSPlatform::GetCursorPos(int& x, int& y)
         {
-            NSPoint location = [mWindow convertPointFromScreen:[NSEvent mouseLocation]];
-
-            x = static_cast<int>(location.x);
-            y = static_cast<int>(mWindow.contentView.frame.size.height - location.y); // Flip y
+            x = mMousePositionX;
+            y = mMousePositionY;
         }
 
         Uint32 MacOSPlatform::GetWindowWidth()
@@ -844,6 +847,15 @@ namespace cube
             }
         }
 
+        void MacOSPlatform::ProcessBeforeLoop()
+        {
+            MacOSUtility::DispatchToMainThreadAndWait([]{
+                NSPoint location = [mWindow convertPointFromScreen:[NSEvent mouseLocation]];
+                mMousePositionX = static_cast<Int32>(location.x);
+                mMousePositionY = static_cast<Int32>(mWindowHeight - location.y); // Flip y
+            });
+        }
+
         void MacOSPlatform::MainLoop()
         {
             if (mEngineInitializeFunction)
@@ -870,6 +882,8 @@ namespace cube
                     eventFunctions = std::move(mEventQueue);
                     mEventQueue.empty();
                 }
+
+                ProcessBeforeLoop();
 
                 for (auto& func : eventFunctions)
                 {

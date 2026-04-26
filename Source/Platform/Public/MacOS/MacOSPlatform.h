@@ -98,6 +98,7 @@ namespace cube
 
             static void CreateMainMenu();
 
+            static void ProcessBeforeLoop();
             static void MainLoop();
 
             static Array<KeyCode, MaxKeyCode> mKeyCodeMapping;
