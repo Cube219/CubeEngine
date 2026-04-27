@@ -6,11 +6,7 @@
 
 namespace cube
 {
-    struct ComputePipelineCreateInfo;
-    class ComputePipeline;
     class GAPI;
-    struct GraphisPipelineCreateInfo;
-    class GraphicsPipeline;
     class Renderer;
     struct ShaderCreateInfo;
     class Shader;
@@ -29,11 +25,6 @@ namespace cube
         SharedPtr<Shader> CreateShader(const ShaderCreateInfo& createInfo);
         void FreeShader(Shader* shader);
 
-        SharedPtr<GraphicsPipeline> CreateGraphicsPipeline(const GraphisPipelineCreateInfo& createInfo);
-        void FreeGraphicsPipeline(GraphicsPipeline* graphicsPipeline);
-        SharedPtr<ComputePipeline> CreateComputePipeline(const ComputePipelineCreateInfo& createInfo);
-        void FreeComputePipeline(ComputePipeline* computePipeline);
-
         void RecompileShaders(bool forceAll = false);
 
         MaterialShaderManager& GetMaterialShaderManager() { return mMaterialShaderManager; }
@@ -47,8 +38,6 @@ namespace cube
         bool mUseDebugMode; // Modified in Renderer directly
 
         Set<Shader*> mCreatedShaders;
-        Set<GraphicsPipeline*> mCreatedGraphicsPipelines;
-        Set<ComputePipeline*> mCreatedComputePipelines;
 
         MaterialShaderManager mMaterialShaderManager;
     };

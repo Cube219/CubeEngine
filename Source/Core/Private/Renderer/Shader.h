@@ -108,7 +108,7 @@ namespace cube
         Uint64 GetHashValue() const;
     };
 
-    struct GraphisPipelineCreateInfo
+    struct GraphicsPipelineCreateInfo
     {
         GraphicsPipelineInfo pipelineInfo;
 
@@ -118,8 +118,8 @@ namespace cube
     class GraphicsPipeline
     {
     public:
-        GraphicsPipeline(ShaderManager& manager, const GraphisPipelineCreateInfo& createInfo);
-        ~GraphicsPipeline();
+        GraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo);
+        ~GraphicsPipeline() = default;
 
         SharedPtr<gapi::GraphicsPipeline> GetGAPIGraphicsPipeline() const { return mGAPIGraphicsPipeline; }
         const gapi::ShaderReflection& GetMergedShaderReflection() const { return mMergedShaderReflection; }
@@ -127,21 +127,16 @@ namespace cube
         bool HasRecompiledShadersInPipeline() const;
 
     private:
-        friend class ShaderManager;
-
-        void RecreateGraphicsPipeline();
         void MergeShaderReflection(const gapi::ShaderReflection& reflection);
         void CacheShaderReflection(SharedPtr<Shader> vertexShader, SharedPtr<Shader> pixelShader);
-
-        ShaderManager& mManager;
 
         SharedPtr<gapi::GraphicsPipeline> mGAPIGraphicsPipeline;
         gapi::ShaderReflection mMergedShaderReflection;
 
-        GraphicsPipelineInfo mInfo;
-        String mDebugName;
+        SharedPtr<Shader> mVertexShader;
+        SharedPtr<Shader> mPixelShader;
 
-        int mRecreateCount;
+        String mDebugName;
     };
 
     // ===== ComputePipeline =====
@@ -163,8 +158,8 @@ namespace cube
     class ComputePipeline
     {
     public:
-        ComputePipeline(ShaderManager& manager, const ComputePipelineCreateInfo& createInfo);
-        ~ComputePipeline();
+        ComputePipeline(const ComputePipelineCreateInfo& createInfo);
+        ~ComputePipeline() = default;
 
         SharedPtr<gapi::ComputePipeline> GetGAPIComputePipeline() const { return mGAPIComputePipeline; }
         const gapi::ShaderReflection& GetShaderReflection() const { return mShaderReflection; }
@@ -172,19 +167,13 @@ namespace cube
         bool HasRecompiledShaderInPipeline() const;
 
     private:
-        friend class ShaderManager;
-
-        void RecreateComputePipeline();
         void CacheShaderReflection(SharedPtr<Shader> shader);
-
-        ShaderManager& mManager;
 
         SharedPtr<gapi::ComputePipeline> mGAPIComputePipeline;
         gapi::ShaderReflection mShaderReflection;
 
-        ComputePipelineInfo mInfo;
-        String mDebugName;
+        SharedPtr<Shader> mShader;
 
-        int mRecreateCount;
+        String mDebugName;
     };
 } // namespace cube

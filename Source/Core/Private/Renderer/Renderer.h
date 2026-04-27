@@ -91,8 +91,6 @@ namespace cube
         void LoadResources();
         void ClearResources();
 
-        void RecreatePipelinesIfNeeded();
-
         SharedPtr<platform::DLib> mGAPI_DLib;
         SharedPtr<GAPI> mGAPI;
 
@@ -138,9 +136,6 @@ namespace cube
         SharedPtr<TextureResource> mDummyBlackTexture2D;
         SharedPtr<TextureResource> mDummyWhiteTexture2D;
         SharedPtr<TextureResource> mDummyBlackTextureCube;
-
-        // TODO: Create pipeline cache manager
-        bool mNeedRecreatingPipelines = false;
 
         bool mShowAxis = true;
         bool mWireframe = false;

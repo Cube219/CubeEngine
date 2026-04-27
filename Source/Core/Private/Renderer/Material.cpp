@@ -6,6 +6,7 @@
 #include "GAPI_Shader.h"
 #include "GAPI_Texture.h"
 #include "Mesh.h"
+#include "PipelineManager.h"
 #include "Renderer.h"
 #include "RenderGraph.h"
 #include "Shader.h"
@@ -237,7 +238,7 @@ namespace cube
 
         SharedPtr<GraphicsPipeline>& pipeline = mMaterialPipelines[pipelineHash];
         {
-            pipeline = mShaderManager.CreateGraphicsPipeline({
+            pipeline = Engine::GetRenderer()->GetPipelineManager().GetOrCreateGraphicsPipeline({
                 .pipelineInfo = {
                     .vertexShader = vertexShader,
                     .pixelShader = pixelShader,

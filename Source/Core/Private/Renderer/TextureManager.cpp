@@ -7,6 +7,7 @@
 #include "GAPI.h"
 #include "GAPI_CommandList.h"
 #include "GAPI_Pipeline.h"
+#include "PipelineManager.h"
 #include "Renderer/RenderGraph.h"
 #include "Renderer/RenderGraphTypes.h"
 #include "Renderer.h"
@@ -39,13 +40,10 @@ namespace cube
                 .debugName = CUBE_T("GenerateMipmapsShaderCS")
             });
             CHECK(mGenerateMipmapsShader);
-        
-            mGenerateMipmapsPipeline = mRenderer.GetShaderManager().CreateComputePipeline({
-                .pipelineInfo = {
-                    .shader = mGenerateMipmapsShader
-                },
-                .debugName = CUBE_T("GenerateMipmapsComputePipeline")
-            });
+
+            mGenerateMipmapsPipelineInfo = {
+                .shader = mGenerateMipmapsShader
+            };
         }
 
         mCommandList = mGAPI->CreateCommandList({
@@ -57,7 +55,7 @@ namespace cube
     {
         mCommandList = nullptr;
 
-        mGenerateMipmapsPipeline = nullptr;
+        mGenerateMipmapsPipelineInfo = {};
         mGenerateMipmapsShader = nullptr;
     }
 
@@ -69,6 +67,11 @@ namespace cube
             NOT_IMPLEMENTED();
             return;
         }
+
+        SharedPtr<ComputePipeline> generateMipmapsPipeline = mRenderer.GetPipelineManager().GetOrCreateComputePipeline({
+            .pipelineInfo = mGenerateMipmapsPipelineInfo,
+            .debugName = CUBE_T("GenerateMipmapsComputePipeline")
+        });
 
         RGBuilder builder(mRenderer);
         {
@@ -93,7 +96,7 @@ namespace cube
                 params->Get()->dstTexture = dstUAV;
 
                 builder.AddPass(Format<FrameString>(CUBE_T("GenerateMipmaps ({0}->{1})"), mipIndex - 1, mipIndex),
-                    mGenerateMipmapsPipeline,
+                    generateMipmapsPipeline,
                     params,
                     [width, height](gapi::CommandList& commandList)
                 {

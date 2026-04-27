@@ -3,6 +3,7 @@
 #include "imgui.h"
 
 #include "GAPI_Shader.h"
+#include "PipelineManager.h"
 #include "RenderGraph.h"
 #include "Shader.h"
 
@@ -63,6 +64,20 @@ namespace cube
                 .debugName = CUBE_T("SkyboxPS")
             });
             CHECK(mSkyboxPS);
+
+            mSkyboxPipelineInfo = {
+                .vertexShader = mSkyboxVS,
+                .pixelShader = mSkyboxPS,
+                .rasterizerState = {
+                    .cullMode = gapi::RasterizerState::CullMode::Front
+                },
+                .depthStencilState = {
+                    .enableDepth = true,
+                    .depthFunction = gapi::CompareFunction::GreaterEqual
+                },
+                .numRenderTargets = 1,
+                .renderTargetFormats = { gapi::ElementFormat::RGBA8_UNorm }
+            };
         }
 
         {
@@ -78,12 +93,9 @@ namespace cube
             });
             CHECK(mGenerateIrradianceMapShader);
 
-            mGenerateIrradianceMapPipeline = mRenderer.GetShaderManager().CreateComputePipeline({
-                .pipelineInfo = {
-                    .shader = mGenerateIrradianceMapShader
-                },
-                .debugName = CUBE_T("GenerateIrradianceMap Pipeline")
-            });
+            mGenerateIrradianceMapPipelineInfo = {
+                .shader = mGenerateIrradianceMapShader
+            };
         }
 
         mCommandList = mRenderer.GetGAPI().CreateCommandList({
@@ -95,10 +107,10 @@ namespace cube
     {
         mCommandList = nullptr;
 
-        mGenerateIrradianceMapPipeline = nullptr;
+        mGenerateIrradianceMapPipelineInfo = {};
         mGenerateIrradianceMapShader = nullptr;
 
-        mSkyboxPipeline = nullptr;
+        mSkyboxPipelineInfo = {};
         mSkyboxPS = nullptr;
         mSkyboxVS = nullptr;
     }
@@ -199,28 +211,6 @@ namespace cube
         mIsEnabled = newEnable;
     }
 
-    void EnvironmentMapping::RecreateGraphicsPipelines()
-    {
-        mSkyboxPipeline = mRenderer.GetShaderManager().CreateGraphicsPipeline({
-            .pipelineInfo = {
-                .vertexShader = mSkyboxVS,
-                .pixelShader = mSkyboxPS,
-                .inputLayouts = Mesh::GetInputElements(mRenderer.GetMeshMetadata()),
-                .rasterizerState = {
-                    .fillMode = mRenderer.IsDrawInWireframe() ? gapi::RasterizerState::FillMode::Line : gapi::RasterizerState::FillMode::Solid,
-                    .cullMode = gapi::RasterizerState::CullMode::Front
-                },
-                .depthStencilState = {
-                    .enableDepth = true,
-                    .depthFunction = gapi::CompareFunction::GreaterEqual
-                },
-                .numRenderTargets = 1,
-                .renderTargetFormats = { gapi::ElementFormat::RGBA8_UNorm }
-            },
-            .debugName = CUBE_T("SkyboxPipeline")
-        });
-    }
-
     void EnvironmentMapping::DrawSkybox(RGBuilder& builder)
     {
         if (!IsSupported() || !mIsEnabled || mCurrentSkyboxType == SkyboxType::None)
@@ -241,7 +231,16 @@ namespace cube
         RGShaderParameterListHandle<SkyboxShaderParameterList> skyboxParams = builder.CreateShaderParameterList<SkyboxShaderParameterList>();
         skyboxParams->Get()->skyboxTexture = skyboxSRV;
 
-        builder.AddPass(CUBE_T("Skybox"), mSkyboxPipeline, skyboxParams,
+        mSkyboxPipelineInfo.inputLayouts = Mesh::GetInputElements(mRenderer.GetMeshMetadata());
+        mSkyboxPipelineInfo.rasterizerState.fillMode = mRenderer.IsDrawInWireframe()
+            ? gapi::RasterizerState::FillMode::Line
+            : gapi::RasterizerState::FillMode::Solid;
+        SharedPtr<GraphicsPipeline> skyboxPipeline = mRenderer.GetPipelineManager().GetOrCreateGraphicsPipeline({
+            .pipelineInfo = mSkyboxPipelineInfo,
+            .debugName = CUBE_T("SkyboxPipeline")
+        });
+
+        builder.AddPass(CUBE_T("Skybox"), skyboxPipeline, skyboxParams,
         [boxMesh = mRenderer.GetBoxMesh()](gapi::CommandList& commandList)
         {
             const SubMesh& boxSubMesh = boxMesh->GetSubMeshes()[0];
@@ -302,8 +301,13 @@ namespace cube
             params->Get()->srcIBL = srcIBLSRV;
             params->Get()->dstDiffuseIrradianceMap = dstDiffuseEnvMapUAV;
 
+            SharedPtr<ComputePipeline> generateIrradianceMapPipeline = mRenderer.GetPipelineManager().GetOrCreateComputePipeline({
+                .pipelineInfo = mGenerateIrradianceMapPipelineInfo,
+                .debugName = CUBE_T("GenerateIrradianceMap Pipeline")
+            });
+
             builder.AddPass(CUBE_T("GenerateIrradianceMap"),
-                mGenerateIrradianceMapPipeline,
+                generateIrradianceMapPipeline,
                 params,
                 [width, height](gapi::CommandList& commandList)
             {

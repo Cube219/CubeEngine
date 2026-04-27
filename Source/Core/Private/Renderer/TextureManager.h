@@ -6,13 +6,12 @@
 #include "Renderer/RenderGraphTypes.h"
 #include "Renderer/RenderTypes.h"
 #include "Renderer/ShaderParameter.h"
+#include "Shader.h"
 
 namespace cube
 {
-    class ComputePipeline;
     class GAPI;
     class Renderer;
-    class Shader;
     class TextureResource;
 
     namespace gapi
@@ -45,7 +44,7 @@ namespace cube
         Renderer& mRenderer;
 
         SharedPtr<Shader> mGenerateMipmapsShader;
-        SharedPtr<ComputePipeline> mGenerateMipmapsPipeline;
+        ComputePipelineInfo mGenerateMipmapsPipelineInfo;
 
         SharedPtr<gapi::CommandList> mCommandList;
     };

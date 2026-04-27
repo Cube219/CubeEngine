@@ -3,6 +3,7 @@
 #include "CoreHeader.h"
 
 #include "Renderer/RenderGraphTypes.h"
+#include "Shader.h"
 
 namespace cube
 {
@@ -10,7 +11,6 @@ namespace cube
     class GraphicsPipeline;
     class Renderer;
     class RGBuilder;
-    class Shader;
     class TextureResource;
 
     namespace gapi
@@ -43,7 +43,6 @@ namespace cube
         bool IsEnabled() const { return mIsEnabled; }
 
         void SetEnable(bool newEnable);
-        void RecreateGraphicsPipelines();
 
         void DrawSkybox(RGBuilder& builder);
 
@@ -75,10 +74,10 @@ namespace cube
         SharedPtr<TextureResource> mIBLTexture;
         SharedPtr<Shader> mSkyboxVS;
         SharedPtr<Shader> mSkyboxPS;
-        SharedPtr<GraphicsPipeline> mSkyboxPipeline;
+        GraphicsPipelineInfo mSkyboxPipelineInfo;
 
         SharedPtr<Shader> mGenerateIrradianceMapShader;
-        SharedPtr<ComputePipeline> mGenerateIrradianceMapPipeline;
+        ComputePipelineInfo mGenerateIrradianceMapPipelineInfo;
         SharedPtr<gapi::CommandList> mCommandList;
 
         SharedPtr<gapi::Texture> mDiffuseIrradianceMap;

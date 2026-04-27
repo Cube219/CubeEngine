@@ -1,9 +1,9 @@
 #include "ShaderManager.h"
 
 #include "Checker.h"
+#include "PipelineManager.h"
 #include "Renderer.h"
 #include "Shader.h"
-#include "Allocator/FrameAllocator.h"
 
 namespace cube
 {
@@ -26,8 +26,6 @@ namespace cube
         mMaterialShaderManager.Shutdown();
 
         CHECK_FORMAT(mCreatedShaders.size() == 0, "Not all shaders are freeed!");
-        CHECK_FORMAT(mCreatedGraphicsPipelines.size() == 0, "Not all graphics pipelines are freeed!");
-        CHECK_FORMAT(mCreatedComputePipelines.size() == 0, "Not all compute pipelines are freeed!");
     }
 
     SharedPtr<Shader> ShaderManager::CreateShader(const ShaderCreateInfo& createInfo)
@@ -44,40 +42,6 @@ namespace cube
         CHECK(it != mCreatedShaders.end());
 
         mCreatedShaders.erase(it);
-    }
-
-    SharedPtr<GraphicsPipeline> ShaderManager::CreateGraphicsPipeline(const GraphisPipelineCreateInfo& createInfo)
-    {
-        SharedPtr<GraphicsPipeline> graphicsPipeline = std::make_shared<GraphicsPipeline>(*this, createInfo);
-        CHECK(mRenderer.GetShaderParameterListManager().ValidateShader(graphicsPipeline->GetMergedShaderReflection()));
-        mCreatedGraphicsPipelines.insert(graphicsPipeline.get());
-
-        return graphicsPipeline;
-    }
-
-    void ShaderManager::FreeGraphicsPipeline(GraphicsPipeline* graphicsPipeline)
-    {
-        auto it = mCreatedGraphicsPipelines.find(graphicsPipeline);
-        CHECK(it != mCreatedGraphicsPipelines.end());
-
-        mCreatedGraphicsPipelines.erase(it);
-    }
-
-    SharedPtr<ComputePipeline> ShaderManager::CreateComputePipeline(const ComputePipelineCreateInfo& createInfo)
-    {
-        SharedPtr<ComputePipeline> computePipeline = std::make_shared<ComputePipeline>(*this, createInfo);
-        CHECK(mRenderer.GetShaderParameterListManager().ValidateShader(computePipeline->GetShaderReflection()));
-        mCreatedComputePipelines.insert(computePipeline.get());
-
-        return computePipeline;
-    }
-
-    void ShaderManager::FreeComputePipeline(ComputePipeline* computePipeline)
-    {
-        auto it = mCreatedComputePipelines.find(computePipeline);
-        CHECK(it != mCreatedComputePipelines.end());
-
-        mCreatedComputePipelines.erase(it);
     }
 
     void ShaderManager::RecompileShaders(bool forceAll)
@@ -120,23 +84,9 @@ namespace cube
 
         if (!succeededShaders.empty())
         {
-            Vector<GraphicsPipeline*> graphicsPipelinesToRecreate;
-            Vector<ComputePipeline*> computePipelinesToRecreate;
-
-            for (GraphicsPipeline* graphicsPipeline : mCreatedGraphicsPipelines)
-            {
-                if (graphicsPipeline->HasRecompiledShadersInPipeline())
-                {
-                    graphicsPipelinesToRecreate.push_back(graphicsPipeline);
-                }
-            }
-            for (ComputePipeline* computePipeline : mCreatedComputePipelines)
-            {
-                if (computePipeline->HasRecompiledShaderInPipeline())
-                {
-                    computePipelinesToRecreate.push_back(computePipeline);
-                }
-            }
+            // Evict cached pipelines that reference any recompiled shader BEFORE applying,
+            // because EvictStalePipelines reads the HasRecompiledShader flag.
+            mRenderer.GetPipelineManager().EvictStalePipelines();
 
             CUBE_LOG(Info, Shader, "===== Succeeded recompile shaders =====");
 
@@ -146,17 +96,6 @@ namespace cube
 
                 CUBE_LOG(Info, Shader, "\nDebugName: {0}\nPath: {1}\nEntryPoint: {2}\n",
                     shader->GetDebugName(), shader->GetFilePathsString(), shader->GetEntryPoint());
-            }
-
-            for (GraphicsPipeline* graphicsPipeline : graphicsPipelinesToRecreate)
-            {
-                graphicsPipeline->RecreateGraphicsPipeline();
-                CHECK(mRenderer.GetShaderParameterListManager().ValidateShader(graphicsPipeline->GetMergedShaderReflection()));
-            }
-            for (ComputePipeline* computePipeline : computePipelinesToRecreate)
-            {
-                computePipeline->RecreateComputePipeline();
-                CHECK(mRenderer.GetShaderParameterListManager().ValidateShader(computePipeline->GetShaderReflection()));
             }
         }
 

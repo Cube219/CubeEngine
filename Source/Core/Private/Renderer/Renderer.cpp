@@ -200,10 +200,8 @@ namespace cube
             ImGui::SeparatorText("Gizmos");
 
             ImGui::Checkbox("Show Axis", &mShowAxis);
-            if (ImGui::Checkbox("Wireframe", &mWireframe))
-            {
-                mNeedRecreatingPipelines = true;
-            }
+
+            ImGui::Checkbox("Wireframe", &mWireframe);
 
             ImGui::SeparatorText("Texture Viewer");
             if (ImGui::Button("Show"))
@@ -358,8 +356,6 @@ namespace cube
         {
             mBoxMesh = std::make_shared<Mesh>(MeshHelper::GenerateBoxMeshData(), mMeshMetadata);
             mShaderManager.GetMaterialShaderManager().ClearPipelineCache();
-
-            mNeedRecreatingPipelines = true;
         }
     }
 
@@ -379,8 +375,6 @@ namespace cube
 
     void Renderer::RenderImpl()
     {
-        RecreatePipelinesIfNeeded();
-
         gapi::RasterizerState::FillMode fillMode = mWireframe
             ? gapi::RasterizerState::FillMode::Line
             : gapi::RasterizerState::FillMode::Solid;
@@ -570,9 +564,6 @@ namespace cube
         }
 
         mEnvironmentMapping.LoadResources();
-
-        mNeedRecreatingPipelines = true;
-        RecreatePipelinesIfNeeded();
     }
 
     void Renderer::ClearResources()
@@ -591,17 +582,5 @@ namespace cube
         mMaterials.clear();
         mMesh = nullptr;
         mBoxMesh = nullptr;
-    }
-
-    void Renderer::RecreatePipelinesIfNeeded()
-    {
-        if (!mNeedRecreatingPipelines)
-        {
-            return;
-        }
-
-        mEnvironmentMapping.RecreateGraphicsPipelines();
-
-        mNeedRecreatingPipelines = false;
     }
 } // namespace cube

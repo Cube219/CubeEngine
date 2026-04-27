@@ -8,7 +8,7 @@ namespace cube
     class GraphicsPipeline;
     class Renderer;
     struct ComputePipelineCreateInfo;
-    struct GraphisPipelineCreateInfo;
+    struct GraphicsPipelineCreateInfo;
 
     class PipelineManager
     {
@@ -19,8 +19,10 @@ namespace cube
         void Initialize();
         void Shutdown();
 
-        SharedPtr<GraphicsPipeline> GetOrCreateGraphicsPipeline(const GraphisPipelineCreateInfo& createInfo);
+        SharedPtr<GraphicsPipeline> GetOrCreateGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo);
         SharedPtr<ComputePipeline> GetOrCreateComputePipeline(const ComputePipelineCreateInfo& createInfo);
+
+        void EvictStalePipelines();
 
         void ClearCache();
 
