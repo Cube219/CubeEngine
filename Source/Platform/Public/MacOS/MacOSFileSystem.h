@@ -21,9 +21,9 @@ namespace cube
             ~MacOSFilePath();
 
             MacOSFilePath(const MacOSFilePath& other);
-            MacOSFilePath(MacOSFilePath&& other);
+            MacOSFilePath(MacOSFilePath&& other) noexcept;
             MacOSFilePath& operator=(const MacOSFilePath& other);
-            MacOSFilePath& operator=(MacOSFilePath&& other);
+            MacOSFilePath& operator=(MacOSFilePath&& other) noexcept;
 
             MacOSFilePath(StringView path);
             MacOSFilePath(AnsiStringView path);

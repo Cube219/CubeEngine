@@ -30,9 +30,8 @@ namespace cube
         {
         }
 
-        // TODO: Use better way instead of copying?
-        MacOSFilePath::MacOSFilePath(MacOSFilePath&& other)
-            : mPath([other.mPath copy])
+        MacOSFilePath::MacOSFilePath(MacOSFilePath&& other) noexcept
+            : mPath(other.mPath)
         {
             other.mPath = nil;
         }
@@ -46,12 +45,11 @@ namespace cube
             return *this;
         }
 
-        // TODO: Use better way instead of copying?
-        MacOSFilePath& MacOSFilePath::operator=(MacOSFilePath&& other)
+        MacOSFilePath& MacOSFilePath::operator=(MacOSFilePath&& other) noexcept
         {
             if (this != &other)
             {
-                mPath = [other.mPath copy];
+                mPath = other.mPath;
                 other.mPath = nil;
             }
             return *this;
