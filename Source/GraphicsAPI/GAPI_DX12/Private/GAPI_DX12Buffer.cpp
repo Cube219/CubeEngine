@@ -58,12 +58,12 @@ namespace cube
             {
                 CHECK_FORMAT(mUsage == ResourceUsage::CPUtoGPU, "Using other resource usage instaed of CPUtoGPU in constant buffer is not implemented.");
 
-                mCBVDescriptor = device.GetDescriptorManager().GetSRVHeap().AllocateCPU();
+                mCBVDescriptor = device.GetDescriptorManager().GetSRVHeap().Allocate();
                 const D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {
                     .BufferLocation = mAllocation.resource->GetGPUVirtualAddress(),
                     .SizeInBytes = (UINT)mSize
                 };
-                mDevice.GetDevice()->CreateConstantBufferView(&cbvDesc, mCBVDescriptor.handle);
+                mDevice.GetDevice()->CreateConstantBufferView(&cbvDesc, mCBVDescriptor.cpuHandle);
             }
         }
 
@@ -71,7 +71,7 @@ namespace cube
         {
             if (mType == BufferType::Constant)
             {
-                mDevice.GetDescriptorManager().GetSRVHeap().FreeCPU(mCBVDescriptor);
+                mDevice.GetDescriptorManager().GetSRVHeap().Free(mCBVDescriptor);
             }
 
             mDevice.GetMemoryAllocator().Free(mAllocation);

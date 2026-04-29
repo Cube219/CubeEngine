@@ -7,48 +7,39 @@
 
 namespace cube
 {
-    DX12DescriptorHandle DX12DescriptorHeap::AllocateCPU()
+    DX12DescriptorHandle DX12DescriptorHeap::Allocate()
     {
-        CHECK(mFreedIndicesCPU.size() > 0);
+        CHECK(mFreedIndices.size() > 0);
 
-        Uint32 index = mFreedIndicesCPU.back();
-        mFreedIndicesCPU.pop_back();
+        Uint32 index = mFreedIndices.back();
+        mFreedIndices.pop_back();
 
         return {
             .index = (int)index,
-            .handle = {
+            .cpuHandle = {
                 .ptr = mBeginCPU.ptr + (SIZE_T)mDescriptorSize * index
+            },
+            .gpuHandle = {
+                .ptr = mBeginGPU.ptr ? mBeginGPU.ptr + (SIZE_T)mDescriptorSize * index : 0
             }
         };
     }
 
-    void DX12DescriptorHeap::FreeCPU(DX12DescriptorHandle& descriptor)
+    void DX12DescriptorHeap::Free(DX12DescriptorHandle& descriptor)
     {
         CHECK_FORMAT(descriptor.index >= 0, "Try to free invalid descriptor.");
-        CHECK_FORMAT(std::ranges::find(mFreedIndicesCPU, descriptor.index) == mFreedIndicesCPU.end(), "Freed the descriptor that already was freed.");
+        CHECK_FORMAT(std::ranges::find(mFreedIndices, descriptor.index) == mFreedIndices.end(), "Freed the descriptor that already was freed.");
 
-        mFreedIndicesCPU.push_back(descriptor.index);
+        mFreedIndices.push_back(descriptor.index);
         descriptor.index = -1;
     }
 
-    D3D12_GPU_DESCRIPTOR_HANDLE DX12DescriptorHeap::AllocateGPU()
+    void DX12DescriptorHeap::Free(D3D12_CPU_DESCRIPTOR_HANDLE descriptor)
     {
-        CHECK(mFreedIndicesGPU.size() > 0);
+        Uint32 index = (descriptor.ptr - mBeginCPU.ptr) / mDescriptorSize;
+        CHECK_FORMAT(std::ranges::find(mFreedIndices, index) == mFreedIndices.end(), "Freed the descriptor that already was freed.");
 
-        Uint32 index = mFreedIndicesGPU.back();
-        mFreedIndicesGPU.pop_back();
-
-        return {
-            .ptr = mBeginGPU.ptr + (SIZE_T)mDescriptorSize * index
-        };
-    }
-
-    void DX12DescriptorHeap::FreeGPU(D3D12_GPU_DESCRIPTOR_HANDLE descriptor)
-    {
-        Uint32 index = (descriptor.ptr - mBeginGPU.ptr) / mDescriptorSize;
-        CHECK_FORMAT(std::ranges::find(mFreedIndicesGPU, index) == mFreedIndicesGPU.end(), "Freed the descriptor that already was freed.");
-
-        mFreedIndicesGPU.push_back(index);
+        mFreedIndices.push_back(index);
     }
 
     void DX12DescriptorHeap::Initialize(DX12Device& device, const D3D12_DESCRIPTOR_HEAP_DESC& desc, StringView debugName)
@@ -57,32 +48,29 @@ namespace cube
         SET_DEBUG_NAME(mHeap, debugName);
 
         mType = desc.Type;
+        // TODO: Check possible number of descriptors.
         mNumDescriptors = desc.NumDescriptors;
         mDescriptorSize = device.GetDevice()->GetDescriptorHandleIncrementSize(desc.Type);
 
         mBeginCPU = mHeap->GetCPUDescriptorHandleForHeapStart();
-        mFreedIndicesCPU.resize(desc.NumDescriptors);
-        std::iota(mFreedIndicesCPU.begin(), mFreedIndicesCPU.end(), 0);
-        std::reverse(mFreedIndicesCPU.begin(), mFreedIndicesCPU.end());
-        mTotalNumIndicesCPU = static_cast<Uint32>(mFreedIndicesCPU.size());
+        mFreedIndices.resize(desc.NumDescriptors);
+        std::iota(mFreedIndices.begin(), mFreedIndices.end(), 0);
+        std::reverse(mFreedIndices.begin(), mFreedIndices.end());
+        mTotalNumIndices = static_cast<Uint32>(mFreedIndices.size());
 
         if ((desc.Flags & D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE) != 0)
         {
             mBeginGPU = mHeap->GetGPUDescriptorHandleForHeapStart();
-            mFreedIndicesGPU.resize(desc.NumDescriptors);
-            std::iota(mFreedIndicesGPU.begin(), mFreedIndicesGPU.end(), 0);
-            mTotalNumIndicesGPU = static_cast<Uint32>(mFreedIndicesGPU.size());
         }
         else
         {
-            mTotalNumIndicesGPU = 0;
+            mBeginGPU.ptr = 0;
         }
     }
 
     void DX12DescriptorHeap::Shutdown()
     {
-        CHECK_FORMAT(mFreedIndicesCPU.size() == mTotalNumIndicesCPU, "All descriptors should be freed before shutdown descriptor heap.");
-        CHECK_FORMAT(mFreedIndicesGPU.size() == mTotalNumIndicesGPU, "All descriptors should be freed before shutdown descriptor heap.");
+        CHECK_FORMAT(mFreedIndices.size() == mTotalNumIndices, "All descriptors should be freed before shutdown descriptor heap.");
 
         mHeap = nullptr;
     }
@@ -104,7 +92,7 @@ namespace cube
 
         D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {
             .Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
-            .NumDescriptors = 4096,
+            .NumDescriptors = 1024,
             .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
             .NodeMask = 0
         };
@@ -120,7 +108,7 @@ namespace cube
 
         D3D12_DESCRIPTOR_HEAP_DESC samplerHeapDesc = {
             .Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,
-            .NumDescriptors = 2048,
+            .NumDescriptors = 64,
             .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
             .NodeMask = 0
         };

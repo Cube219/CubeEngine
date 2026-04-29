@@ -29,6 +29,7 @@ namespace cube
         : mShaderManager(*this)
         , mTextureManager(*this)
         , mEnvironmentMapping(*this)
+        , mTextureViewer(*this)
     {
     }
 
@@ -109,6 +110,8 @@ namespace cube
 
         mEnvironmentMapping.Initialize(true);
 
+        mTextureViewer.Initialize();
+
         LoadResources();
     }
 
@@ -119,6 +122,8 @@ namespace cube
         mGAPI->WaitAllGPUSync();
 
         ClearResources();
+
+        mTextureViewer.Shutdown();
 
         mEnvironmentMapping.Shutdown();
 
@@ -196,9 +201,17 @@ namespace cube
             {
                 mNeedRecreatingPipelines = true;
             }
+
+            ImGui::SeparatorText("Texture Viewer");
+            if (ImGui::Button("Show"))
+            {
+                mTextureViewer.Show();
+            }
         }
 
         ImGui::End();
+
+        mTextureViewer.OnLoopImGUI();
     }
 
     void Renderer::RenderAndPresent()
@@ -452,6 +465,7 @@ namespace cube
                 .materials = mMaterials,
                 .model = mModelMatrix
             });
+
             builder.AddDrawMeshPass(CUBE_T("Draw Center Object"), drawMeshInfos, RGBuilder::MakeParameterListArray(envMapShaderParameterList));
 
             if (mShowAxis)

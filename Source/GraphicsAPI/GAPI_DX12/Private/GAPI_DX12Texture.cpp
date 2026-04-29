@@ -227,7 +227,7 @@ namespace cube
             SharedPtr<DX12Texture> dx12Texture = std::dynamic_pointer_cast<DX12Texture>(texture);
             CHECK(dx12Texture);
 
-            mSRVDescriptor = device.GetDescriptorManager().GetSRVHeap().AllocateCPU();
+            mSRVDescriptor = device.GetDescriptorManager().GetSRVHeap().Allocate();
             D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
             srvDesc.Format = GetDX12ElementFormatInfo(dx12Texture->GetFormat()).format;
             srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -278,13 +278,15 @@ namespace cube
                 NOT_IMPLEMENTED();
             }
 
-            device.GetDevice()->CreateShaderResourceView(dx12Texture->GetResource(), &srvDesc, mSRVDescriptor.handle);
+            device.GetDevice()->CreateShaderResourceView(dx12Texture->GetResource(), &srvDesc, mSRVDescriptor.cpuHandle);
             mBindlessId = mSRVDescriptor.index;
+
+            mImTextureID = mSRVDescriptor.gpuHandle.ptr;
         }
 
         DX12TextureSRV::~DX12TextureSRV()
         {
-            mDevice.GetDescriptorManager().GetSRVHeap().FreeCPU(mSRVDescriptor);
+            mDevice.GetDescriptorManager().GetSRVHeap().Free(mSRVDescriptor);
         }
 
         DX12TextureUAV::DX12TextureUAV(const TextureUAVCreateInfo& createInfo, SharedPtr<Texture> texture, DX12Device& device) :
@@ -294,7 +296,7 @@ namespace cube
             SharedPtr<DX12Texture> dx12Texture = std::dynamic_pointer_cast<DX12Texture>(texture);
             CHECK(dx12Texture);
 
-            mUAVDescriptor = device.GetDescriptorManager().GetSRVHeap().AllocateCPU();
+            mUAVDescriptor = device.GetDescriptorManager().GetSRVHeap().Allocate();
             D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
             uavDesc.Format = GetDX12ElementFormatInfo(dx12Texture->GetFormat()).format;
             switch (dx12Texture->GetType())
@@ -336,13 +338,13 @@ namespace cube
                 NOT_IMPLEMENTED();
             }
 
-            device.GetDevice()->CreateUnorderedAccessView(dx12Texture->GetResource(), nullptr, &uavDesc, mUAVDescriptor.handle);
+            device.GetDevice()->CreateUnorderedAccessView(dx12Texture->GetResource(), nullptr, &uavDesc, mUAVDescriptor.cpuHandle);
             mBindlessId = mUAVDescriptor.index;
         }
 
         DX12TextureUAV::~DX12TextureUAV()
         {
-            mDevice.GetDescriptorManager().GetSRVHeap().FreeCPU(mUAVDescriptor);
+            mDevice.GetDescriptorManager().GetSRVHeap().Free(mUAVDescriptor);
         }
 
         DX12TextureRTV::DX12TextureRTV(const TextureRTVCreateInfo& createInfo, SharedPtr<Texture> texture, DX12Device& device)
@@ -352,7 +354,7 @@ namespace cube
             SharedPtr<DX12Texture> dx12Texture = std::dynamic_pointer_cast<DX12Texture>(texture);
             CHECK(dx12Texture);
 
-            mRTVDescriptor = device.GetDescriptorManager().GetRTVHeap().AllocateCPU();
+            mRTVDescriptor = device.GetDescriptorManager().GetRTVHeap().Allocate();
             D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
             rtvDesc.Format = GetDX12ElementFormatInfo(dx12Texture->GetFormat()).format;
             switch (dx12Texture->GetType())
@@ -394,12 +396,12 @@ namespace cube
                 NOT_IMPLEMENTED();
             }
 
-            device.GetDevice()->CreateRenderTargetView(dx12Texture->GetResource(), &rtvDesc, mRTVDescriptor.handle);
+            device.GetDevice()->CreateRenderTargetView(dx12Texture->GetResource(), &rtvDesc, mRTVDescriptor.cpuHandle);
         }
 
         DX12TextureRTV::~DX12TextureRTV()
         {
-            mDevice.GetDescriptorManager().GetRTVHeap().FreeCPU(mRTVDescriptor);
+            mDevice.GetDescriptorManager().GetRTVHeap().Free(mRTVDescriptor);
         }
 
         DX12TextureDSV::DX12TextureDSV(const TextureDSVCreateInfo& createInfo, SharedPtr<Texture> texture, DX12Device& device)
@@ -409,7 +411,7 @@ namespace cube
             SharedPtr<DX12Texture> dx12Texture = std::dynamic_pointer_cast<DX12Texture>(texture);
             CHECK(dx12Texture);
 
-            mDSVDescriptor = device.GetDescriptorManager().GetDSVHeap().AllocateCPU();
+            mDSVDescriptor = device.GetDescriptorManager().GetDSVHeap().Allocate();
             D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
             dsvDesc.Format = GetDX12ElementFormatInfo(dx12Texture->GetFormat()).format;
             switch (dx12Texture->GetType())
@@ -448,12 +450,12 @@ namespace cube
                 NOT_IMPLEMENTED();
             }
 
-            device.GetDevice()->CreateDepthStencilView(dx12Texture->GetResource(), &dsvDesc, mDSVDescriptor.handle);
+            device.GetDevice()->CreateDepthStencilView(dx12Texture->GetResource(), &dsvDesc, mDSVDescriptor.cpuHandle);
         }
 
         DX12TextureDSV::~DX12TextureDSV()
         {
-            mDevice.GetDescriptorManager().GetDSVHeap().FreeCPU(mDSVDescriptor);
+            mDevice.GetDescriptorManager().GetDSVHeap().Free(mDSVDescriptor);
         }
     } // namespace gapi
 } // namespace cube

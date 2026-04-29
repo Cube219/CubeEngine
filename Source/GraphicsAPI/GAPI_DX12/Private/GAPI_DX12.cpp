@@ -25,67 +25,6 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace cube
 {
-    // TODO: merge srv heap
-    struct ImGUISRVDescHeap
-    {
-        void Initialize(ID3D12Device* device)
-        {
-            D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-            srvHeapDesc.NumDescriptors = 4;
-            srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-            srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-            CHECK_HR(device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&mHeap)));
-
-            mBeginCPU = mHeap->GetCPUDescriptorHandleForHeapStart();
-            mBeginGPU = mHeap->GetGPUDescriptorHandleForHeapStart();
-            mNumDescriptors = srvHeapDesc.NumDescriptors;
-            mDescriptorSize = device->GetDescriptorHandleIncrementSize(srvHeapDesc.Type);
-
-            mFreeIndices.resize(mNumDescriptors);
-            for (int i = 0; i < mNumDescriptors; ++i)
-            {
-                mFreeIndices[i] = mNumDescriptors - i - 1;
-            }
-        }
-
-        void Shutdown()
-        {
-            CHECK_FORMAT(mFreeIndices.size() == mNumDescriptors, "Not all descriptors free while shutdown.");
-
-            mFreeIndices.clear();
-            mHeap = nullptr;
-        }
-
-        void Allocate(D3D12_CPU_DESCRIPTOR_HANDLE* outCPUDescriptor, D3D12_GPU_DESCRIPTOR_HANDLE* outGPUDescriptor)
-        {
-            CHECK(mFreeIndices.size() > 0);
-
-            int index = mFreeIndices.back();
-            mFreeIndices.pop_back();
-
-            outCPUDescriptor->ptr = mBeginCPU.ptr + mDescriptorSize * index;
-            outGPUDescriptor->ptr = mBeginGPU.ptr + mDescriptorSize * index;
-        }
-
-        void Free(D3D12_CPU_DESCRIPTOR_HANDLE CPUDescriptor, D3D12_GPU_DESCRIPTOR_HANDLE GPUDescriptor)
-        {
-            int CPUIndex = static_cast<int>(CPUDescriptor.ptr - mBeginCPU.ptr) / mDescriptorSize;
-            int GPUIndex = static_cast<int>(GPUDescriptor.ptr - mBeginGPU.ptr) / mDescriptorSize;
-            CHECK(CPUIndex == GPUIndex);
-            CHECK_FORMAT(std::ranges::find(mFreeIndices, CPUIndex) == mFreeIndices.end(), "Try to free the descriptor that already freed.");
-
-            mFreeIndices.push_back(CPUIndex);
-        }
-
-        ComPtr<ID3D12DescriptorHeap> mHeap;
-        D3D12_CPU_DESCRIPTOR_HANDLE mBeginCPU;
-        D3D12_GPU_DESCRIPTOR_HANDLE mBeginGPU;
-        Uint32 mNumDescriptors;
-        Uint64 mDescriptorSize;
-        Vector<int> mFreeIndices;
-    };
-    ImGUISRVDescHeap gImGUISRVHeap;
-
     GAPI* CreateGAPI()
     {
         return new GAPI_DX12();
@@ -235,8 +174,8 @@ namespace cube
             };
             mImGUIRenderCommandList->ResourceBarrier(1, &barrier);
             mImGUIRenderCommandList->OMSetRenderTargets(1, &currentRTVDescriptor, FALSE, nullptr);
-            ID3D12DescriptorHeap* heap = gImGUISRVHeap.mHeap.Get();
-            mImGUIRenderCommandList->SetDescriptorHeaps(1, &heap);
+            ArrayView<ID3D12DescriptorHeap*> heaps = mMainDevice->GetDescriptorManager().GetD3D12ShaderVisibleHeaps();
+            mImGUIRenderCommandList->SetDescriptorHeaps(heaps.size(), heaps.data());
             ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), mImGUIRenderCommandList.Get());
             mImGUIRenderCommandList->Close();
 
@@ -369,7 +308,6 @@ namespace cube
 
         mImGUIContext = imGUIInfo;
 
-        gImGUISRVHeap.Initialize(mMainDevice->GetDevice());
         CHECK_HR(mMainDevice->GetDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, mMainDevice->GetCommandListManager().GetCurrentAllocator(), nullptr, IID_PPV_ARGS(&mImGUIRenderCommandList)));
         mImGUIRenderCommandList->Close();
 
@@ -389,15 +327,25 @@ namespace cube
         initInfo.NumFramesInFlight = 2;
         initInfo.RTVFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
         initInfo.DSVFormat = DXGI_FORMAT_UNKNOWN;
-        initInfo.SrvDescriptorHeap = gImGUISRVHeap.mHeap.Get();
-        initInfo.SrvDescriptorAllocFn = [](ImGui_ImplDX12_InitInfo*, D3D12_CPU_DESCRIPTOR_HANDLE* outCPUDescriptor, D3D12_GPU_DESCRIPTOR_HANDLE* outGPUDescriptor)
+        initInfo.SrvDescriptorHeap = mMainDevice->GetDescriptorManager().GetSRVHeap().Get();
+        initInfo.SrvDescriptorAllocFn = [](ImGui_ImplDX12_InitInfo* initInfo, D3D12_CPU_DESCRIPTOR_HANDLE* outCPUDescriptor, D3D12_GPU_DESCRIPTOR_HANDLE* outGPUDescriptor)
         {
-            gImGUISRVHeap.Allocate(outCPUDescriptor, outGPUDescriptor);
+            DX12Device* device = reinterpret_cast<DX12Device*>(initInfo->UserData);
+            DX12DescriptorHeap& heap = device->GetDescriptorManager().GetSRVHeap();
+
+            DX12DescriptorHandle desc = heap.Allocate();
+
+            outCPUDescriptor->ptr = desc.cpuHandle.ptr;
+            outGPUDescriptor->ptr = desc.gpuHandle.ptr;
         };
-        initInfo.SrvDescriptorFreeFn = [](ImGui_ImplDX12_InitInfo*, D3D12_CPU_DESCRIPTOR_HANDLE CPUDescriptor, D3D12_GPU_DESCRIPTOR_HANDLE GPUDescriptor)
+        initInfo.SrvDescriptorFreeFn = [](ImGui_ImplDX12_InitInfo* initInfo, D3D12_CPU_DESCRIPTOR_HANDLE CPUDescriptor, D3D12_GPU_DESCRIPTOR_HANDLE GPUDescriptor)
         {
-            gImGUISRVHeap.Free(CPUDescriptor, GPUDescriptor);
+            DX12Device* device = reinterpret_cast<DX12Device*>(initInfo->UserData);
+            DX12DescriptorHeap& heap = device->GetDescriptorManager().GetSRVHeap();
+
+            heap.Free(CPUDescriptor);
         };
+        initInfo.UserData = mMainDevice;
         ImGui_ImplDX12_Init(&initInfo);
 
         // Start new frame before starting ImGUI loop in Engine class
@@ -418,6 +366,5 @@ namespace cube
         platform::WindowsPlatform::SetImGUIWndProcFunction(nullptr);
 
         mImGUIRenderCommandList = nullptr;
-        gImGUISRVHeap.Shutdown();
     }
 } // namespace cube

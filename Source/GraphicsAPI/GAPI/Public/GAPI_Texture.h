@@ -42,7 +42,7 @@ namespace cube
         {
             ElementFormat format;
             TextureType type;
-            TextureFlags flags;
+            TextureFlags flags = TextureFlag::None;
             Uint32 width;
             Uint32 height;
             Uint32 depth = 1;
@@ -72,6 +72,7 @@ namespace cube
             virtual void Unmap() = 0;
 
             ResourceUsage GetUsage() const { return mUsage; }
+            const TextureInfo& GetInfo() const { return mInfo; }
             TextureType GetType() const { return mInfo.type; }
             ElementFormat GetFormat() const { return mInfo.format; }
             Uint32 GetWidth() const { return mInfo.width; }
@@ -125,6 +126,7 @@ namespace cube
             SubresourceRange GetSubresourceRange() const { return mSubresourceRange; }
 
             Uint64 GetBindlessId() const { return mBindlessId; }
+            Uint64 GetImTextureID() const { return mImTextureID; }
 
         protected:
             SharedPtr<Texture> mTexture;
@@ -132,6 +134,7 @@ namespace cube
             SubresourceRange mSubresourceRange;
 
             Uint64 mBindlessId;
+            Uint64 mImTextureID;
         };
 
         struct TextureUAVCreateInfo

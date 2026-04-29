@@ -113,7 +113,7 @@ namespace cube
             const int index = GetShaderParameterListInfoIndex(blockReflection.typeName);
             if (index == -1)
             {
-                CUBE_LOG(Error, ShaderParameter, "Undefined shader parameter list type! ({0})", blockReflection.typeName);
+                CUBE_LOG(Error, ShaderParameter, "Unregistered shader parameter list type! ({0})", blockReflection.typeName);
                 res = false;
             }
             else

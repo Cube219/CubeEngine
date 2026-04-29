@@ -9,7 +9,8 @@ namespace cube
     struct DX12DescriptorHandle
     {
         int index = -1;
-        D3D12_CPU_DESCRIPTOR_HANDLE handle;
+        D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle;
+        D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle;
 
         bool IsValid() const { return index >= 0; }
     };
@@ -19,11 +20,9 @@ namespace cube
     public:
         ID3D12DescriptorHeap* Get() const { return mHeap.Get(); }
 
-        DX12DescriptorHandle AllocateCPU();
-        void FreeCPU(DX12DescriptorHandle& descriptor);
-
-        D3D12_GPU_DESCRIPTOR_HANDLE AllocateGPU();
-        void FreeGPU(D3D12_GPU_DESCRIPTOR_HANDLE descriptor);
+        DX12DescriptorHandle Allocate();
+        void Free(DX12DescriptorHandle& descriptor);
+        void Free(D3D12_CPU_DESCRIPTOR_HANDLE descriptor);
 
     private:
         friend class DX12DescriptorManager;
@@ -41,12 +40,8 @@ namespace cube
         D3D12_CPU_DESCRIPTOR_HANDLE mBeginCPU;
         D3D12_GPU_DESCRIPTOR_HANDLE mBeginGPU;
 
-        Vector<Uint32> mFreedIndicesCPU;
-        Uint32 mTotalNumIndicesCPU;
-        Vector<Uint32> mFreedIndicesGPU;
-        Uint32 mTotalNumIndicesGPU;
-        // NOTE: when try to increase descriptor heap size, you should re-init imgui in GAPI_DX12::InitializeImGUI()
-        // because it uses raw SRV heap
+        Vector<Uint32> mFreedIndices;
+        Uint32 mTotalNumIndices;
     };
 
     // TODO: Is it needed buffering descriptor heap?

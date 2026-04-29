@@ -99,19 +99,16 @@ namespace cube
 
             if (ImPlot::BeginPlot("##VRAM plot", ImVec2(-1, 120), ImPlotFlags_NoMouseText | ImPlotFlags_NoBoxSelect))
             {
-                ImPlot::PushStyleVar(ImPlotStyleVar_FillAlpha, 0.25f);
-
                 ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations | ImPlotAxisFlags_LockMax, ImPlotAxisFlags_LockMin | ImPlotAxisFlags_AutoFit);
                 ImPlot::SetupAxisLimits(ImAxis_X1, static_cast<double>(NUM_STATS_HISTORY) / 2, NUM_STATS_HISTORY - 1);
                 ImPlot::SetupAxisLimits(ImAxis_Y1, 0, 50);
                 ImPlot::SetupAxisLinks(ImAxis_X1, &axisX_min, &axisX_max);
                 
-                ImPlot::PlotShaded("Physical VRAM", &mPhysicalVRAMMiBHistory[mCurrentHistoryIndex], NUM_STATS_HISTORY);
+                ImPlot::PlotShaded("Physical VRAM", &mPhysicalVRAMMiBHistory[mCurrentHistoryIndex], NUM_STATS_HISTORY, 0, 1, 0, { ImPlotProp_FillAlpha, 0.25f });
                 ImPlot::PlotLine("Physical VRAM", &mPhysicalVRAMMiBHistory[mCurrentHistoryIndex], NUM_STATS_HISTORY);
-                ImPlot::PlotShaded("Logical VRAM", &mLogicalVRAMMiBHistory[mCurrentHistoryIndex], NUM_STATS_HISTORY);
+                ImPlot::PlotShaded("Logical VRAM", &mLogicalVRAMMiBHistory[mCurrentHistoryIndex], NUM_STATS_HISTORY, 0, 1, 0, { ImPlotProp_FillAlpha, 0.25f });
                 ImPlot::PlotLine("Logical VRAM", &mLogicalVRAMMiBHistory[mCurrentHistoryIndex], NUM_STATS_HISTORY);
 
-                ImPlot::PopStyleVar();
                 ImPlot::EndPlot();
             }
         }

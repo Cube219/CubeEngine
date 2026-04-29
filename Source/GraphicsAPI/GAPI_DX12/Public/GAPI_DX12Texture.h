@@ -52,7 +52,7 @@ namespace cube
             virtual ~DX12TextureSRV();
 
             DX12Texture* GetDX12Texture() const { return dynamic_cast<DX12Texture*>(mTexture.get()); }
-            D3D12_CPU_DESCRIPTOR_HANDLE GetDescriptorHandle() const { return mSRVDescriptor.handle; }
+            D3D12_CPU_DESCRIPTOR_HANDLE GetDescriptorHandle() const { return mSRVDescriptor.cpuHandle; }
 
         private:
             DX12Device& mDevice;
@@ -67,7 +67,7 @@ namespace cube
             virtual ~DX12TextureUAV();
 
             DX12Texture* GetDX12Texture() const { return dynamic_cast<DX12Texture*>(mTexture.get()); }
-            D3D12_CPU_DESCRIPTOR_HANDLE GetDescriptorHandle() const { return mUAVDescriptor.handle; }
+            D3D12_CPU_DESCRIPTOR_HANDLE GetDescriptorHandle() const { return mUAVDescriptor.cpuHandle; }
 
         private:
             DX12Device& mDevice;
@@ -82,7 +82,7 @@ namespace cube
             virtual ~DX12TextureRTV();
 
             DX12Texture* GetDX12Texture() const { return dynamic_cast<DX12Texture*>(mTexture.get()); }
-            D3D12_CPU_DESCRIPTOR_HANDLE GetDescriptorHandle() const { return mRTVDescriptor.handle; }
+            D3D12_CPU_DESCRIPTOR_HANDLE GetDescriptorHandle() const { return mRTVDescriptor.cpuHandle; }
 
         private:
             DX12Device& mDevice;
@@ -97,7 +97,7 @@ namespace cube
             virtual ~DX12TextureDSV();
 
             DX12Texture* GetDX12Texture() const { return dynamic_cast<DX12Texture*>(mTexture.get()); }
-            D3D12_CPU_DESCRIPTOR_HANDLE GetDescriptorHandle() const { return mDSVDescriptor.handle; }
+            D3D12_CPU_DESCRIPTOR_HANDLE GetDescriptorHandle() const { return mDSVDescriptor.cpuHandle; }
 
         private:
             DX12Device& mDevice;

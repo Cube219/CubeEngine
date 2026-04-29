@@ -7,7 +7,9 @@ message(STATUS "CubeEngine: Fetching imgui/imGuIZMO/implot...")
 FetchContent_Declare(
     imgui
     GIT_REPOSITORY https://github.com/ocornut/imgui
-    GIT_TAG        dbb5eeaadffb6a3ba6a60de1290312e5802dba5a # v1.91.8
+        # Commit that support changing sampler in Metal.
+        # See https://github.com/ocornut/imgui/issues/9378.
+    GIT_TAG        dee9b15bbec8c8a7120e4dfddf73b35ae60947f1
 )
 FetchContent_Declare(
     imguizmoquat
@@ -17,7 +19,7 @@ FetchContent_Declare(
 FetchContent_Declare(
     implot
     GIT_REPOSITORY https://github.com/epezent/implot
-    GIT_TAG        18c72431f8265e2b0b5378a3a73d8a883b2175ff # v0.16
+    GIT_TAG        524f9fcd48d76c13fdf94c5ffbba8787a1ff7e39 # v1.0
 )
 FetchContent_MakeAvailable(imgui imguizmoquat implot)
 
@@ -61,6 +63,11 @@ if(PLATFORM_MACOS)
     set(PLATFORM_SOURCE
         ${imgui_SOURCE_DIR}/backends/imgui_impl_metal.mm
         ${imgui_SOURCE_DIR}/backends/imgui_impl_osx.mm
+    )
+    # Enable Automatic Reference Counting (ARC) for Objective-C++ files (.mm)
+    set_source_files_properties(${PLATFORM_SOURCE}
+        PROPERTIES
+            COMPILE_FLAGS "-fobjc-arc"
     )
 endif()
 

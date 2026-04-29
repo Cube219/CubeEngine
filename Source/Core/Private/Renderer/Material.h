@@ -73,6 +73,7 @@ namespace cube
         Vector4 mConstantDiffuseColor;
         Vector4 mConstantSpecularColor;
         float mConstantShininess = 0.0f;
+
         Array<SharedPtr<TextureResource>, 5> mTextures;
 
         String mDebugName;

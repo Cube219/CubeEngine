@@ -299,6 +299,7 @@ namespace cube
             ];
 
             mBindlessId = mSRV.gpuResourceID._impl;
+            mImTextureID = reinterpret_cast<Uint64>((__bridge void*)mSRV);
         }
 
         MetalTextureSRV::~MetalTextureSRV()

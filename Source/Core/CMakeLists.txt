@@ -38,6 +38,8 @@ set(PRIVATE_FILES
     Private/Renderer/Texture.h
     Private/Renderer/TextureManager.cpp
     Private/Renderer/TextureManager.h
+    Private/Renderer/TextureViewer.cpp
+    Private/Renderer/TextureViewer.h
     Private/Systems/CameraSystem.cpp
     Private/Systems/CameraSystem.h
     Private/Systems/ModelLoaderSystem.cpp

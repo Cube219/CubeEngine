@@ -96,6 +96,8 @@ namespace cube
         virtual void CreateResource(GAPI& gapi) override;
         virtual bool IsResourceCreated() const override { return mTexture != nullptr; }
 
+        const gapi::TextureInfo& GetTextureInfo() const { return mTextureInfo; }
+
     protected:
         friend class RGBuilder;
         friend class RGTextureSRV;

@@ -2,17 +2,18 @@
 
 #include "CoreHeader.h"
 
+#include "DLib.h"
+#include "EnvironmentMapping.h"
 #include "GAPI.h"
 #include "GAPI_Texture.h"
 #include "Matrix.h"
+#include "Renderer/Mesh.h"
 #include "Renderer/ShaderParameter.h"
 #include "SamplerManager.h"
 #include "ShaderManager.h"
 #include "Texture.h"
 #include "TextureManager.h"
-#include "Renderer/Mesh.h"
-#include "DLib.h"
-#include "EnvironmentMapping.h"
+#include "TextureViewer.h"
 #include "Vector.h"
 
 namespace cube
@@ -75,6 +76,7 @@ namespace cube
         void SetPerspectiveMatrix(float fovAngleY, float aspectRatio, float nearZ, float farZ);
 
         float GetGPUTimeMS() const;
+        Uint64 GetCurrentRenderingFrame() const { return mCurrentRenderingFrame; };
 
         const MeshMetadata& GetMeshMetadata() const { return mMeshMetadata; }
         void SetMesh(SharedPtr<MeshData> meshData, const MeshMetadata& meshMeta);
@@ -101,6 +103,8 @@ namespace cube
         SamplerManager mSamplerManager;
 
         EnvironmentMapping mEnvironmentMapping;
+
+        TextureViewer mTextureViewer;
 
         bool mRenderImGUI;
 

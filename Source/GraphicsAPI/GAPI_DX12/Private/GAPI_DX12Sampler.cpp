@@ -77,15 +77,15 @@ namespace cube
                 .MaxLOD = info.maxLod
             };
 
-            mDescriptor = device.GetDescriptorManager().GetSamplerHeap().AllocateCPU();
+            mDescriptor = device.GetDescriptorManager().GetSamplerHeap().Allocate();
 
-            device.GetDevice()->CreateSampler(&samplerDesc, mDescriptor.handle);
+            device.GetDevice()->CreateSampler(&samplerDesc, mDescriptor.cpuHandle);
             mBindlessId = mDescriptor.index;
         }
 
         DX12Sampler::~DX12Sampler()
         {
-            mDevice.GetDescriptorManager().GetSamplerHeap().FreeCPU(mDescriptor);
+            mDevice.GetDescriptorManager().GetSamplerHeap().Free(mDescriptor);
         }
     } // namespace gapi
 } // namespace cube

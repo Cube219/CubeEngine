@@ -50,6 +50,8 @@ namespace cube
     {
         mIsTransient = texture->GetUsage() == gapi::ResourceUsage::Transient;
         CHECK_FORMAT(!mIsTransient, "Cannot register transient texture!");
+
+        mTextureInfo = texture->GetInfo();
     }
 
     RGTextureView::RGTextureView(int index, RGTexture* rgTexture)
