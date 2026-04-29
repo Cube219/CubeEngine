@@ -228,9 +228,11 @@ namespace cube
         }
 
         SharedPtr<gapi::Buffer> buffer = mGAPI->CreateBuffer({
-            .type = gapi::BufferType::Constant,
             .usage = gapi::ResourceUsage::CPUtoGPU,
-            .size = size,
+            .bufferInfo = {
+                .type = gapi::BufferType::Constant,
+                .size = size,
+            },
             .debugName = debugName
         });
         pool.buffers.push_back(buffer);

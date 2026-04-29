@@ -8,10 +8,10 @@ namespace cube
 {
     namespace gapi
     {
-        MetalBuffer::MetalBuffer(const BufferCreateInfo& info, MetalDevice& device) :
-            Buffer(info)
+        MetalBuffer::MetalBuffer(const BufferCreateInfo& info, MetalDevice& device)
+            : Buffer(info)
+            , mDevice(device)
         {
-            // TODO: Handle managed resource for Intel-based MAC?
             MTLResourceOptions resourceOptions = MTLResourceStorageModeShared;
             switch (info.usage)
             {
@@ -30,11 +30,11 @@ namespace cube
 
             if (info.usage == ResourceUsage::Transient)
             {
-                mBuffer = [device.GetTransientHeapManager().GetMTLHeap(MTLSizeAndAlign(info.size, 0)) newBufferWithLength:info.size options:resourceOptions];
+                mBuffer = [device.GetTransientHeapManager().GetMTLHeap(MTLSizeAndAlign(mInfo.size, 0)) newBufferWithLength:mInfo.size options:resourceOptions];
             }
             else
             {
-                mBuffer = [device.GetMTLDevice() newBufferWithLength:info.size options:resourceOptions];
+                mBuffer = [device.GetMTLDevice() newBufferWithLength:mInfo.size options:resourceOptions];
             }
             CHECK(mBuffer);
             mBuffer.label = String_Convert<NSString*>(info.debugName);
@@ -43,6 +43,16 @@ namespace cube
         MetalBuffer::~MetalBuffer()
         {
             mBuffer = nil;
+        }
+
+        SharedPtr<BufferSRV> MetalBuffer::CreateSRV(const BufferSRVCreateInfo& createInfo)
+        {
+            return std::make_shared<MetalBufferSRV>(mDevice, createInfo, shared_from_this());
+        }
+
+        SharedPtr<BufferUAV> MetalBuffer::CreateUAV(const BufferUAVCreateInfo& createInfo)
+        {
+            return std::make_shared<MetalBufferUAV>(mDevice, createInfo, shared_from_this());
         }
 
         void* MetalBuffer::Map()
@@ -79,6 +89,22 @@ namespace cube
                 NOT_IMPLEMENTED();
                 break;
             }
+        }
+
+        MetalBufferSRV::MetalBufferSRV(MetalDevice& device, const BufferSRVCreateInfo& createInfo, SharedPtr<MetalBuffer> metalBuffer)
+            : BufferSRV(createInfo, metalBuffer)
+        {
+            const Uint64 offset = mFirstElement * metalBuffer->GetStride();
+
+            mBindlessId = metalBuffer->GetMTLBuffer().gpuAddress + offset;
+        }
+
+        MetalBufferUAV::MetalBufferUAV(MetalDevice& device, const BufferUAVCreateInfo& createInfo, SharedPtr<MetalBuffer> metalBuffer)
+            : BufferUAV(createInfo, metalBuffer)
+        {
+            const Uint64 offset = mFirstElement * metalBuffer->GetStride();
+
+            mBindlessId = metalBuffer->GetMTLBuffer().gpuAddress + offset;
         }
     } // namespace gapi
 } // namespace cube

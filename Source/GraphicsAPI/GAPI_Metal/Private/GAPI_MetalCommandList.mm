@@ -331,7 +331,6 @@ namespace cube
             {
                 MetalBuffer* metalBuffer = dynamic_cast<MetalBuffer*>(buffers[i].get());
                 CHECK(metalBuffer);
-                CHECK(metalBuffer->GetType() == BufferType::Vertex);
 
                 mtlBuffers[i] = metalBuffer->GetMTLBuffer();
                 mtlOffsets[i] = offsets[i];
@@ -344,7 +343,6 @@ namespace cube
         {
             CHECK(IsWriting());
             CHECK(IsInRenderPass());
-            CHECK(buffer->GetType() == BufferType::Index);
 
             MetalBuffer* metalBuffer = dynamic_cast<MetalBuffer*>(buffer.get());
             CHECK(metalBuffer);

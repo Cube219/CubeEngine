@@ -13,6 +13,7 @@ namespace cube
 
     namespace gapi
     {
+        class Buffer;
         class Texture;
         class TextureSRV;
     } // namespace gapi

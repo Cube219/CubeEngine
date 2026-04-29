@@ -25,7 +25,26 @@ namespace cube
         RGBuilder(Renderer& renderer);
         ~RGBuilder();
 
+        RGBufferHandle RegisterBuffer(SharedPtr<gapi::Buffer> buffer);
+        RGBufferHandle CreateBuffer(const gapi::BufferInfo& bufferInfo, StringView debugName);
+
+        // TODO: Remove duplication
+        RGBufferSRVHandle CreateSRV(RGBufferHandle rgBuffer, gapi::ElementFormat format = gapi::ElementFormat::Unknown, Uint64 firstElement = 0, Uint64 numElements = std::numeric_limits<Uint64>::max());
+        RGBufferUAVHandle CreateUAV(RGBufferHandle rgBuffer, gapi::ElementFormat format = gapi::ElementFormat::Unknown, Uint64 firstElement = 0, Uint64 numElements = std::numeric_limits<Uint64>::max());
+
+        RGTextureHandle RegisterTexture(SharedPtr<gapi::Texture> texture);
         RGTextureHandle CreateTexture(const gapi::TextureInfo& textureInfo, StringView debugName);
+
+        // TODO: Remove duplication
+        RGTextureSRVHandle CreateSRV(RGTextureHandle rgTexture, Uint32 firstMipLevel = 0, Int32 mipLevels = -1);
+        RGTextureUAVHandle CreateUAV(RGTextureHandle rgTexture, Uint32 mipLevel = 0, Uint32 firstSliceIndex = 0, Int32 sliceSize = -1);
+        RGTextureRTVHandle CreateRTV(RGTextureHandle rgTexture, Uint32 mipLevel = 0);
+        RGTextureDSVHandle CreateDSV(RGTextureHandle rgTexture, Uint32 mipLevel = 0);
+
+        RGTextureSRVHandle GetDummyBlackTexture2D();
+        RGTextureSRVHandle GetDummyBlackTextureCube();
+        RGTextureSRVHandle GetDummyWhiteTexture2D();
+
         template <typename ShaderParameterListType>
             requires std::derived_from<ShaderParameterListType, ShaderParameterList>
         RGShaderParameterListHandle<ShaderParameterListType> CreateShaderParameterList()
@@ -39,18 +58,6 @@ namespace cube
 
             return RGShaderParameterListHandle<ShaderParameterListType>(rgParameterList);
         }
-
-        // TODO: Remove duplication
-        RGTextureSRVHandle CreateSRV(RGTextureHandle rgTexture, Uint32 firstMipLevel = 0, Int32 mipLevels = -1);
-        RGTextureUAVHandle CreateUAV(RGTextureHandle rgTexture, Uint32 mipLevel = 0, Uint32 firstSliceIndex = 0, Int32 sliceSize = -1);
-        RGTextureRTVHandle CreateRTV(RGTextureHandle rgTexture, Uint32 mipLevel = 0);
-        RGTextureDSVHandle CreateDSV(RGTextureHandle rgTexture, Uint32 mipLevel = 0);
-
-        RGTextureSRVHandle GetDummyBlackTexture2D();
-        RGTextureSRVHandle GetDummyBlackTextureCube();
-        RGTextureSRVHandle GetDummyWhiteTexture2D();
-
-        RGTextureHandle RegisterTexture(SharedPtr<gapi::Texture> texture);
 
         // TODO: Automatically collect attachments before executing.
         struct RenderPassInfo
@@ -180,6 +187,7 @@ namespace cube
         PassInfo mLastPass;
 
         Vector<RGResource*> mResources;
+        Map<gapi::Buffer*, RGBufferHandle> mRegisteredBuffers;
         Map<gapi::Texture*, RGTextureHandle> mRegisteredTextures;
         RGTextureSRVHandle mDummyBlackTexture2D;
         RGTextureSRVHandle mDummyBlackTextureCube;

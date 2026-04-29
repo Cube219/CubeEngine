@@ -87,6 +87,80 @@ namespace cube
         RGResourceType* mResource = nullptr;
     };
 
+    class RGBuffer : public RGResource
+    {
+    public:
+        virtual void CreateResource(GAPI& gapi) override;
+        virtual bool IsResourceCreated() const override { return mBuffer != nullptr; }
+
+    private:
+        friend class RGBuilder;
+        friend class RGBufferSRV;
+        friend class RGBufferUAV;
+
+        RGBuffer(int index, const gapi::BufferInfo& bufferInfo, StringView debugName);
+        RGBuffer(int index, SharedPtr<gapi::Buffer> buffer);
+        virtual ~RGBuffer() = default;
+
+        SharedPtr<gapi::Buffer> mBuffer;
+        gapi::BufferInfo mBufferInfo;
+    };
+    using RGBufferHandle = RGResourceHandler<RGBuffer>;
+
+    class RGBufferView : public RGResource
+    {
+    public:
+
+    protected:
+        friend class RGBuilder;
+
+        RGBufferView(int index, RGBuffer* rgBuffer, gapi::ElementFormat format, Uint64 firstElement, Uint64 numElements);
+        virtual ~RGBufferView() = default;
+
+        RGBuffer* mRGBuffer;
+
+        gapi::ElementFormat mFormat;
+        Uint64 mFirstElement;
+        Uint64 mNumElements;
+    };
+    using RGBufferViewHandle = RGResourceHandler<RGBufferView>;
+
+    class RGBufferSRV : public RGBufferView
+    {
+    public:
+        SharedPtr<gapi::BufferSRV> GetSRV() const { return mSRV; }
+
+        virtual void CreateResource(GAPI& gapi) override;
+        virtual bool IsResourceCreated() const override { return mSRV != nullptr; }
+
+    private:
+        friend class RGBuilder;
+
+        RGBufferSRV(int index, RGBuffer* rgBuffer, gapi::ElementFormat format, Uint64 firstElement, Uint64 numElements);
+        virtual ~RGBufferSRV() = default;
+
+        SharedPtr<gapi::BufferSRV> mSRV;
+    };
+    using RGBufferSRVHandle = RGResourceHandler<RGBufferSRV>;
+
+    class RGBufferUAV : public RGBufferView
+    {
+    public:
+        SharedPtr<gapi::BufferUAV> GetUAV() const { return mUAV; }
+
+        virtual void CreateResource(GAPI& gapi) override;
+        virtual bool IsResourceCreated() const override { return mUAV != nullptr; }
+
+    private:
+        friend class RGBuilder;
+
+        RGBufferUAV(int index, RGBuffer* rgBuffer, gapi::ElementFormat format, Uint64 firstElement, Uint64 numElements);
+        virtual ~RGBufferUAV() = default;
+
+        SharedPtr<gapi::BufferUAV> mUAV;
+    };
+    using RGBufferUAVHandle = RGResourceHandler<RGBufferUAV>;
+
     class RGTexture : public RGResource
     {
     public:

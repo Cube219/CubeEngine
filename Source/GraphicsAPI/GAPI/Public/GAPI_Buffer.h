@@ -10,19 +10,39 @@ namespace cube
 {
     namespace gapi
     {
+        class BufferSRV;
+        struct BufferSRVCreateInfo;
+        class BufferUAV;
+        struct BufferUAVCreateInfo;
+
         enum class BufferType
         {
-            Vertex,
-            Index,
+            Typed,
+            Structured,
+            Raw,
             Constant
+        };
+
+        enum class BufferFlag
+        {
+            None = 0,
+            UAV = 1 << 0,
+        };
+        using BufferFlags = Flags<BufferFlag>;
+        FLAGS_OPERATOR(BufferFlag);
+
+        struct BufferInfo
+        {
+            BufferType type;
+            Uint64 size;
+            Uint32 stride = 1;
+            BufferFlags flags = BufferFlag::None;
         };
 
         struct BufferCreateInfo
         {
-            BufferType type;
             ResourceUsage usage;
-            Uint64 size;
-            Uint32 vertexStride = 0;
+            BufferInfo bufferInfo;
 
             StringView debugName;
         };
@@ -31,28 +51,94 @@ namespace cube
         {
         public:
             Buffer(const BufferCreateInfo& info) :
-                mType(info.type),
                 mUsage(info.usage),
-                mSize(info.size),
-                mVertexStride(info.vertexStride)
+                mInfo(info.bufferInfo)
             {}
             virtual ~Buffer() = default;
+
+            virtual SharedPtr<BufferSRV> CreateSRV(const BufferSRVCreateInfo& createInfo) = 0;
+            virtual SharedPtr<BufferUAV> CreateUAV(const BufferUAVCreateInfo& createInfo) = 0;
 
             virtual void* Map() = 0;
             virtual void Unmap() = 0;
 
-            virtual void SetDebugName(StringView debugName) {}
+            virtual void SetDebugName(StringView debugName) { mDebugName = debugName; }
 
-            BufferType GetType() const { return mType; }
             ResourceUsage GetUsage() const { return mUsage; }
-            Uint64 GetSize() const { return mSize; }
-            Uint32 GetVertexStride() const { return mVertexStride; }
+            const BufferInfo& GetInfo() const { return mInfo; }
+            BufferType GetType() const { return mInfo.type; }
+            Uint64 GetSize() const { return mInfo.size; }
+            Uint32 GetStride() const { return mInfo.stride; }
+            Uint64 GetNumElements() const { return mInfo.size / mInfo.stride; }
+            BufferFlags GetFlags() const { return mInfo.flags; }
+
+            StringView GetDebugName() const { return mDebugName; }
 
         protected:
-            BufferType mType;
             ResourceUsage mUsage;
-            Uint64 mSize;
-            Uint32 mVertexStride;
+            BufferInfo mInfo;
+
+            String mDebugName;
+        };
+
+        struct BufferSRVCreateInfo
+        {
+            ElementFormat typedFormat;
+
+            Uint64 firstElement = 0;
+            Uint64 numElements = std::numeric_limits<Uint64>::max();
+        };
+
+        class BufferSRV
+        {
+        public:
+            BufferSRV(const BufferSRVCreateInfo& createInfo, SharedPtr<Buffer> buffer)
+                : mBuffer(buffer)
+                , mFirstElement(createInfo.firstElement)
+                , mNumElements(std::min(createInfo.numElements, buffer->GetNumElements() - createInfo.firstElement))
+            {}
+            virtual ~BufferSRV() = default;
+
+            Uint64 GetFirstElement() const { return mFirstElement; }
+            Uint64 GetNumElements() const { return mNumElements; }
+
+        protected:
+            SharedPtr<Buffer> mBuffer;
+
+            Uint64 mFirstElement;
+            Uint64 mNumElements;
+
+            Uint64 mBindlessId;
+        };
+
+        struct BufferUAVCreateInfo
+        {
+            ElementFormat typedFormat;
+
+            Uint64 firstElement = 0;
+            Uint64 numElements = std::numeric_limits<Uint64>::max();
+        };
+
+        class BufferUAV
+        {
+        public:
+            BufferUAV(const BufferUAVCreateInfo& createInfo, SharedPtr<Buffer> buffer)
+                : mBuffer(buffer)
+                , mFirstElement(createInfo.firstElement)
+                , mNumElements(std::min(createInfo.numElements, buffer->GetNumElements() - createInfo.firstElement))
+            {}
+            virtual ~BufferUAV() = default;
+
+            Uint64 GetFirstElement() const { return mFirstElement; }
+            Uint64 GetNumElements() const { return mNumElements; }
+
+        protected:
+            SharedPtr<Buffer> mBuffer;
+
+            Uint64 mFirstElement;
+            Uint64 mNumElements;
+
+            Uint64 mBindlessId;
         };
     } // namespace gapi
 } // namespace cube

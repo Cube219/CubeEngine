@@ -19,6 +19,84 @@ namespace cube
     {
     }
 
+    void RGBuffer::CreateResource(GAPI& gapi)
+    {
+        if (mIsTransient && !mBuffer)
+        {
+            mBuffer = gapi.CreateBuffer({
+                .usage = gapi::ResourceUsage::Transient,
+                .bufferInfo = mBufferInfo,
+                .debugName = mDebugName
+            });
+        }
+    }
+
+    RGBuffer::RGBuffer(int index, const gapi::BufferInfo& bufferInfo, StringView debugName)
+        : RGResource(index, debugName)
+        , mBuffer(nullptr)
+        , mBufferInfo(bufferInfo)
+    {
+        mIsTransient = true;
+    }
+
+    RGBuffer::RGBuffer(int index, SharedPtr<gapi::Buffer> buffer)
+        : RGResource(index, buffer->GetDebugName())
+        , mBuffer(buffer)
+    {
+        mIsTransient = buffer->GetUsage() == gapi::ResourceUsage::Transient;
+        CHECK_FORMAT(!mIsTransient, "Cannot register transient buffer!");
+
+        mBufferInfo = buffer->GetInfo();
+    }
+
+    RGBufferView::RGBufferView(int index, RGBuffer* rgBuffer, gapi::ElementFormat format, Uint64 firstElement, Uint64 numElements)
+        : RGResource(index, rgBuffer->GetDebugName())
+        , mRGBuffer(rgBuffer)
+        , mFormat(format)
+        , mFirstElement(firstElement)
+        , mNumElements(numElements)
+    {
+        mIsTransient = rgBuffer->IsTransient();
+    }
+
+    void RGBufferSRV::CreateResource(GAPI& gapi)
+    {
+        if (!mSRV)
+        {
+            mRGBuffer->CreateResource(gapi);
+
+            mSRV = mRGBuffer->mBuffer->CreateSRV({
+                .typedFormat = mFormat,
+                .firstElement = mFirstElement,
+                .numElements = mNumElements
+            });
+        }
+    }
+
+    RGBufferSRV::RGBufferSRV(int index, RGBuffer* rgBuffer, gapi::ElementFormat format, Uint64 firstElement, Uint64 numElements)
+        : RGBufferView(index, rgBuffer, format, firstElement, numElements)
+    {
+    }
+
+    void RGBufferUAV::CreateResource(GAPI& gapi)
+    {
+        if (!mUAV)
+        {
+            mRGBuffer->CreateResource(gapi);
+
+            mUAV = mRGBuffer->mBuffer->CreateUAV({
+                .typedFormat = mFormat,
+                .firstElement = mFirstElement,
+                .numElements = mNumElements
+            });
+        }
+    }
+
+    RGBufferUAV::RGBufferUAV(int index, RGBuffer* rgBuffer, gapi::ElementFormat format, Uint64 firstElement, Uint64 numElements)
+        : RGBufferView(index, rgBuffer, format, firstElement, numElements)
+    {
+    }
+
     Uint64 RGTexture::GetSubresourceHashKey(const gapi::SubresourceRange& range) const
     {
         return HashCombine(reinterpret_cast<Uint64>(mTexture.get()), range.GetHash());
@@ -167,12 +245,43 @@ namespace cube
         Reset();
     }
 
-    RGTextureHandle RGBuilder::CreateTexture(const gapi::TextureInfo& textureInfo, StringView debugName)
+    RGBufferHandle RGBuilder::RegisterBuffer(SharedPtr<gapi::Buffer> buffer)
     {
-        RGTexture* rgTexture = new RGTexture(mResources.size(), textureInfo, debugName);
-        mResources.push_back(rgTexture);
+        if (auto findIt = mRegisteredBuffers.find(buffer.get()); findIt != mRegisteredBuffers.end())
+        {
+            return findIt->second;
+        }
 
-        return RGTextureHandle(rgTexture);
+        RGBuffer* rgBuffer = new RGBuffer(mResources.size(), buffer);
+        mResources.push_back(rgBuffer);
+
+        mRegisteredBuffers.insert({ buffer.get(), RGBufferHandle(rgBuffer) });
+
+        return RGBufferHandle(rgBuffer);
+    }
+
+    RGBufferHandle RGBuilder::CreateBuffer(const gapi::BufferInfo& bufferInfo, StringView debugName)
+    {
+        RGBuffer* rgBuffer = new RGBuffer(mResources.size(), bufferInfo, debugName);
+        mResources.push_back(rgBuffer);
+
+        return RGBufferHandle(rgBuffer);
+    }
+
+    RGBufferSRVHandle RGBuilder::CreateSRV(RGBufferHandle rgBuffer, gapi::ElementFormat format, Uint64 firstElement, Uint64 numElements)
+    {
+        RGBufferSRV* rgSRV = new RGBufferSRV(mResources.size(), rgBuffer.mResource, format, firstElement, numElements);
+        mResources.push_back(rgSRV);
+
+        return RGBufferSRVHandle(rgSRV);
+    }
+
+    RGBufferUAVHandle RGBuilder::CreateUAV(RGBufferHandle rgBuffer, gapi::ElementFormat format, Uint64 firstElement, Uint64 numElements)
+    {
+        RGBufferUAV* rgUAV = new RGBufferUAV(mResources.size(), rgBuffer.mResource, format, firstElement, numElements);
+        mResources.push_back(rgUAV);
+
+        return RGBufferUAVHandle(rgUAV);
     }
 
     RGTextureHandle RGBuilder::RegisterTexture(SharedPtr<gapi::Texture> texture)
@@ -186,6 +295,14 @@ namespace cube
         mResources.push_back(rgTexture);
 
         mRegisteredTextures.insert({ texture.get(), RGTextureHandle(rgTexture) });
+
+        return RGTextureHandle(rgTexture);
+    }
+
+    RGTextureHandle RGBuilder::CreateTexture(const gapi::TextureInfo& textureInfo, StringView debugName)
+    {
+        RGTexture* rgTexture = new RGTexture(mResources.size(), textureInfo, debugName);
+        mResources.push_back(rgTexture);
 
         return RGTextureHandle(rgTexture);
     }
@@ -841,6 +958,7 @@ namespace cube
         mPasses.clear();
         mLastPass = {};
         mRegisteredTextures.clear();
+        mRegisteredBuffers.clear();
         for (RGResource* resource : mResources)
         {
             delete resource;

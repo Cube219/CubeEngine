@@ -239,15 +239,13 @@ namespace cube
             FrameVector<D3D12_VERTEX_BUFFER_VIEW> d3d12VertexBufferViews(buffers.size());
             for (Uint32 i = 0; i < buffers.size(); ++i)
             {
-                CHECK(buffers[i]->GetType() == BufferType::Vertex);
-
                 const DX12Buffer* dx12Buffer = dynamic_cast<DX12Buffer*>(buffers[i].get());
                 D3D12_VERTEX_BUFFER_VIEW& vertexBufferView = d3d12VertexBufferViews[i];
 
                 vertexBufferView = {
                     .BufferLocation = dx12Buffer->GetResource()->GetGPUVirtualAddress(),
                     .SizeInBytes = static_cast<UINT>(dx12Buffer->GetSize()),
-                    .StrideInBytes = static_cast<UINT>(dx12Buffer->GetVertexStride())
+                    .StrideInBytes = static_cast<UINT>(dx12Buffer->GetStride())
                 };
 
                 CUBE_DX12_BOUND_OBJECT(buffers[i]);
@@ -260,14 +258,15 @@ namespace cube
         {
             CHECK(IsWriting());
             CHECK(IsInRenderPass());
-            CHECK(buffer->GetType() == BufferType::Index);
 
             const DX12Buffer* dx12Buffer = dynamic_cast<DX12Buffer*>(buffer.get());
+            const Uint32 stride = dx12Buffer->GetStride();
+            CHECK_FORMAT(stride == 4 || stride == 2, "Index buffer's stride must be 2(16bits) or 4(32bits).");
 
             const D3D12_INDEX_BUFFER_VIEW indexBufferView = {
                 .BufferLocation = dx12Buffer->GetResource()->GetGPUVirtualAddress(),
                 .SizeInBytes = static_cast<UINT>(dx12Buffer->GetSize()),
-                .Format = (sizeof(Index) == 16 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT)
+                .Format = (stride == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT)
             };
 
             mCommandList->IASetIndexBuffer(&indexBufferView);

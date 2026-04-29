@@ -138,19 +138,24 @@ namespace cube
 
             FrameString vbDebugName = Format<FrameString>(CUBE_T("[{0}] VertexBuffer"), meshData->GetDebugName());
             BufferCreateInfo vertexBufferCreateInfo = {
-                .type = BufferType::Vertex,
                 .usage = ResourceUsage::GPUOnly,
-                .size = vertexBufferSize,
-                .vertexStride = vertexStride,
+                .bufferInfo = {
+                    .type = BufferType::Typed,
+                    .size = vertexBufferSize,
+                    .stride = vertexStride,
+                },
                 .debugName = vbDebugName
             };
             mVertexBuffer = gAPI.CreateBuffer(vertexBufferCreateInfo);
 
             FrameString ibDebugName = Format<FrameString>(CUBE_T("[{0}] IndexBuffer"), meshData->GetDebugName());
             BufferCreateInfo indexBufferCreateInfo = {
-                .type = BufferType::Index,
                 .usage = ResourceUsage::GPUOnly,
-                .size = sizeof(Index) * meshData->GetNumIndices(),
+                .bufferInfo = {
+                    .type = BufferType::Typed,
+                    .size = sizeof(Index) * meshData->GetNumIndices(),
+                    .stride = sizeof(Index),
+                },
                 .debugName = ibDebugName
             };
             mIndexBuffer = gAPI.CreateBuffer(indexBufferCreateInfo);

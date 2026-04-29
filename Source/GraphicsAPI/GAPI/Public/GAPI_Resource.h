@@ -108,7 +108,6 @@ namespace cube
             Uint32 firstSliceIndex = 0;
             Uint32 sliceSize = SubresourceRangeInput::AllRange;
 
-            SubresourceRange Clamp(const Buffer* buffer) const;
             SubresourceRange Clamp(const Texture* texture) const;
 
             bool IsOverlap(const SubresourceRangeInput& rhs) const
