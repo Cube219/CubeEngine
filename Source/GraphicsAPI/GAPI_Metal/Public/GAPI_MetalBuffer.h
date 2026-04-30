@@ -23,11 +23,14 @@ namespace cube
             virtual void Unmap() override;
 
             id<MTLBuffer> GetMTLBuffer() const { return mBuffer; }
+            MTLResourceOptions GetMTLResourceOptions() const { return mMTLResourceOptions; }
 
         private:
             MetalDevice& mDevice;
 
             id<MTLBuffer> mBuffer;
+
+            MTLResourceOptions mMTLResourceOptions;
         };
 
         class MetalBufferSRV : public BufferSRV
@@ -35,6 +38,14 @@ namespace cube
         public:
             MetalBufferSRV(MetalDevice& device, const BufferSRVCreateInfo& createInfo, SharedPtr<MetalBuffer> metalBuffer);
             virtual ~MetalBufferSRV() = default;
+
+            id<MTLBuffer> GetParentMTLBuffer() const { return mParentMTLBuffer; }
+            id<MTLTexture> GetTypedTextureBuffer() const { return mTypedTextureBuffer; }
+
+        private:
+            id<MTLBuffer> mParentMTLBuffer;
+
+            id<MTLTexture> mTypedTextureBuffer;
         };
 
         class MetalBufferUAV : public BufferUAV
@@ -42,6 +53,14 @@ namespace cube
         public:
             MetalBufferUAV(MetalDevice& device, const BufferUAVCreateInfo& createInfo, SharedPtr<MetalBuffer> metalBuffer);
             virtual ~MetalBufferUAV() = default;
+
+            id<MTLBuffer> GetParentMTLBuffer() const { return mParentMTLBuffer; }
+            id<MTLTexture> GetTypedTextureBuffer() const { return mTypedTextureBuffer; }
+
+        private:
+            id<MTLBuffer> mParentMTLBuffer;
+
+            id<MTLTexture> mTypedTextureBuffer;
         };
     } // namespace gapi
 } // namespace cube

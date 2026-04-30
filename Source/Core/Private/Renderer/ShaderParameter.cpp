@@ -221,10 +221,11 @@ namespace cube
         {
             Uint32 index = it->second;
             SharedPtr<gapi::Buffer> buffer = pool.buffers[index];
+            SharedPtr<gapi::BufferSRV> srv = pool.srvs[index];
             pool.pooledBufferIndices.erase(it);
 
             buffer->SetDebugName(debugName);
-            return { .buffer = buffer, .poolIndex = index };
+            return { .buffer = buffer, .srv = srv, .poolIndex = index };
         }
 
         SharedPtr<gapi::Buffer> buffer = mGAPI->CreateBuffer({
@@ -236,8 +237,14 @@ namespace cube
             .debugName = debugName
         });
         pool.buffers.push_back(buffer);
+        SharedPtr<gapi::BufferSRV> srv = buffer->CreateSRV({});
+        pool.srvs.push_back(srv);
 
-        return { .buffer = buffer, .poolIndex = static_cast<Uint32>(pool.buffers.size()) - 1 };
+        return {
+            .buffer = buffer,
+            .srv = srv,
+            .poolIndex = static_cast<Uint32>(pool.buffers.size()) - 1
+        };
     }
 
     void ShaderParameterListManager::FreeBuffer(ShaderParameterList& parameterList)
@@ -250,14 +257,16 @@ namespace cube
         ShaderParameterListBufferPool& pool = mBufferPools[parameterList.mGPUSyncIndex];
         CHECK(parameterList.mPooledBuffer.buffer);
         CHECK(parameterList.mPooledBuffer.buffer == pool.buffers[parameterList.mPooledBuffer.poolIndex]);
+        CHECK(parameterList.mPooledBuffer.srv == pool.srvs[parameterList.mPooledBuffer.poolIndex]);
         parameterList.mPooledBuffer.buffer->SetDebugName(CUBE_T("PooledShaderParameter"));
         pool.freedBufferIndices.push_back(parameterList.mPooledBuffer.poolIndex);
 
-        parameterList.mPooledBuffer = { .buffer = nullptr, .poolIndex = 0 };
+        parameterList.mPooledBuffer = { .buffer = nullptr, .srv = nullptr, .poolIndex = 0 };
     }
 
     void ShaderParameterListManager::ShaderParameterListBufferPool::CheckConsistency()
     {
+        CHECK(buffers.size() == srvs.size());
         CHECK(buffers.size() == freedBufferIndices.size() + pooledBufferIndices.size());
 
         Vector<bool> mark(buffers.size(), false);

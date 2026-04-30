@@ -56,7 +56,7 @@ namespace cube
                     : D3D12_HEAP_TYPE_DEFAULT;
                 break;
             case ResourceUsage::CPUtoGPU: heapType = D3D12_HEAP_TYPE_UPLOAD; break;
-            case ResourceUsage::GPUtoCPU: heapType = D3D12_HEAP_TYPE_READBACK; break;
+            case ResourceUsage::GPUtoCPU: heapType = D3D12_HEAP_TYPE_DEFAULT; break;
             case ResourceUsage::Transient: heapType = D3D12_HEAP_TYPE_DEFAULT; break;
             default:
                 NOT_IMPLEMENTED();
@@ -65,10 +65,21 @@ namespace cube
             const bool isTransient = (mUsage == ResourceUsage::Transient);
             mAllocation = device.GetMemoryAllocator().Allocate(heapType, desc, isTransient);
             SET_DEBUG_NAME(mAllocation.resource, info.debugName);
+
+            if (mUsage == ResourceUsage::GPUtoCPU)
+            {
+                desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+                mReadbackAllocation = device.GetMemoryAllocator().Allocate(D3D12_HEAP_TYPE_READBACK, desc);
+            }
         }
 
         DX12Buffer::~DX12Buffer()
         {
+            if (mReadbackAllocation.IsValid())
+            {
+                mDevice.GetMemoryAllocator().Free(mReadbackAllocation);
+            }
+
             mDevice.GetMemoryAllocator().Free(mAllocation);
         }
 
@@ -102,8 +113,8 @@ namespace cube
                 mAllocation.Map();
                 return mAllocation.pMapPtr;
             case ResourceUsage::GPUtoCPU:
-                NOT_IMPLEMENTED();
-                return nullptr;
+                mReadbackAllocation.Map();
+                return mReadbackAllocation.pMapPtr;
             case ResourceUsage::Transient:
                 NO_ENTRY_FORMAT("Cannot map transient resource.");
                 return nullptr;
@@ -135,7 +146,7 @@ namespace cube
                 mAllocation.Unmap();
                 break;
             case ResourceUsage::GPUtoCPU:
-                NOT_IMPLEMENTED();
+                mReadbackAllocation.Unmap();
                 break;
             case ResourceUsage::Transient:
                 NO_ENTRY_FORMAT("Cannot unmap transient resource.");
@@ -153,6 +164,13 @@ namespace cube
             SET_DEBUG_NAME(mAllocation.resource, debugName);
         }
 
+        void DX12Buffer::CopyToReadbackBuffer(ID3D12GraphicsCommandList* commandList)
+        {
+            CHECK(mUsage == ResourceUsage::GPUtoCPU && mReadbackAllocation.IsValid());
+
+            commandList->CopyResource(mReadbackAllocation.resource, mAllocation.resource);
+        }
+
         DX12BufferSRV::DX12BufferSRV(DX12Device& device, const BufferSRVCreateInfo& createInfo, SharedPtr<DX12Buffer> dx12Buffer)
             : BufferSRV(createInfo, dx12Buffer)
             , mDevice(device)
@@ -160,11 +178,12 @@ namespace cube
             const BufferInfo& bufferInfo = dx12Buffer->GetInfo();
 
             mSRVDescriptor = device.GetDescriptorManager().GetSRVHeap().Allocate();
+            mGPUAddress = dx12Buffer->GetResource()->GetGPUVirtualAddress() + mFirstElement * bufferInfo.stride;
 
             if (bufferInfo.type == BufferType::Constant)
             {
                 const D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {
-                    .BufferLocation = dx12Buffer->GetResource()->GetGPUVirtualAddress() + mFirstElement,
+                    .BufferLocation = mGPUAddress,
                     .SizeInBytes = static_cast<UINT>(mNumElements)
                 };
                 mDevice.GetDevice()->CreateConstantBufferView(&cbvDesc, mSRVDescriptor.cpuHandle);
@@ -212,6 +231,7 @@ namespace cube
             const BufferInfo& bufferInfo = dx12Buffer->GetInfo();
 
             mUAVDescriptor = device.GetDescriptorManager().GetSRVHeap().Allocate();
+            mGPUAddress = dx12Buffer->GetResource()->GetGPUVirtualAddress() + mFirstElement * bufferInfo.stride;
 
             DXGI_FORMAT format;
             if (bufferInfo.type == BufferType::Structured)

@@ -32,6 +32,7 @@ namespace cube
 
     // ===== ParameterTypeInfo =====
     // Note: Also update CompatibleShaderParameterReflectionTypeMap each ShaderParameterHelper implementations.
+    // TODO: Add Int2,3,4 / Uint2,3,4
     enum class ShaderParameterType
     {
         Unknown,
@@ -45,6 +46,8 @@ namespace cube
         BindlessTexture,
         BindlessSampler,
         BindlessCombinedTextureSampler,
+        RGBufferSRV,
+        RGBufferUAV,
         RGTextureSRV,
         RGTextureUAV,
 
@@ -77,6 +80,10 @@ namespace cube
             return CUBE_T("BindlessSampler");
         case ShaderParameterType::BindlessCombinedTextureSampler:
             return CUBE_T("BindlessCombinedTextureSampler");
+        case ShaderParameterType::RGBufferSRV:
+            return CUBE_T("RGBufferSRV");
+        case ShaderParameterType::RGBufferUAV:
+            return CUBE_T("RGBufferUAV");
         case ShaderParameterType::RGTextureSRV:
             return CUBE_T("RGTextureSRV");
         case ShaderParameterType::RGTextureUAV:
@@ -120,6 +127,7 @@ namespace cube
         static constexpr Uint32 size = sizeof(float);
     };
 
+    // TODO: Add Float2,3,4
     template <>
     struct ShaderParameterTypeInfo<Vector2>
     {
@@ -195,6 +203,7 @@ namespace cube
     struct ShaderParameterListPooledBuffer
     {
         SharedPtr<gapi::Buffer> buffer;
+        SharedPtr<gapi::BufferSRV> srv;
         Uint32 poolIndex;
     };
 
@@ -205,6 +214,7 @@ namespace cube
         ShaderParameterList& operator=(const ShaderParameterList& rhs) = delete;
 
         SharedPtr<gapi::Buffer> GetBuffer() const { return mPooledBuffer.buffer; }
+        SharedPtr<gapi::BufferSRV> GetSRV() const { return mPooledBuffer.srv; }
         ShaderParameterListManager& GetManager() const { return mManager; }
 
         virtual void WriteAllParametersToGPUBuffer() = 0;
@@ -384,6 +394,7 @@ public: \
 
         void AllocateShaderParameterList(ShaderParameterList* parameterList, const ShaderParameterListInfo& parameterListInfo);
 
+        // TODO: Use whole buffer in each frame and suballocate?
         ShaderParameterListPooledBuffer AllocateBuffer(Uint32 size, StringView debugName);
         void FreeBuffer(ShaderParameterList& parameterList);
 
@@ -396,6 +407,7 @@ public: \
         struct ShaderParameterListBufferPool
         {
             Vector<SharedPtr<gapi::Buffer>> buffers;
+            Vector<SharedPtr<gapi::BufferSRV>> srvs;
             MultiMap<Uint32, Uint32> pooledBufferIndices;
             Vector<Uint32> freedBufferIndices;
 
@@ -405,6 +417,7 @@ public: \
             {
                 CheckConsistency();
 
+                srvs.clear();
                 buffers.clear();
                 pooledBufferIndices.clear();
                 freedBufferIndices.clear();

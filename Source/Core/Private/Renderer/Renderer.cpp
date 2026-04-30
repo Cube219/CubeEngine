@@ -110,7 +110,7 @@ namespace cube
 
         mEnvironmentMapping.Initialize(true);
 
-        mTextureViewer.Initialize();
+        mTextureViewer.Initialize(mNumGPUSync);
 
         LoadResources();
     }
@@ -219,6 +219,7 @@ namespace cube
         mCurrentRenderingFrame++;
         mGAPI->BeginRenderingFrame();
         mShaderParameterListManager.MoveNextFrame();
+        mTextureViewer.MoveToNextFrame();
 
         SetGlobalConstantBuffers();
 
@@ -511,6 +512,8 @@ namespace cube
                 builder.UseResource(externalColor, {}, gapi::ResourceStateFlag::CopyDst);
                 builder.UseResource(externalDepthStencil, {}, gapi::ResourceStateFlag::CopyDst);
             });
+
+            mTextureViewer.FetchInfo(builder);
         }
         builder.ExecuteAndSubmit(*mCommandList);
     }

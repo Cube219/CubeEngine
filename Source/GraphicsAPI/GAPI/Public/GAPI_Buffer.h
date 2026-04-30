@@ -83,7 +83,7 @@ namespace cube
 
         struct BufferSRVCreateInfo
         {
-            ElementFormat typedFormat;
+            ElementFormat typedFormat = ElementFormat::Unknown;
 
             Uint64 firstElement = 0;
             Uint64 numElements = std::numeric_limits<Uint64>::max();
@@ -101,6 +101,12 @@ namespace cube
 
             Uint64 GetFirstElement() const { return mFirstElement; }
             Uint64 GetNumElements() const { return mNumElements; }
+            Uint64 GetOffset() const { return mFirstElement * mBuffer->GetStride(); }
+            Uint64 GetSize() const { return mNumElements * mBuffer->GetStride(); }
+
+            SharedPtr<Buffer> GetBuffer() const { return mBuffer; }
+
+            Uint64 GetBindlessId() const { return mBindlessId; }
 
         protected:
             SharedPtr<Buffer> mBuffer;
@@ -131,6 +137,10 @@ namespace cube
 
             Uint64 GetFirstElement() const { return mFirstElement; }
             Uint64 GetNumElements() const { return mNumElements; }
+            Uint64 GetOffset() const { return mFirstElement * mBuffer->GetStride(); }
+            Uint64 GetSize() const { return mNumElements * mBuffer->GetStride(); }
+
+            Uint64 GetBindlessId() const { return mBindlessId; }
 
         protected:
             SharedPtr<Buffer> mBuffer;

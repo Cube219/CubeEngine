@@ -1,8 +1,10 @@
 #include "GAPI_MetalBuffer.h"
 
+#include "Allocator/AllocatorUtility.h"
 #include "Checker.h"
 #include "MacOS/MacOSString.h"
 #include "MetalDevice.h"
+#include "MetalTypes.h"
 
 namespace cube
 {
@@ -12,16 +14,16 @@ namespace cube
             : Buffer(info)
             , mDevice(device)
         {
-            MTLResourceOptions resourceOptions = MTLResourceStorageModeShared;
+            mMTLResourceOptions = MTLResourceStorageModeShared;
             switch (info.usage)
             {
             case ResourceUsage::GPUOnly:
             case ResourceUsage::CPUtoGPU:
             case ResourceUsage::GPUtoCPU:
-                resourceOptions = MTLResourceStorageModeShared;
+                mMTLResourceOptions = MTLResourceStorageModeShared;
                 break;
             case ResourceUsage::Transient:
-                resourceOptions = MTLResourceStorageModePrivate;
+                mMTLResourceOptions = MTLResourceStorageModePrivate;
                 break;
             default:
                 NOT_IMPLEMENTED();
@@ -30,11 +32,11 @@ namespace cube
 
             if (info.usage == ResourceUsage::Transient)
             {
-                mBuffer = [device.GetTransientHeapManager().GetMTLHeap(MTLSizeAndAlign(mInfo.size, 0)) newBufferWithLength:mInfo.size options:resourceOptions];
+                mBuffer = [device.GetTransientHeapManager().GetMTLHeap(MTLSizeAndAlign(mInfo.size, 0)) newBufferWithLength:mInfo.size options:mMTLResourceOptions];
             }
             else
             {
-                mBuffer = [device.GetMTLDevice() newBufferWithLength:mInfo.size options:resourceOptions];
+                mBuffer = [device.GetMTLDevice() newBufferWithLength:mInfo.size options:mMTLResourceOptions];
             }
             CHECK(mBuffer);
             mBuffer.label = String_Convert<NSString*>(info.debugName);
@@ -93,18 +95,76 @@ namespace cube
 
         MetalBufferSRV::MetalBufferSRV(MetalDevice& device, const BufferSRVCreateInfo& createInfo, SharedPtr<MetalBuffer> metalBuffer)
             : BufferSRV(createInfo, metalBuffer)
+            , mParentMTLBuffer(metalBuffer->GetMTLBuffer())
         {
-            const Uint64 offset = mFirstElement * metalBuffer->GetStride();
+            // Slang uses texture_buffer in Buffer.
+            if (metalBuffer->GetType() == BufferType::Typed)
+            { @autoreleasepool {
+                const MetalElementFormatInfo formatInfo = GetMetalElementFormatInfo(createInfo.typedFormat);
+                const Uint64 alignment = [device.GetMTLDevice() minimumLinearTextureAlignmentForPixelFormat:formatInfo.pixelFormat];
+                const Uint64 alignedOffset = Align(GetOffset(), alignment);
+                const Uint64 size = GetSize();
+                CHECK_FORMAT(alignedOffset + size <= metalBuffer->GetSize(), "Aligned offset exceeded the buffer boundary!");
 
-            mBindlessId = metalBuffer->GetMTLBuffer().gpuAddress + offset;
+                MTLTextureDescriptor* desc = [[MTLTextureDescriptor alloc] init];
+                desc.textureType = MTLTextureTypeTextureBuffer;
+                desc.pixelFormat = formatInfo.pixelFormat;
+                desc.width = size / formatInfo.bytes;
+                desc.resourceOptions = metalBuffer->GetMTLResourceOptions();
+                desc.allowGPUOptimizedContents = (metalBuffer->GetUsage() != ResourceUsage::GPUtoCPU);
+
+                mTypedTextureBuffer = [mParentMTLBuffer
+                    newTextureWithDescriptor:desc
+                    offset:alignedOffset
+                    bytesPerRow:size
+                ];
+
+                mBindlessId = mTypedTextureBuffer.gpuResourceID._impl;
+            }}
+            else
+            {
+                mTypedTextureBuffer = nil;
+
+                const Uint64 offset = mFirstElement * metalBuffer->GetStride();
+                mBindlessId = mParentMTLBuffer.gpuAddress + offset;
+            }
         }
 
         MetalBufferUAV::MetalBufferUAV(MetalDevice& device, const BufferUAVCreateInfo& createInfo, SharedPtr<MetalBuffer> metalBuffer)
             : BufferUAV(createInfo, metalBuffer)
+            , mParentMTLBuffer(metalBuffer->GetMTLBuffer())
         {
-            const Uint64 offset = mFirstElement * metalBuffer->GetStride();
+            // Slang uses texture_buffer in RWBuffer.
+            if (metalBuffer->GetType() == BufferType::Typed)
+            { @autoreleasepool {
+                const MetalElementFormatInfo formatInfo = GetMetalElementFormatInfo(createInfo.typedFormat);
+                const Uint64 alignment = [device.GetMTLDevice() minimumLinearTextureAlignmentForPixelFormat:formatInfo.pixelFormat];
+                const Uint64 alignedOffset = Align(GetOffset(), alignment);
+                const Uint64 size = GetSize();
+                CHECK_FORMAT(alignedOffset + size <= metalBuffer->GetSize(), "Aligned offset exceeded the buffer boundary!");
 
-            mBindlessId = metalBuffer->GetMTLBuffer().gpuAddress + offset;
+                MTLTextureDescriptor* desc = [[MTLTextureDescriptor alloc] init];
+                desc.textureType = MTLTextureTypeTextureBuffer;
+                desc.pixelFormat = formatInfo.pixelFormat;
+                desc.width = size / formatInfo.bytes;
+                desc.resourceOptions = metalBuffer->GetMTLResourceOptions();
+                desc.allowGPUOptimizedContents = (metalBuffer->GetUsage() != ResourceUsage::GPUtoCPU);
+
+                mTypedTextureBuffer = [mParentMTLBuffer
+                    newTextureWithDescriptor:desc
+                    offset:alignedOffset
+                    bytesPerRow:size
+                ];
+
+                mBindlessId = mTypedTextureBuffer.gpuResourceID._impl;
+            }}
+            else
+            {
+                mTypedTextureBuffer = nil;
+
+                const Uint64 offset = mFirstElement * metalBuffer->GetStride();
+                mBindlessId = mParentMTLBuffer.gpuAddress + offset;
+            }
         }
     } // namespace gapi
 } // namespace cube

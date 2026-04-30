@@ -345,6 +345,20 @@ namespace cube
     // ===== ShaderParameterTypeInfo specializations for RG handles =====
 
     template <>
+    struct ShaderParameterTypeInfo<RGBufferSRVHandle>
+    {
+        static constexpr ShaderParameterType type = ShaderParameterType::RGBufferSRV;
+        static constexpr Uint32 size = sizeof(RGBufferSRVHandle);
+    };
+
+    template <>
+    struct ShaderParameterTypeInfo<RGBufferUAVHandle>
+    {
+        static constexpr ShaderParameterType type = ShaderParameterType::RGBufferUAV;
+        static constexpr Uint32 size = sizeof(RGBufferUAVHandle);
+    };
+
+    template <>
     struct ShaderParameterTypeInfo<RGTextureSRVHandle>
     {
         static constexpr ShaderParameterType type = ShaderParameterType::RGTextureSRV;

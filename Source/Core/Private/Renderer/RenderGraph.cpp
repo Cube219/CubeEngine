@@ -506,6 +506,28 @@ namespace cube
         }
     }
 
+    void RGBuilder::UseResource(RGBufferSRVHandle rgSRV)
+    {
+        CHECK(mState == State::ResourceTracking);
+
+        PassInfo& pass = mPasses[mCurrentPassIndex];
+        pass.resourceUseInfos.push_back({
+            .rgResourceIndex = rgSRV->mIndex,
+            .state = (!pass.graphicsPipeline) ? gapi::ResourceStateFlag::SRV_NonPixel : gapi::ResourceStateFlag::SRV_Pixel
+        });
+    }
+
+    void RGBuilder::UseResource(RGBufferUAVHandle rgUAV)
+    {
+        CHECK(mState == State::ResourceTracking);
+
+        PassInfo& pass = mPasses[mCurrentPassIndex];
+        pass.resourceUseInfos.push_back({
+            .rgResourceIndex = rgUAV->mIndex,
+            .state = gapi::ResourceStateFlag::UAV
+        });
+    }
+
     void RGBuilder::UseResource(RGTextureSRVHandle rgSRV)
     {
         CHECK(mState == State::ResourceTracking);
@@ -667,7 +689,7 @@ namespace cube
             if (findIt->second.GPUBuffer != parameterList->GetBuffer())
             {
                 // Reset bind index because it is a new buffer.
-                findIt->second = { parameterList->GetBuffer(), -1 };
+                findIt->second = { parameterList->GetBuffer(), parameterList->GetSRV(), -1 };
             }
         }
 
@@ -689,7 +711,7 @@ namespace cube
                 {
                     if (findIt->second.bindIndex != block.index)
                     {
-                        commandList.SetShaderVariableConstantBuffer(block.index, findIt->second.GPUBuffer);
+                        commandList.SetConstantBuffer(block.index, findIt->second.srv);
                         findIt->second.bindIndex = block.index;
                     }
                 }
@@ -768,6 +790,22 @@ namespace cube
 
                     switch (shaderParameterInfo.type)
                     {
+                    case ShaderParameterType::RGBufferSRV:
+                    {
+                        RGBufferSRVHandle& srv = *reinterpret_cast<RGBufferSRVHandle*>(src);
+                        CHECK_FORMAT(srv.IsValid(), "Null srv in shader parameter '{0}'.", shaderParameterInfo.name);
+
+                        UseResource(srv);
+                        break;
+                    }
+                    case ShaderParameterType::RGBufferUAV:
+                    {
+                        RGBufferUAVHandle& uav = *reinterpret_cast<RGBufferUAVHandle*>(src);
+                        CHECK_FORMAT(uav.IsValid(), "Null uav in shader parameter '{0}'.", shaderParameterInfo.name);
+
+                        UseResource(uav);
+                        break;
+                    }
                     case ShaderParameterType::RGTextureSRV:
                     {
                         RGTextureSRVHandle& srv = *reinterpret_cast<RGTextureSRVHandle*>(src);
@@ -878,6 +916,16 @@ namespace cube
             }
         };
         FrameMap<SubresourceKey, gapi::ResourceStateFlags> currentSubresourceStates;
+        struct BufferKey
+        {
+            SharedPtr<gapi::Buffer> buffer;
+            bool needRollback;
+            bool operator<(const BufferKey& rhs) const
+            {
+                return buffer < rhs.buffer;
+            }
+        };
+        FrameMap<BufferKey, gapi::ResourceStateFlags> currentBufferStates;
 
         int numPasses = static_cast<int>(mPasses.size());
         for (int i = 0; i < numPasses; ++i)
@@ -888,6 +936,29 @@ namespace cube
             for (const PassInfo::ResourceUseInfo& resourceUseInfo : pass.resourceUseInfos)
             {
                 RGResource* resource = mResources[resourceUseInfo.rgResourceIndex];
+
+                auto TryTransitionBuffer = [&](RGBuffer* rgBuffer)
+                {
+                    SharedPtr<gapi::Buffer> buffer = rgBuffer->mBuffer;
+
+                    const BufferKey key = { buffer, !(rgBuffer->IsTransient()) };
+                    auto currentStateIt = currentBufferStates.find(key);
+                    if (currentStateIt == currentBufferStates.end())
+                    {
+                        currentStateIt = currentBufferStates.insert({ key, gapi::ResourceStateFlag::Common }).first;
+                    }
+
+                    gapi::ResourceStateFlags currentState = currentStateIt->second;
+                    if (currentState != resourceUseInfo.state)
+                    {
+                        gapi::TransitionState& transition = pass.transitions.emplace_back();
+                        transition.resourceType = gapi::TransitionState::ResourceType::Buffer;
+                        transition.buffer = buffer;
+                        transition.src = currentState;
+                        transition.dst = resourceUseInfo.state;
+                    }
+                    currentStateIt->second = resourceUseInfo.state;
+                };
 
                 auto TryTransitionTexture = [&](RGTexture* rgTexture, const gapi::SubresourceRange& subresourceRange)
                 {
@@ -921,7 +992,15 @@ namespace cube
                     }
                 };
 
-                if (RGTextureView* textureView = dynamic_cast<RGTextureView*>(resource))
+                if (RGBufferView* bufferView = dynamic_cast<RGBufferView*>(resource))
+                {
+                    TryTransitionBuffer(bufferView->mRGBuffer);
+                }
+                else if (RGBuffer* buffer = dynamic_cast<RGBuffer*>(resource))
+                {
+                    TryTransitionBuffer(buffer);
+                }
+                else if (RGTextureView* textureView = dynamic_cast<RGTextureView*>(resource))
                 {
                     TryTransitionTexture(textureView->mRGTexture, textureView->GetSubresourceRange());
                 }
@@ -945,6 +1024,17 @@ namespace cube
                 transition.resourceType = gapi::TransitionState::ResourceType::Texture;
                 transition.texture = key.texture;
                 transition.subresourceIndex = key.subresourceIndex;
+                transition.src = state;
+                transition.dst = gapi::ResourceStateFlag::Common;
+            }
+        }
+        for (auto& [key, state] : currentBufferStates)
+        {
+            if (key.needRollback)
+            {
+                gapi::TransitionState& transition = mLastPass.transitions.emplace_back();
+                transition.resourceType = gapi::TransitionState::ResourceType::Buffer;
+                transition.buffer = key.buffer;
                 transition.src = state;
                 transition.dst = gapi::ResourceStateFlag::Common;
             }

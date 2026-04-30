@@ -91,6 +91,10 @@ namespace cube
             {
                 states = D3D12_RESOURCE_STATE_GENERIC_READ;
             }
+            else if (heapType == D3D12_HEAP_TYPE_READBACK)
+            {
+                states = D3D12_RESOURCE_STATE_COPY_DEST;
+            }
             CHECK_HR(mAllocator->CreateResource(&allocationDesc, &newDesc, states, pOptimizedClearValue, &allocation.allocation, IID_NULL, nullptr));
             allocation.resource = allocation.allocation->GetResource();
         }

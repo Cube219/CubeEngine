@@ -122,14 +122,15 @@ namespace cube
             primitiveType = ConvertToMTLPrimitiveType(newPrimitiveTopology);
         }
 
-        void MetalEncoderState::SetConstantBuffer(SharedPtr<Buffer> buffer, Uint32 index)
+        void MetalEncoderState::SetConstantBuffer(SharedPtr<BufferSRV> srv, Uint32 index)
         {
-            MetalBuffer* metalBuffer = dynamic_cast<MetalBuffer*>(buffer.get());
-            CHECK(metalBuffer);
-            CHECK(metalBuffer->GetType() == BufferType::Constant);
+            MetalBufferSRV* metalSRV = dynamic_cast<MetalBufferSRV*>(srv.get());
+            CHECK(metalSRV);
+            CHECK(metalSRV->GetBuffer()->GetType() == BufferType::Constant);
 
             ConstantBuffer& constantBuffer = constantBuffers[index];
-            constantBuffer.buffer = metalBuffer->GetMTLBuffer();
+            constantBuffer.buffer = metalSRV->GetParentMTLBuffer();
+            constantBuffer.offset = metalSRV->GetOffset();
             constantBuffer.isSet = false;
         }
 
@@ -139,8 +140,8 @@ namespace cube
             {
                 if (forceAll || !constantBuffer.isSet)
                 {
-                    [encoder setVertexBuffer:constantBuffer.buffer offset:0 atIndex:index];
-                    [encoder setFragmentBuffer:constantBuffer.buffer offset:0 atIndex:index];
+                    [encoder setVertexBuffer:constantBuffer.buffer offset:constantBuffer.offset atIndex:index];
+                    [encoder setFragmentBuffer:constantBuffer.buffer offset:constantBuffer.offset atIndex:index];
                     constantBuffer.isSet = true;
                 }
             }
@@ -152,7 +153,7 @@ namespace cube
             {
                 if (forceAll || !constantBuffer.isSet)
                 {
-                    [computeEncoder setBuffer:constantBuffer.buffer offset:0 atIndex:index];
+                    [computeEncoder setBuffer:constantBuffer.buffer offset:constantBuffer.offset atIndex:index];
                     constantBuffer.isSet = true;
                 }
             }
@@ -382,7 +383,7 @@ namespace cube
             ];
         }
 
-        void MetalCommandList::SetShaderVariableConstantBuffer(Uint32 index, SharedPtr<Buffer> constantBuffer)
+        void MetalCommandList::SetConstantBuffer(Uint32 index, SharedPtr<BufferSRV> constantBuffer)
         {
             CHECK(IsWriting());
 
@@ -397,6 +398,44 @@ namespace cube
             }
         }
 
+        void MetalCommandList::UseResource(SharedPtr<BufferSRV> srv)
+        {
+            CHECK(IsWriting());
+
+            MetalBufferSRV* metalSRV = dynamic_cast<MetalBufferSRV*>(srv.get());
+            CHECK(metalSRV);
+
+            id<MTLResource> resource;
+            if (id<MTLTexture> typedTextureBuffer = metalSRV->GetTypedTextureBuffer())
+            {
+                resource = typedTextureBuffer;
+            }
+            else
+            {
+                resource = metalSRV->GetParentMTLBuffer();
+            }
+            UseResourceInternal(resource, MTLResourceUsageRead);
+        }
+
+        void MetalCommandList::UseResource(SharedPtr<BufferUAV> uav)
+        {
+            CHECK(IsWriting());
+
+            MetalBufferUAV* metalUAV = dynamic_cast<MetalBufferUAV*>(uav.get());
+            CHECK(metalUAV);
+
+            id<MTLResource> resource;
+            if (id<MTLTexture> typedTextureBuffer = metalUAV->GetTypedTextureBuffer())
+            {
+                resource = typedTextureBuffer;
+            }
+            else
+            {
+                resource = metalUAV->GetParentMTLBuffer();
+            }
+            UseResourceInternal(resource, MTLResourceUsageRead | MTLResourceUsageWrite);
+        }
+
         void MetalCommandList::UseResource(SharedPtr<TextureSRV> srv)
         {
             CHECK(IsWriting());
@@ -405,25 +444,7 @@ namespace cube
             CHECK(metalTextureSRV);
 
             id<MTLResource> resource = metalTextureSRV->GetMTLTexture();
-            if (IsInRenderPass())
-            {
-                [mRenderEncoder
-                    useResource:resource
-                    usage:MTLResourceUsageRead
-                    stages: MTLRenderStageVertex | MTLRenderStageFragment
-                ];
-            }
-            else if (mComputeEncoder)
-            {
-                [mComputeEncoder
-                    useResource:resource
-                    usage:MTLResourceUsageRead
-                ];
-            }
-            else
-            {
-                CHECK_FORMAT(false, "You must set render pass or compute pipeline before UseResource");
-            }
+            UseResourceInternal(resource, MTLResourceUsageRead);
         }
 
         void MetalCommandList::UseResource(SharedPtr<TextureUAV> uav)
@@ -434,21 +455,7 @@ namespace cube
             CHECK(metalTextureUAV);
 
             id<MTLResource> resource = metalTextureUAV->GetMTLTexture();
-            if (IsInRenderPass())
-            {
-                [mRenderEncoder
-                    useResource:resource
-                    usage:MTLResourceUsageRead | MTLResourceUsageWrite
-                    stages: MTLRenderStageVertex | MTLRenderStageFragment
-                ];
-            }
-            else if (mComputeEncoder)
-            {
-                [mComputeEncoder
-                    useResource:resource
-                    usage:MTLResourceUsageRead | MTLResourceUsageWrite
-                ];
-            }
+            UseResourceInternal(resource, MTLResourceUsageRead | MTLResourceUsageWrite);
         }
 
         void MetalCommandList::ResourceTransition(TransitionState state)
@@ -533,6 +540,29 @@ namespace cube
             mCommandBuffer = nil;
         }
 
+        void MetalCommandList::UseResourceInternal(id<MTLResource> resource, MTLResourceUsage usage)
+        {
+            if (IsInRenderPass())
+            {
+                [mRenderEncoder
+                    useResource:resource
+                    usage:usage
+                    stages: MTLRenderStageVertex | MTLRenderStageFragment
+                ];
+            }
+            else if (mComputeEncoder)
+            {
+                [mComputeEncoder
+                    useResource:resource
+                    usage:usage
+                ];
+            }
+            else
+            {
+                NO_ENTRY_FORMAT("You must set render pass or compute pipeline before UseResource.");
+            }
+        }
+
         void MetalCommandList::AllocateNewCommandBuffer()
         {
             CHECK(!IsWriting());
@@ -577,6 +607,5 @@ namespace cube
                 mBlitEncoder = nil;
             }
         }
-
     } // namespace gapi
 } // namespace cube

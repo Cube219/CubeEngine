@@ -459,6 +459,11 @@ namespace cube
                                 break;
                             }
                             SlangResourceShapeIntegral baseShape = shape & SLANG_RESOURCE_BASE_SHAPE_MASK;
+                            if (SLANG_TEXTURE_BUFFER <= baseShape && baseShape <= SLANG_BYTE_ADDRESS_BUFFER)
+                            {
+                                type = gapi::ShaderParameterReflection::Type::Buffer;
+                                break;
+                            }
                             if (baseShape >= SLANG_TEXTURE_1D && baseShape <= SLANG_TEXTURE_CUBE)
                             {
                                 type = gapi::ShaderParameterReflection::Type::Texture;

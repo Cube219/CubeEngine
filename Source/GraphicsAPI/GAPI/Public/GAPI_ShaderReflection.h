@@ -20,6 +20,7 @@ namespace cube
                 Float3,
                 Float4,
                 Matrix,
+                Buffer,
                 Texture,
                 Sampler,
                 CombinedTextureSampler,
@@ -52,6 +53,8 @@ namespace cube
                 return CUBE_T("Float4");
             case ShaderParameterReflection::Type::Matrix:
                 return CUBE_T("Matrix");
+            case ShaderParameterReflection::Type::Buffer:
+                return CUBE_T("Buffer");
             case ShaderParameterReflection::Type::Texture:
                 return CUBE_T("Texture");
             case ShaderParameterReflection::Type::Sampler:

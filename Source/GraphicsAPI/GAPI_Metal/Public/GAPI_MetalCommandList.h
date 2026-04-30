@@ -20,6 +20,7 @@ namespace cube
             struct ConstantBuffer
             {
                 id<MTLBuffer> buffer;
+                Uint64 offset = 0;
                 bool isSet = false;
             };
             Map<int, ConstantBuffer> constantBuffers;
@@ -39,7 +40,7 @@ namespace cube
 
             void SetPrimitiveTopology(PrimitiveTopology newPrimitiveTopology);
 
-            void SetConstantBuffer(SharedPtr<Buffer> buffer, Uint32 index);
+            void SetConstantBuffer(SharedPtr<BufferSRV> srv, Uint32 index);
             void ApplyConstantBuffers(id<MTLRenderCommandEncoder> encoder, bool forceAll = false);
             void ApplyConstantBuffers(id<MTLComputeCommandEncoder> computeEncoder, bool forceAll = false);
 
@@ -75,7 +76,9 @@ namespace cube
             virtual void Draw(Uint32 numVertices, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance) override;
             virtual void DrawIndexed(Uint32 numIndices, Uint32 baseIndex, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance) override;
 
-            virtual void SetShaderVariableConstantBuffer(Uint32 index, SharedPtr<Buffer> constantBuffer) override;
+            virtual void SetConstantBuffer(Uint32 index, SharedPtr<BufferSRV> constantBuffer) override;
+            virtual void UseResource(SharedPtr<BufferSRV> srv) override;
+            virtual void UseResource(SharedPtr<BufferUAV> uav) override;
             virtual void UseResource(SharedPtr<TextureSRV> srv) override;
             virtual void UseResource(SharedPtr<TextureUAV> uav) override;
 
@@ -92,6 +95,8 @@ namespace cube
             virtual void Submit() override;
 
         private:
+            void UseResourceInternal(id<MTLResource> resource, MTLResourceUsage usage);
+
             void AllocateNewCommandBuffer();
 
             bool IsWriting() const { return mIsWriting; }

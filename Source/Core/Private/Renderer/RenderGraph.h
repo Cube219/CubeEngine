@@ -132,6 +132,8 @@ namespace cube
 
         void AddDrawMeshPass(StringView name, ArrayView<DrawMeshInfo> drawMeshInfos, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists);
 
+        void UseResource(RGBufferSRVHandle rgSRV);
+        void UseResource(RGBufferUAVHandle rgUAV);
         void UseResource(RGTextureSRVHandle rgSRV);
         void UseResource(RGTextureUAVHandle rgUAV);
         void UseResource(RGTextureRTVHandle rgRTV);
@@ -210,6 +212,7 @@ namespace cube
         struct ShaderParameterListBindInfo
         {
             SharedPtr<gapi::Buffer> GPUBuffer = nullptr;
+            SharedPtr<gapi::BufferSRV> srv = nullptr;
             int bindIndex = -1;
         };
         Map<String, ShaderParameterListBindInfo> mShaderParameterListBindInfos;

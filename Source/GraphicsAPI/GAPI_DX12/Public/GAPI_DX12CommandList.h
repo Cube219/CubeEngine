@@ -50,7 +50,9 @@ namespace cube
             void Draw(Uint32 numVertices, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance) override;
             void DrawIndexed(Uint32 numIndices, Uint32 baseIndex, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance) override;
 
-            void SetShaderVariableConstantBuffer(Uint32 index, SharedPtr<Buffer> constantBuffer) override;
+            virtual void SetConstantBuffer(Uint32 index, SharedPtr<BufferSRV> constantBuffer) override;
+            virtual void UseResource(SharedPtr<BufferSRV> srv) override;
+            virtual void UseResource(SharedPtr<BufferUAV> uav) override;
             virtual void UseResource(SharedPtr<TextureSRV> srv) override;
             virtual void UseResource(SharedPtr<TextureUAV> uav) override;
 
@@ -70,6 +72,8 @@ namespace cube
             bool IsInRenderPass() const { return mIsInRenderPass; }
 
         private:
+            void ProcessBeforeEnd();
+
             enum class State
             {
                 Initial,

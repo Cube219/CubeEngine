@@ -67,6 +67,8 @@ namespace cube
                     break;
                 case ShaderParameterType::BindlessTexture:
                 case ShaderParameterType::BindlessSampler:
+                case ShaderParameterType::RGBufferSRV:
+                case ShaderParameterType::RGBufferUAV:
                 case ShaderParameterType::RGTextureSRV:
                 case ShaderParameterType::RGTextureUAV:
                     size = sizeof(Uint64);
@@ -175,6 +177,26 @@ namespace cube
                     memcpy(dst, ids, sizeof(ids));
                     break;
                 }
+                case ShaderParameterType::RGBufferSRV:
+                {
+                    const RGBufferSRVHandle& srv = *reinterpret_cast<const RGBufferSRVHandle*>(src);
+                    CHECK_FORMAT(srv.IsValid(), "Null srv in shader parameter '{0}'.", paramInfo.name);
+                    CHECK_FORMAT(srv->IsResourceCreated(), "RGBufferSRV '{0}' is not created. Maybe call WriteAllParametersToGPUBuffer outside of RGBuilder?", paramInfo.name);
+
+                    Uint64 id = srv->GetSRV()->GetBindlessId();
+                    memcpy(dst, &id, sizeof(Uint64));
+                    break;
+                }
+                case ShaderParameterType::RGBufferUAV:
+                {
+                    const RGBufferUAVHandle& uav = *reinterpret_cast<const RGBufferUAVHandle*>(src);
+                    CHECK_FORMAT(uav.IsValid(), "Null uav in shader parameter '{0}'.", paramInfo.name);
+                    CHECK_FORMAT(uav->IsResourceCreated(), "RGBufferUAV '{0}' is not created. Maybe call WriteAllParametersToGPUBuffer outside of RGBuilder?", paramInfo.name);
+
+                    Uint64 id = uav->GetUAV()->GetBindlessId();
+                    memcpy(dst, &id, sizeof(Uint64));
+                    break;
+                }
                 case ShaderParameterType::RGTextureSRV:
                 {
                     const RGTextureSRVHandle& srv = *reinterpret_cast<const RGTextureSRVHandle*>(src);
@@ -245,6 +267,12 @@ namespace cube
             };
             mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::BindlessCombinedTextureSampler)] = {
                 ShaderParameterReflection::Type::CombinedTextureSampler
+            };
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::RGBufferSRV)] = {
+                ShaderParameterReflection::Type::Buffer
+            };
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::RGBufferUAV)] = {
+                ShaderParameterReflection::Type::Buffer
             };
             mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::RGTextureSRV)] = {
                 ShaderParameterReflection::Type::Texture

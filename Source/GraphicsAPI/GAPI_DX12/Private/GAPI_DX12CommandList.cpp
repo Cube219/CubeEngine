@@ -71,6 +71,8 @@ namespace cube
         {
             CHECK(IsWriting());
 
+            ProcessBeforeEnd();
+
             CHECK_FORMAT(mCurrentEventNameList.empty(), "Not all events are ended.");
 
             if (mHasTimestampQuery)
@@ -290,20 +292,38 @@ namespace cube
             mCommandList->DrawIndexedInstanced(numIndices, numInstances, baseIndex, baseVertex, baseInstance);
         }
 
-        void DX12CommandList::SetShaderVariableConstantBuffer(Uint32 index, SharedPtr<Buffer> constantBuffer)
+        void DX12CommandList::SetConstantBuffer(Uint32 index, SharedPtr<BufferSRV> constantBuffer)
         {
             CHECK(IsWriting());
-            CHECK(constantBuffer->GetType() == BufferType::Constant);
+            CHECK(constantBuffer->GetBuffer()->GetType() == BufferType::Constant);
 
-            const DX12Buffer* dx12Buffer = dynamic_cast<DX12Buffer*>(constantBuffer.get());
-            CHECK(dx12Buffer);
+            const DX12BufferSRV* dx12SRV = dynamic_cast<DX12BufferSRV*>(constantBuffer.get());
+            CHECK(dx12SRV);
+
+            D3D12_GPU_VIRTUAL_ADDRESS gpuAddress = dx12SRV->GetGPUAddress();
 
             // Register space index is used in Slang's ParameterBlock.
             CHECK(index < mShaderParameterHelper.GetMaxNumSpace());
-            mCommandList->SetGraphicsRootConstantBufferView(index * mShaderParameterHelper.GetMaxNumRegister(), dx12Buffer->GetResource()->GetGPUVirtualAddress());
-            mCommandList->SetComputeRootConstantBufferView(index * mShaderParameterHelper.GetMaxNumRegister(), dx12Buffer->GetResource()->GetGPUVirtualAddress());
+            mCommandList->SetGraphicsRootConstantBufferView(index * mShaderParameterHelper.GetMaxNumRegister(), gpuAddress);
+            mCommandList->SetComputeRootConstantBufferView(index * mShaderParameterHelper.GetMaxNumRegister(), gpuAddress);
 
             CUBE_DX12_BOUND_OBJECT(constantBuffer);
+        }
+
+        void DX12CommandList::UseResource(SharedPtr<BufferSRV> srv)
+        {
+            CHECK(IsWriting());
+
+            // Just bind the object
+            CUBE_DX12_BOUND_OBJECT(srv);
+        }
+
+        void DX12CommandList::UseResource(SharedPtr<BufferUAV> uav)
+        {
+            CHECK(IsWriting());
+
+            // Just bind the object
+            CUBE_DX12_BOUND_OBJECT(uav);
         }
 
         void DX12CommandList::UseResource(SharedPtr<TextureSRV> srv)
@@ -354,7 +374,7 @@ namespace cube
                 {
                     const DX12Buffer* dx12Buffer = dynamic_cast<DX12Buffer*>(state.buffer.get());
                     barrier.Transition.pResource = dx12Buffer->GetResource();
-                    barrier.Transition.Subresource = 0;
+                    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
                     barriers.push_back(barrier);
 
                     CUBE_DX12_BOUND_OBJECT(state.buffer);
@@ -444,6 +464,20 @@ namespace cube
 
             mCommandListManager.AddBoundObjects(mBoundObjects);
             mBoundObjects.clear();
+        }
+
+        void DX12CommandList::ProcessBeforeEnd()
+        {
+            for (SharedPtr<DX12APIObject>& boundObj : mBoundObjects)
+            {
+                if (DX12Buffer* dx12Buffer = dynamic_cast<DX12Buffer*>(boundObj.get()))
+                {
+                    if (dx12Buffer->GetUsage() == ResourceUsage::GPUtoCPU)
+                    {
+                        dx12Buffer->CopyToReadbackBuffer(mCommandList.Get());
+                    }
+                }
+            }
         }
     } // namespace gapi
 } // namespace cube

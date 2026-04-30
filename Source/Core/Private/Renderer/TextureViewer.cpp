@@ -5,6 +5,7 @@
 #include "Allocator/FrameAllocator.h"
 #include "CubeMath.h"
 #include "Engine.h"
+#include "Platform.h"
 #include "RenderGraph.h"
 #include "Renderer.h"
 #include "Shader.h"
@@ -21,12 +22,24 @@ namespace cube
     };
     CUBE_REGISTER_SHADER_PARAMETER_LIST(CopyToTextureViewerShaderParameterList);
 
+    class TextureViewerFetchInfoShaderParameterList : public ShaderParameterList
+    {
+        CUBE_BEGIN_SHADER_PARAMETER_LIST(TextureViewerFetchInfoShaderParameterList)
+            CUBE_SHADER_PARAMETER(Vector4, sizeAndInvSize)
+            CUBE_SHADER_PARAMETER(RGTextureSRVHandle, copiedTexture)
+            CUBE_SHADER_PARAMETER(int, positionToReadX)
+            CUBE_SHADER_PARAMETER(int, positionToReadY)
+            CUBE_SHADER_PARAMETER(RGBufferUAVHandle, readbackBuffer)
+        CUBE_END_SHADER_PARAMETER_LIST
+    };
+    CUBE_REGISTER_SHADER_PARAMETER_LIST(TextureViewerFetchInfoShaderParameterList);
+
     TextureViewer::TextureViewer(Renderer& renderer)
         : mRenderer(renderer)
     {
     }
 
-    void TextureViewer::Initialize()
+    void TextureViewer::Initialize(Uint32 numGPUSync)
     {
         {
             platform::FilePath textureViewerShaderFilePath = Engine::GetShaderDirectoryPath() / CUBE_T("TextureViewer.slang");
@@ -48,10 +61,58 @@ namespace cube
                 .debugName = CUBE_T("CopyToTextureViewer2D Pipeline")
             });
         }
+
+        {
+            platform::FilePath textureViewerShaderFilePath = Engine::GetShaderDirectoryPath() / CUBE_T("TextureViewer2.slang");
+
+            mFetchInfoShader = mRenderer.GetShaderManager().CreateShader({
+                .shaderInfo = {
+                    .type = gapi::ShaderType::Compute,
+                    .entryPoint = "TextureViewerFetchInfoCS"
+                },
+                .filePaths = { &textureViewerShaderFilePath, 1 },
+                .debugName = CUBE_T("TextureViewerFetchInfoCS")
+            });
+            CHECK(mFetchInfoShader);
+
+            mFetchInfoPipeline = mRenderer.GetShaderManager().CreateComputePipeline({
+                .pipelineInfo = {
+                    .shader = mFetchInfoShader
+                },
+                .debugName = CUBE_T("TextureViewerFetchInfoCS Pipeline")
+            });
+        }
+
+        mReadbackBuffers.resize(numGPUSync);
+        for (Uint32 i = 0; i < mReadbackBuffers.size(); ++i)
+        {
+            ReadbackBuffer& readbackBuffer = mReadbackBuffers[i];
+            readbackBuffer.buffer = mRenderer.GetGAPI().CreateBuffer({
+                .usage = gapi::ResourceUsage::GPUtoCPU,
+                .bufferInfo = {
+                    .type = gapi::BufferType::Typed,
+                    .size = ReadbackBuffer::totalSize,
+                    .stride = ReadbackBuffer::stride,
+                    .flags = gapi::BufferFlag::UAV
+                },
+                .debugName = Format<FrameString>(CUBE_T("TextureViewer Readback Buffer {0}"), i)
+            });
+            readbackBuffer.pData = platform::Platform::Allocate(ReadbackBuffer::totalSize);
+        }
+
+        mCurrentFrameIndex = 0;
     }
 
     void TextureViewer::Shutdown()
     {
+        for (ReadbackBuffer& readbackBuffer : mReadbackBuffers)
+        {
+            platform::Platform::Free(readbackBuffer.pData);
+        }
+        mReadbackBuffers.clear();
+
+        mFetchInfoPipeline = nullptr;
+        mFetchInfoShader = nullptr;
         mCopyToTextureViewer2DPipeline = nullptr;
         mCopyToTextureViewer2DShader = nullptr;
 
@@ -87,7 +148,7 @@ namespace cube
 
                 const float bottomTextLineSize = ImGui::GetTextLineHeightWithSpacing();
                 const ImVec2 contentRegion = ImGui::GetContentRegionAvail();
-                const ImVec2 canvasExtent = ImVec2(contentRegion.x, contentRegion.y - bottomTextLineSize);
+                const ImVec2 canvasExtent = ImVec2(contentRegion.x, contentRegion.y - bottomTextLineSize * 2);
                 ImGui::BeginChild("##TextureCanvas", canvasExtent, ImGuiChildFlags_Borders);
 
                 const ImVec2 canvasOrigin = ImGui::GetCursorScreenPos();
@@ -148,20 +209,30 @@ namespace cube
                     const float v = (mousePos.y - imageMin.y) / scaledHeight;
                     if (u >= 0.0f && u < 1.0f && v >= 0.0f && v < 1.0f)
                     {
-                        const int pixelX = static_cast<int>(u * static_cast<float>(mTextureInfo.width));
-                        const int pixelY = static_cast<int>(v * static_cast<float>(mTextureInfo.height));
-                        ImGui::Text("Pixel (%d, %d) / UV (%.4f, %.4f)", pixelX, pixelY, u, v);
+                        mPixelX = static_cast<int>(u * static_cast<float>(mTextureInfo.width));
+                        mPixelY = static_cast<int>(v * static_cast<float>(mTextureInfo.height));
+                        ImGui::Text("Pixel (%d, %d) / UV (%.4f, %.4f)", mPixelX, mPixelY, u, v);
+
+                        ImVec4 color = { mReadbackInfo.color.x, mReadbackInfo.color.y, mReadbackInfo.color.z, mReadbackInfo.color.w };
+                        ImGui::Text("R(%.4f) / G(%.4f) / B(%.4f) / A(%.4f)", color.x, color.y, color.z, color.w);
+                        ImGui::SameLine();
+                        ImGui::ColorButton("##PixelColor", *(ImVec4*)&color, ImGuiColorEditFlags_None, ImVec2(bottomTextLineSize - 5, bottomTextLineSize - 5));
                     }
                     else
                     {
                         ImGui::Text("Pixel / UV");
+                        ImGui::Text("R / G / B / A");
+                        mPixelX = -1;
+                        mPixelY = -1;
                     }
                 }
                 else
                 {
                     ImGui::Text("Pixel / UV");
+                    ImGui::Text("R / G / B / A");
+                    mPixelX = -1;
+                    mPixelY = -1;
                 }
-                // TODO: Show pixel information
                 // TODO: RGBA mask / color range
             }
             else
@@ -170,6 +241,18 @@ namespace cube
             }
         }
         ImGui::End();
+    }
+
+    void TextureViewer::MoveToNextFrame()
+    {
+        mCurrentFrameIndex = (mCurrentFrameIndex + 1) % mReadbackBuffers.size();
+
+        ReadbackBuffer& currentReadbackBuffer = GetCurrentReadbackBuffer();
+        void* mappedPtr = currentReadbackBuffer.buffer->Map();
+        memcpy(currentReadbackBuffer.pData, mappedPtr, ReadbackBuffer::totalSize);
+        currentReadbackBuffer.buffer->Unmap();
+
+        ProcessReadbackInfo();
     }
 
     void TextureViewer::SetTexture(RGBuilder& builder, RGTextureHandle texture, gapi::SubresourceRangeInput subresourceRange)
@@ -210,6 +293,39 @@ namespace cube
         mIsCopied = true;
     }
 
+    void TextureViewer::FetchInfo(RGBuilder& builder)
+    {
+        if (!mShow || !mIsCopied)
+        {
+            return;
+        }
+
+        RGTextureHandle copiedTexture = builder.RegisterTexture(mCopiedTexture);
+        RGTextureSRVHandle copiedSRV = builder.CreateSRV(copiedTexture);
+        RGBufferHandle readbackBuffer = builder.RegisterBuffer(GetCurrentReadbackBuffer().buffer);
+        RGBufferUAVHandle readbackUAV = builder.CreateUAV(readbackBuffer, ReadbackBuffer::format);
+
+        auto params = builder.CreateShaderParameterList<TextureViewerFetchInfoShaderParameterList>();
+        params->Get()->sizeAndInvSize = Vector4(
+            static_cast<float>(mCopiedTextureWidth), static_cast<float>(mCopiedTextureHeight),
+            1.0f / static_cast<float>(mCopiedTextureWidth), 1.0f / static_cast<float>(mCopiedTextureHeight)
+        );
+        params->Get()->copiedTexture = copiedSRV;
+        params->Get()->positionToReadX = mPixelX;
+        params->Get()->positionToReadY = mPixelY;
+        params->Get()->readbackBuffer = readbackUAV;
+
+        builder.AddPass(
+            Format<FrameString>(CUBE_T("TextureViewer FetchInfo - {0}"), mName),
+            mFetchInfoPipeline,
+            RGBuilder::MakeParameterListArray(params),
+            [](gapi::CommandList& commandList)
+            {
+                commandList.DispatchThreads(1, 1, 1);
+            }
+        );
+    }
+
     void TextureViewer::CreateNewCopiedTextureIfNeeded(Uint32 width, Uint32 height)
     {
         if (mCopiedTexture && mCopiedTextureWidth == width && mCopiedTextureHeight == height)
@@ -234,5 +350,14 @@ namespace cube
             .debugName = CUBE_T("TextureViewer CopiedTexture")
         });
         mCopiedTextureSRV = mCopiedTexture->CreateSRV({});
+    }
+
+    void TextureViewer::ProcessReadbackInfo()
+    {
+        Byte* data = reinterpret_cast<Byte*>(GetCurrentReadbackBuffer().pData);
+        mReadbackInfo.color.x = *reinterpret_cast<float*>(data);
+        mReadbackInfo.color.y = *reinterpret_cast<float*>(data + 4);
+        mReadbackInfo.color.z = *reinterpret_cast<float*>(data + 8);
+        mReadbackInfo.color.w = *reinterpret_cast<float*>(data + 12);
     }
 } // namespace cube
