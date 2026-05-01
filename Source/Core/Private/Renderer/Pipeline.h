@@ -40,7 +40,7 @@ namespace cube
         void CalculateHashValue();
 #if CUBE_USE_CHECK
         bool ValidateHashValue() const;
-#endif
+#endif // CUBE_USE_CHECK
     };
 
     struct GraphicsPipelineCreateInfo

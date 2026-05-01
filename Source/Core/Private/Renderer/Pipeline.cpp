@@ -28,10 +28,12 @@ namespace cube
         HashValue = GetGAPIVersion().GetHashValue();
     }
 
+#if CUBE_USE_CHECK
     bool GraphicsPipelineInfo::ValidateHashValue() const
     {
         return HashValue == GetGAPIVersion().GetHashValue();
     }
+#endif // CUBE_USE_CHECK
 
     gapi::ComputePipelineInfo ComputePipelineInfo::GetGAPIVersion() const
     {
@@ -45,10 +47,12 @@ namespace cube
         HashValue = GetGAPIVersion().GetHashValue();
     }
 
+#if CUBE_USE_CHECK
     bool ComputePipelineInfo::ValidateHashValue() const
     {
         return HashValue == GetGAPIVersion().GetHashValue();
     }
+#endif // CUBE_USE_CHECK
 
     GraphicsPipeline::GraphicsPipeline(GAPI& gapi, const GraphicsPipelineCreateInfo& createInfo)
     {
@@ -89,13 +93,17 @@ namespace cube
             {
                 if (existingBlock.typeName == block.typeName)
                 {
-                    if (existingBlock.index == block.index)
-                    {
-                        CUBE_LOG(Error, Pipeline, "Found duplicated binding index in the same shader type! (Name: {0} / index: {1}, {2}) Use the former one.",
-                            block.typeName, existingBlock.index, block.index);
-                        break;
-                    }
                     found = true;
+                    if (existingBlock.index != block.index)
+                    {
+                        CUBE_LOG(Error, Pipeline, "Found duplicated binding index in the same shader parameter! (name: {0} / index: {1}, {2}) Use the former one.",
+                            block.typeName, existingBlock.index, block.index);
+                    }
+                    break;
+                }
+                else if (existingBlock.typeName != block.typeName && existingBlock.index == block.index)
+                {
+                    NO_ENTRY_FORMAT("Found conflicted binding index! (index: {0} / name: {1}, {2})", block.index, existingBlock.typeName, block.typeName);
                     break;
                 }
             }
@@ -176,7 +184,7 @@ namespace cube
         {
             NO_ENTRY_FORMAT("Hash value mismatch found! Did you forget to call CalculateHashValue() after changing pipeline data?");
         }
-#endif
+#endif // CUBE_USE_CHECK
 
         if (auto findIt = mCachedGraphicsPipelines.find(hashValue); findIt != mCachedGraphicsPipelines.end())
         {
@@ -198,7 +206,7 @@ namespace cube
         {
             NO_ENTRY_FORMAT("Hash value mismatch found! Did you forget to call CalculateHashValue() after changing pipeline data?");
         }
-#endif
+#endif // CUBE_USE_CHECK
 
         if (auto findIt = mCachedComputePipelines.find(hashValue); findIt != mCachedComputePipelines.end())
         {
