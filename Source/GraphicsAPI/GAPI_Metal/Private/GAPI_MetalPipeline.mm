@@ -199,15 +199,17 @@ namespace cube
 
         MetalGraphicsPipeline::MetalGraphicsPipeline(const GraphicsPipelineCreateInfo& info, MetalDevice& device)
         { @autoreleasepool {
-            mFillMode = ConvertToMTLTriangleFillMode(info.rasterizerState.fillMode);
-            mCullMode = ConvertToMTLCullMode(info.rasterizerState.cullMode);
-            mWinding = ConvertToMTLWinding(info.rasterizerState.frontFace);
+            const GraphicsPipelineInfo& pipelineInfo = info.pipelineInfo;
+
+            mFillMode = ConvertToMTLTriangleFillMode(pipelineInfo.rasterizerState.fillMode);
+            mCullMode = ConvertToMTLCullMode(pipelineInfo.rasterizerState.cullMode);
+            mWinding = ConvertToMTLWinding(pipelineInfo.rasterizerState.frontFace);
 
             MTLVertexDescriptor* vertexDesc = [[MTLVertexDescriptor alloc] init];
             Uint64 maxStride = 0;
-            for (Uint32 i = 0; i < info.inputLayouts.size(); ++i)
+            for (Uint32 i = 0; i < pipelineInfo.inputLayouts.size(); ++i)
             {
-                const InputElement& element = info.inputLayouts[i];
+                const InputElement& element = pipelineInfo.inputLayouts[i];
 
                 MetalElementFormatInfo formatInfo = GetMetalElementFormatInfo(element.format);
                 vertexDesc.attributes[i].format = formatInfo.vertexFormat;
@@ -219,17 +221,17 @@ namespace cube
             vertexDesc.layouts[MetalVertexBufferOffset].stride = maxStride;
             vertexDesc.layouts[MetalVertexBufferOffset].stepFunction = MTLVertexStepFunctionPerVertex;
             vertexDesc.layouts[MetalVertexBufferOffset].stepRate = 1;
-            
+
             MTLRenderPipelineDescriptor* desc = [[MTLRenderPipelineDescriptor alloc] init];
-            if (info.vertexShader)
+            if (pipelineInfo.vertexShader)
             {
-                MetalShader* metalVertexShader = dynamic_cast<MetalShader*>(info.vertexShader.get());
+                MetalShader* metalVertexShader = dynamic_cast<MetalShader*>(pipelineInfo.vertexShader.get());
                 CHECK(metalVertexShader);
                 desc.vertexFunction = metalVertexShader->GetMTLFunction();
             }
-            if (info.pixelShader)
+            if (pipelineInfo.pixelShader)
             {
-                MetalShader* metalPixelShader = dynamic_cast<MetalShader*>(info.pixelShader.get());
+                MetalShader* metalPixelShader = dynamic_cast<MetalShader*>(pipelineInfo.pixelShader.get());
                 CHECK(metalPixelShader);
                 desc.fragmentFunction = metalPixelShader->GetMTLFunction();
             }
@@ -238,14 +240,14 @@ namespace cube
             desc.rasterSampleCount = 1;
             desc.alphaToCoverageEnabled = false;
             desc.alphaToOneEnabled = false;
-            desc.rasterizationEnabled = info.pixelShader ? true : false;
+            desc.rasterizationEnabled = pipelineInfo.pixelShader ? true : false;
 
-            for (Uint32 i = 0; i < info.numRenderTargets; ++i)
+            for (Uint32 i = 0; i < pipelineInfo.numRenderTargets; ++i)
             {
-                MetalElementFormatInfo formatInfo = GetMetalElementFormatInfo(info.renderTargetFormats[i]);
+                MetalElementFormatInfo formatInfo = GetMetalElementFormatInfo(pipelineInfo.renderTargetFormats[i]);
                 desc.colorAttachments[i].pixelFormat = formatInfo.pixelFormat;
 
-                const BlendState& blendState = info.blendStates[i];
+                const BlendState& blendState = pipelineInfo.blendStates[i];
                 desc.colorAttachments[i].blendingEnabled = blendState.enableBlend;
                 desc.colorAttachments[i].sourceRGBBlendFactor = ConvertToMTLBlendFactor(blendState.colorSrcBlend);
                 desc.colorAttachments[i].destinationRGBBlendFactor = ConvertToMTLBlendFactor(blendState.colorDstBlend);
@@ -256,10 +258,10 @@ namespace cube
                 desc.colorAttachments[i].writeMask = ConvertToMTLColorWriteMask(blendState.colorWriteMask);
             }
 
-            desc.depthAttachmentPixelFormat = GetMetalElementFormatInfo(info.depthStencilFormat).pixelFormat;
-            desc.stencilAttachmentPixelFormat = info.depthStencilState.enableStencil ? GetMetalElementFormatInfo(info.depthStencilFormat).pixelFormat : MTLPixelFormatInvalid;
+            desc.depthAttachmentPixelFormat = GetMetalElementFormatInfo(pipelineInfo.depthStencilFormat).pixelFormat;
+            desc.stencilAttachmentPixelFormat = pipelineInfo.depthStencilState.enableStencil ? GetMetalElementFormatInfo(pipelineInfo.depthStencilFormat).pixelFormat : MTLPixelFormatInvalid;
 
-            desc.inputPrimitiveTopology = ConvertToMTLPrimitiveTopologyClass(info.primitiveTopologyType);
+            desc.inputPrimitiveTopology = ConvertToMTLPrimitiveTopologyClass(pipelineInfo.primitiveTopologyType);
             desc.supportIndirectCommandBuffers = false;
             desc.label = String_Convert<NSString*>(Format<FrameString>(CUBE_T("{0} (RenderPipelineState)"), info.debugName));
 
@@ -273,26 +275,26 @@ namespace cube
 
             // Also create depth stencil descriptor in here.
             MTLDepthStencilDescriptor* depthStencilDesc = [[MTLDepthStencilDescriptor alloc] init];
-            depthStencilDesc.depthCompareFunction = ConvertToMTLCompareFunction(info.depthStencilState.depthFunction);
-            depthStencilDesc.depthWriteEnabled = info.depthStencilState.enableDepth;
-            if (info.depthStencilState.enableStencil)
+            depthStencilDesc.depthCompareFunction = ConvertToMTLCompareFunction(pipelineInfo.depthStencilState.depthFunction);
+            depthStencilDesc.depthWriteEnabled = pipelineInfo.depthStencilState.enableDepth;
+            if (pipelineInfo.depthStencilState.enableStencil)
             {
                 MTLStencilDescriptor* frontStencilDesc = [[MTLStencilDescriptor alloc] init];
-                frontStencilDesc.stencilCompareFunction = ConvertToMTLCompareFunction(info.depthStencilState.stencilFrontFaceDesc.function);
-                frontStencilDesc.stencilFailureOperation = ConvertToMTLStencilOperation(info.depthStencilState.stencilFrontFaceDesc.failOp);
-                frontStencilDesc.depthFailureOperation = ConvertToMTLStencilOperation(info.depthStencilState.stencilFrontFaceDesc.depthFailOp);
-                frontStencilDesc.depthStencilPassOperation = ConvertToMTLStencilOperation(info.depthStencilState.stencilFrontFaceDesc.passOp);
-                frontStencilDesc.readMask = info.depthStencilState.stencilReadMask;
-                frontStencilDesc.writeMask = info.depthStencilState.stencilWriteMask;
+                frontStencilDesc.stencilCompareFunction = ConvertToMTLCompareFunction(pipelineInfo.depthStencilState.stencilFrontFaceDesc.function);
+                frontStencilDesc.stencilFailureOperation = ConvertToMTLStencilOperation(pipelineInfo.depthStencilState.stencilFrontFaceDesc.failOp);
+                frontStencilDesc.depthFailureOperation = ConvertToMTLStencilOperation(pipelineInfo.depthStencilState.stencilFrontFaceDesc.depthFailOp);
+                frontStencilDesc.depthStencilPassOperation = ConvertToMTLStencilOperation(pipelineInfo.depthStencilState.stencilFrontFaceDesc.passOp);
+                frontStencilDesc.readMask = pipelineInfo.depthStencilState.stencilReadMask;
+                frontStencilDesc.writeMask = pipelineInfo.depthStencilState.stencilWriteMask;
                 depthStencilDesc.frontFaceStencil = frontStencilDesc;
 
                 MTLStencilDescriptor* backStencilDesc = [[MTLStencilDescriptor alloc] init];
-                backStencilDesc.stencilCompareFunction = ConvertToMTLCompareFunction(info.depthStencilState.stencilBackFaceDesc.function);
-                backStencilDesc.stencilFailureOperation = ConvertToMTLStencilOperation(info.depthStencilState.stencilBackFaceDesc.failOp);
-                backStencilDesc.depthFailureOperation = ConvertToMTLStencilOperation(info.depthStencilState.stencilBackFaceDesc.depthFailOp);
-                backStencilDesc.depthStencilPassOperation = ConvertToMTLStencilOperation(info.depthStencilState.stencilBackFaceDesc.passOp);
-                backStencilDesc.readMask = info.depthStencilState.stencilReadMask;
-                backStencilDesc.writeMask = info.depthStencilState.stencilWriteMask;
+                backStencilDesc.stencilCompareFunction = ConvertToMTLCompareFunction(pipelineInfo.depthStencilState.stencilBackFaceDesc.function);
+                backStencilDesc.stencilFailureOperation = ConvertToMTLStencilOperation(pipelineInfo.depthStencilState.stencilBackFaceDesc.failOp);
+                backStencilDesc.depthFailureOperation = ConvertToMTLStencilOperation(pipelineInfo.depthStencilState.stencilBackFaceDesc.depthFailOp);
+                backStencilDesc.depthStencilPassOperation = ConvertToMTLStencilOperation(pipelineInfo.depthStencilState.stencilBackFaceDesc.passOp);
+                backStencilDesc.readMask = pipelineInfo.depthStencilState.stencilReadMask;
+                backStencilDesc.writeMask = pipelineInfo.depthStencilState.stencilWriteMask;
                 depthStencilDesc.backFaceStencil = backStencilDesc;
             }
             depthStencilDesc.label = String_Convert<NSString*>(Format<FrameString>(CUBE_T("{0} (DepthStencilState)"), info.debugName));
@@ -309,7 +311,7 @@ namespace cube
 
         MetalComputePipeline::MetalComputePipeline(const ComputePipelineCreateInfo& info, MetalDevice& device)
         { @autoreleasepool {
-            MetalShader* metalComputeShader = dynamic_cast<MetalShader*>(info.shader.get());
+            MetalShader* metalComputeShader = dynamic_cast<MetalShader*>(info.pipelineInfo.shader.get());
             CHECK(metalComputeShader);
 
             MTLComputePipelineDescriptor* desc = [[MTLComputePipelineDescriptor alloc] init];

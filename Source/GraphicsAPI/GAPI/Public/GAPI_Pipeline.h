@@ -142,7 +142,7 @@ namespace cube
             Patch
         };
 
-        struct GraphicsPipelineCreateInfo
+        struct GraphicsPipelineInfo
         {
             SharedPtr<Shader> vertexShader = nullptr;
             SharedPtr<Shader> pixelShader = nullptr;
@@ -161,8 +161,6 @@ namespace cube
             Array<ElementFormat, MAX_NUM_RENDER_TARGETS> renderTargetFormats;
             ElementFormat depthStencilFormat = ElementFormat::D32_Float;
 
-            StringView debugName;
-
             Uint64 GetHashValue() const
             {
                 Uint64 h = 0;
@@ -176,9 +174,15 @@ namespace cube
                 h = HashCombine(h, static_cast<Uint64>(numRenderTargets));
                 h = HashCombine(h, HashBytes(renderTargetFormats.data(), sizeof(ElementFormat) * numRenderTargets));
                 h = HashCombine(h, static_cast<Uint64>(depthStencilFormat));
-                // Ignore debugName
                 return h;
             }
+        };
+
+        struct GraphicsPipelineCreateInfo
+        {
+            GraphicsPipelineInfo pipelineInfo;
+
+            StringView debugName;
         };
 
         class GraphicsPipeline
@@ -188,16 +192,21 @@ namespace cube
             virtual ~GraphicsPipeline() = default;
         };
 
-        struct ComputePipelineCreateInfo
+        struct ComputePipelineInfo
         {
             SharedPtr<Shader> shader;
-
-            StringView debugName;
 
             Uint64 GetHashValue() const
             {
                 return shader ? shader->GetContentHash() : 0;
             }
+        };
+
+        struct ComputePipelineCreateInfo
+        {
+            ComputePipelineInfo pipelineInfo;
+
+            StringView debugName;
         };
 
         class ComputePipeline

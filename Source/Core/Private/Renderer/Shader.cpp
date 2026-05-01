@@ -308,7 +308,7 @@ namespace cube
 
     Uint64 GraphicsPipelineInfo::GetHashValue() const
     {
-        gapi::GraphicsPipelineCreateInfo gapiInfo = {
+        gapi::GraphicsPipelineInfo gapiInfo = {
             .vertexShader = vertexShader ? vertexShader->GetGAPIShader() : nullptr,
             .pixelShader = pixelShader ? pixelShader->GetGAPIShader() : nullptr,
             .inputLayouts = inputLayouts,
@@ -325,7 +325,7 @@ namespace cube
 
     Uint64 ComputePipelineInfo::GetHashValue() const
     {
-        gapi::ComputePipelineCreateInfo gapiInfo = {
+        gapi::ComputePipelineInfo gapiInfo = {
             .shader = shader ? shader->GetGAPIShader() : nullptr
         };
         return gapiInfo.GetHashValue();
@@ -338,16 +338,18 @@ namespace cube
         mDebugName = createInfo.debugName;
 
         mGAPIGraphicsPipeline = Engine::GetRenderer()->GetGAPI().CreateGraphicsPipeline({
-            .vertexShader = mVertexShader ? mVertexShader->GetGAPIShader() : nullptr,
-            .pixelShader = mPixelShader ? mPixelShader->GetGAPIShader() : nullptr,
-            .inputLayouts = createInfo.pipelineInfo.inputLayouts,
-            .rasterizerState = createInfo.pipelineInfo.rasterizerState,
-            .blendStates = createInfo.pipelineInfo.blendStates,
-            .depthStencilState = createInfo.pipelineInfo.depthStencilState,
-            .primitiveTopologyType = createInfo.pipelineInfo.primitiveTopologyType,
-            .numRenderTargets = createInfo.pipelineInfo.numRenderTargets,
-            .renderTargetFormats = createInfo.pipelineInfo.renderTargetFormats,
-            .depthStencilFormat = createInfo.pipelineInfo.depthStencilFormat,
+            .pipelineInfo = {
+                .vertexShader = mVertexShader ? mVertexShader->GetGAPIShader() : nullptr,
+                .pixelShader = mPixelShader ? mPixelShader->GetGAPIShader() : nullptr,
+                .inputLayouts = createInfo.pipelineInfo.inputLayouts,
+                .rasterizerState = createInfo.pipelineInfo.rasterizerState,
+                .blendStates = createInfo.pipelineInfo.blendStates,
+                .depthStencilState = createInfo.pipelineInfo.depthStencilState,
+                .primitiveTopologyType = createInfo.pipelineInfo.primitiveTopologyType,
+                .numRenderTargets = createInfo.pipelineInfo.numRenderTargets,
+                .renderTargetFormats = createInfo.pipelineInfo.renderTargetFormats,
+                .depthStencilFormat = createInfo.pipelineInfo.depthStencilFormat
+            },
             .debugName = createInfo.debugName
         });
 
@@ -376,7 +378,9 @@ namespace cube
         mDebugName = createInfo.debugName;
 
         mGAPIComputePipeline = Engine::GetRenderer()->GetGAPI().CreateComputePipeline({
-            .shader = mShader ? mShader->GetGAPIShader() : nullptr,
+            .pipelineInfo = {
+                .shader = mShader ? mShader->GetGAPIShader() : nullptr
+            },
             .debugName = createInfo.debugName
         });
 
