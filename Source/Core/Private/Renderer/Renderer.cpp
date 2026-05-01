@@ -16,8 +16,6 @@
 #include "Platform.h"
 #include "Renderer/RenderGraphTypes.h"
 #include "RenderGraph.h"
-#include "Shader.h"
-#include "ShaderManager.h"
 #include "Texture.h"
 
 namespace cube
@@ -72,7 +70,7 @@ namespace cube
         });
 
         mShaderParameterListManager.Initialize(mGAPI.get(), mNumGPUSync);
-        mShaderManager.Initialize(mGAPI.get(), false);
+        mShaderManager.Initialize(false);
         mTextureManager.Initialize(mGAPI.get(), mNumGPUSync);
         mSamplerManager.Initialize(mGAPI.get());
         mPipelineManager.Initialize();
@@ -355,7 +353,6 @@ namespace cube
         if (metaChanged)
         {
             mBoxMesh = std::make_shared<Mesh>(MeshHelper::GenerateBoxMeshData(), mMeshMetadata);
-            mShaderManager.GetMaterialShaderManager().ClearPipelineCache();
         }
     }
 

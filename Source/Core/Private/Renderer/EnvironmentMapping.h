@@ -3,7 +3,7 @@
 #include "CoreHeader.h"
 
 #include "Renderer/RenderGraphTypes.h"
-#include "Shader.h"
+#include "Pipeline.h"
 
 namespace cube
 {

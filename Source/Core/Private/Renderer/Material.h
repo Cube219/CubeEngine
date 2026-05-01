@@ -10,6 +10,7 @@
 
 namespace cube
 {
+    class PipelineManager;
     class GraphicsPipeline;
     class Shader;
     class ShaderManager;
@@ -82,25 +83,24 @@ namespace cube
     class MaterialShaderManager
     {
     public:
-        MaterialShaderManager(ShaderManager& shaderManager);
+        MaterialShaderManager(ShaderManager& shaderManager, PipelineManager& pipelineManager);
         ~MaterialShaderManager() = default;
 
         SharedPtr<GraphicsPipeline> GetOrCreateMaterialPipeline(SharedPtr<Material> material, const MeshMetadata& meshMeta, gapi::RasterizerState::FillMode fillMode = gapi::RasterizerState::FillMode::Solid);
 
-        void ClearPipelineCache();
+        void ClearMaterialShaderCaches();
 
     private:
         friend class ShaderManager;
 
-        // Initialize / Shutdown in ShaderManager
+        // Initialize / Shutdown will be called in ShaderManager
         void Initialize(GAPI* gapi);
         void Shutdown();
 
         ShaderManager& mShaderManager;
+        PipelineManager& mPipelineManager;
 
         HashMap<Uint64, SharedPtr<Shader>> mMaterialVertexShaders;
         HashMap<Uint64, SharedPtr<Shader>> mMaterialPixelShaders;
-        HashMap<Uint64, SharedPtr<GraphicsPipeline>> mMaterialPipelines;
-
     };
 } // namespace cube

@@ -54,12 +54,10 @@ namespace cube
             });
             CHECK(mCopyToTextureViewer2DShader);
 
-            mCopyToTextureViewer2DPipeline = mRenderer.GetShaderManager().CreateComputePipeline({
-                .pipelineInfo = {
-                    .shader = mCopyToTextureViewer2DShader
-                },
-                .debugName = CUBE_T("CopyToTextureViewer2D Pipeline")
-            });
+            mCopyToTextureViewer2DPipelineInfo = {
+                .shader = mCopyToTextureViewer2DShader
+            };
+            mCopyToTextureViewer2DPipelineInfo.CalculateHashValue();
         }
 
         {
@@ -75,12 +73,10 @@ namespace cube
             });
             CHECK(mFetchInfoShader);
 
-            mFetchInfoPipeline = mRenderer.GetShaderManager().CreateComputePipeline({
-                .pipelineInfo = {
-                    .shader = mFetchInfoShader
-                },
-                .debugName = CUBE_T("TextureViewerFetchInfoCS Pipeline")
-            });
+            mFetchInfoPipelineInfo = {
+                .shader = mFetchInfoShader
+            };
+            mFetchInfoPipelineInfo.CalculateHashValue();
         }
 
         mReadbackBuffers.resize(numGPUSync);
@@ -111,9 +107,9 @@ namespace cube
         }
         mReadbackBuffers.clear();
 
-        mFetchInfoPipeline = nullptr;
+        mFetchInfoPipelineInfo = {};
         mFetchInfoShader = nullptr;
-        mCopyToTextureViewer2DPipeline = nullptr;
+        mCopyToTextureViewer2DPipelineInfo = {};
         mCopyToTextureViewer2DShader = nullptr;
 
         mCopiedTextureSRV = nullptr;
@@ -274,7 +270,7 @@ namespace cube
         RGTextureHandle dstTex = builder.RegisterTexture(mCopiedTexture);
         RGTextureUAVHandle dstUAV = builder.CreateUAV(dstTex);
 
-        RGShaderParameterListHandle<CopyToTextureViewerShaderParameterList> params = builder.CreateShaderParameterList<CopyToTextureViewerShaderParameterList>();
+        auto params = builder.CreateShaderParameterList<CopyToTextureViewerShaderParameterList>();
         params->Get()->dstSizeAndInvSize = Vector4(
             static_cast<float>(mCopiedTextureWidth), static_cast<float>(mCopiedTextureHeight),
             1.0f / static_cast<float>(mCopiedTextureWidth), 1.0f / static_cast<float>(mCopiedTextureHeight)
@@ -282,8 +278,12 @@ namespace cube
         params->Get()->srcTexture2D = srcSRV;
         params->Get()->dstTexture = dstUAV;
 
+        SharedPtr<ComputePipeline> copyToTextureViewer2DPipeline = mRenderer.GetPipelineManager().GetOrCreateComputePipeline({
+            .pipelineInfo = mCopyToTextureViewer2DPipelineInfo,
+            .debugName = CUBE_T("CopyToTextureViewer2D Pipeline")
+        });
         builder.AddPass(
-            Format<FrameString>(CUBE_T("TextureViewer CopyToTexture - {0}"), mName), mCopyToTextureViewer2DPipeline,
+            Format<FrameString>(CUBE_T("TextureViewer CopyToTexture - {0}"), mName), copyToTextureViewer2DPipeline,
             RGBuilder::MakeParameterListArray(params),
             [width = mCopiedTextureWidth, height = mCopiedTextureHeight](gapi::CommandList& commandList){
                 commandList.DispatchThreads(width, height, 1);
@@ -315,9 +315,13 @@ namespace cube
         params->Get()->positionToReadY = mPixelY;
         params->Get()->readbackBuffer = readbackUAV;
 
+        SharedPtr<ComputePipeline> fetchInfoPipeline = mRenderer.GetPipelineManager().GetOrCreateComputePipeline({
+            .pipelineInfo = mFetchInfoPipelineInfo,
+            .debugName = CUBE_T("TextureViewerFetchInfoCS Pipeline")
+        });
         builder.AddPass(
             Format<FrameString>(CUBE_T("TextureViewer FetchInfo - {0}"), mName),
-            mFetchInfoPipeline,
+            fetchInfoPipeline,
             RGBuilder::MakeParameterListArray(params),
             [](gapi::CommandList& commandList)
             {

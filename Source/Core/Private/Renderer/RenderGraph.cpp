@@ -3,7 +3,7 @@
 #include "Allocator/FrameAllocator.h"
 #include "Checker.h"
 #include "GAPI_CommandList.h"
-#include "Shader.h"
+#include "Pipeline.h"
 #include "Texture.h"
 
 namespace cube

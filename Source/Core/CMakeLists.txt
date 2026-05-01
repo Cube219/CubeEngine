@@ -19,8 +19,8 @@ set(PRIVATE_FILES
     Private/Renderer/Mesh.h
     Private/Renderer/MeshHelper.cpp
     Private/Renderer/MeshHelper.h
-    Private/Renderer/PipelineManager.cpp
-    Private/Renderer/PipelineManager.h
+    Private/Renderer/Pipeline.cpp
+    Private/Renderer/Pipeline.h
     Private/Renderer/Renderer.cpp
     Private/Renderer/Renderer.h
     Private/Renderer/RenderGraph.cpp
@@ -33,8 +33,6 @@ set(PRIVATE_FILES
     Private/Renderer/SamplerManager.h
     Private/Renderer/Shader.cpp
     Private/Renderer/Shader.h
-    Private/Renderer/ShaderManager.cpp
-    Private/Renderer/ShaderManager.h
     Private/Renderer/ShaderParameter.cpp
     Private/Renderer/Texture.cpp
     Private/Renderer/Texture.h

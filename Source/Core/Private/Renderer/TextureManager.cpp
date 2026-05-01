@@ -7,7 +7,7 @@
 #include "GAPI.h"
 #include "GAPI_CommandList.h"
 #include "GAPI_Pipeline.h"
-#include "PipelineManager.h"
+#include "Pipeline.h"
 #include "Renderer/RenderGraph.h"
 #include "Renderer/RenderGraphTypes.h"
 #include "Renderer.h"
@@ -44,6 +44,7 @@ namespace cube
             mGenerateMipmapsPipelineInfo = {
                 .shader = mGenerateMipmapsShader
             };
+            mGenerateMipmapsPipelineInfo.CalculateHashValue();
         }
 
         mCommandList = mGAPI->CreateCommandList({

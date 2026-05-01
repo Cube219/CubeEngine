@@ -6,7 +6,7 @@
 #include "Renderer/RenderGraphTypes.h"
 #include "Renderer/RenderTypes.h"
 #include "Renderer/ShaderParameter.h"
-#include "Shader.h"
+#include "Pipeline.h"
 
 namespace cube
 {

@@ -3,7 +3,7 @@
 #include "imgui.h"
 
 #include "GAPI_Shader.h"
-#include "PipelineManager.h"
+#include "Pipeline.h"
 #include "RenderGraph.h"
 #include "Shader.h"
 
@@ -78,6 +78,7 @@ namespace cube
                 .numRenderTargets = 1,
                 .renderTargetFormats = { gapi::ElementFormat::RGBA8_UNorm }
             };
+            mSkyboxPipelineInfo.CalculateHashValue();
         }
 
         {
@@ -96,6 +97,7 @@ namespace cube
             mGenerateIrradianceMapPipelineInfo = {
                 .shader = mGenerateIrradianceMapShader
             };
+            mGenerateIrradianceMapPipelineInfo.CalculateHashValue();
         }
 
         mCommandList = mRenderer.GetGAPI().CreateCommandList({
@@ -228,13 +230,15 @@ namespace cube
         RGTextureHandle skyboxTexture = builder.RegisterTexture(skyboxGAPITexture);
         RGTextureSRVHandle skyboxSRV = builder.CreateSRV(skyboxTexture);
 
-        RGShaderParameterListHandle<SkyboxShaderParameterList> skyboxParams = builder.CreateShaderParameterList<SkyboxShaderParameterList>();
+        auto skyboxParams = builder.CreateShaderParameterList<SkyboxShaderParameterList>();
         skyboxParams->Get()->skyboxTexture = skyboxSRV;
 
-        mSkyboxPipelineInfo.inputLayouts = Mesh::GetInputElements(mRenderer.GetMeshMetadata());
+        ArrayView<gapi::InputElement> inputLayouts = Mesh::GetInputElements(mRenderer.GetMeshMetadata());
+        mSkyboxPipelineInfo.inputLayouts = { inputLayouts.begin(), inputLayouts.end() };
         mSkyboxPipelineInfo.rasterizerState.fillMode = mRenderer.IsDrawInWireframe()
             ? gapi::RasterizerState::FillMode::Line
             : gapi::RasterizerState::FillMode::Solid;
+        mSkyboxPipelineInfo.CalculateHashValue();
         SharedPtr<GraphicsPipeline> skyboxPipeline = mRenderer.GetPipelineManager().GetOrCreateGraphicsPipeline({
             .pipelineInfo = mSkyboxPipelineInfo,
             .debugName = CUBE_T("SkyboxPipeline")

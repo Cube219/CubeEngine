@@ -2,12 +2,13 @@
 
 #include "CoreHeader.h"
 
-#include "GAPI_Pipeline.h"
 #include "GAPI_Shader.h"
-#include "GAPI_ShaderReflection.h"
+#include "Material.h"
 
 namespace cube
 {
+    class GAPI;
+    class Renderer;
     class ShaderManager;
 
     // ===== Shader =====
@@ -43,7 +44,7 @@ namespace cube
     class Shader
     {
     public:
-        Shader(ShaderManager& manager, const ShaderCreateInfo& createInfo);
+        Shader(ShaderManager& manager, GAPI& gapi, const ShaderCreateInfo& createInfo);
         ~Shader();
 
         SharedPtr<gapi::Shader> GetGAPIShader() const { return mGAPIShader; }
@@ -68,6 +69,7 @@ namespace cube
         void DiscardRecompiledShader();
 
         ShaderManager& mManager;
+        GAPI& mGAPI;
 
         SharedPtr<gapi::Shader> mGAPIShader;
 
@@ -84,96 +86,33 @@ namespace cube
         int mRecompileCount;
     };
 
-    // ===== GraphicsPipeline =====
-
-    struct GraphicsPipelineInfo
-    {
-        SharedPtr<Shader> vertexShader = nullptr;
-        SharedPtr<Shader> pixelShader = nullptr;
-
-        ArrayView<gapi::InputElement> inputLayouts;
-
-        gapi::RasterizerState rasterizerState;
-
-        Array<gapi::BlendState, gapi::MAX_NUM_RENDER_TARGETS> blendStates;
-
-        gapi::DepthStencilState depthStencilState;
-
-        gapi::PrimitiveTopologyType primitiveTopologyType = gapi::PrimitiveTopologyType::Triangle;
-
-        Uint32 numRenderTargets;
-        Array<gapi::ElementFormat, gapi::MAX_NUM_RENDER_TARGETS> renderTargetFormats;
-        gapi::ElementFormat depthStencilFormat = gapi::ElementFormat::D32_Float;
-
-        Uint64 GetHashValue() const;
-    };
-
-    struct GraphicsPipelineCreateInfo
-    {
-        GraphicsPipelineInfo pipelineInfo;
-
-        StringView debugName;
-    };
-
-    class GraphicsPipeline
+    class ShaderManager
     {
     public:
-        GraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo);
-        ~GraphicsPipeline() = default;
+        ShaderManager(Renderer& renderer);
+        ~ShaderManager() = default;
 
-        SharedPtr<gapi::GraphicsPipeline> GetGAPIGraphicsPipeline() const { return mGAPIGraphicsPipeline; }
-        const gapi::ShaderReflection& GetMergedShaderReflection() const { return mMergedShaderReflection; }
+        void Initialize(bool useDebugMode);
+        void Shutdown();
 
-        bool HasRecompiledShadersInPipeline() const;
+        bool IsUsingDebugMode() const { return mUseDebugMode; }
 
-    private:
-        void MergeShaderReflection(const gapi::ShaderReflection& reflection);
-        void CacheShaderReflection(SharedPtr<Shader> vertexShader, SharedPtr<Shader> pixelShader);
+        SharedPtr<Shader> CreateShader(const ShaderCreateInfo& createInfo);
+        void FreeShader(Shader* shader);
 
-        SharedPtr<gapi::GraphicsPipeline> mGAPIGraphicsPipeline;
-        gapi::ShaderReflection mMergedShaderReflection;
+        void RecompileShaders(bool forceAll = false);
 
-        SharedPtr<Shader> mVertexShader;
-        SharedPtr<Shader> mPixelShader;
-
-        String mDebugName;
-    };
-
-    // ===== ComputePipeline =====
-
-    struct ComputePipelineInfo
-    {
-        SharedPtr<Shader> shader;
-
-        Uint64 GetHashValue() const;
-    };
-
-    struct ComputePipelineCreateInfo
-    {
-        ComputePipelineInfo pipelineInfo;
-
-        StringView debugName;
-    };
-
-    class ComputePipeline
-    {
-    public:
-        ComputePipeline(const ComputePipelineCreateInfo& createInfo);
-        ~ComputePipeline() = default;
-
-        SharedPtr<gapi::ComputePipeline> GetGAPIComputePipeline() const { return mGAPIComputePipeline; }
-        const gapi::ShaderReflection& GetShaderReflection() const { return mShaderReflection; }
-
-        bool HasRecompiledShaderInPipeline() const;
+        MaterialShaderManager& GetMaterialShaderManager() { return mMaterialShaderManager; }
 
     private:
-        void CacheShaderReflection(SharedPtr<Shader> shader);
+        friend class Renderer;
 
-        SharedPtr<gapi::ComputePipeline> mGAPIComputePipeline;
-        gapi::ShaderReflection mShaderReflection;
+        Renderer& mRenderer;
 
-        SharedPtr<Shader> mShader;
+        bool mUseDebugMode; // Modified in Renderer directly
 
-        String mDebugName;
+        Set<Shader*> mCreatedShaders;
+
+        MaterialShaderManager mMaterialShaderManager;
     };
 } // namespace cube

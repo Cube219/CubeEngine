@@ -147,7 +147,7 @@ namespace cube
             SharedPtr<Shader> vertexShader = nullptr;
             SharedPtr<Shader> pixelShader = nullptr;
 
-            ArrayView<InputElement> inputLayouts;
+            ConstArrayView<InputElement> inputLayouts;
 
             RasterizerState rasterizerState;
 

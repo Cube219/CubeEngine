@@ -2,6 +2,7 @@
 
 #include "CoreHeader.h"
 
+#include "Pipeline.h"
 #include "Renderer/RenderGraphTypes.h"
 
 namespace cube
@@ -43,9 +44,9 @@ namespace cube
         Renderer& mRenderer;
 
         SharedPtr<Shader> mCopyToTextureViewer2DShader;
-        SharedPtr<ComputePipeline> mCopyToTextureViewer2DPipeline;
+        ComputePipelineInfo mCopyToTextureViewer2DPipelineInfo;
         SharedPtr<Shader> mFetchInfoShader;
-        SharedPtr<ComputePipeline> mFetchInfoPipeline;
+        ComputePipelineInfo mFetchInfoPipelineInfo;
 
         bool mShow = false;
 

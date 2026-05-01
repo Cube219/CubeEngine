@@ -6,7 +6,7 @@
 #include "GAPI_Shader.h"
 #include "GAPI_Texture.h"
 #include "Mesh.h"
-#include "PipelineManager.h"
+#include "Pipeline.h"
 #include "Renderer.h"
 #include "RenderGraph.h"
 #include "Shader.h"
@@ -140,32 +140,22 @@ namespace cube
     void Material::CalculateMaterialHash()
     {
         mMaterialHash = std::hash<String>{}(mChannelMappingCode);
-        // Mix in isPBR flag so PBR and non-PBR materials get separate pipelines
+        // Mix in isPBR flag so PBR and non-PBR materials get separate shader/pipelines.
         if (!mIsPBR)
         {
-            mMaterialHash ^= 0x9e3779b97f4a7c15ULL;
+            mMaterialHash = HashCombine(mMaterialHash, 1);
         }
     }
 
-    MaterialShaderManager::MaterialShaderManager(ShaderManager& shaderManager)
+    MaterialShaderManager::MaterialShaderManager(ShaderManager& shaderManager, PipelineManager& pipelineManager)
         : mShaderManager(shaderManager)
+        , mPipelineManager(pipelineManager)
     {
-    }
-
-    void MaterialShaderManager::ClearPipelineCache()
-    {
-        mMaterialPipelines.clear();
     }
 
     SharedPtr<GraphicsPipeline> MaterialShaderManager::GetOrCreateMaterialPipeline(SharedPtr<Material> material, const MeshMetadata& meshMeta, gapi::RasterizerState::FillMode fillMode)
     {
         const Uint64 shaderHash = material->mMaterialHash;
-        const Uint64 pipelineHash = shaderHash ^ (static_cast<Uint64>(fillMode) * 0x9e3779b97f4a7c15ULL);
-
-        if (const auto it = mMaterialPipelines.find(pipelineHash); it != mMaterialPipelines.end())
-        {
-            return it->second;
-        }
 
         // Generate material shader codes
         FrameString getMaterialShaderCode = Format<FrameString>(
@@ -204,6 +194,7 @@ namespace cube
         }
 
         SharedPtr<Shader>& vertexShader = mMaterialVertexShaders[shaderHash];
+        if (!vertexShader)
         {
             platform::FilePath vertexShaderFilePath = Engine::GetShaderDirectoryPath() / CUBE_T("Main.slang");
             vertexShader = mShaderManager.CreateShader({
@@ -214,13 +205,13 @@ namespace cube
                     .defines = { shaderDefines.begin(), shaderDefines.end() }
                 },
                 .filePaths = { &vertexShaderFilePath, 1 },
-                .debugName = Format<FrameString>(CUBE_T("MaterialVS ({0})"), shaderHash)
+                .debugName = Format<FrameString>(CUBE_T("MaterialVS ({0})"), material->GetDebugName())
             });
         }
         SharedPtr<Shader>& pixelShader = mMaterialPixelShaders[shaderHash];
         if (!pixelShader)
         {
-            // Currently dynamic linkage are used in pixel shader only
+            // Currently dynamic linkage is used in pixel shader only
             platform::FilePath pixelShaderFilePath = Engine::GetShaderDirectoryPath() / CUBE_T("Main.slang");
 
             pixelShader = mShaderManager.CreateShader({
@@ -232,32 +223,38 @@ namespace cube
                 },
                 .filePaths = { &pixelShaderFilePath, 1 },
                 .materialShaderCode = materialShaderCode,
-                .debugName = Format<FrameString>(CUBE_T("MaterialPS ({0})"), shaderHash)
+                .debugName = Format<FrameString>(CUBE_T("MaterialPS ({0})"), material->GetDebugName())
             });
         }
 
-        SharedPtr<GraphicsPipeline>& pipeline = mMaterialPipelines[pipelineHash];
-        {
-            pipeline = Engine::GetRenderer()->GetPipelineManager().GetOrCreateGraphicsPipeline({
-                .pipelineInfo = {
-                    .vertexShader = vertexShader,
-                    .pixelShader = pixelShader,
-                    .inputLayouts = Mesh::GetInputElements(meshMeta),
-                    .rasterizerState = {
-                        .fillMode = fillMode
-                    },
-                    .depthStencilState = {
-                        .enableDepth = true,
-                        .depthFunction = gapi::CompareFunction::Greater
-                    },
-                    .numRenderTargets = 1,
-                    .renderTargetFormats = { gapi::ElementFormat::RGBA8_UNorm }
-                },
-                .debugName = Format<FrameString>(CUBE_T("MaterialPipeline ({0})"), pipelineHash)
-            });
-        }
+        ArrayView<gapi::InputElement> inputLayouts = Mesh::GetInputElements(meshMeta);
+        GraphicsPipelineInfo pipelineInfo = {
+            .vertexShader = vertexShader,
+            .pixelShader = pixelShader,
+            .inputLayouts = { inputLayouts.begin(), inputLayouts.end() },
+            .rasterizerState = {
+                .fillMode = fillMode
+            },
+            .depthStencilState = {
+                .enableDepth = true,
+                .depthFunction = gapi::CompareFunction::Greater
+            },
+            .numRenderTargets = 1,
+            .renderTargetFormats = {
+                gapi::ElementFormat::RGBA8_UNorm
+            }
+        };
+        pipelineInfo.CalculateHashValue();
+        return mPipelineManager.GetOrCreateGraphicsPipeline({
+            .pipelineInfo = pipelineInfo,
+            .debugName = Format<FrameString>(CUBE_T("MaterialPipeline ({0})"), material->GetDebugName())
+        });
+    }
 
-        return pipeline;
+    void MaterialShaderManager::ClearMaterialShaderCaches()
+    {
+        mMaterialPixelShaders.clear();
+        mMaterialVertexShaders.clear();
     }
 
     void MaterialShaderManager::Initialize(GAPI* gapi)
@@ -266,8 +263,6 @@ namespace cube
 
     void MaterialShaderManager::Shutdown()
     {
-        mMaterialPipelines.clear();
-        mMaterialPixelShaders.clear();
-        mMaterialVertexShaders.clear();
+        ClearMaterialShaderCaches();
     }
 } // namespace cube

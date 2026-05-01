@@ -95,8 +95,9 @@ namespace cube
         return result;
     }
 
-    Shader::Shader(ShaderManager& manager, const ShaderCreateInfo& createInfo) :
-        mManager(manager)
+    Shader::Shader(ShaderManager& manager, GAPI& gapi, const ShaderCreateInfo& createInfo)
+        : mManager(manager)
+        , mGAPI(gapi)
     {
         mShaderInfo = createInfo.shaderInfo;
         mDebugName = createInfo.debugName;
@@ -117,7 +118,7 @@ namespace cube
             });
         }
 
-        mGAPIShader = Engine::GetRenderer()->GetGAPI().CreateShader(
+        mGAPIShader = mGAPI.CreateShader(
         {
             .type = mShaderInfo.type,
             .language = mShaderInfo.language,
@@ -253,7 +254,7 @@ namespace cube
             });
         }
 
-        mRecompiledGAPIShader = Engine::GetRenderer()->GetGAPI().CreateShader(
+        mRecompiledGAPIShader = mGAPI.CreateShader(
         {
             .type = mShaderInfo.type,
             .language = mShaderInfo.language,
@@ -306,145 +307,108 @@ namespace cube
         mRecompiledGAPIShader = nullptr;
     }
 
-    Uint64 GraphicsPipelineInfo::GetHashValue() const
+    ShaderManager::ShaderManager(Renderer& renderer)
+        : mMaterialShaderManager(*this, renderer.GetPipelineManager())
+        , mRenderer(renderer)
     {
-        gapi::GraphicsPipelineInfo gapiInfo = {
-            .vertexShader = vertexShader ? vertexShader->GetGAPIShader() : nullptr,
-            .pixelShader = pixelShader ? pixelShader->GetGAPIShader() : nullptr,
-            .inputLayouts = inputLayouts,
-            .rasterizerState = rasterizerState,
-            .blendStates = blendStates,
-            .depthStencilState = depthStencilState,
-            .primitiveTopologyType = primitiveTopologyType,
-            .numRenderTargets = numRenderTargets,
-            .renderTargetFormats = renderTargetFormats,
-            .depthStencilFormat = depthStencilFormat
+    }
+
+    void ShaderManager::Initialize(bool useDebugMode)
+    {
+        mUseDebugMode = useDebugMode;
+
+        mMaterialShaderManager.Initialize(&mRenderer.GetGAPI());
+    }
+
+    void ShaderManager::Shutdown()
+    {
+        mMaterialShaderManager.Shutdown();
+
+        CHECK_FORMAT(mCreatedShaders.size() == 0, "Not all shaders are freeed!");
+    }
+
+    SharedPtr<Shader> ShaderManager::CreateShader(const ShaderCreateInfo& createInfo)
+    {
+        SharedPtr<Shader> shader = std::make_shared<Shader>(*this, mRenderer.GetGAPI(), createInfo);
+        mCreatedShaders.insert(shader.get());
+
+        return shader;
+    }
+
+    void ShaderManager::FreeShader(Shader* shader)
+    {
+        auto it = mCreatedShaders.find(shader);
+        CHECK(it != mCreatedShaders.end());
+
+        mCreatedShaders.erase(it);
+    }
+
+    void ShaderManager::RecompileShaders(bool forceAll)
+    {
+        CUBE_LOG(Info, Shader, "Try to recompile shaders... (Force: {0})", forceAll);
+
+        struct FailedShader
+        {
+            Shader* shader;
+            String message;
         };
-        return gapiInfo.GetHashValue();
-    }
 
-    Uint64 ComputePipelineInfo::GetHashValue() const
-    {
-        gapi::ComputePipelineInfo gapiInfo = {
-            .shader = shader ? shader->GetGAPIShader() : nullptr
-        };
-        return gapiInfo.GetHashValue();
-    }
+        String errorMessageBuffer;
+        int numRecompileShaders = 0;
+        Vector<Shader*> succeededShaders;
+        Vector<FailedShader> failedShaders;
 
-    GraphicsPipeline::GraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo)
-    {
-        mVertexShader = createInfo.pipelineInfo.vertexShader;
-        mPixelShader = createInfo.pipelineInfo.pixelShader;
-        mDebugName = createInfo.debugName;
-
-        mGAPIGraphicsPipeline = Engine::GetRenderer()->GetGAPI().CreateGraphicsPipeline({
-            .pipelineInfo = {
-                .vertexShader = mVertexShader ? mVertexShader->GetGAPIShader() : nullptr,
-                .pixelShader = mPixelShader ? mPixelShader->GetGAPIShader() : nullptr,
-                .inputLayouts = createInfo.pipelineInfo.inputLayouts,
-                .rasterizerState = createInfo.pipelineInfo.rasterizerState,
-                .blendStates = createInfo.pipelineInfo.blendStates,
-                .depthStencilState = createInfo.pipelineInfo.depthStencilState,
-                .primitiveTopologyType = createInfo.pipelineInfo.primitiveTopologyType,
-                .numRenderTargets = createInfo.pipelineInfo.numRenderTargets,
-                .renderTargetFormats = createInfo.pipelineInfo.renderTargetFormats,
-                .depthStencilFormat = createInfo.pipelineInfo.depthStencilFormat
-            },
-            .debugName = createInfo.debugName
-        });
-
-        CacheShaderReflection(mVertexShader, mPixelShader);
-    }
-
-    bool GraphicsPipeline::HasRecompiledShadersInPipeline() const
-    {
-        bool result = false;
-
-        if (mVertexShader && mVertexShader->HasRecompiledShader())
+        for (Shader* shader : mCreatedShaders)
         {
-            result = true;
-        }
-        else if (mPixelShader && mPixelShader->HasRecompiledShader())
-        {
-            result = true;
-        }
+            errorMessageBuffer.clear();
+            Shader::RecompileResult result = shader->TryRecompileShader(errorMessageBuffer, forceAll);
 
-        return result;
-    }
-
-    ComputePipeline::ComputePipeline(const ComputePipelineCreateInfo& createInfo)
-    {
-        mShader = createInfo.pipelineInfo.shader;
-        mDebugName = createInfo.debugName;
-
-        mGAPIComputePipeline = Engine::GetRenderer()->GetGAPI().CreateComputePipeline({
-            .pipelineInfo = {
-                .shader = mShader ? mShader->GetGAPIShader() : nullptr
-            },
-            .debugName = createInfo.debugName
-        });
-
-        CacheShaderReflection(mShader);
-    }
-
-    bool ComputePipeline::HasRecompiledShaderInPipeline() const
-    {
-        return mShader && mShader->HasRecompiledShader() ? true : false;
-    }
-
-    void ComputePipeline::CacheShaderReflection(SharedPtr<Shader> shader)
-    {
-        if (shader)
-        {
-            mShaderReflection = shader->GetGAPIShader()->GetReflection();
-        }
-        else
-        {
-            mShaderReflection = {};
-        }
-    }
-
-    void GraphicsPipeline::MergeShaderReflection(const gapi::ShaderReflection& reflection)
-    {
-        for (const gapi::ShaderParameterBlockReflection& block : reflection.blocks)
-        {
-            bool found = false;
-            for (const gapi::ShaderParameterBlockReflection& existingBlock : mMergedShaderReflection.blocks)
+            if (result == Shader::RecompileResult::Unmodified)
             {
-                if (existingBlock.typeName == block.typeName && existingBlock.index == block.index)
-                {
-                    if (existingBlock.index != block.index)
-                    {
-                        CUBE_LOG(Error, Shader, "Found duplicated binding index in the same shader type! (Name: {0} / index: {1}, {2}) Use the former one.",
-                            block.typeName, existingBlock.index, block.index);
-                        break;
-                    }
-                    found = true;
-                    break;
-                }
+                continue;
             }
-            if (!found)
+
+            numRecompileShaders++;
+            if (result == Shader::RecompileResult::Success)
             {
-                mMergedShaderReflection.blocks.push_back(block);
+                succeededShaders.push_back(shader);
+            }
+            else if (result == Shader::RecompileResult::Failed)
+            {
+                failedShaders.push_back({ .shader = shader, .message = errorMessageBuffer });
             }
         }
 
-        mMergedShaderReflection.name += CUBE_T(";");
-        mMergedShaderReflection.name += reflection.name;
-    }
+        CUBE_LOG(Info, Shader, "Shader recompilation finished. (Success: {0} / Fail: {1})", succeededShaders.size(), failedShaders.size());
 
-    void GraphicsPipeline::CacheShaderReflection(SharedPtr<Shader> vertexShader, SharedPtr<Shader> pixelShader)
-    {
-        mMergedShaderReflection = {};
-
-        if (vertexShader)
+        if (!succeededShaders.empty())
         {
-            MergeShaderReflection(vertexShader->GetGAPIShader()->GetReflection());
+            // Evict cached pipelines that reference any recompiled shader BEFORE applying,
+            // because EvictStalePipelines reads the HasRecompiledShader flag.
+            mRenderer.GetPipelineManager().EvictStalePipelines();
+
+            CUBE_LOG(Info, Shader, "===== Succeeded recompile shaders =====");
+
+            for (Shader* shader : succeededShaders)
+            {
+                shader->ApplyRecompiledShader();
+
+                CUBE_LOG(Info, Shader, "\nDebugName: {0}\nPath: {1}\nEntryPoint: {2}\n",
+                    shader->GetDebugName(), shader->GetFilePathsString(), shader->GetEntryPoint());
+            }
         }
 
-        if (pixelShader)
+        if (!failedShaders.empty())
         {
-            MergeShaderReflection(pixelShader->GetGAPIShader()->GetReflection());
+            CUBE_LOG(Info, Shader, "===== Failed recompile shaders =====");
+            for (const FailedShader& failedShader : failedShaders)
+            {
+                CUBE_LOG(Info, Shader, "\nDebugName: {0}\nPath: {1}\nEntryPoint: {2}\nMessages: {3}",
+                    failedShader.shader->GetDebugName(), failedShader.shader->GetFilePathsString(), failedShader.shader->GetEntryPoint(),
+                    failedShader.message);
+
+                failedShader.shader->DiscardRecompiledShader();
+            }
         }
     }
 } // namespace cube
