@@ -30,6 +30,6 @@ public struct DirectionalLight : ILight
         );
         float3 v0 = BlinnPhongBRDF.Calculate(param);
 #endif
-        return v0 * dot(normal, direction) * intensity;
+        return v0 * max(dot(normal, direction), 0.0) * intensity;
     }
 }
