@@ -23,6 +23,8 @@ namespace cube
         static void ShutdownD3DDebugMessageLogging();
 
     private:
+        static bool IsPIXAttached();
+
         static LONG D3DVectoredExceptionHandler(EXCEPTION_POINTERS* exceptionInfo);
         static void CheckD3DDebugMessages();
 

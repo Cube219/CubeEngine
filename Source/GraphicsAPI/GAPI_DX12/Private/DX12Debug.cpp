@@ -21,6 +21,12 @@ namespace cube
     {
         CHECK(mIsInitialized == false);
 
+        if (IsPIXAttached())
+        {
+            CUBE_LOG(Info, DX12, "PIX is attached. Skip DX12 debug layer initialization.");
+            return;
+        }
+
         ComPtr<ID3D12Debug> debugController;
         if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController))))
         {
@@ -69,6 +75,11 @@ namespace cube
 
     void DX12Debug::InitializeD3DDebugMessageLogging(DX12Device& device)
     {
+        if (mIsInitialized == false)
+        {
+            return;
+        }
+
         mDevice = &device;
 
         bool useMessageCallback = false;
@@ -123,6 +134,11 @@ namespace cube
         {
             RemoveVectoredExceptionHandler(mExceptionHandler);
         }
+    }
+
+    bool DX12Debug::IsPIXAttached()
+    {
+        return GetModuleHandle(L"WinPixGpuCapturer.dll") != nullptr;
     }
 
     LONG DX12Debug::D3DVectoredExceptionHandler(EXCEPTION_POINTERS* exceptionInfo)
