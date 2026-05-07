@@ -244,7 +244,6 @@ namespace cube
                 gapi::ElementFormat::RGBA8_UNorm
             }
         };
-        pipelineInfo.CalculateHashValue();
         return mPipelineManager.GetOrCreateGraphicsPipeline({
             .pipelineInfo = pipelineInfo,
             .debugName = Format<FrameString>(CUBE_T("MaterialPipeline ({0})"), material->GetDebugName())

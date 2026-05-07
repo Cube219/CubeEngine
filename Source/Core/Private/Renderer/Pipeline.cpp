@@ -7,6 +7,22 @@
 
 namespace cube
 {
+    Uint64 GraphicsPipelineInfo::GetHashValue() const
+    {
+        Uint64 h = 0;
+        h = HashCombine(h, vertexShader ? vertexShader->GetGAPIShader()->GetContentHash() : 0);
+        h = HashCombine(h, pixelShader ? pixelShader->GetGAPIShader()->GetContentHash() : 0);
+        h = HashCombine(h, HashBytes(inputLayouts.data(), inputLayouts.size() * sizeof(gapi::InputElement)));
+        h = HashCombine(h, HashBytes(&rasterizerState, sizeof(rasterizerState)));
+        h = HashCombine(h, HashBytes(blendStates.data(), sizeof(gapi::BlendState) * numRenderTargets));
+        h = HashCombine(h, HashBytes(&depthStencilState, sizeof(depthStencilState)));
+        h = HashCombine(h, static_cast<Uint64>(primitiveTopologyType));
+        h = HashCombine(h, static_cast<Uint64>(numRenderTargets));
+        h = HashCombine(h, HashBytes(renderTargetFormats.data(), sizeof(gapi::ElementFormat) * numRenderTargets));
+        h = HashCombine(h, static_cast<Uint64>(depthStencilFormat));
+        return h;
+    }
+
     gapi::GraphicsPipelineInfo GraphicsPipelineInfo::GetGAPIVersion() const
     {
         return gapi::GraphicsPipelineInfo{
@@ -23,17 +39,10 @@ namespace cube
         };
     }
 
-    void GraphicsPipelineInfo::CalculateHashValue()
+    Uint64 ComputePipelineInfo::GetHashValue() const
     {
-        HashValue = GetGAPIVersion().GetHashValue();
+        return shader ? shader->GetGAPIShader()->GetContentHash() : 0;
     }
-
-#if CUBE_USE_CHECK
-    bool GraphicsPipelineInfo::ValidateHashValue() const
-    {
-        return HashValue == GetGAPIVersion().GetHashValue();
-    }
-#endif // CUBE_USE_CHECK
 
     gapi::ComputePipelineInfo ComputePipelineInfo::GetGAPIVersion() const
     {
@@ -41,18 +50,6 @@ namespace cube
             .shader = shader ? shader->GetGAPIShader() : nullptr
         };
     }
-
-    void ComputePipelineInfo::CalculateHashValue()
-    {
-        HashValue = GetGAPIVersion().GetHashValue();
-    }
-
-#if CUBE_USE_CHECK
-    bool ComputePipelineInfo::ValidateHashValue() const
-    {
-        return HashValue == GetGAPIVersion().GetHashValue();
-    }
-#endif // CUBE_USE_CHECK
 
     GraphicsPipeline::GraphicsPipeline(GAPI& gapi, const GraphicsPipelineCreateInfo& createInfo)
     {
@@ -179,12 +176,6 @@ namespace cube
     SharedPtr<GraphicsPipeline> PipelineManager::GetOrCreateGraphicsPipeline(const GraphicsPipelineCreateInfo& createInfo)
     {
         Uint64 hashValue = createInfo.pipelineInfo.GetHashValue();
-#if CUBE_USE_CHECK
-        if (!createInfo.pipelineInfo.ValidateHashValue())
-        {
-            NO_ENTRY_FORMAT("Hash value mismatch found! Did you forget to call CalculateHashValue() after changing pipeline data?");
-        }
-#endif // CUBE_USE_CHECK
 
         if (auto findIt = mCachedGraphicsPipelines.find(hashValue); findIt != mCachedGraphicsPipelines.end())
         {
@@ -201,12 +192,6 @@ namespace cube
     SharedPtr<ComputePipeline> PipelineManager::GetOrCreateComputePipeline(const ComputePipelineCreateInfo& createInfo)
     {
         Uint64 hashValue = createInfo.pipelineInfo.GetHashValue();
-#if CUBE_USE_CHECK
-        if (!createInfo.pipelineInfo.ValidateHashValue())
-        {
-            NO_ENTRY_FORMAT("Hash value mismatch found! Did you forget to call CalculateHashValue() after changing pipeline data?");
-        }
-#endif // CUBE_USE_CHECK
 
         if (auto findIt = mCachedComputePipelines.find(hashValue); findIt != mCachedComputePipelines.end())
         {

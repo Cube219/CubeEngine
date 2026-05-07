@@ -78,7 +78,6 @@ namespace cube
                 .numRenderTargets = 1,
                 .renderTargetFormats = { gapi::ElementFormat::RGBA8_UNorm }
             };
-            mSkyboxPipelineInfo.CalculateHashValue();
         }
 
         {
@@ -97,7 +96,6 @@ namespace cube
             mGenerateIrradianceMapPipelineInfo = {
                 .shader = mGenerateIrradianceMapShader
             };
-            mGenerateIrradianceMapPipelineInfo.CalculateHashValue();
         }
 
         mCommandList = mRenderer.GetGAPI().CreateCommandList({
@@ -238,7 +236,6 @@ namespace cube
         mSkyboxPipelineInfo.rasterizerState.fillMode = mRenderer.IsDrawInWireframe()
             ? gapi::RasterizerState::FillMode::Line
             : gapi::RasterizerState::FillMode::Solid;
-        mSkyboxPipelineInfo.CalculateHashValue();
         SharedPtr<GraphicsPipeline> skyboxPipeline = mRenderer.GetPipelineManager().GetOrCreateGraphicsPipeline({
             .pipelineInfo = mSkyboxPipelineInfo,
             .debugName = CUBE_T("SkyboxPipeline")

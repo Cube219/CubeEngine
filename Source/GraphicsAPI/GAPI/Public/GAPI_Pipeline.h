@@ -160,22 +160,6 @@ namespace cube
             Uint32 numRenderTargets;
             Array<ElementFormat, MAX_NUM_RENDER_TARGETS> renderTargetFormats;
             ElementFormat depthStencilFormat = ElementFormat::D32_Float;
-
-            Uint64 GetHashValue() const
-            {
-                Uint64 h = 0;
-                h = HashCombine(h, vertexShader ? vertexShader->GetContentHash() : 0);
-                h = HashCombine(h, pixelShader ? pixelShader->GetContentHash() : 0);
-                h = HashCombine(h, HashBytes(inputLayouts.data(), inputLayouts.size_bytes()));
-                h = HashCombine(h, HashBytes(&rasterizerState, sizeof(rasterizerState)));
-                h = HashCombine(h, HashBytes(blendStates.data(), sizeof(BlendState) * numRenderTargets));
-                h = HashCombine(h, HashBytes(&depthStencilState, sizeof(depthStencilState)));
-                h = HashCombine(h, static_cast<Uint64>(primitiveTopologyType));
-                h = HashCombine(h, static_cast<Uint64>(numRenderTargets));
-                h = HashCombine(h, HashBytes(renderTargetFormats.data(), sizeof(ElementFormat) * numRenderTargets));
-                h = HashCombine(h, static_cast<Uint64>(depthStencilFormat));
-                return h;
-            }
         };
 
         struct GraphicsPipelineCreateInfo
@@ -195,11 +179,6 @@ namespace cube
         struct ComputePipelineInfo
         {
             SharedPtr<Shader> shader;
-
-            Uint64 GetHashValue() const
-            {
-                return shader ? shader->GetContentHash() : 0;
-            }
         };
 
         struct ComputePipelineCreateInfo

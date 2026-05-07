@@ -32,15 +32,8 @@ namespace cube
         Array<gapi::ElementFormat, gapi::MAX_NUM_RENDER_TARGETS> renderTargetFormats;
         gapi::ElementFormat depthStencilFormat = gapi::ElementFormat::D32_Float;
 
-        Uint64 HashValue = 0;
-
-        Uint64 GetHashValue() const { CHECK(HashValue); return HashValue; }
+        Uint64 GetHashValue() const;
         gapi::GraphicsPipelineInfo GetGAPIVersion() const;
-
-        void CalculateHashValue();
-#if CUBE_USE_CHECK
-        bool ValidateHashValue() const;
-#endif // CUBE_USE_CHECK
     };
 
     struct GraphicsPipelineCreateInfo
@@ -80,15 +73,8 @@ namespace cube
     {
         SharedPtr<Shader> shader;
 
-        Uint64 HashValue = 0;
-
-        Uint64 GetHashValue() const { CHECK(HashValue); return HashValue; }
+        Uint64 GetHashValue() const;
         gapi::ComputePipelineInfo GetGAPIVersion() const;
-
-        void CalculateHashValue();
-#if CUBE_USE_CHECK
-        bool ValidateHashValue() const;
-#endif
     };
 
     struct ComputePipelineCreateInfo

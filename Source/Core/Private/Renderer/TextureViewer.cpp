@@ -67,7 +67,6 @@ namespace cube
             mCopyToTextureViewer2DPipelineInfo = {
                 .shader = mCopyToTextureViewer2DShader
             };
-            mCopyToTextureViewer2DPipelineInfo.CalculateHashValue();
         }
 
         {
@@ -86,7 +85,6 @@ namespace cube
             mCopyToTextureViewerCubePipelineInfo = {
                 .shader = mCopyToTextureViewerCubeShader
             };
-            mCopyToTextureViewerCubePipelineInfo.CalculateHashValue();
         }
 
         {
@@ -105,7 +103,6 @@ namespace cube
             mFetchInfoPipelineInfo = {
                 .shader = mFetchInfoShader
             };
-            mFetchInfoPipelineInfo.CalculateHashValue();
         }
 
         mReadbackBuffers.resize(numGPUSync);

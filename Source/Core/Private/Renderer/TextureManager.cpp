@@ -44,7 +44,6 @@ namespace cube
             mGenerateMipmapsPipelineInfo = {
                 .shader = mGenerateMipmapsShader
             };
-            mGenerateMipmapsPipelineInfo.CalculateHashValue();
         }
 
         mCommandList = mGAPI->CreateCommandList({
