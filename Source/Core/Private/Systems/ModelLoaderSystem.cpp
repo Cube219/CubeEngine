@@ -103,10 +103,8 @@ namespace cube
     {
     }
 
-    void ModelLoaderSystem::OnLoopImGUI()
+    void ModelLoaderSystem::OnLoopImGUIContent()
     {
-        ImGui::Begin("Model Loader", 0, ImGuiWindowFlags_AlwaysAutoResize);
-
         const char* modelSelectPreview = mCurrentSelectModelIndex >= 0 ? mModelPathList[mCurrentSelectModelIndex].name.c_str() : "";
         static bool modelDropdownExpandedLastFrame = false;
         if (ImGui::BeginCombo("Models", modelSelectPreview))
@@ -191,8 +189,6 @@ namespace cube
         {
             LoadCurrentModelAndSet(false);
         }
-
-        ImGui::End();
     }
 
     ModelResources ModelLoaderSystem::LoadModel(const ModelPathInfo& pathInfo)

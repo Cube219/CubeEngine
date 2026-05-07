@@ -53,7 +53,7 @@ namespace cube
         void Initialize(GAPIName gAPIName, const ImGUIContext& imGUIContext, Uint32 numGPUSync = 3);
         void Shutdown(const ImGUIContext& imGUIContext);
 
-        void OnLoopImGUI();
+        void OnLoopImGUIContent();
         void RenderAndPresent();
 
         void OnResize(Uint32 width, Uint32 height);

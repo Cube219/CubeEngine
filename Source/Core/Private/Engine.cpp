@@ -286,9 +286,30 @@ namespace cube
         if (mImGUIShowDemoWindow)
             ImGui::ShowDemoWindow(&mImGUIShowDemoWindow);
 
-        CameraSystem::OnLoopImGUI();
-        mRenderer->OnLoopImGUI();
-        ModelLoaderSystem::OnLoopImGUI();
+        ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize({ 320, 900 }, ImGuiCond_FirstUseEver);
+        ImGui::Begin("CubeEngine Config");
+
+        if (ImGui::TreeNodeEx("Camera", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed))
+        {
+            CameraSystem::OnLoopImGUIContent();
+            ImGui::TreePop();
+        }
+
+        if (ImGui::TreeNodeEx("Model Loader", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed))
+        {
+            ModelLoaderSystem::OnLoopImGUIContent();
+            ImGui::TreePop();
+        }
+
+        if (ImGui::TreeNodeEx("Renderer", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed))
+        {
+            mRenderer->OnLoopImGUIContent();
+            ImGui::TreePop();
+        }
+
+        ImGui::End();
+
         StatsSystem::OnLoopImGUI();
     }
 

@@ -27,7 +27,7 @@ namespace cube
         static void Shutdown();
 
         static void OnLoop(double deltaTime);
-        static void OnLoopImGUI();
+        static void OnLoopImGUIContent();
         static void OnResize(Uint32 width, Uint32 height);
 
 

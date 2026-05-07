@@ -42,7 +42,7 @@ namespace cube
         static void Initialize();
         static void Shutdown();
 
-        static void OnLoopImGUI();
+        static void OnLoopImGUIContent();
 
         static ModelResources LoadModel(const ModelPathInfo& pathInfo);
 

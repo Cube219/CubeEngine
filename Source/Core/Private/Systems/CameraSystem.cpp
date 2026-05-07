@@ -253,10 +253,8 @@ namespace cube
         UpdateViewMatrix();
     }
 
-    void CameraSystem::OnLoopImGUI()
+    void CameraSystem::OnLoopImGUIContent()
     {
-        ImGui::Begin("Camera");
-
         // Position
         float position[3] = { mPosition.GetFloat3().x, mPosition.GetFloat3().y, mPosition.GetFloat3().z };
 
@@ -307,8 +305,6 @@ namespace cube
         {
             Reset();
         }
-
-        ImGui::End();
     }
 
     void CameraSystem::OnResize(Uint32 width, Uint32 height)

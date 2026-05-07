@@ -144,10 +144,8 @@ namespace cube
         mGAPI_DLib = nullptr;
     }
 
-    void Renderer::OnLoopImGUI()
+    void Renderer::OnLoopImGUIContent()
     {
-        ImGui::Begin("Renderer");
-
         if (ImGui::CollapsingHeader("Lighting", ImGuiTreeNodeFlags_DefaultOpen))
         {
             ImGui::SeparatorText("Directional Light");
@@ -207,8 +205,6 @@ namespace cube
                 mTextureViewer.Show();
             }
         }
-
-        ImGui::End();
 
         mTextureViewer.OnLoopImGUI();
     }

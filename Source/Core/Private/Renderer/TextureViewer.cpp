@@ -154,6 +154,8 @@ namespace cube
             return;
         }
 
+        ImGui::SetNextWindowPos({ 400, 160 }, ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize({ 600, 630 }, ImGuiCond_FirstUseEver);
         if (ImGui::Begin("Texture Viewer", &mShow))
         {
             if (mIsCopied)
