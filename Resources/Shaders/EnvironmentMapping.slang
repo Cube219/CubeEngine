@@ -1,6 +1,7 @@
 import Common;
 import Global;
 import StaticSampler;
+import Utils;
 
 struct GenerateIrradianceMapShaderParameterList
 {
@@ -10,33 +11,6 @@ struct GenerateIrradianceMapShaderParameterList
     Bindless<RWTexture2DArray> dstDiffuseIrradianceMap;
 };
 ParameterBlock<GenerateIrradianceMapShaderParameterList> generateIrradianceMapParams;
-
-static float3 baseDirections[6] = {
-    float3( 1.0,  0.0,  0.0),
-    float3(-1.0,  0.0,  0.0),
-    float3( 0.0,  1.0,  0.0),
-    float3( 0.0, -1.0,  0.0),
-    float3( 0.0,  0.0,  1.0),
-    float3( 0.0,  0.0, -1.0)
-};
-
-static float3 axisOfU[6] = {
-    float3( 0.0,  0.0, -1.0),
-    float3( 0.0,  0.0,  1.0),
-    float3( 1.0,  0.0,  0.0),
-    float3( 1.0,  0.0,  0.0),
-    float3( 1.0,  0.0,  0.0),
-    float3(-1.0,  0.0,  0.0)
-};
-
-static float3 axisOfV[6] = {
-    float3( 0.0, -1.0,  0.0),
-    float3( 0.0, -1.0,  0.0),
-    float3( 0.0,  0.0,  1.0),
-    float3( 0.0,  0.0, -1.0),
-    float3( 0.0, -1.0,  0.0),
-    float3( 0.0, -1.0,  0.0)
-};
 
 float3 CalculateDiffuseIrradiance(uniform TextureCube src, float3 normal, uint numSlices)
 {
@@ -82,13 +56,8 @@ void GenerateIrradianceMapCS(
         return;
     }
 
-    // [-1, 1]
-    const float2 snormUV = (float2(dstCoord.xy) + 0.5) * generateIrradianceMapParams.widthAndInvWidth.yy * 2 - 1;
-    const float3 normal = normalize(
-        baseDirections[dstCoord.z]
-        + axisOfU[dstCoord.z] * snormUV.x
-        + axisOfV[dstCoord.z] * snormUV.y
-    );
+    const float2 uv = (float2(dstCoord.xy) + 0.5) * generateIrradianceMapParams.widthAndInvWidth.yy;
+    const float3 normal = Cubemap::CubemapUVToVector(uv, dstCoord.z);
 
     generateIrradianceMapParams.dstDiffuseIrradianceMap[dstCoord] = float4(CalculateDiffuseIrradiance(generateIrradianceMapParams.srcIBL, normal, generateIrradianceMapParams.numSlices), 1);
 }

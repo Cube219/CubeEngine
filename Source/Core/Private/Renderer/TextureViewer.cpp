@@ -22,6 +22,16 @@ namespace cube
     };
     CUBE_REGISTER_SHADER_PARAMETER_LIST(CopyToTextureViewerShaderParameterList);
 
+    class CopyToTextureViewerCubeShaderParameterList : public ShaderParameterList
+    {
+        CUBE_BEGIN_SHADER_PARAMETER_LIST(CopyToTextureViewerCubeShaderParameterList)
+            CUBE_SHADER_PARAMETER(Vector4, srcSizeAndInvSize)
+            CUBE_SHADER_PARAMETER(RGTextureSRVHandle, srcTextureCube)
+            CUBE_SHADER_PARAMETER(RGTextureUAVHandle, dstTexture)
+        CUBE_END_SHADER_PARAMETER_LIST
+    };
+    CUBE_REGISTER_SHADER_PARAMETER_LIST(CopyToTextureViewerCubeShaderParameterList);
+
     class TextureViewerFetchInfoShaderParameterList : public ShaderParameterList
     {
         CUBE_BEGIN_SHADER_PARAMETER_LIST(TextureViewerFetchInfoShaderParameterList)
@@ -58,6 +68,25 @@ namespace cube
                 .shader = mCopyToTextureViewer2DShader
             };
             mCopyToTextureViewer2DPipelineInfo.CalculateHashValue();
+        }
+
+        {
+            platform::FilePath textureViewerShaderFilePath = Engine::GetShaderDirectoryPath() / CUBE_T("TextureViewerCube.slang");
+
+            mCopyToTextureViewerCubeShader = mRenderer.GetShaderManager().CreateShader({
+                .shaderInfo = {
+                    .type = gapi::ShaderType::Compute,
+                    .entryPoint = "CopyToTextureViewerCubeCS"
+                },
+                .filePaths = { &textureViewerShaderFilePath, 1 },
+                .debugName = CUBE_T("CopyToTextureViewerCube CS")
+            });
+            CHECK(mCopyToTextureViewerCubeShader);
+
+            mCopyToTextureViewerCubePipelineInfo = {
+                .shader = mCopyToTextureViewerCubeShader
+            };
+            mCopyToTextureViewerCubePipelineInfo.CalculateHashValue();
         }
 
         {
@@ -109,6 +138,8 @@ namespace cube
 
         mFetchInfoPipelineInfo = {};
         mFetchInfoShader = nullptr;
+        mCopyToTextureViewerCubePipelineInfo = {};
+        mCopyToTextureViewerCubeShader = nullptr;
         mCopyToTextureViewer2DPipelineInfo = {};
         mCopyToTextureViewer2DShader = nullptr;
 
@@ -138,6 +169,13 @@ namespace cube
                     ImGui::Text("MipLevel: %d", mSubresourceRange.firstMipLevel);
                     break;
                 }
+                case gapi::TextureType::TextureCube:
+                {
+                    ImGui::Text("Type: TextureCube");
+                    ImGui::Text("Dimensions: %d x %d", mTextureInfo.width, mTextureInfo.height);
+                    ImGui::Text("MipLevel: %d", mSubresourceRange.firstMipLevel);
+                    break;
+                }
                 default:
                     break;
                 }
@@ -160,7 +198,7 @@ namespace cube
                 {
                     const float oldZoom = mZoom;
                     float newZoom = oldZoom * std::pow(1.1f, io.MouseWheel);
-                    newZoom = Math::Min(Math::Max(newZoom, 0.1f), 32.0f);
+                    newZoom = Math::Min(Math::Max(newZoom, 0.02f), 32.0f);
 
                     if (std::abs(newZoom - oldZoom) > std::numeric_limits<float>::epsilon())
                     {
@@ -185,51 +223,29 @@ namespace cube
 
                 const float scaledWidth = static_cast<float>(mCopiedTextureWidth) * mZoom;
                 const float scaledHeight = static_cast<float>(mCopiedTextureHeight) * mZoom;
-                const ImVec2 imageMin(
+                const Float2 imageMin(
                     canvasOrigin.x + (canvasSize.x - scaledWidth) * 0.5f + mPanOffsetX,
                     canvasOrigin.y + (canvasSize.y - scaledHeight) * 0.5f + mPanOffsetY
                 );
-                const ImVec2 imageMax(imageMin.x + scaledWidth, imageMin.y + scaledHeight);
+                const Float2 imageMax(imageMin.x + scaledWidth, imageMin.y + scaledHeight);
 
                 ImDrawList* drawList = ImGui::GetWindowDrawList();
                 drawList->AddCallback(ImGui::GetPlatformIO().DrawCallback_SetSamplerNearest);
-                drawList->AddImage(mCopiedTextureSRV->GetImTextureID(), imageMin, imageMax);
+                drawList->AddImage(mCopiedTextureSRV->GetImTextureID(), { imageMin.x, imageMin.y }, { imageMax.x, imageMax.y });
                 drawList->AddCallback(ImDrawCallback_ResetRenderState);
 
                 ImGui::EndChild();
 
                 if (isHovered && scaledWidth > 0.0f && scaledHeight > 0.0f)
                 {
-                    const ImVec2 mousePos = io.MousePos;
-                    const float u = (mousePos.x - imageMin.x) / scaledWidth;
-                    const float v = (mousePos.y - imageMin.y) / scaledHeight;
-                    if (u >= 0.0f && u < 1.0f && v >= 0.0f && v < 1.0f)
-                    {
-                        mPixelX = static_cast<int>(u * static_cast<float>(mTextureInfo.width));
-                        mPixelY = static_cast<int>(v * static_cast<float>(mTextureInfo.height));
-                        ImGui::Text("Pixel (%d, %d) / UV (%.4f, %.4f)", mPixelX, mPixelY, u, v);
-
-                        ImVec4 color = { mReadbackInfo.color.x, mReadbackInfo.color.y, mReadbackInfo.color.z, mReadbackInfo.color.w };
-                        ImGui::Text("R(%.4f) / G(%.4f) / B(%.4f) / A(%.4f)", color.x, color.y, color.z, color.w);
-                        ImGui::SameLine();
-                        ImGui::ColorButton("##PixelColor", *(ImVec4*)&color, ImGuiColorEditFlags_None, ImVec2(bottomTextLineSize - 5, bottomTextLineSize - 5));
-                    }
-                    else
-                    {
-                        ImGui::Text("Pixel / UV");
-                        ImGui::Text("R / G / B / A");
-                        mPixelX = -1;
-                        mPixelY = -1;
-                    }
+                    ImGUIPixelInfo({ io.MousePos.x, io.MousePos.y }, imageMin, imageMax);
                 }
                 else
                 {
-                    ImGui::Text("Pixel / UV");
-                    ImGui::Text("R / G / B / A");
-                    mPixelX = -1;
-                    mPixelY = -1;
+                    ImGUIPixelInfo({ -1, -1 }, imageMin, imageMax);
                 }
-                // TODO: RGBA mask / color range
+                // TODO: Select miplevel / array index.
+                // TODO: RGBA mask / color range.
             }
             else
             {
@@ -254,12 +270,12 @@ namespace cube
     void TextureViewer::SetTexture(RGBuilder& builder, RGTextureHandle texture, gapi::SubresourceRangeInput subresourceRange)
     {
         const gapi::TextureInfo& textureInfo = texture->GetTextureInfo();
-        if (textureInfo.type != gapi::TextureType::Texture2D)
+        if (textureInfo.type != gapi::TextureType::Texture2D && textureInfo.type != gapi::TextureType::TextureCube)
         {
             NOT_IMPLEMENTED();
         }
 
-        CreateNewCopiedTextureIfNeeded(textureInfo.width, textureInfo.height);
+        CreateNewCopiedTextureIfNeeded(textureInfo);
 
         mName = String_Convert<AnsiString>(texture->GetDebugName());
         mRenderingFrame = mRenderer.GetCurrentRenderingFrame();
@@ -270,25 +286,53 @@ namespace cube
         RGTextureHandle dstTex = builder.RegisterTexture(mCopiedTexture);
         RGTextureUAVHandle dstUAV = builder.CreateUAV(dstTex);
 
-        auto params = builder.CreateShaderParameterList<CopyToTextureViewerShaderParameterList>();
-        params->Get()->dstSizeAndInvSize = Vector4(
-            static_cast<float>(mCopiedTextureWidth), static_cast<float>(mCopiedTextureHeight),
-            1.0f / static_cast<float>(mCopiedTextureWidth), 1.0f / static_cast<float>(mCopiedTextureHeight)
-        );
-        params->Get()->srcTexture2D = srcSRV;
-        params->Get()->dstTexture = dstUAV;
+        if (textureInfo.type == gapi::TextureType::Texture2D)
+        {
+            auto params = builder.CreateShaderParameterList<CopyToTextureViewerShaderParameterList>();
+            params->Get()->dstSizeAndInvSize = Vector4(
+                static_cast<float>(mCopiedTextureWidth), static_cast<float>(mCopiedTextureHeight),
+                1.0f / static_cast<float>(mCopiedTextureWidth), 1.0f / static_cast<float>(mCopiedTextureHeight)
+            );
+            params->Get()->srcTexture2D = srcSRV;
+            params->Get()->dstTexture = dstUAV;
 
-        SharedPtr<ComputePipeline> copyToTextureViewer2DPipeline = mRenderer.GetPipelineManager().GetOrCreateComputePipeline({
-            .pipelineInfo = mCopyToTextureViewer2DPipelineInfo,
-            .debugName = CUBE_T("CopyToTextureViewer2D Pipeline")
-        });
-        builder.AddPass(
-            Format<FrameString>(CUBE_T("TextureViewer CopyToTexture - {0}"), mName), copyToTextureViewer2DPipeline,
-            RGBuilder::MakeParameterListArray(params),
-            [width = mCopiedTextureWidth, height = mCopiedTextureHeight](gapi::CommandList& commandList){
-                commandList.DispatchThreads(width, height, 1);
-            }
-        );
+            SharedPtr<ComputePipeline> copyToTextureViewer2DPipeline = mRenderer.GetPipelineManager().GetOrCreateComputePipeline({
+                .pipelineInfo = mCopyToTextureViewer2DPipelineInfo,
+                .debugName = CUBE_T("CopyToTextureViewer2D Pipeline")
+            });
+            builder.AddPass(
+                Format<FrameString>(CUBE_T("TextureViewer CopyToTexture - {0}"), mName), copyToTextureViewer2DPipeline,
+                RGBuilder::MakeParameterListArray(params),
+                [width = mCopiedTextureWidth, height = mCopiedTextureHeight](gapi::CommandList& commandList){
+                    commandList.DispatchThreads(width, height, 1);
+                }
+            );
+        }
+        else if (textureInfo.type == gapi::TextureType::TextureCube)
+        {
+            const Uint32 srcWidth = mTextureInfo.width;
+            const Uint32 srcHeight = mTextureInfo.height;
+
+            auto params = builder.CreateShaderParameterList<CopyToTextureViewerCubeShaderParameterList>();
+            params->Get()->srcSizeAndInvSize = Vector4(
+                static_cast<float>(srcWidth), static_cast<float>(srcHeight),
+                1.0f / static_cast<float>(srcWidth), 1.0f / static_cast<float>(srcHeight)
+            );
+            params->Get()->srcTextureCube = srcSRV;
+            params->Get()->dstTexture = dstUAV;
+
+            SharedPtr<ComputePipeline> copyToTextureViewerCubePipeline = mRenderer.GetPipelineManager().GetOrCreateComputePipeline({
+                .pipelineInfo = mCopyToTextureViewerCubePipelineInfo,
+                .debugName = CUBE_T("CopyToTextureViewerCube Pipeline")
+            });
+            builder.AddPass(
+                Format<FrameString>(CUBE_T("TextureViewer CopyToTextureCube - {0}"), mName), copyToTextureViewerCubePipeline,
+                RGBuilder::MakeParameterListArray(params),
+                [width = srcWidth, height = srcHeight](gapi::CommandList& commandList){
+                    commandList.DispatchThreads(width, height, 6);
+                }
+            );
+        }
 
         mIsCopied = true;
     }
@@ -330,17 +374,107 @@ namespace cube
         );
     }
 
-    void TextureViewer::CreateNewCopiedTextureIfNeeded(Uint32 width, Uint32 height)
+    void TextureViewer::ImGUIPixelInfo(Float2 mousePos, Float2 imageMin, Float2 imageMax)
     {
-        if (mCopiedTexture && mCopiedTextureWidth == width && mCopiedTextureHeight == height)
+        bool pixelPrinted = false;
+        bool colorPrinted = false;
+
+        if (mousePos.x >= 0 && mousePos.y >= 0)
+        {
+            const float imageWidth = imageMax.x - imageMin.x;
+            const float imageHeight = imageMax.y - imageMin.y;
+            const float u = (mousePos.x - imageMin.x) / imageWidth;
+            const float v = (mousePos.y - imageMin.y) / imageHeight;
+            if (u >= 0.0f && u < 1.0f && v >= 0.0f && v < 1.0f)
+            {
+                const float bottomTextLineSize = ImGui::GetTextLineHeightWithSpacing();
+
+                mPixelX = static_cast<int>(u * static_cast<float>(mCopiedTextureWidth));
+                mPixelY = static_cast<int>(v * static_cast<float>(mCopiedTextureHeight));
+
+                if (mTextureInfo.type == gapi::TextureType::TextureCube)
+                {
+                    const Uint32 faceWidth = mTextureInfo.width;
+                    const Uint32 faceHeight = mTextureInfo.height;
+
+                    static const Uint32 cubeMultiplierX[6] = { 2, 0, 1, 1, 1, 3 };
+                    static const Uint32 cubeMultiplierY[6] = { 1, 1, 0, 2, 1, 1 };
+                    int faceIndex = -1;
+                    for (int i = 0; i < 6; ++i)
+                    {
+                        const Uint32 faceMinX = faceWidth * cubeMultiplierX[i];
+                        const Uint32 faceMinY = faceHeight * cubeMultiplierY[i];
+                        if ((static_cast<int>(faceMinX) <= mPixelX && mPixelX < static_cast<int>(faceMinX + faceWidth))
+                            && (static_cast<int>(faceMinY) <= mPixelY && mPixelY < static_cast<int>(faceMinY + faceHeight)))
+                        {
+                            faceIndex = i;
+                            break;
+                        }
+                    }
+
+                    if (faceIndex != -1)
+                    {
+                        const Uint32 faceMinX = faceWidth * cubeMultiplierX[faceIndex];
+                        const Uint32 faceMinY = faceHeight * cubeMultiplierY[faceIndex];
+                        const Uint32 faceX = mPixelX - faceMinX;
+                        const Uint32 faceY = mPixelY - faceMinY;
+                        const float faceU = (static_cast<float>(faceX) + 0.5f) / static_cast<float>(faceWidth);
+                        const float faceV = (static_cast<float>(faceY) + 0.5f) / static_cast<float>(faceHeight);
+                        static const char* faceStr[6] = { "+X", "-X", "+Y", "-Y", "+Z", "-Z" };
+
+                        ImGui::Text("Pixel (%d, %d, %s) / UV (%.4f, %.4f)", faceX, faceY, faceStr[faceIndex], faceU, faceV);
+                        pixelPrinted = true;
+                    }
+                }
+                else
+                {
+                    ImGui::Text("Pixel (%d, %d) / UV (%.4f, %.4f)", mPixelX, mPixelY, u, v);
+                    pixelPrinted = true;
+                }
+
+                if (pixelPrinted)
+                {
+                    ImVec4 color = { mReadbackInfo.color.x, mReadbackInfo.color.y, mReadbackInfo.color.z, mReadbackInfo.color.w };
+                    ImGui::Text("R(%.4f) / G(%.4f) / B(%.4f) / A(%.4f)", color.x, color.y, color.z, color.w);
+                    ImGui::SameLine();
+                    ImGui::ColorButton("##PixelColor", *(ImVec4*)&color, ImGuiColorEditFlags_None, ImVec2(bottomTextLineSize - 5, bottomTextLineSize - 5));
+                    colorPrinted = true;
+                }
+            }
+        }
+
+        if (!pixelPrinted)
+        {
+            ImGui::Text("Pixel / UV");
+            mPixelX = -1;
+            mPixelY = -1;
+        }
+
+        if (!colorPrinted)
+        {
+            ImGui::Text("R / G / B / A");
+        }
+    }
+
+    void TextureViewer::CreateNewCopiedTextureIfNeeded(const gapi::TextureInfo& info)
+    {
+        Uint32 newWidth = info.width;
+        Uint32 newHeight = info.height;
+        if (info.type == gapi::TextureType::TextureCube)
+        {
+            newWidth *= 4;
+            newHeight *= 3;
+        }
+
+        if (mCopiedTexture && mCopiedTextureWidth == newWidth && mCopiedTextureHeight == newHeight)
         {
             return;
         }
 
         mCopiedTextureSRV = nullptr;
         mCopiedTexture = nullptr;
-        mCopiedTextureWidth = width;
-        mCopiedTextureHeight = height;
+        mCopiedTextureWidth = newWidth;
+        mCopiedTextureHeight = newHeight;
 
         mCopiedTexture = mRenderer.GetGAPI().CreateTexture({
             .usage = gapi::ResourceUsage::GPUOnly,
@@ -348,8 +482,8 @@ namespace cube
                 .format = gapi::ElementFormat::RGBA8_UNorm,
                 .type = gapi::TextureType::Texture2D,
                 .flags = gapi::TextureFlag::UAV,
-                .width = width,
-                .height = height
+                .width = newWidth,
+                .height = newHeight
             },
             .debugName = CUBE_T("TextureViewer CopiedTexture")
         });
@@ -359,9 +493,9 @@ namespace cube
     void TextureViewer::ProcessReadbackInfo()
     {
         Byte* data = reinterpret_cast<Byte*>(GetCurrentReadbackBuffer().pData);
-        mReadbackInfo.color.x = *reinterpret_cast<float*>(data);
-        mReadbackInfo.color.y = *reinterpret_cast<float*>(data + 4);
-        mReadbackInfo.color.z = *reinterpret_cast<float*>(data + 8);
-        mReadbackInfo.color.w = *reinterpret_cast<float*>(data + 12);
+        memcpy(&mReadbackInfo.color.x, data, sizeof(float));
+        memcpy(&mReadbackInfo.color.y, data + 4, sizeof(float));
+        memcpy(&mReadbackInfo.color.z, data + 8, sizeof(float));
+        memcpy(&mReadbackInfo.color.w, data + 12, sizeof(float));
     }
 } // namespace cube

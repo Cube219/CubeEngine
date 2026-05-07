@@ -38,13 +38,17 @@ namespace cube
         void FetchInfo(RGBuilder& builder);
 
     private:
-        void CreateNewCopiedTextureIfNeeded(Uint32 width, Uint32 height);
+        void ImGUIPixelInfo(Float2 mousePos, Float2 imageMin, Float2 imageMax);
+
+        void CreateNewCopiedTextureIfNeeded(const gapi::TextureInfo& info);
         void ProcessReadbackInfo();
 
         Renderer& mRenderer;
 
         SharedPtr<Shader> mCopyToTextureViewer2DShader;
         ComputePipelineInfo mCopyToTextureViewer2DPipelineInfo;
+        SharedPtr<Shader> mCopyToTextureViewerCubeShader;
+        ComputePipelineInfo mCopyToTextureViewerCubePipelineInfo;
         SharedPtr<Shader> mFetchInfoShader;
         ComputePipelineInfo mFetchInfoPipelineInfo;
 
