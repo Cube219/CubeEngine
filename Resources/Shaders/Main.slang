@@ -5,6 +5,7 @@ import Material;
 
 ParameterBlock<GlobalShaderParameterList> globalParams;
 ParameterBlock<ObjectShaderParameterList> perObjectParams;
+ParameterBlock<SubMeshShaderParameterList> subMeshObjectParams;
 ParameterBlock<MaterialShaderParameterList> materialParams;
 ParameterBlock<EnvironmentMapLightShaderParameterList> envMapParams;
 
@@ -16,16 +17,19 @@ struct PSOutput
 };
 
 [shader("vertex")]
-PSInput VSMain(VSInput input)
+PSInput VSMain(uint vertexId : SV_VertexID)
 {
+    uint vbOffset = subMeshObjectParams.vertexBufferOffset;
+    Vertex v = Vertex(perObjectParams.vertexBuffer, vbOffset + vertexId, perObjectParams.useFP16);
+
     PSInput output;
 
-    output.position = mul(mul(float4(input.position, 1), perObjectParams.model), globalParams.viewProjection);
-    output.worldPosition = mul(float4(input.position, 1), perObjectParams.model);
-    output.normal = normalize(mul(input.normal, (float3x3)perObjectParams.modelInverseTranspose));
-    output.tangent.xyz = normalize(mul(input.tangent.xyz, (float3x3)perObjectParams.model));
-    output.tangent.w = input.tangent.w;
-    output.uv = input.uv;
+    output.position = mul(mul(float4(v.position, 1), perObjectParams.model), globalParams.viewProjection);
+    output.worldPosition = mul(float4(v.position, 1), perObjectParams.model);
+    output.normal = normalize(mul(v.normal, (float3x3)perObjectParams.modelInverseTranspose));
+    output.tangent.xyz = normalize(mul(v.tangent.xyz, (float3x3)perObjectParams.model));
+    output.tangent.w = v.tangent.w;
+    output.uv = v.uv;
 
     return output;
 }

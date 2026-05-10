@@ -457,22 +457,26 @@ namespace cube
     {
         CHECK(mState == State::Init);
 
-        FrameVector<RGShaderParameterListBaseHandle> paramListArray(2);
+        FrameVector<RGShaderParameterListBaseHandle> paramListArray(3);
         paramListArray.insert(paramListArray.end(), parameterLists.begin(), parameterLists.end());
 
         for (const DrawMeshInfo& drawMeshInfo : drawMeshInfos)
         {
+            const MeshMetadata& meshMeta = drawMeshInfo.mesh->GetMeta();
+
+            RGBufferHandle rgVertexBuffer = RegisterBuffer(drawMeshInfo.mesh->GetVertexBuffer());
+            RGBufferSRVHandle rgVertexBufferSRV = CreateSRV(rgVertexBuffer);
+
             RGShaderParameterListHandle<ObjectShaderParameterList> objectShaderParameterList = CreateShaderParameterList<ObjectShaderParameterList>();
             objectShaderParameterList->Get()->model = drawMeshInfo.model;
             objectShaderParameterList->Get()->modelInverse = drawMeshInfo.model.Inversed();
             objectShaderParameterList->Get()->modelInverseTranspose = drawMeshInfo.model.Inversed().Transposed();
+            objectShaderParameterList->Get()->vertexBuffer = rgVertexBufferSRV;
+            objectShaderParameterList->Get()->useFP16 = meshMeta.useFloat16;
             paramListArray[0] = objectShaderParameterList;
 
-            AddPassInternal(CUBE_T("##DrawMeshPass - Bind Vertex/Index buffer"), nullptr, nullptr, {},
+            AddPassInternal(CUBE_T("##DrawMeshPass - Bind Index buffer"), nullptr, nullptr, {},
             [mesh = drawMeshInfo.mesh](gapi::CommandList& commandList){
-                Uint32 vertexBufferOffset = 0;
-                SharedPtr<gapi::Buffer> vertexBuffer = mesh->GetVertexBuffer();
-                commandList.BindVertexBuffers(0, { &vertexBuffer, 1 }, { &vertexBufferOffset, 1 });
                 commandList.BindIndexBuffer(mesh->GetIndexBuffer(), 0);
             },
             nullptr);
@@ -489,9 +493,17 @@ namespace cube
                 {
                     material = mRenderer.GetDefaultMaterial();
                 }
-                SharedPtr<GraphicsPipeline> pipeline = mRenderer.GetShaderManager().GetMaterialShaderManager().GetOrCreateMaterialPipeline(material, drawMeshInfo.meshMetaData, drawMeshInfo.fillMode);
+                SharedPtr<GraphicsPipeline> pipeline = mRenderer.GetShaderManager().GetMaterialShaderManager().GetOrCreateMaterialPipeline(material, meshMeta, drawMeshInfo.fillMode);
                 RGShaderParameterListHandle<MaterialShaderParameterList> materialShaderParameterList = material->GenerateShaderParameterList(*this);
                 paramListArray[1] = materialShaderParameterList;
+
+                // HLSL does not apply baseVertex in SV_VertexID and later added SV_BaseVertexLocation in SM 6.8.
+                // So transfer it via shader parameter and set 0 in DrawIndexed.
+                // Metal apply it in vertex_id.
+                // (See https://github.com/microsoft/DirectXShaderCompiler/pull/5770)
+                auto subMeshShaderParameterList = CreateShaderParameterList<SubMeshShaderParameterList>();
+                subMeshShaderParameterList->Get()->vertexBufferOffset = subMesh.vertexOffset;
+                paramListArray[2] = subMeshShaderParameterList;
 
                 AddPassInternal(Format<FrameString>(CUBE_T("Mesh: {0}, Material: {1}"), subMesh.debugName, material->GetDebugName()),
                     pipeline,
@@ -499,7 +511,7 @@ namespace cube
                     paramListArray,
                     [subMesh](gapi::CommandList& commandList)
                 {
-                    commandList.DrawIndexed(subMesh.numIndices, subMesh.indexOffset, subMesh.vertexOffset);
+                    commandList.DrawIndexed(subMesh.numIndices, subMesh.indexOffset, 0);
                 },
                 nullptr);
             }
@@ -760,6 +772,14 @@ namespace cube
                     commandList.UseResource(rgSRV->GetSRV());
                 }
                 else if (RGTextureUAV* rgUAV = dynamic_cast<RGTextureUAV*>(rgResource))
+                {
+                    commandList.UseResource(rgUAV->GetUAV());
+                }
+                else if (RGBufferSRV* rgSRV = dynamic_cast<RGBufferSRV*>(rgResource))
+                {
+                    commandList.UseResource(rgSRV->GetSRV());
+                }
+                else if (RGBufferUAV* rgUAV = dynamic_cast<RGBufferUAV*>(rgResource))
                 {
                     commandList.UseResource(rgUAV->GetUAV());
                 }

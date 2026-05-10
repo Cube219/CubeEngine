@@ -18,8 +18,6 @@ namespace cube
         SharedPtr<Shader> vertexShader = nullptr;
         SharedPtr<Shader> pixelShader = nullptr;
 
-        Vector<gapi::InputElement> inputLayouts;
-
         gapi::RasterizerState rasterizerState;
 
         Array<gapi::BlendState, gapi::MAX_NUM_RENDER_TARGETS> blendStates;

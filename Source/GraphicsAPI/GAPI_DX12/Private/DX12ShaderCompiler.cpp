@@ -81,6 +81,7 @@ namespace cube
             args.push_back(WINDOWS_T("-Zi"));
             args.push_back(WINDOWS_T("-Qembed_debug"));
         }
+        args.push_back(WINDOWS_T("-enable-16bit-types"));
 
         DxcBuffer sourceBuffer = {
             .Ptr = createInfo.shaderCodeInfos[0].code.GetData(),

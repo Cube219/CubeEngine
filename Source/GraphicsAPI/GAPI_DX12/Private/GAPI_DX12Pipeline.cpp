@@ -10,19 +10,6 @@ namespace cube
 {
     namespace gapi
     {
-        D3D12_INPUT_ELEMENT_DESC ConvertToDX12InputElementDesc(InputElement inputElement)
-        {
-            return D3D12_INPUT_ELEMENT_DESC{
-                .SemanticName = inputElement.name,
-                .SemanticIndex = inputElement.index,
-                .Format = GetDX12ElementFormatInfo(inputElement.format).format,
-                .InputSlot = 0,
-                .AlignedByteOffset = inputElement.offset,
-                .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
-                .InstanceDataStepRate = 0
-            };
-        }
-
         D3D12_RASTERIZER_DESC ConvertToDX12RasterizerDesc(RasterizerState rasterizerState)
         {
             D3D12_FILL_MODE fillMode = (D3D12_FILL_MODE)0;
@@ -259,14 +246,7 @@ namespace cube
         {
             const GraphicsPipelineInfo& pipelineInfo = info.pipelineInfo;
 
-            FrameVector<D3D12_INPUT_ELEMENT_DESC> inputElements(pipelineInfo.inputLayouts.size());
-            for (int i = 0; i < inputElements.size(); ++i)
-            {
-                inputElements[i] = ConvertToDX12InputElementDesc(pipelineInfo.inputLayouts[i]);
-            }
-
             D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsPSODesc = {};
-            graphicsPSODesc.InputLayout = { inputElements.data(), (Uint32)(inputElements.size()) };
             graphicsPSODesc.pRootSignature = device.GetShaderParameterHelper().GetRootSignature();
 
             if (pipelineInfo.vertexShader)

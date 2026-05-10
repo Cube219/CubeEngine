@@ -49,8 +49,10 @@ namespace cube
     struct VertexFP32
     {
         Float3 position; // xyz
+        float pad1;
         Float4 color;    // rgba
         Float3 normal;   // xyz
+        float pad2;
         Float4 tangent;  // xyzw
         Float2 uv;       // uv
     };

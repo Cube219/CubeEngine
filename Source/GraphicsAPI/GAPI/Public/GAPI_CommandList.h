@@ -130,7 +130,6 @@ namespace cube
             virtual void BeginRenderPass(ArrayView<const ColorAttachment> colors, DepthStencilAttachment depthStencil) = 0;
             virtual void EndRenderPass() = 0;
 
-            virtual void BindVertexBuffers(Uint32 startIndex, ArrayView<SharedPtr<Buffer>> buffers, ArrayView<Uint32> offsets) = 0;
             virtual void BindIndexBuffer(SharedPtr<Buffer> buffer, Uint32 offset) = 0;
 
             virtual void Draw(Uint32 numVertices, Uint32 baseVertex, Uint32 numInstances = 1, Uint32 baseInstance = 0) = 0;

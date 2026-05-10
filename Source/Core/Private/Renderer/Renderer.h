@@ -41,6 +41,15 @@ namespace cube
             CUBE_SHADER_PARAMETER(Matrix, model)
             CUBE_SHADER_PARAMETER(Matrix, modelInverse)
             CUBE_SHADER_PARAMETER(Matrix, modelInverseTranspose)
+            CUBE_SHADER_PARAMETER(RGBufferSRVHandle, vertexBuffer)
+            CUBE_SHADER_PARAMETER(bool, useFP16)
+        CUBE_END_SHADER_PARAMETER_LIST
+    };
+
+    class SubMeshShaderParameterList : public ShaderParameterList
+    {
+        CUBE_BEGIN_SHADER_PARAMETER_LIST(SubMeshShaderParameterList)
+            CUBE_SHADER_PARAMETER(int, vertexBufferOffset)
         CUBE_END_SHADER_PARAMETER_LIST
     };
 
@@ -82,7 +91,6 @@ namespace cube
         float GetGPUTimeMS() const;
         Uint64 GetCurrentRenderingFrame() const { return mCurrentRenderingFrame; };
 
-        const MeshMetadata& GetMeshMetadata() const { return mMeshMetadata; }
         void SetMesh(SharedPtr<MeshData> meshData, const MeshMetadata& meshMeta);
         void SetMaterials(const Vector<SharedPtr<Material>>& materials);
 
@@ -129,7 +137,6 @@ namespace cube
         Vector3 mDirectionalLightDirection;
         Vector3 mDirectionalLightIntensity;
 
-        MeshMetadata mMeshMetadata;
         Matrix mModelMatrix;
         SharedPtr<Mesh> mMesh;
         Vector<SharedPtr<Material>> mMaterials;

@@ -232,30 +232,6 @@ namespace cube
             // DX12 does not have a render pass concept. Do nothing.
         }
 
-        void DX12CommandList::BindVertexBuffers(Uint32 startIndex, ArrayView<SharedPtr<Buffer>> buffers, ArrayView<Uint32> offsets)
-        {
-            CHECK(IsWriting());
-            CHECK(IsInRenderPass());
-            CHECK(buffers.size() == offsets.size());
-
-            FrameVector<D3D12_VERTEX_BUFFER_VIEW> d3d12VertexBufferViews(buffers.size());
-            for (Uint32 i = 0; i < buffers.size(); ++i)
-            {
-                const DX12Buffer* dx12Buffer = dynamic_cast<DX12Buffer*>(buffers[i].get());
-                D3D12_VERTEX_BUFFER_VIEW& vertexBufferView = d3d12VertexBufferViews[i];
-
-                vertexBufferView = {
-                    .BufferLocation = dx12Buffer->GetResource()->GetGPUVirtualAddress(),
-                    .SizeInBytes = static_cast<UINT>(dx12Buffer->GetSize()),
-                    .StrideInBytes = static_cast<UINT>(dx12Buffer->GetStride())
-                };
-
-                CUBE_DX12_BOUND_OBJECT(buffers[i]);
-            }
-
-            mCommandList->IASetVertexBuffers(0, d3d12VertexBufferViews.size(), d3d12VertexBufferViews.data());
-        }
-
         void DX12CommandList::BindIndexBuffer(SharedPtr<Buffer> buffer, Uint32 offset)
         {
             CHECK(IsWriting());

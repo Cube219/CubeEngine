@@ -44,7 +44,6 @@ namespace cube
             virtual void BeginRenderPass(ArrayView<const ColorAttachment> colors, DepthStencilAttachment depthStencil) override;
             virtual void EndRenderPass() override;
 
-            void BindVertexBuffers(Uint32 startIndex, ArrayView<SharedPtr<Buffer>> buffers, ArrayView<Uint32> offsets) override;
             void BindIndexBuffer(SharedPtr<Buffer> buffer, Uint32 offset) override;
 
             void Draw(Uint32 numVertices, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance) override;

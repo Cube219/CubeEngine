@@ -4,5 +4,4 @@
 
 namespace cube
 {
-    constexpr int MetalVertexBufferOffset = 10;
 } // namespace cube

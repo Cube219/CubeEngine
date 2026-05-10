@@ -13,14 +13,6 @@ namespace cube
 
         constexpr int MAX_NUM_RENDER_TARGETS = 8;
 
-        struct InputElement
-        {
-            const char* name;
-            Uint32 index;
-            ElementFormat format;
-            Uint32 offset;
-        };
-
         struct RasterizerState
         {
             enum class FillMode
@@ -146,8 +138,6 @@ namespace cube
         {
             SharedPtr<Shader> vertexShader = nullptr;
             SharedPtr<Shader> pixelShader = nullptr;
-
-            ConstArrayView<InputElement> inputLayouts;
 
             RasterizerState rasterizerState;
 

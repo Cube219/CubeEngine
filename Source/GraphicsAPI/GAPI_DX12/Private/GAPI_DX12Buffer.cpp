@@ -11,7 +11,12 @@ namespace cube
             Buffer(info),
             mDevice(device)
         {
-            CHECK(info.bufferInfo.size % info.bufferInfo.stride == 0);
+            if (mInfo.type == BufferType::Raw)
+            {
+                mInfo.stride = 4;
+            }
+
+            CHECK(mInfo.size % mInfo.stride == 0);
 
             if (mInfo.type == BufferType::Constant)
             {
@@ -26,7 +31,7 @@ namespace cube
             }
 
             D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
-            if (info.bufferInfo.flags.IsSet(BufferFlag::UAV))
+            if (mInfo.flags.IsSet(BufferFlag::UAV))
             {
                 flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
             }

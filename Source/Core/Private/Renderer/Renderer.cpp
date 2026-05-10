@@ -22,6 +22,7 @@ namespace cube
 {
     CUBE_REGISTER_SHADER_PARAMETER_LIST(GlobalShaderParameterList);
     CUBE_REGISTER_SHADER_PARAMETER_LIST(ObjectShaderParameterList);
+    CUBE_REGISTER_SHADER_PARAMETER_LIST(SubMeshShaderParameterList);
 
     Renderer::Renderer()
         : mShaderManager(*this)
@@ -334,21 +335,13 @@ namespace cube
 
     void Renderer::SetMesh(SharedPtr<MeshData> meshData, const MeshMetadata& meshMeta)
     {
-        bool metaChanged = (mMeshMetadata.useFloat16 != meshMeta.useFloat16);
-        mMeshMetadata = meshMeta;
-
         if (meshData)
         {
-            mMesh = std::make_shared<Mesh>(meshData, mMeshMetadata);
+            mMesh = std::make_shared<Mesh>(meshData, meshMeta);
         }
         else
         {
-            mMesh = std::make_shared<Mesh>(MeshHelper::GenerateBoxMeshData(), mMeshMetadata);
-        }
-
-        if (metaChanged)
-        {
-            mBoxMesh = std::make_shared<Mesh>(MeshHelper::GenerateBoxMeshData(), mMeshMetadata);
+            mMesh = std::make_shared<Mesh>(MeshHelper::GenerateBoxMeshData(), meshMeta);
         }
     }
 
@@ -451,7 +444,6 @@ namespace cube
             FrameVector<RGBuilder::DrawMeshInfo> drawMeshInfos;
             drawMeshInfos.push_back({
                 .mesh = mMesh,
-                .meshMetaData = mMeshMetadata,
                 .fillMode = fillMode,
                 .materials = mMaterials,
                 .model = mModelMatrix
@@ -464,21 +456,18 @@ namespace cube
                 FrameVector<RGBuilder::DrawMeshInfo> drawAxisMeshInfos;
                 drawAxisMeshInfos.push_back({
                     .mesh = mBoxMesh,
-                    .meshMetaData = mMeshMetadata,
                     .fillMode = fillMode,
                     .materials = { &mXAxisMaterial, 1 },
                     .model = mXAxisModelMatrix
                 });
                 drawAxisMeshInfos.push_back({
                     .mesh = mBoxMesh,
-                    .meshMetaData = mMeshMetadata,
                     .fillMode = fillMode,
                     .materials = { &mYAxisMaterial, 1 },
                     .model = mYAxisModelMatrix
                 });
                 drawAxisMeshInfos.push_back({
                     .mesh = mBoxMesh,
-                    .meshMetaData = mMeshMetadata,
                     .fillMode = fillMode,
                     .materials = { &mZAxisMaterial, 1 },
                     .model = mZAxisModelMatrix
@@ -510,8 +499,9 @@ namespace cube
 
     void Renderer::LoadResources()
     {
-        mBoxMesh = std::make_shared<Mesh>(MeshHelper::GenerateBoxMeshData(), mMeshMetadata);
-        SetMesh(nullptr, mMeshMetadata); // Load default mesh
+        // Use default mesh metadata.
+        mBoxMesh = std::make_shared<Mesh>(MeshHelper::GenerateBoxMeshData(), MeshMetadata{});
+        SetMesh(nullptr, MeshMetadata{}); // Load default mesh
 
         mDefaultMaterial = std::make_shared<Material>(CUBE_T("DefaultMaterial"));
 

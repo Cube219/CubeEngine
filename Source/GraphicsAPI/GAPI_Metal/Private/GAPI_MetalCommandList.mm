@@ -320,26 +320,6 @@ namespace cube
             mIndexBuffer = nil;
         }
 
-        void MetalCommandList::BindVertexBuffers(Uint32 startIndex, ArrayView<SharedPtr<Buffer>> buffers, ArrayView<Uint32> offsets)
-        {
-            CHECK(IsWriting());
-            CHECK(IsInRenderPass());
-            CHECK(buffers.size() == offsets.size());
-
-            FrameVector<id<MTLBuffer>> mtlBuffers(buffers.size());
-            FrameVector<NSUInteger> mtlOffsets(buffers.size());
-            for (int i = 0; i < buffers.size(); ++i)
-            {
-                MetalBuffer* metalBuffer = dynamic_cast<MetalBuffer*>(buffers[i].get());
-                CHECK(metalBuffer);
-
-                mtlBuffers[i] = metalBuffer->GetMTLBuffer();
-                mtlOffsets[i] = offsets[i];
-            }
-
-            [mRenderEncoder setVertexBuffers:mtlBuffers.data() offsets:mtlOffsets.data() withRange:NSMakeRange(MetalVertexBufferOffset, mtlBuffers.size())];
-        }
-
         void MetalCommandList::BindIndexBuffer(SharedPtr<Buffer> buffer, Uint32 offset)
         {
             CHECK(IsWriting());
@@ -571,6 +551,8 @@ namespace cube
             commandBufferDesc.errorOptions = MTLCommandBufferErrorOptionEncoderExecutionStatus;
             mCommandBuffer = [mCommandQueueRef commandBufferWithDescriptor:commandBufferDesc];
 
+            // TODO: Use the better way?
+#if 0
             [mCommandBuffer addCompletedHandler:^(id<MTLCommandBuffer> commandBuffer) {
                 for (id<MTLFunctionLog> log in commandBuffer.logs)
                 {
@@ -583,6 +565,7 @@ namespace cube
                     }
                 }
             }];
+#endif
 
             // mCommandBuffer = [mCommandQueueRef commandBuffer];
         }

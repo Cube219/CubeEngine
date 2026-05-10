@@ -3,7 +3,6 @@
 #include "CoreHeader.h"
 
 #include "Blob.h"
-#include "GAPI_Pipeline.h"
 #include "Renderer/RenderTypes.h"
 #include "Vector.h"
 
@@ -62,8 +61,6 @@ namespace cube
     class Mesh
     {
     public:
-        static ArrayView<gapi::InputElement> GetInputElements(const MeshMetadata& meta);
-
         Mesh(const SharedPtr<MeshData>& meshData, const MeshMetadata& meta);
         ~Mesh();
 

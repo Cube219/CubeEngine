@@ -205,23 +205,6 @@ namespace cube
             mCullMode = ConvertToMTLCullMode(pipelineInfo.rasterizerState.cullMode);
             mWinding = ConvertToMTLWinding(pipelineInfo.rasterizerState.frontFace);
 
-            MTLVertexDescriptor* vertexDesc = [[MTLVertexDescriptor alloc] init];
-            Uint64 maxStride = 0;
-            for (Uint32 i = 0; i < pipelineInfo.inputLayouts.size(); ++i)
-            {
-                const InputElement& element = pipelineInfo.inputLayouts[i];
-
-                MetalElementFormatInfo formatInfo = GetMetalElementFormatInfo(element.format);
-                vertexDesc.attributes[i].format = formatInfo.vertexFormat;
-                vertexDesc.attributes[i].offset = element.offset;
-                vertexDesc.attributes[i].bufferIndex = MetalVertexBufferOffset;
-
-                maxStride = std::max(maxStride, (Uint64)element.offset + formatInfo.bytes);
-            }
-            vertexDesc.layouts[MetalVertexBufferOffset].stride = maxStride;
-            vertexDesc.layouts[MetalVertexBufferOffset].stepFunction = MTLVertexStepFunctionPerVertex;
-            vertexDesc.layouts[MetalVertexBufferOffset].stepRate = 1;
-
             MTLRenderPipelineDescriptor* desc = [[MTLRenderPipelineDescriptor alloc] init];
             if (pipelineInfo.vertexShader)
             {
@@ -235,7 +218,6 @@ namespace cube
                 CHECK(metalPixelShader);
                 desc.fragmentFunction = metalPixelShader->GetMTLFunction();
             }
-            desc.vertexDescriptor = vertexDesc;
 
             desc.rasterSampleCount = 1;
             desc.alphaToCoverageEnabled = false;

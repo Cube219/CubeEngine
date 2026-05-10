@@ -227,11 +227,9 @@ namespace cube
             });
         }
 
-        ArrayView<gapi::InputElement> inputLayouts = Mesh::GetInputElements(meshMeta);
         GraphicsPipelineInfo pipelineInfo = {
             .vertexShader = vertexShader,
             .pixelShader = pixelShader,
-            .inputLayouts = { inputLayouts.begin(), inputLayouts.end() },
             .rasterizerState = {
                 .fillMode = fillMode
             },

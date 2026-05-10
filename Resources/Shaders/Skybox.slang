@@ -6,6 +6,8 @@ import StaticSampler;
 struct SkyboxShaderParameterList
 {
     Bindless<TextureCube> skyboxTexture;
+    Bindless<ByteAddressBuffer> vertexBuffer;
+    bool useFP16;
 };
 ParameterBlock<GlobalShaderParameterList> globalParams;
 ParameterBlock<SkyboxShaderParameterList> skyboxParams;
@@ -22,14 +24,16 @@ struct SkyboxPSOutput
 };
 
 [shader("vertex")]
-SkyboxPSInput VSMain(VSInput input)
+SkyboxPSInput VSMain(uint vertexId : SV_VertexID)
 {
+    Vertex v = Vertex(skyboxParams.vertexBuffer, vertexId, skyboxParams.useFP16);
+
     SkyboxPSInput output;
-    output.position = mul(float4(input.position + globalParams.viewPosition, 1), globalParams.viewProjection);
+    output.position = mul(float4(v.position + globalParams.viewPosition, 1), globalParams.viewProjection);
     // Set z as 0 for early-z optimization.
     output.position.z = 0;
     // Reverse z to convert right-handed.
-    output.uvw = float3(input.position.x, input.position.y, -input.position.z);
+    output.uvw = float3(v.position.x, v.position.y, -v.position.z);
 
     return output;
 }

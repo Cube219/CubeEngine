@@ -12,7 +12,6 @@ namespace cube
         Uint64 h = 0;
         h = HashCombine(h, vertexShader ? vertexShader->GetGAPIShader()->GetContentHash() : 0);
         h = HashCombine(h, pixelShader ? pixelShader->GetGAPIShader()->GetContentHash() : 0);
-        h = HashCombine(h, HashBytes(inputLayouts.data(), inputLayouts.size() * sizeof(gapi::InputElement)));
         h = HashCombine(h, HashBytes(&rasterizerState, sizeof(rasterizerState)));
         h = HashCombine(h, HashBytes(blendStates.data(), sizeof(gapi::BlendState) * numRenderTargets));
         h = HashCombine(h, HashBytes(&depthStencilState, sizeof(depthStencilState)));
@@ -28,7 +27,6 @@ namespace cube
         return gapi::GraphicsPipelineInfo{
             .vertexShader = vertexShader ? vertexShader->GetGAPIShader() : nullptr,
             .pixelShader = pixelShader ? pixelShader->GetGAPIShader() : nullptr,
-            .inputLayouts = inputLayouts,
             .rasterizerState = rasterizerState,
             .blendStates = blendStates,
             .depthStencilState = depthStencilState,

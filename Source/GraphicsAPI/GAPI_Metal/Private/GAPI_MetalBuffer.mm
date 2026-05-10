@@ -14,6 +14,12 @@ namespace cube
             : Buffer(info)
             , mDevice(device)
         {
+            if (mInfo.type == BufferType::Raw)
+            {
+                mInfo.stride = 4;
+            }
+            CHECK(mInfo.size % mInfo.stride == 0);
+
             mMTLResourceOptions = MTLResourceStorageModeShared;
             switch (info.usage)
             {

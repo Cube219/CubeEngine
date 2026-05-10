@@ -309,18 +309,28 @@ namespace cube
 
     void ModelLoaderSystem::LoadCurrentModelAndSet(bool resetTransform)
     {
-        const ModelPathInfo& info = mModelPathList[mCurrentSelectModelIndex];
-
         if (resetTransform)
         {
             ResetModelTransform();
         }
 
-        ModelResources resources = LoadModel(info);
-        MeshMetadata meshMeta;
-        meshMeta.useFloat16 = mUseFloat16Vertices;
-        Engine::SetMesh(resources.mesh, meshMeta);
-        Engine::SetMaterials(resources.materials);
+        if (mCurrentSelectModelIndex != -1)
+        {
+            const ModelPathInfo& info = mModelPathList[mCurrentSelectModelIndex];
+
+            ModelResources resources = LoadModel(info);
+            MeshMetadata meshMeta;
+            meshMeta.useFloat16 = mUseFloat16Vertices;
+            Engine::SetMesh(resources.mesh, meshMeta);
+            Engine::SetMaterials(resources.materials);
+        }
+        else
+        {
+            MeshMetadata meshMeta;
+            meshMeta.useFloat16 = mUseFloat16Vertices;
+            Engine::SetMesh(nullptr, meshMeta);
+            Engine::SetMaterials({});
+        }
     }
 
     ModelResources ModelLoaderSystem::LoadModel_glTF(const ModelPathInfo& pathInfo)

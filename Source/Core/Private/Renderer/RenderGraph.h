@@ -85,7 +85,6 @@ namespace cube
         struct DrawMeshInfo
         {
             SharedPtr<Mesh> mesh;
-            MeshMetadata meshMetaData;
             gapi::RasterizerState::FillMode fillMode = gapi::RasterizerState::FillMode::Solid;
             ArrayView<SharedPtr<Material>> materials;
             Matrix model;

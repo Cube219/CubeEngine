@@ -4,6 +4,7 @@
 
 #include "GAPI_Shader.h"
 #include "Pipeline.h"
+#include "Renderer/Mesh.h"
 #include "RenderGraph.h"
 #include "Shader.h"
 
@@ -24,6 +25,8 @@ namespace cube
     {
         CUBE_BEGIN_SHADER_PARAMETER_LIST(SkyboxShaderParameterList)
             CUBE_SHADER_PARAMETER(RGTextureSRVHandle, skyboxTexture)
+            CUBE_SHADER_PARAMETER(RGBufferSRVHandle, vertexBuffer)
+            CUBE_SHADER_PARAMETER(bool, useFP16)
         CUBE_END_SHADER_PARAMETER_LIST
     };
     CUBE_REGISTER_SHADER_PARAMETER_LIST(SkyboxShaderParameterList);
@@ -228,11 +231,15 @@ namespace cube
         RGTextureHandle skyboxTexture = builder.RegisterTexture(skyboxGAPITexture);
         RGTextureSRVHandle skyboxSRV = builder.CreateSRV(skyboxTexture);
 
+        SharedPtr<Mesh> boxMesh = mRenderer.GetBoxMesh();
+        RGBufferHandle rgBoxVertexBuffer = builder.RegisterBuffer(boxMesh->GetVertexBuffer());
+        RGBufferSRVHandle rgBoxVertexBufferSRV = builder.CreateSRV(rgBoxVertexBuffer);
+
         auto skyboxParams = builder.CreateShaderParameterList<SkyboxShaderParameterList>();
         skyboxParams->Get()->skyboxTexture = skyboxSRV;
+        skyboxParams->Get()->vertexBuffer = rgBoxVertexBufferSRV;
+        skyboxParams->Get()->useFP16 = boxMesh->GetMeta().useFloat16;
 
-        ArrayView<gapi::InputElement> inputLayouts = Mesh::GetInputElements(mRenderer.GetMeshMetadata());
-        mSkyboxPipelineInfo.inputLayouts = { inputLayouts.begin(), inputLayouts.end() };
         mSkyboxPipelineInfo.rasterizerState.fillMode = mRenderer.IsDrawInWireframe()
             ? gapi::RasterizerState::FillMode::Line
             : gapi::RasterizerState::FillMode::Solid;
@@ -242,12 +249,9 @@ namespace cube
         });
 
         builder.AddPass(CUBE_T("Skybox"), skyboxPipeline, skyboxParams,
-        [boxMesh = mRenderer.GetBoxMesh()](gapi::CommandList& commandList)
+        [boxMesh](gapi::CommandList& commandList)
         {
             const SubMesh& boxSubMesh = boxMesh->GetSubMeshes()[0];
-            Uint32 vbOffset = 0;
-            SharedPtr<gapi::Buffer> vb = boxMesh->GetVertexBuffer();
-            commandList.BindVertexBuffers(0, { &vb, 1 }, { &vbOffset, 1 });
             commandList.BindIndexBuffer(boxMesh->GetIndexBuffer(), 0);
 
             commandList.DrawIndexed(boxSubMesh.numIndices, 0, 0);
