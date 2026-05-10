@@ -1,5 +1,7 @@
 #include "GAPI_DX12.h"
 
+#include <WinPixEventRuntime/pix3.h>
+
 #include "imgui_impl_dx12.h"
 #include "imgui_impl_win32.h"
 
@@ -155,6 +157,8 @@ namespace cube
         {
             mImGUIRenderCommandList->Reset(mMainDevice->GetCommandListManager().GetCurrentAllocator(), nullptr);
 
+            PIXBeginEvent(mImGUIRenderCommandList.Get(), PIX_COLOR(0xff, 0xff, 0xff), "ImGui Rendering");
+
             SharedPtr<gapi::TextureRTV> backbufferRTV = backbuffer->CreateRTV({});
             gapi::DX12TextureRTV* dx12BackbufferRTV = dynamic_cast<gapi::DX12TextureRTV*>(backbufferRTV.get());
             CHECK(dx12BackbufferRTV);
@@ -177,6 +181,9 @@ namespace cube
             ArrayView<ID3D12DescriptorHeap*> heaps = mMainDevice->GetDescriptorManager().GetD3D12ShaderVisibleHeaps();
             mImGUIRenderCommandList->SetDescriptorHeaps(heaps.size(), heaps.data());
             ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), mImGUIRenderCommandList.Get());
+
+            PIXEndEvent(mImGUIRenderCommandList.Get());
+
             mImGUIRenderCommandList->Close();
 
             ID3D12CommandList* ppCommandLists[] = { mImGUIRenderCommandList.Get() };
