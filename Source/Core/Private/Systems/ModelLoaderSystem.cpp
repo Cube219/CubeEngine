@@ -427,7 +427,7 @@ namespace cube
                     .indexOffset = indexOffset,
                     .numIndices = numIndices,
                     .materialIndex = prim.material,
-                    .debugName = Format<String>(CUBE_T("[{0}] {1}"), modelName, mesh.name)
+                    .debugName = Format<String>(CUBE_T("{0}"), mesh.name)
                 });
 
                 vertices.insert(vertices.end(), numVertices, {});
@@ -650,9 +650,9 @@ namespace cube
 
         for (const tinygltf::Material& gltfMaterial : model.materials)
         {
-            auto LoadTexture = [&model, &modelName, &loadedImageCache](const Character* textureName, int textureIndex) -> SharedPtr<TextureResource>
+            auto LoadTexture = [&model, &loadedImageCache](StringView materialName, const Character* textureName, int textureIndex) -> SharedPtr<TextureResource>
             {
-                FrameString debugName = Format<FrameString>(CUBE_T("[{0}] {1}"), modelName, textureName);
+                FrameString debugName = Format<FrameString>(CUBE_T("[{0}] {1}"), materialName, textureName);
 
                 if (textureIndex == -1)
                 {
@@ -715,7 +715,7 @@ namespace cube
                 return texture;
             };
 
-            FrameString materialName = Format<FrameString>(CUBE_T("[{0}] {1}"), modelName, gltfMaterial.name);
+            FrameString materialName = String_Convert<FrameString>(gltfMaterial.name);
             materials.push_back(std::make_shared<Material>(materialName));
 
             SharedPtr<Material> material = materials.back();
@@ -723,19 +723,19 @@ namespace cube
             FrameString channelMappingCode;
             if (gltfMaterial.pbrMetallicRoughness.baseColorTexture.index != -1)
             {
-                material->SetTexture(0, LoadTexture(CUBE_T("baseColorTexture"), gltfMaterial.pbrMetallicRoughness.baseColorTexture.index));
+                material->SetTexture(0, LoadTexture(materialName, CUBE_T("baseColorTexture"), gltfMaterial.pbrMetallicRoughness.baseColorTexture.index));
                 channelMappingCode += CUBE_T("value.albedo = materialData.textureSlot0.Sample(GetStaticLinearWrapSampler(), input.uv).rgb;\n");
             }
             if (gltfMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index != -1)
             {
-                material->SetTexture(1, LoadTexture(CUBE_T("metallicRoughnessTexture"), gltfMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index));
+                material->SetTexture(1, LoadTexture(materialName, CUBE_T("metallicRoughnessTexture"), gltfMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index));
                 channelMappingCode += CUBE_T("float3 t1 = materialData.textureSlot1.Sample(GetStaticLinearWrapSampler(), input.uv).rgb;\n");
                 channelMappingCode += CUBE_T("value.metallic = t1.b;\n");
                 channelMappingCode += CUBE_T("value.roughness = t1.g;\n");
             }
             if (gltfMaterial.normalTexture.index != -1)
             {
-                material->SetTexture(2, LoadTexture(CUBE_T("normalTexture"), gltfMaterial.normalTexture.index));
+                material->SetTexture(2, LoadTexture(materialName, CUBE_T("normalTexture"), gltfMaterial.normalTexture.index));
                 channelMappingCode += CUBE_T("float3 t2 = normalize(materialData.textureSlot2.Sample(GetStaticLinearWrapSampler(), input.uv).rgb * 2.0f - 1.0f);\n");
                 channelMappingCode += CUBE_T("value.normal = t2;\n");
             }

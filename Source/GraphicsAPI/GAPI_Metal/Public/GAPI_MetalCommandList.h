@@ -58,8 +58,8 @@ namespace cube
             virtual void End() override;
             virtual void Reset() override;
 
-            virtual void BeginEvent(StringView name) override {}
-            virtual void EndEvent() override {}
+            virtual void BeginEvent(StringView name) override;
+            virtual void EndEvent() override;
 
             virtual void SetViewports(ArrayView<Viewport> viewports) override;
             virtual void SetScissors(ArrayView<ScissorRect> scissors) override;

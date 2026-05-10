@@ -22,6 +22,8 @@ namespace cube
             virtual void* Map() override;
             virtual void Unmap() override;
 
+            virtual void SetDebugName(StringView debugName) override;
+
             id<MTLBuffer> GetMTLBuffer() const { return mBuffer; }
             MTLResourceOptions GetMTLResourceOptions() const { return mMTLResourceOptions; }
 

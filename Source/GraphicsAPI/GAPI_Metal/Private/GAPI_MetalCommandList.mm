@@ -223,6 +223,52 @@ namespace cube
             AllocateNewCommandBuffer();
         }
 
+        void MetalCommandList::BeginEvent(StringView name)
+        {
+            CHECK(IsWriting());
+
+            NSString* nsName = String_Convert<NSString*>(name);
+
+            if (IsInRenderPass())
+            {
+                [mRenderEncoder pushDebugGroup:nsName];
+            }
+            else if (mComputeEncoder)
+            {
+                [mComputeEncoder pushDebugGroup:nsName];
+            }
+            else if (mBlitEncoder)
+            {
+                [mBlitEncoder pushDebugGroup:nsName];
+            }
+            else
+            {
+                [mCommandBuffer pushDebugGroup:nsName];
+            }
+        }
+
+        void MetalCommandList::EndEvent()
+        {
+            CHECK(IsWriting());
+
+            if (IsInRenderPass())
+            {
+                [mRenderEncoder popDebugGroup];
+            }
+            else if (mComputeEncoder)
+            {
+                [mComputeEncoder popDebugGroup];
+            }
+            else if (mBlitEncoder)
+            {
+                [mBlitEncoder popDebugGroup];
+            }
+            else
+            {
+                [mCommandBuffer popDebugGroup];
+            }
+        }
+
         void MetalCommandList::SetViewports(ArrayView<Viewport> viewports)
         {
             CHECK(IsWriting());
@@ -550,6 +596,7 @@ namespace cube
             MTLCommandBufferDescriptor* commandBufferDesc = [[MTLCommandBufferDescriptor alloc] init];
             commandBufferDesc.errorOptions = MTLCommandBufferErrorOptionEncoderExecutionStatus;
             mCommandBuffer = [mCommandQueueRef commandBufferWithDescriptor:commandBufferDesc];
+            mCommandBuffer.label = String_Convert<NSString*>(mDebugName);
 
             // TODO: Use the better way?
 #if 0

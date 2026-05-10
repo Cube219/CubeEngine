@@ -114,6 +114,7 @@ namespace cube
             mImGUIDrawable = mImGUIView.currentDrawable;
 
             id<MTLCommandBuffer> commandBuffer = [mMainDevice->GetMainCommandQueue() commandBuffer];
+            commandBuffer.label = @"ImGui command buffer";
 
             ImDrawData* draw_data = ImGui::GetDrawData();
 

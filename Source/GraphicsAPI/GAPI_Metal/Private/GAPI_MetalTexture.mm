@@ -297,9 +297,11 @@ namespace cube
                 levels:NSMakeRange(mSubresourceRange.firstMipLevel, mSubresourceRange.mipLevels)
                 slices:NSMakeRange(mSubresourceRange.firstSliceIndex, mSubresourceRange.sliceSize)
             ];
+            mSRV.label = String_Convert<NSString*>(metalTexture->GetDebugName());
 
             mBindlessId = mSRV.gpuResourceID._impl;
             mImTextureID = reinterpret_cast<Uint64>((__bridge void*)mSRV);
+
         }
 
         MetalTextureSRV::~MetalTextureSRV()
@@ -330,6 +332,7 @@ namespace cube
                 levels:NSMakeRange(mSubresourceRange.firstMipLevel, mSubresourceRange.mipLevels)
                 slices:NSMakeRange(mSubresourceRange.firstSliceIndex, mSubresourceRange.sliceSize)
             ];
+            mUAV.label = String_Convert<NSString*>(metalTexture->GetDebugName());
 
             mBindlessId = mUAV.gpuResourceID._impl;
         }
@@ -353,6 +356,7 @@ namespace cube
                 levels:NSMakeRange(mSubresourceRange.firstMipLevel, mSubresourceRange.mipLevels)
                 slices:NSMakeRange(mSubresourceRange.firstSliceIndex, mSubresourceRange.sliceSize)
             ];
+            mRTV.label = String_Convert<NSString*>(metalTexture->GetDebugName());
         }
 
         MetalTextureRTV::~MetalTextureRTV()
@@ -374,6 +378,7 @@ namespace cube
                 levels:NSMakeRange(mSubresourceRange.firstMipLevel, mSubresourceRange.mipLevels)
                 slices:NSMakeRange(mSubresourceRange.firstSliceIndex, mSubresourceRange.sliceSize)
             ];
+            mDSV.label = String_Convert<NSString*>(metalTexture->GetDebugName());
         }
 
         MetalTextureDSV::~MetalTextureDSV()

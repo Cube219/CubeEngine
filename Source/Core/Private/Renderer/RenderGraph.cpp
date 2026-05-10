@@ -505,7 +505,7 @@ namespace cube
                 subMeshShaderParameterList->Get()->vertexBufferOffset = subMesh.vertexOffset;
                 paramListArray[2] = subMeshShaderParameterList;
 
-                AddPassInternal(Format<FrameString>(CUBE_T("Mesh: {0}, Material: {1}"), subMesh.debugName, material->GetDebugName()),
+                AddPassInternal(Format<FrameString>(CUBE_T("Mesh: {0}[{1}] / Material: {2}"), drawMeshInfo.mesh->GetDebugName(), subMesh.debugName, material->GetDebugName()),
                     pipeline,
                     nullptr,
                     paramListArray,

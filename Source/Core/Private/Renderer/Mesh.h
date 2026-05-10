@@ -68,6 +68,7 @@ namespace cube
         SharedPtr<gapi::Buffer> GetIndexBuffer() const { return mIndexBuffer; }
         const Vector<SubMesh>& GetSubMeshes() const { return mMeshData->GetSubMeshes(); }
 
+        const StringView GetDebugName() const { return mMeshData->GetDebugName(); }
         const MeshMetadata& GetMeta() const { return mMeta; }
 
     private:

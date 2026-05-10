@@ -99,6 +99,13 @@ namespace cube
             }
         }
 
+        void MetalBuffer::SetDebugName(StringView debugName)
+        {
+            Buffer::SetDebugName(debugName);
+
+            mBuffer.label = String_Convert<NSString*>(debugName);
+        }
+
         MetalBufferSRV::MetalBufferSRV(MetalDevice& device, const BufferSRVCreateInfo& createInfo, SharedPtr<MetalBuffer> metalBuffer)
             : BufferSRV(createInfo, metalBuffer)
             , mParentMTLBuffer(metalBuffer->GetMTLBuffer())
