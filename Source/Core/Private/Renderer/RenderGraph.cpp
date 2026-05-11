@@ -476,10 +476,12 @@ namespace cube
             paramListArray[0] = objectShaderParameterList;
 
             AddPassInternal(CUBE_T("##DrawMeshPass - Bind Index buffer"), nullptr, nullptr, {},
-            [mesh = drawMeshInfo.mesh](gapi::CommandList& commandList){
-                commandList.BindIndexBuffer(mesh->GetIndexBuffer(), 0);
-            },
-            nullptr);
+                [mesh = drawMeshInfo.mesh](gapi::CommandList& commandList){
+                    commandList.BindIndexBuffer(mesh->GetIndexBuffer(), 0);
+                },
+                nullptr,
+                false
+            );
 
             const Vector<SubMesh>& subMeshes = drawMeshInfo.mesh->GetSubMeshes();
             for (const SubMesh& subMesh : subMeshes)
@@ -510,10 +512,12 @@ namespace cube
                     nullptr,
                     paramListArray,
                     [subMesh](gapi::CommandList& commandList)
-                {
-                    commandList.DrawIndexed(subMesh.numIndices, subMesh.indexOffset, 0);
-                },
-                nullptr);
+                    {
+                        commandList.DrawIndexed(subMesh.numIndices, subMesh.indexOffset, 0);
+                    },
+                    nullptr,
+                    false
+                );
             }
         }
     }
@@ -613,7 +617,7 @@ namespace cube
         commandList.Reset();
         commandList.Begin();
 
-        commandList.InsertTimestamp(CUBE_T("Begin RGBuilder"));
+        commandList.BeginTimestamp(CUBE_T("RGBuilder"));
 
         for (PassInfo& pass : mPasses)
         {
@@ -622,6 +626,11 @@ namespace cube
             if (addGPUEvent)
             {
                 commandList.BeginEvent(pass.name);
+            }
+
+            if (pass.addTimestamp)
+            {
+                commandList.BeginTimestamp(pass.name);
             }
 
             ResolveShaderParameterListsAndPipeline(pass, commandList);
@@ -637,6 +646,11 @@ namespace cube
                 pass.passFunction(commandList);
             }
 
+            if (pass.addTimestamp)
+            {
+                commandList.EndTimestamp();
+            }
+
             if (addGPUEvent)
             {
                 commandList.EndEvent();
@@ -645,7 +659,7 @@ namespace cube
 
         commandList.ResourceTransition(mLastPass.transitions);
 
-        commandList.InsertTimestamp(CUBE_T("End RGBuilder"));
+        commandList.EndTimestamp();
 
         commandList.End();
         commandList.Submit();
@@ -661,10 +675,16 @@ namespace cube
 
         // Add pass that just store parameter list. Resources in the parameter list will be tracked automatically.
         AddPassInternal(Format<String>(CUBE_T("##BindShaderParameterList: {0}"), parameterList->mParameterListInfo.name),
-            nullptr, nullptr, { &parameterList, 1 }, nullptr, nullptr);
+            nullptr, nullptr, { &parameterList, 1 },
+            nullptr, nullptr,
+            false
+        );
     }
 
-    void RGBuilder::AddPassInternal(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, SharedPtr<ComputePipeline> computePipeline, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists, PassFunction&& passFunction, UseResourceFunction&& useResourceFunction)
+    void RGBuilder::AddPassInternal(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, SharedPtr<ComputePipeline> computePipeline, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists,
+        PassFunction&& passFunction, UseResourceFunction&& useResourceFunction,
+        bool addTimestamp
+    )
     {
         CHECK(mState == State::Init);
 
@@ -674,6 +694,7 @@ namespace cube
         int index = static_cast<int>(mPasses.size());
         mPasses.push_back({
             .name = String(name),
+            .addTimestamp = addTimestamp,
             .index = index,
             .shaderParameterLists = { parameterLists.begin(), parameterLists.end() },
             .graphicsPipeline = std::move(graphicsPipeline),

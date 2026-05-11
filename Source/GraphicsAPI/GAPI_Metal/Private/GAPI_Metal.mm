@@ -216,9 +216,9 @@ namespace cube
         return std::make_shared<gapi::MetalSwapChain>(*mMainDevice, mImGUIView, info);
     }
 
-    gapi::TimestampList GAPI_Metal::GetLastTimestampList()
+    gapi::TimestampRangeList GAPI_Metal::GetLastTimestampRangeList()
     {
-        return {};
+        return mMainDevice->GetTimestampManager().GetLastTimestampRangeList();
     }
 
     gapi::VRAMStatus GAPI_Metal::GetVRAMUsage()

@@ -149,7 +149,8 @@ namespace cube
 
             virtual void CopyTexture(SharedPtr<Texture> srcTexture, SharedPtr<Texture> dstTexture) = 0;
 
-            virtual void InsertTimestamp(const String& name) = 0;
+            virtual void BeginTimestamp(StringView name) = 0;
+            virtual void EndTimestamp() = 0;
 
             virtual void Submit() = 0;
         };

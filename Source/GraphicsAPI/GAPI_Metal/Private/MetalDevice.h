@@ -22,6 +22,8 @@ namespace cube
 
         bool CheckFeatureRequirements();
 
+        bool IsCounterSamplingSupported() const { return mIsCounterSamplingSupported; }
+
         MetalTimestampManager& GetTimestampManager() { return mTimestampManager; }
         MetalTransientHeapManager& GetTransientHeapManager() { return mTransientHeapManager; }
         MetalUploadManager& GetUploadManager() { return mUploadManager; }
@@ -36,7 +38,11 @@ namespace cube
         void WaitAllGPUSync();
 
     private:
+        void SetSupportedFeatures();
+
         id<MTLDevice> mDevice;
+
+        bool mIsCounterSamplingSupported = false;
 
         MetalTimestampManager mTimestampManager;
         MetalTransientHeapManager mTransientHeapManager;

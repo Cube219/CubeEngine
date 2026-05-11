@@ -195,6 +195,8 @@ namespace cube
         {
             CHECK(!IsWriting());
 
+            mLastTimestampSampleIndex = 0;
+
             mCurrentEncoderState.Clear();
             mRenderEncoder = nil;
             mComputeEncoder = nil;
@@ -210,7 +212,7 @@ namespace cube
         {
             CHECK(IsWriting());
 
-            EndEncoding();
+            EndAllEncoders();
             mCurrentEncoderState.Clear();
 
             mIsWriting = false;
@@ -318,8 +320,6 @@ namespace cube
             CHECK(IsWriting());
             CHECK(!IsInRenderPass());
 
-            EndEncoding();
-
             MTLRenderPassDescriptor* renderPassDescriptor = [[MTLRenderPassDescriptor alloc] init];
 
             CHECK(colors.size() <= MAX_NUM_RENDER_TARGETS);
@@ -351,8 +351,7 @@ namespace cube
                 renderPassDescriptor.depthAttachment.clearDepth = depthStencil.clearDepth;
             }
 
-            mRenderEncoder = [mCommandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
-            mCurrentEncoderState.ApplyAll(mRenderEncoder);
+            UseRenderEncoder(renderPassDescriptor);
         }
 
         void MetalCommandList::EndRenderPass()
@@ -360,8 +359,7 @@ namespace cube
             CHECK(IsWriting());
             CHECK(IsInRenderPass());
 
-            [mRenderEncoder endEncoding];
-            mRenderEncoder = nil;
+            EndRenderEncoder();
 
             mIndexBuffer = nil;
         }
@@ -504,10 +502,7 @@ namespace cube
             MetalComputePipeline* metalComputePipeline = dynamic_cast<MetalComputePipeline*>(computePipeline.get());
             CHECK(metalComputePipeline);
 
-            EndEncoding();
-
-            mComputeEncoder = [mCommandBuffer computeCommandEncoder];
-            mCurrentEncoderState.ApplyAll(mComputeEncoder);
+            UseComputeEncoder();
 
             [mComputeEncoder setComputePipelineState:metalComputePipeline->GetMTLComputePipelineState()];
             mComputeThreadGroupSize = metalComputePipeline->GetThreadGroupSize();
@@ -516,7 +511,7 @@ namespace cube
         void MetalCommandList::DispatchThreads(Uint32 numThreadsX, Uint32 numThreadsY, Uint32 numThreadsZ)
         {
             CHECK(IsWriting());
-            CHECK(mComputeEncoder != nil);
+            CHECK(mComputeEncoder);
 
             [mComputeEncoder
                 dispatchThreads:MTLSizeMake(numThreadsX, numThreadsY, numThreadsZ)
@@ -529,12 +524,7 @@ namespace cube
             CHECK(IsWriting());
             CHECK(!IsInRenderPass());
 
-            if (!mBlitEncoder)
-            {
-                EndEncoding();
-
-                mBlitEncoder = [mCommandBuffer blitCommandEncoder];
-            }
+            UseBlitEncoder();
 
             MetalTexture* metalSrcTexture = dynamic_cast<MetalTexture*>(srcTexture.get());
             MetalTexture* metalDstTexture = dynamic_cast<MetalTexture*>(dstTexture.get());
@@ -547,20 +537,53 @@ namespace cube
             ];
         }
 
-        void MetalCommandList::InsertTimestamp(const String& name)
+        void MetalCommandList::BeginTimestamp(StringView name)
         {
             CHECK(IsWriting());
+            CHECK(!IsInRenderPass());
 
-            // Currently most Apple silicon only support sampling data at stage boundary, not draw/dispatch boundary.
-            // So it is not possible to insert timestamp based on command list.
-            // Timestamp will be implemented after implement render pass.
+            if (mTimestampManager.IsSupported())
+            {
+                // End encoder to split the pass. Begin sample index will be assigned after using a new encoder.
+                // (See ConsumeTimestampIndexBeforeUseEncoder().)
+                EndAllEncoders();
+
+                mTimestampStack.push_back({
+                    .name = { name.begin(), name.end() },
+                    .beginSampleIndex = MetalInvalidSampleIndex
+                });
+            }
+        }
+
+        void MetalCommandList::EndTimestamp()
+        {
+            CHECK(IsWriting());
+            CHECK(!IsInRenderPass());
+
+            if (mTimestampManager.IsSupported())
+            {
+                CHECK(!mTimestampStack.empty());
+
+                // End encoder to split the pass and sample at this point.
+                EndAllEncoders();
+
+                const TimestampBegin& lastTimestamp = mTimestampStack.back();
+                if (lastTimestamp.beginSampleIndex != MetalInvalidSampleIndex)
+                {
+                    mTimestampManager.AddTimestampRange(lastTimestamp.name, lastTimestamp.beginSampleIndex, mLastTimestampSampleIndex);
+                }
+                else
+                {
+                    // There are no encoders between timestamps. Set invalid index on both and timestamp manager will set 0 time.
+                    mTimestampManager.AddTimestampRange(lastTimestamp.name, MetalInvalidSampleIndex, MetalInvalidSampleIndex);
+                }
+                mTimestampStack.pop_back();
+            }
         }
 
         void MetalCommandList::Submit()
         {
             CHECK(!IsWriting());
-
-            EndEncoding();
 
             [mCommandBuffer commit];
             mCommandBuffer = nil;
@@ -617,25 +640,142 @@ namespace cube
             // mCommandBuffer = [mCommandQueueRef commandBuffer];
         }
 
-        void MetalCommandList::EndEncoding()
+        void MetalCommandList::UseRenderEncoder(MTLRenderPassDescriptor* desc)
         {
-            if (IsInRenderPass())
+            CHECK(!IsInRenderPass());
+            EndComputeEncoder();
+            EndBlitEncoder();
+
+            if (HasTimestamps())
+            {
+                NSUInteger beginIndex;
+                NSUInteger endIndex;
+                ConsumeTimestampIndexBeforeUseEncoder(beginIndex, endIndex);
+
+                desc.sampleBufferAttachments[0].sampleBuffer = mTimestampManager.GetCurrentCounterSampleBuffer();
+                desc.sampleBufferAttachments[0].startOfVertexSampleIndex = beginIndex;
+                desc.sampleBufferAttachments[0].endOfVertexSampleIndex = MTLCounterDontSample;
+                desc.sampleBufferAttachments[0].startOfFragmentSampleIndex = MTLCounterDontSample;
+                desc.sampleBufferAttachments[0].endOfFragmentSampleIndex = endIndex;
+            }
+
+            mRenderEncoder = [mCommandBuffer renderCommandEncoderWithDescriptor:desc];
+            mCurrentEncoderState.ApplyAll(mRenderEncoder);
+        }
+
+        void MetalCommandList::UseComputeEncoder()
+        {
+            EndRenderEncoder();
+            EndBlitEncoder();
+
+            if (!mComputeEncoder)
+            {
+                MTLComputePassDescriptor* desc = [[MTLComputePassDescriptor alloc] init];
+
+                if (HasTimestamps())
+                {
+                    NSUInteger beginIndex;
+                    NSUInteger endIndex;
+                    ConsumeTimestampIndexBeforeUseEncoder(beginIndex, endIndex);
+
+                    desc.sampleBufferAttachments[0].sampleBuffer = mTimestampManager.GetCurrentCounterSampleBuffer();
+                    desc.sampleBufferAttachments[0].startOfEncoderSampleIndex = beginIndex;
+                    desc.sampleBufferAttachments[0].endOfEncoderSampleIndex = endIndex;
+                }
+
+                mComputeEncoder = [mCommandBuffer computeCommandEncoderWithDescriptor:desc];
+                mCurrentEncoderState.ApplyAll(mComputeEncoder);
+            }
+        }
+
+        void MetalCommandList::UseBlitEncoder()
+        {
+            EndRenderEncoder();
+            EndComputeEncoder();
+
+            if (!mBlitEncoder)
+            {
+                MTLBlitPassDescriptor* desc = [[MTLBlitPassDescriptor alloc] init];
+
+                if (HasTimestamps())
+                {
+                    NSUInteger beginIndex;
+                    NSUInteger endIndex;
+                    ConsumeTimestampIndexBeforeUseEncoder(beginIndex, endIndex);
+
+                    desc.sampleBufferAttachments[0].sampleBuffer = mTimestampManager.GetCurrentCounterSampleBuffer();
+                    desc.sampleBufferAttachments[0].startOfEncoderSampleIndex = beginIndex;
+                    desc.sampleBufferAttachments[0].endOfEncoderSampleIndex = endIndex;
+                }
+
+                mBlitEncoder = [mCommandBuffer blitCommandEncoderWithDescriptor:desc];
+            }
+        }
+
+        void MetalCommandList::ConsumeTimestampIndexBeforeUseEncoder(NSUInteger& outBeginIndex, NSUInteger& outEndIndex)
+        {
+            outBeginIndex = MTLCounterDontSample;
+            outEndIndex = MTLCounterDontSample;
+
+            if (HasTimestamps())
+            {
+                // Always set end timestamp because we do not know when EndTimestamp will be called.
+                if (HasPreBeginTimestamps())
+                {
+                    Uint32 index = mTimestampManager.GetCurrentLastSampleIndexAndUse(2);
+                    outBeginIndex = index;
+                    outEndIndex = index + 1;
+
+                    for (auto it = mTimestampStack.rbegin(); it != mTimestampStack.rend(); ++it)
+                    {
+                        if (it->beginSampleIndex != MetalInvalidSampleIndex)
+                        {
+                            break;
+                        }
+                        it->beginSampleIndex = outBeginIndex;
+                    }
+                }
+                else
+                {
+                    Uint32 index = mTimestampManager.GetCurrentLastSampleIndexAndUse(1);
+                    outEndIndex = index;
+                }
+                mLastTimestampSampleIndex = outEndIndex;
+            }
+        }
+
+        void MetalCommandList::EndRenderEncoder()
+        {
+            if (mRenderEncoder)
             {
                 [mRenderEncoder endEncoding];
                 mRenderEncoder = nil;
             }
+        }
 
+        void MetalCommandList::EndComputeEncoder()
+        {
             if (mComputeEncoder)
             {
                 [mComputeEncoder endEncoding];
                 mComputeEncoder = nil;
             }
+        }
 
+        void MetalCommandList::EndBlitEncoder()
+        {
             if (mBlitEncoder)
             {
                 [mBlitEncoder endEncoding];
                 mBlitEncoder = nil;
             }
+        }
+
+        void MetalCommandList::EndAllEncoders()
+        {
+            EndRenderEncoder();
+            EndComputeEncoder();
+            EndBlitEncoder();
         }
     } // namespace gapi
 } // namespace cube

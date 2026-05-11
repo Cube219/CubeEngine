@@ -14,14 +14,14 @@ namespace cube
     {
         SetNumGPUSync(numGPUSync);
 
-        mLastTimestampCPUBuffer = {};
-        mLastTimestampList.frame = 0;
-        mLastTimestampList.frequency = 0;
+        mLastQueryCPUBuffer = {};
+        mLastTimestampRangeList.frame = 0;
+        mLastTimestampRangeList.frequency = 0;
     }
 
     void DX12QueryManager::Shutdown()
     {
-        mDevice.GetMemoryAllocator().Free(mTimestampGPUBuffer);
+        mDevice.GetMemoryAllocator().Free(mQueryGPUBuffer);
 
         SetNumGPUSync(0);
     }
@@ -34,7 +34,7 @@ namespace cube
 
         const D3D12_QUERY_HEAP_DESC heapDesc = {
             .Type = D3D12_QUERY_HEAP_TYPE_TIMESTAMP,
-            .Count = MAX_NUM_TIMESTAMP,
+            .Count = MAX_NUM_QUERY,
             .NodeMask = 0
         };
         for (Uint32 i = 0; i < newNumGPUSync; ++i)
@@ -45,17 +45,20 @@ namespace cube
             SET_DEBUG_NAME_FORMAT(heap, "QueryHeap[{0}]", i);
         }
 
+        mLastQueryIndices.clear();
+        mLastQueryIndices.resize(newNumGPUSync, 0);
+
         // Buffer
-        if (mTimestampGPUBuffer.resource != nullptr)
+        if (mQueryGPUBuffer.resource != nullptr)
         {
-            mDevice.GetMemoryAllocator().Free(mTimestampGPUBuffer);
+            mDevice.GetMemoryAllocator().Free(mQueryGPUBuffer);
         }
         if (newNumGPUSync > 0)
         {
             const D3D12_RESOURCE_DESC bufferDesc = {
                 .Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
                 .Alignment = 0,
-                .Width = sizeof(Uint64) * MAX_NUM_TIMESTAMP * newNumGPUSync,
+                .Width = sizeof(Uint64) * MAX_NUM_QUERY * newNumGPUSync,
                 .Height = 1,
                 .DepthOrArraySize = 1,
                 .MipLevels = 1,
@@ -66,71 +69,83 @@ namespace cube
                 .Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
                 .Flags = D3D12_RESOURCE_FLAG_NONE
             };
-            mTimestampGPUBuffer = mDevice.GetMemoryAllocator().Allocate(D3D12_HEAP_TYPE_READBACK, bufferDesc);
+            mQueryGPUBuffer = mDevice.GetMemoryAllocator().Allocate(D3D12_HEAP_TYPE_READBACK, bufferDesc);
+            SET_DEBUG_NAME(mQueryGPUBuffer.resource, "Timestamp GPU buffer");
         }
 
-        // Name
-        mTimestampNames.clear();
-        mTimestampNames.resize(newNumGPUSync);
+        // Timestamp ranges
+        mTimestampRanges.clear();
+        mTimestampRanges.resize(newNumGPUSync);
 
-        mCurrentIndex = 0;
+        mCurrentGPUSyncIndex = 0;
     }
 
-    void DX12QueryManager::MoveToNextIndex(Uint64 nextGPUFrame)
+    void DX12QueryManager::MoveToNextGPUSync(Uint64 nextGPUFrame)
     {
         Uint32 numSyncBuffer = mTimestampHeaps.size();
 
-        mCurrentIndex = (mCurrentIndex + 1) % numSyncBuffer;
+        mCurrentGPUSyncIndex = (mCurrentGPUSyncIndex + 1) % numSyncBuffer;
 
         if (nextGPUFrame >= numSyncBuffer)
         {
             UpdateLastTimestamp(nextGPUFrame - numSyncBuffer);
         }
 
-        mTimestampNames[mCurrentIndex].clear();
+        mTimestampRanges[mCurrentGPUSyncIndex].clear();
+        mLastQueryIndices[mCurrentGPUSyncIndex] = 0;
     }
 
-    int DX12QueryManager::AddTimestamp(const String& name)
+    Uint32 DX12QueryManager::GetCurrentLastQueryIndexAndUse(Uint32 numUseQueries)
     {
-        // TODO: Add critical section?
-        mTimestampNames[mCurrentIndex].push_back(name);
-        const int currentSize = static_cast<int>(mTimestampNames[mCurrentIndex].size());
+        Uint32 res = mLastQueryIndices[mCurrentGPUSyncIndex];
 
-        CHECK(currentSize <= MAX_NUM_TIMESTAMP);
+        mLastQueryIndices[mCurrentGPUSyncIndex] += numUseQueries;
+        CHECK(mLastQueryIndices[mCurrentGPUSyncIndex] <= MAX_NUM_QUERY);
 
-        return currentSize - 1;
+        return res;
     }
 
-    void DX12QueryManager::ResolveTimestampQueryData(ID3D12GraphicsCommandList* commandList)
+    void DX12QueryManager::AddTimestampRange(StringView name, Uint32 beginQueryIndex, Uint32 endQueryIndex)
     {
-        const int currentCount = static_cast<int>(mTimestampNames[mCurrentIndex].size());
-        const Uint64 bufferSubSize = sizeof(Uint64) * MAX_NUM_TIMESTAMP;
-
-        commandList->ResolveQueryData(GetCurrentTimestampHeap(), D3D12_QUERY_TYPE_TIMESTAMP, 0, currentCount,
-            mTimestampGPUBuffer.resource, bufferSubSize * mCurrentIndex);
+        mTimestampRanges[mCurrentGPUSyncIndex].push_back({
+            .name = { name.begin(), name.end() },
+            .beginQueryIndex = beginQueryIndex,
+            .endQueryIndex = endQueryIndex
+        });
     }
 
-    
+    void DX12QueryManager::ResolveQueryData(ID3D12GraphicsCommandList* commandList)
+    {
+        const Uint32 numQueries = mLastQueryIndices[mCurrentGPUSyncIndex];
+        const Uint64 bufferSubSize = sizeof(Uint64) * MAX_NUM_QUERY;
+
+        commandList->ResolveQueryData(GetCurrentTimestampHeap(), D3D12_QUERY_TYPE_TIMESTAMP, 0, numQueries,
+            mQueryGPUBuffer.resource, bufferSubSize * mCurrentGPUSyncIndex);
+    }
+
     void DX12QueryManager::UpdateLastTimestamp(Uint64 gpuFrame)
     {
-        // Current index will be the last index.
-        // This function will be called after moving to next index so it is guaranteed
-        // that the last GPU sync related to the index is finished in DX12Device::BeginGPUFrame().
-        const Uint32 lastIndex = mCurrentIndex;
-        const Uint64 bufferSubSize = sizeof(Uint64) * MAX_NUM_TIMESTAMP;
+        // Current index is the last index.
+        // This function will be called after moving to next GPU sync index so it is guaranteed
+        // that the last GPU sync is finished in DX12Device::BeginGPUFrame().
+        const Uint32 lastIndex = mCurrentGPUSyncIndex;
+        const Uint64 bufferSubSize = sizeof(Uint64) * MAX_NUM_QUERY;
 
-        mTimestampGPUBuffer.Map(bufferSubSize * lastIndex, bufferSubSize * (lastIndex + 1));
-        memcpy(mLastTimestampCPUBuffer.data(), (char*)mTimestampGPUBuffer.pMapPtr + (lastIndex * bufferSubSize), bufferSubSize);
-        mTimestampGPUBuffer.Unmap();
+        mQueryGPUBuffer.Map(bufferSubSize * lastIndex, bufferSubSize * (lastIndex + 1));
+        memcpy(mLastQueryCPUBuffer.data(), (char*)mQueryGPUBuffer.pMapPtr + (lastIndex * bufferSubSize), bufferSubSize);
+        mQueryGPUBuffer.Unmap();
 
-        const Vector<String>& lastTimestampNames = mTimestampNames[lastIndex];
-        mLastTimestampList.frame = gpuFrame;
-        mDevice.GetQueueManager().GetMainQueue()->GetTimestampFrequency(&mLastTimestampList.frequency);
-        mLastTimestampList.timestamps.resize(lastTimestampNames.size());
-        for (int i = 0; i < lastTimestampNames.size()   ; ++i)
+        const Vector<DX12TimestampRange>& lastTimestampRanges = mTimestampRanges[lastIndex];
+        mLastTimestampRangeList.frame = gpuFrame;
+        mDevice.GetQueueManager().GetMainQueue()->GetTimestampFrequency(&mLastTimestampRangeList.frequency);
+        mLastTimestampRangeList.timestampRanges.resize(lastTimestampRanges.size());
+        for (int i = 0; i < lastTimestampRanges.size(); ++i)
         {
-            mLastTimestampList.timestamps[i].name = lastTimestampNames[i];
-            mLastTimestampList.timestamps[i].time = mLastTimestampCPUBuffer[i];
+            const DX12TimestampRange& dx12TimestampRange = lastTimestampRanges[i];
+
+            mLastTimestampRangeList.timestampRanges[i].name = dx12TimestampRange.name;
+            mLastTimestampRangeList.timestampRanges[i].beginTime = mLastQueryCPUBuffer[dx12TimestampRange.beginQueryIndex];
+            mLastTimestampRangeList.timestampRanges[i].endTime = mLastQueryCPUBuffer[dx12TimestampRange.endQueryIndex];
         }
     }
 } // namespace cube

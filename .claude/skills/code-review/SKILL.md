@@ -9,7 +9,8 @@ Review the commit $ARGUMENTS.
 # Check list
 * Logic errors. (wrong logics, memory leaks...)
 * Human errors. (typos, debug log and codes...)
-* Typos and grammar mistakes in the commit messages.
+* Typos and grammar mistakes in the code comments.
+* Typos and grammar mistakes in the commit messages but ignore '*' or '*WIP' on prefix.
 
 # Additional notes
 * Refer other similar functions in the code if you can.

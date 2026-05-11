@@ -2,6 +2,8 @@
 
 #include "CoreHeader.h"
 
+#include "GAPI_Timestamp.h"
+
 namespace cube
 {
     class StatsSystem
@@ -17,6 +19,8 @@ namespace cube
         static void OnLoopImGUI();
 
     private:
+        static void ImGUITimestampsWindow();
+
         static void CalculateStats(double deltaTimeSec);
 
         static float mCurrentFrameTimeMS;
@@ -40,5 +44,8 @@ namespace cube
         static float mMaximumLogicalVRAMMiB;
         static Array<float, NUM_STATS_HISTORY * 2> mPhysicalVRAMMiBHistory;
         static Array<float, NUM_STATS_HISTORY * 2> mLogicalVRAMMiBHistory;
+
+        static gapi::TimestampRangeList mTimestampRanges;
+        static bool mShowTimestampWindow;
     };
 } // namespace cube

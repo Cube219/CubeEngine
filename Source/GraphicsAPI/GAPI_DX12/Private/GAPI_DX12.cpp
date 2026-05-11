@@ -272,9 +272,9 @@ namespace cube
         return std::make_shared<gapi::DX12SwapChain>(mFactory.Get(), *mMainDevice, info);
     }
 
-    gapi::TimestampList GAPI_DX12::GetLastTimestampList()
+    gapi::TimestampRangeList GAPI_DX12::GetLastTimestampRangeList()
     {
-        return mMainDevice->GetQueryManager().GetLastTimestampList();
+        return mMainDevice->GetQueryManager().GetLastTimestampRangeList();
     }
 
     gapi::VRAMStatus GAPI_DX12::GetVRAMUsage()

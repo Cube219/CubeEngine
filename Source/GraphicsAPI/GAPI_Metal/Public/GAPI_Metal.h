@@ -51,7 +51,7 @@ namespace cube
         virtual SharedPtr<gapi::Texture> CreateTexture(const gapi::TextureCreateInfo& info) override;
         virtual SharedPtr<gapi::SwapChain> CreateSwapChain(const gapi::SwapChainCreateInfo& info) override;
 
-        virtual gapi::TimestampList GetLastTimestampList() override;
+        virtual gapi::TimestampRangeList GetLastTimestampRangeList() override;
         virtual gapi::VRAMStatus GetVRAMUsage() override;
 
     private:

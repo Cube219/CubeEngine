@@ -107,7 +107,7 @@ namespace cube
         virtual SharedPtr<gapi::Texture> CreateTexture(const gapi::TextureCreateInfo& createInfo) = 0;
         virtual SharedPtr<gapi::SwapChain> CreateSwapChain(const gapi::SwapChainCreateInfo& info) = 0;
 
-        virtual gapi::TimestampList GetLastTimestampList() = 0;
+        virtual gapi::TimestampRangeList GetLastTimestampRangeList() = 0;
         virtual gapi::VRAMStatus GetVRAMUsage() = 0;
 
     protected:

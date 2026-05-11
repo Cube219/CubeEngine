@@ -89,7 +89,8 @@ namespace cube
 
             virtual void CopyTexture(SharedPtr<Texture> srcTexture, SharedPtr<Texture> dstTexture) override;
 
-            virtual void InsertTimestamp(const String& name) override;
+            virtual void BeginTimestamp(StringView name) override;
+            virtual void EndTimestamp() override;
 
             virtual void Submit() override;
 
@@ -101,9 +102,27 @@ namespace cube
             bool IsWriting() const { return mIsWriting; }
             bool IsInRenderPass() const { return mRenderEncoder != nil; }
 
-            void EndEncoding();
+            void UseRenderEncoder(MTLRenderPassDescriptor* desc);
+            void UseComputeEncoder();
+            void UseBlitEncoder();
+            void ConsumeTimestampIndexBeforeUseEncoder(NSUInteger& outBeginIndex, NSUInteger& outEndIndex);
+
+            void EndRenderEncoder();
+            void EndComputeEncoder();
+            void EndBlitEncoder();
+            void EndAllEncoders();
+
+            bool HasTimestamps() const { return !mTimestampStack.empty(); }
+            bool HasPreBeginTimestamps() const { return !mTimestampStack.empty() && mTimestampStack.back().beginSampleIndex == MetalInvalidSampleIndex; }
 
             MetalTimestampManager& mTimestampManager;
+            struct TimestampBegin
+            {
+                String name;
+                Uint32 beginSampleIndex;
+            };
+            Vector<TimestampBegin> mTimestampStack;
+            Uint32 mLastTimestampSampleIndex;
 
             id<MTLCommandQueue> mCommandQueueRef;
             id<MTLCommandBuffer> mCommandBuffer;

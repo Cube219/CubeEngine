@@ -64,6 +64,9 @@ namespace cube
             mCommandList->SetGraphicsRootSignature(mShaderParameterHelper.GetRootSignature());
             mCommandList->SetComputeRootSignature(mShaderParameterHelper.GetRootSignature());
 
+            mHasQuery = false;
+            mTimestampStack.clear();
+
             mState = State::Writing;
         }
 
@@ -74,10 +77,11 @@ namespace cube
             ProcessBeforeEnd();
 
             CHECK_FORMAT(mCurrentEventNameList.empty(), "Not all events are ended.");
+            CHECK_FORMAT(mTimestampStack.empty(), "Not all timestamps are ended.");
 
-            if (mHasTimestampQuery)
+            if (mHasQuery)
             {
-                mQueryManager.ResolveTimestampQueryData(mCommandList.Get());
+                mQueryManager.ResolveQueryData(mCommandList.Get());
             }
 
             CHECK_HR(mCommandList->Close());
@@ -94,7 +98,7 @@ namespace cube
             CHECK(mState == State::Closed);
 
             CHECK_HR(mCommandList->Reset(mCommandListManager.GetCurrentAllocator(), nullptr));
-            mHasTimestampQuery = false;
+            mHasQuery = false;
             mState = State::Initial;
         }
 
@@ -421,14 +425,35 @@ namespace cube
             CUBE_DX12_BOUND_OBJECT(dstTexture);
         }
 
-        void DX12CommandList::InsertTimestamp(const String& name)
+        void DX12CommandList::BeginTimestamp(StringView name)
         {
             CHECK(IsWriting());
 
-            int index = mQueryManager.AddTimestamp(name);
-            mCommandList->EndQuery(mQueryManager.GetCurrentTimestampHeap(), D3D12_QUERY_TYPE_TIMESTAMP, index);
+            const Uint32 beginQueryIndex = mQueryManager.GetCurrentLastQueryIndexAndUse(1);
+            mCommandList->EndQuery(mQueryManager.GetCurrentTimestampHeap(), D3D12_QUERY_TYPE_TIMESTAMP, beginQueryIndex);
 
-            mHasTimestampQuery = true;
+            mTimestampStack.push_back({
+                .name = { name.begin(), name.end() },
+                .beginQueryIndex = beginQueryIndex
+            });
+
+            mHasQuery = true;
+        }
+
+        void DX12CommandList::EndTimestamp()
+        {
+            CHECK(IsWriting());
+
+            CHECK(!mTimestampStack.empty());
+
+            const Uint32 endQueryIndex = mQueryManager.GetCurrentLastQueryIndexAndUse(1);
+            mCommandList->EndQuery(mQueryManager.GetCurrentTimestampHeap(), D3D12_QUERY_TYPE_TIMESTAMP, endQueryIndex);
+
+            const TimestampBegin& topTimestamp = mTimestampStack.back();
+            mQueryManager.AddTimestampRange(topTimestamp.name, topTimestamp.beginQueryIndex, endQueryIndex);
+            mTimestampStack.pop_back();
+
+            mHasQuery = true;
         }
 
         void DX12CommandList::Submit()

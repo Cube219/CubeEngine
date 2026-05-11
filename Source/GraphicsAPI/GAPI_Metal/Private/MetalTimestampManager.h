@@ -8,10 +8,12 @@ namespace cube
 {
     class MetalDevice;
 
+    constexpr Uint32 MetalInvalidSampleIndex = (Uint32)-1;
+
     class MetalTimestampManager
     {
     public:
-        static constexpr int MAX_NUM_TIMESTAMP = 256;
+        static constexpr int MAX_NUM_SAMPLES = 1024;
 
     public:
         MetalTimestampManager(MetalDevice& device);
@@ -24,24 +26,37 @@ namespace cube
         void Shutdown();
 
         void SetNumGPUSync(Uint32 newNumGPUSync);
-        void MoveToNextIndex(Uint64 nextGPUFrame);
+        void MoveToNextGPUSync(Uint64 nextGPUFrame);
 
-        gapi::TimestampList GetLastTimestampList() const { return mLastTimestampList; }
+        bool IsSupported() const { return mIsSupported; }
 
-        id<MTLCounterSampleBuffer> GetCurrentCounterSampleBuffer() const { return mCounterSampleBuffers[mCurrentIndex]; }
-        int AddTimestamp(const String& name);
+        gapi::TimestampRangeList GetLastTimestampRangeList() const { return mLastTimestampRangeList; }
+
+        id<MTLCounterSampleBuffer> GetCurrentCounterSampleBuffer() const { return mCounterSampleBuffers[mCurrentGPUSyncIndex]; }
+        Uint32 GetCurrentLastSampleIndexAndUse(Uint32 numUseSample);
+        void AddTimestampRange(StringView name, Uint32 beginSampleIndex, Uint32 endSampleIndex);
 
     private:
         void UpdateLastTimestamp(Uint64 gpuFrame);
 
         MetalDevice& mDevice;
 
-        Uint32 mCurrentIndex;
+        bool mIsSupported = false;
+        Uint64 mTimeFrequency;
+
+        Uint32 mCurrentGPUSyncIndex;
 
         Vector<id<MTLCounterSampleBuffer>> mCounterSampleBuffers;
+        Vector<Uint32> mLastSampleIndices;
 
-        gapi::TimestampList mLastTimestampList;
+        gapi::TimestampRangeList mLastTimestampRangeList;
 
-        Vector<Vector<String>> mTimestampNames;
+        struct MetalTimestampRange
+        {
+            String name;
+            Uint32 beginSampleIndex;
+            Uint32 endSampleIndex;
+        };
+        Vector<Vector<MetalTimestampRange>> mTimestampRanges;
     };
 } // namespace cube

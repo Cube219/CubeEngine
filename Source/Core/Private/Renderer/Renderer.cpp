@@ -319,13 +319,13 @@ namespace cube
 
     float Renderer::GetGPUTimeMS() const
     {
-        gapi::TimestampList timestampList = mGAPI->GetLastTimestampList();
+        gapi::TimestampRangeList timestampRangeList = mGAPI->GetLastTimestampRangeList();
 
-        const Vector<gapi::Timestamp>& timestamps = timestampList.timestamps;
-        if (timestamps.size() >= 2)
+        const Vector<gapi::TimestampRange>& timestampRanges = timestampRangeList.timestampRanges;
+        if (timestampRanges.size() >= 1)
         {
-            const Uint64 gpuTime = (timestamps.back().time - timestamps[0].time);
-            return static_cast<float>(static_cast<double>(gpuTime) / static_cast<double>(timestampList.frequency) * 1000.0);
+            const Uint64 gpuTime = (timestampRanges[0].endTime - timestampRanges[0].beginTime);
+            return static_cast<float>(static_cast<double>(gpuTime) / static_cast<double>(timestampRangeList.frequency) * 1000.0);
         }
         else
         {
@@ -370,33 +370,10 @@ namespace cube
         {
             RG_GPU_EVENT_SCOPE(builder, CUBE_T("Frame"));
 
-            gapi::Viewport viewport = {
-                .x = 0.0f,
-                .y = 0.0f,
-                .width = static_cast<float>(mViewportWidth),
-                .height = static_cast<float>(mViewportHeight)
-            };
-            gapi::ScissorRect scissor = {
-                .x = 0,
-                .y = 0,
-                .width = mViewportWidth,
-                .height = mViewportHeight
-            };
-
-            RGShaderParameterListHandle<GlobalShaderParameterList> globalShaderParameterList = builder.CreateShaderParameterList<GlobalShaderParameterList>();
-            globalShaderParameterList->Get()->viewPosition = mViewPosition;
-            globalShaderParameterList->Get()->viewProjection = mViewPerspectiveMatirx;
-            globalShaderParameterList->Get()->isDirectionalLightEnabled = mIsDirectionalLightEnabled;
-            globalShaderParameterList->Get()->directionalLightDirection = mDirectionalLightDirection;
-            globalShaderParameterList->Get()->directionalLightIntensity = mDirectionalLightIntensity;
-            builder.BindShaderParameterList(globalShaderParameterList);
-
-            RGShaderParameterListHandle<EnvironmentMapLightShaderParameterList> envMapShaderParameterList = builder.CreateShaderParameterList<EnvironmentMapLightShaderParameterList>();
-            envMapShaderParameterList->Get()->diffuseIrradianceMap = mEnvironmentMapping.GetDiffuseIrradianceMap(builder);
-
+            // TODO: For testing. Remove this after testing.
             RGTextureHandle externalColor = builder.RegisterTexture(mCurrentBackbuffer);
             RGTextureHandle externalDepthStencil = builder.RegisterTexture(mDepthStencilTexture);
-            // TODO: For testing. Remove this after testing.
+
             gapi::TextureInfo colorTextureInfo = {
                 .format = mCurrentBackbuffer->GetFormat(),
                 .type = gapi::TextureType::Texture2D,
@@ -417,82 +394,117 @@ namespace cube
             RGTextureRTVHandle colorRTV = builder.CreateRTV(color);
             RGTextureDSVHandle depthStencilDSV = builder.CreateDSV(depthStencil);
 
-            RGBuilder::RenderPassInfo renderPassInfo;
-            renderPassInfo.colors.push_back({
-                .color = colorRTV,
-                .loadOperation = gapi::LoadOperation::Clear,
-                .storeOperation = gapi::StoreOperation::Store,
-                .clearColor = { 0.2f, 0.2f, 0.2f, 1.0f }
-            });
-            renderPassInfo.depthstencil = {
-                .dsv = depthStencilDSV,
-                .loadOperation = gapi::LoadOperation::Clear,
-                .storeOperation = gapi::StoreOperation::Store,
-                .clearDepth = 0.0f
-            };
-            builder.BeginRenderPass(renderPassInfo);
-
-            builder.AddPass(CUBE_T("Init global settings"), [viewport, scissor](gapi::CommandList& commandList)
             {
-                gapi::Viewport vp = viewport;
-                gapi::ScissorRect sr = scissor;
-                commandList.SetViewports({ &vp, 1 });
-                commandList.SetScissors({ &sr, 1 });
-                commandList.SetPrimitiveTopology(gapi::PrimitiveTopology::TriangleList);
-            });
+                RG_GPU_TIMESTAMP_SCOPE(builder, CUBE_T("MainPass"));
 
-            FrameVector<RGBuilder::DrawMeshInfo> drawMeshInfos;
-            drawMeshInfos.push_back({
-                .mesh = mMesh,
-                .fillMode = fillMode,
-                .materials = mMaterials,
-                .model = mModelMatrix
-            });
+                gapi::Viewport viewport = {
+                    .x = 0.0f,
+                    .y = 0.0f,
+                    .width = static_cast<float>(mViewportWidth),
+                    .height = static_cast<float>(mViewportHeight)
+                };
+                gapi::ScissorRect scissor = {
+                    .x = 0,
+                    .y = 0,
+                    .width = mViewportWidth,
+                    .height = mViewportHeight
+                };
 
-            builder.AddDrawMeshPass(CUBE_T("Draw Center Object"), drawMeshInfos, RGBuilder::MakeParameterListArray(envMapShaderParameterList));
+                RGShaderParameterListHandle<GlobalShaderParameterList> globalShaderParameterList = builder.CreateShaderParameterList<GlobalShaderParameterList>();
+                globalShaderParameterList->Get()->viewPosition = mViewPosition;
+                globalShaderParameterList->Get()->viewProjection = mViewPerspectiveMatirx;
+                globalShaderParameterList->Get()->isDirectionalLightEnabled = mIsDirectionalLightEnabled;
+                globalShaderParameterList->Get()->directionalLightDirection = mDirectionalLightDirection;
+                globalShaderParameterList->Get()->directionalLightIntensity = mDirectionalLightIntensity;
+                builder.BindShaderParameterList(globalShaderParameterList);
 
-            if (mShowAxis)
-            {
-                FrameVector<RGBuilder::DrawMeshInfo> drawAxisMeshInfos;
-                drawAxisMeshInfos.push_back({
-                    .mesh = mBoxMesh,
-                    .fillMode = fillMode,
-                    .materials = { &mXAxisMaterial, 1 },
-                    .model = mXAxisModelMatrix
+                RGShaderParameterListHandle<EnvironmentMapLightShaderParameterList> envMapShaderParameterList = builder.CreateShaderParameterList<EnvironmentMapLightShaderParameterList>();
+                envMapShaderParameterList->Get()->diffuseIrradianceMap = mEnvironmentMapping.GetDiffuseIrradianceMap(builder);
+
+                RGBuilder::RenderPassInfo renderPassInfo;
+                renderPassInfo.colors.push_back({
+                    .color = colorRTV,
+                    .loadOperation = gapi::LoadOperation::Clear,
+                    .storeOperation = gapi::StoreOperation::Store,
+                    .clearColor = { 0.2f, 0.2f, 0.2f, 1.0f }
                 });
-                drawAxisMeshInfos.push_back({
-                    .mesh = mBoxMesh,
-                    .fillMode = fillMode,
-                    .materials = { &mYAxisMaterial, 1 },
-                    .model = mYAxisModelMatrix
+                renderPassInfo.depthstencil = {
+                    .dsv = depthStencilDSV,
+                    .loadOperation = gapi::LoadOperation::Clear,
+                    .storeOperation = gapi::StoreOperation::Store,
+                    .clearDepth = 0.0f
+                };
+                builder.BeginRenderPass(renderPassInfo);
+
+                builder.AddPass(CUBE_T("Init global settings"), [viewport, scissor](gapi::CommandList& commandList)
+                {
+                    gapi::Viewport vp = viewport;
+                    gapi::ScissorRect sr = scissor;
+                    commandList.SetViewports({ &vp, 1 });
+                    commandList.SetScissors({ &sr, 1 });
+                    commandList.SetPrimitiveTopology(gapi::PrimitiveTopology::TriangleList);
                 });
-                drawAxisMeshInfos.push_back({
-                    .mesh = mBoxMesh,
+
+                FrameVector<RGBuilder::DrawMeshInfo> drawMeshInfos;
+                drawMeshInfos.push_back({
+                    .mesh = mMesh,
                     .fillMode = fillMode,
-                    .materials = { &mZAxisMaterial, 1 },
-                    .model = mZAxisModelMatrix
+                    .materials = mMaterials,
+                    .model = mModelMatrix
                 });
-                builder.AddDrawMeshPass(CUBE_T("Draw Axis"), drawAxisMeshInfos, RGBuilder::MakeParameterListArray(envMapShaderParameterList));
+
+                builder.AddDrawMeshPass(CUBE_T("Draw Center Object"), drawMeshInfos, RGBuilder::MakeParameterListArray(envMapShaderParameterList));
+
+                if (mShowAxis)
+                {
+                    FrameVector<RGBuilder::DrawMeshInfo> drawAxisMeshInfos;
+                    drawAxisMeshInfos.push_back({
+                        .mesh = mBoxMesh,
+                        .fillMode = fillMode,
+                        .materials = { &mXAxisMaterial, 1 },
+                        .model = mXAxisModelMatrix
+                    });
+                    drawAxisMeshInfos.push_back({
+                        .mesh = mBoxMesh,
+                        .fillMode = fillMode,
+                        .materials = { &mYAxisMaterial, 1 },
+                        .model = mYAxisModelMatrix
+                    });
+                    drawAxisMeshInfos.push_back({
+                        .mesh = mBoxMesh,
+                        .fillMode = fillMode,
+                        .materials = { &mZAxisMaterial, 1 },
+                        .model = mZAxisModelMatrix
+                    });
+                    builder.AddDrawMeshPass(CUBE_T("Draw Axis"), drawAxisMeshInfos, RGBuilder::MakeParameterListArray(envMapShaderParameterList));
+                }
+
+                mEnvironmentMapping.DrawSkybox(builder);
+
+                builder.EndRenderPass();
             }
 
-            mEnvironmentMapping.DrawSkybox(builder);
+            builder.AddPass(CUBE_T("Copy To External"), 
+                [color, depthStencil, externalColor, externalDepthStencil](gapi::CommandList& commandList)
+                {
+                    commandList.CopyTexture(color->GetGAPITexture(), externalColor->GetGAPITexture());
+                    commandList.CopyTexture(depthStencil->GetGAPITexture(), externalDepthStencil->GetGAPITexture());
+                }, [color, depthStencil, externalColor, externalDepthStencil](RGBuilder& builder)
+                {
+                    builder.UseResource(color, {}, gapi::ResourceStateFlag::CopySrc);
+                    builder.UseResource(depthStencil, {}, gapi::ResourceStateFlag::CopySrc);
 
-            builder.EndRenderPass();
+                    builder.UseResource(externalColor, {}, gapi::ResourceStateFlag::CopyDst);
+                    builder.UseResource(externalDepthStencil, {}, gapi::ResourceStateFlag::CopyDst);
+                },
+                false, true
+            );
 
-            builder.AddPass(CUBE_T("Copy To External"), [color, depthStencil, externalColor, externalDepthStencil](gapi::CommandList& commandList)
             {
-                commandList.CopyTexture(color->GetGAPITexture(), externalColor->GetGAPITexture());
-                commandList.CopyTexture(depthStencil->GetGAPITexture(), externalDepthStencil->GetGAPITexture());
-            }, [color, depthStencil, externalColor, externalDepthStencil](RGBuilder& builder)
-            {
-                builder.UseResource(color, {}, gapi::ResourceStateFlag::CopySrc);
-                builder.UseResource(depthStencil, {}, gapi::ResourceStateFlag::CopySrc);
+                RG_GPU_TIMESTAMP_SCOPE(builder, CUBE_T("Texture Viewer"));
 
-                builder.UseResource(externalColor, {}, gapi::ResourceStateFlag::CopyDst);
-                builder.UseResource(externalDepthStencil, {}, gapi::ResourceStateFlag::CopyDst);
-            });
-
-            mTextureViewer.FetchInfo(builder);
+                mTextureViewer.FetchInfo(builder);
+            }
         }
         builder.ExecuteAndSubmit(*mCommandList);
     }

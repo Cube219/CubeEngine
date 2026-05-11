@@ -4,6 +4,7 @@
 #include "implot.h"
 
 #include "Engine.h"
+#include "Allocator/FrameAllocator.h"
 #include "Renderer/Renderer.h"
 
 namespace cube
@@ -29,6 +30,9 @@ namespace cube
     Array<float, StatsSystem::NUM_STATS_HISTORY * 2> StatsSystem::mPhysicalVRAMMiBHistory;
     Array<float, StatsSystem::NUM_STATS_HISTORY * 2> StatsSystem::mLogicalVRAMMiBHistory;
 
+    gapi::TimestampRangeList StatsSystem::mTimestampRanges;
+    bool StatsSystem::mShowTimestampWindow = false;
+
     void StatsSystem::Initialize()
     {
     }
@@ -51,6 +55,7 @@ namespace cube
         ImVec2 work_size = viewport->WorkSize;
         ImGui::SetNextWindowPos({ work_pos.x + work_size.x - PAD, work_pos.x + PAD }, ImGuiCond_Always, { 1.0f, 0.0f });
 
+        ImGui::SetNextWindowSize({ 350, 560 }, ImGuiCond_FirstUseEver);
         ImGui::Begin("Stats");
 
         // Graph axis (shared)
@@ -113,7 +118,39 @@ namespace cube
             }
         }
 
+        ImGui::Separator();
+
+        if (ImGui::Button("Show Timestamps"))
+        {
+            mShowTimestampWindow = true;
+        }
+
         ImPlot::PopStyleVar();
+        ImGui::End();
+
+        ImGUITimestampsWindow();
+    }
+
+    void StatsSystem::ImGUITimestampsWindow()
+    {
+        if (!mShowTimestampWindow)
+        {
+            return;
+        }
+
+        ImGui::SetNextWindowPos({ 940, 570 }, ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize({ 450, 330 }, ImGuiCond_FirstUseEver);
+        if (ImGui::Begin("Timestamps", &mShowTimestampWindow))
+        {
+            for (const gapi::TimestampRange& timestampRange : mTimestampRanges.timestampRanges)
+            {
+                const float timeMS = static_cast<float>(
+                    static_cast<double>(timestampRange.endTime - timestampRange.beginTime) / static_cast<double>(mTimestampRanges.frequency)  * 1000.0f
+                );
+                ImGui::BulletText("%s: %.4fms", String_Convert<FrameAnsiString>(timestampRange.name).c_str(), timeMS);
+            }
+        }
+
         ImGui::End();
     }
 
@@ -152,5 +189,7 @@ namespace cube
             mMinFPS = std::min(mMinFPS, sampleFPS);
             mMaxFPS = std::max(mMaxFPS, sampleFPS);
         }
+
+        mTimestampRanges = Engine::GetRenderer()->GetGAPI().GetLastTimestampRangeList();
     }
 } // namespace cube

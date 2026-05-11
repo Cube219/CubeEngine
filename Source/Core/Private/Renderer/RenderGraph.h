@@ -104,29 +104,59 @@ namespace cube
             return { params... };
         }
 
-        void AddPass(StringView name, PassFunction&& passFunction, UseResourceFunction&& useResourceFunction = [](RGBuilder&) {}, bool isCompute = false)
+        void AddPass(StringView name,
+            PassFunction&& passFunction, UseResourceFunction&& useResourceFunction = [](RGBuilder&) {},
+            bool isCompute = false, bool addTimestamp = false
+        )
         {
-            AddPassInternal(name, nullptr, nullptr, {}, std::move(passFunction), std::move(useResourceFunction));
+            AddPassInternal(name, nullptr, nullptr, {},
+                std::move(passFunction), std::move(useResourceFunction),
+                addTimestamp
+            );
         }
 
-        void AddPass(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, RGShaderParameterListBaseHandle parameterList, PassFunction&& passFunction)
+        void AddPass(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, RGShaderParameterListBaseHandle parameterList,
+            PassFunction&& passFunction,
+            bool addTimestamp = false
+        )
         {
-            AddPassInternal(name, graphicsPipeline, nullptr, { &parameterList, 1 }, std::move(passFunction), nullptr);
+            AddPassInternal(name, graphicsPipeline, nullptr, { &parameterList, 1 },
+                std::move(passFunction), nullptr,
+                addTimestamp
+            );
         }
 
-        void AddPass(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists, PassFunction&& passFunction)
+        void AddPass(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists,
+            PassFunction&& passFunction,
+            bool addTimestamp = false
+        )
         {
-            AddPassInternal(name, graphicsPipeline, nullptr, parameterLists, std::move(passFunction), nullptr);
+            AddPassInternal(name, graphicsPipeline, nullptr, parameterLists,
+                std::move(passFunction), nullptr,
+                addTimestamp
+            );
         }
 
-        void AddPass(StringView name, SharedPtr<ComputePipeline> computePipeline, RGShaderParameterListBaseHandle parameterList, PassFunction&& passFunction)
+        void AddPass(StringView name, SharedPtr<ComputePipeline> computePipeline, RGShaderParameterListBaseHandle parameterList,
+            PassFunction&& passFunction,
+            bool addTimestamp = false
+        )
         {
-            AddPassInternal(name, nullptr, computePipeline, { &parameterList, 1 }, std::move(passFunction), nullptr);
+            AddPassInternal(name, nullptr, computePipeline, { &parameterList, 1 },
+                std::move(passFunction), nullptr,
+                addTimestamp
+            );
         }
 
-        void AddPass(StringView name, SharedPtr<ComputePipeline> computePipeline, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists, PassFunction&& passFunction)
+        void AddPass(StringView name, SharedPtr<ComputePipeline> computePipeline, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists,
+            PassFunction&& passFunction,
+            bool addTimestamp = false
+        )
         {
-            AddPassInternal(name, nullptr, computePipeline, parameterLists, std::move(passFunction), nullptr);
+            AddPassInternal(name, nullptr, computePipeline, parameterLists,
+                std::move(passFunction), nullptr,
+                addTimestamp
+            );
         }
 
         void AddDrawMeshPass(StringView name, ArrayView<DrawMeshInfo> drawMeshInfos, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists);
@@ -146,6 +176,7 @@ namespace cube
         {
             // Set in AddPass
             String name;
+            bool addTimestamp = false;
             int index = -1;
 
             Vector<RGShaderParameterListBaseHandle> shaderParameterLists;
@@ -170,7 +201,10 @@ namespace cube
 
         void BindShaderParameterListInternal(StringView name, RGShaderParameterListBaseHandle parameterList);
 
-        void AddPassInternal(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, SharedPtr<ComputePipeline> computePipeline, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists, PassFunction&& passFunction, UseResourceFunction&& useResourceFunction);
+        void AddPassInternal(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, SharedPtr<ComputePipeline> computePipeline, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists,
+            PassFunction&& passFunction, UseResourceFunction&& useResourceFunction,
+            bool addTimestamp
+        );
 
         void ResolveShaderParameterListsAndPipeline(PassInfo& pass, gapi::CommandList& commandList);
         void MarkUseResources(PassInfo& pass, gapi::CommandList& commandList);
@@ -242,4 +276,35 @@ namespace cube
         RGBuilder& mCurrentBuilder;
 	};
 #define RG_GPU_EVENT_SCOPE(builder, name) RGGPUEventScope CUBE_MACRO_JOIN(_eventScope, __LINE__)(builder, name)
+
+    class RGGPUTimestampScope
+    {
+    public:
+        RGGPUTimestampScope(RGBuilder& builder, StringView name)
+            : mBuilder(builder)
+        {
+            mBuilder.AddPass(CUBE_T("##BeginGPUTimestampScope"),
+                [strName = String(name)](gapi::CommandList& commandList)
+                {
+                    commandList.BeginTimestamp(strName);
+                }
+            );
+        }
+        ~RGGPUTimestampScope()
+        {
+            mBuilder.AddPass(CUBE_T("##EndGPUTimestampScope"),
+                [](gapi::CommandList& commandList)
+                {
+                    commandList.EndTimestamp();
+                }
+            );
+        }
+
+        RGGPUTimestampScope(const RGGPUTimestampScope& other) = delete;
+        RGGPUTimestampScope& operator=(const RGGPUTimestampScope& rhs) = delete;
+
+    private:
+        RGBuilder& mBuilder;
+    };
+#define RG_GPU_TIMESTAMP_SCOPE(builder, name) RGGPUTimestampScope CUBE_MACRO_JOIN(_timestampScope, __LINE__)(builder, name)
 } // namespace cube

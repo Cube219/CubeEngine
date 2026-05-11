@@ -129,7 +129,7 @@ namespace cube
         }
 
         GetCommandListManager().MoveToNextIndex(gpuFrame);
-        GetQueryManager().MoveToNextIndex(gpuFrame);
+        GetQueryManager().MoveToNextGPUSync(gpuFrame);
         GetMemoryAllocator().MoveToNextIndex(gpuFrame);
     }
 

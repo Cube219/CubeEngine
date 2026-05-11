@@ -8,18 +8,19 @@ namespace cube
 {
     namespace gapi
     {
-        struct Timestamp
+        struct TimestampRange
         {
             String name;
-            Uint64 time;
+            Uint64 beginTime;
+            Uint64 endTime;
         };
 
-        struct TimestampList
+        struct TimestampRangeList
         {
             Uint64 frame = 0;
             Uint64 frequency;
 
-            Vector<Timestamp> timestamps;
+            Vector<TimestampRange> timestampRanges;
         };
     } // namespace gapi
 } // namespace cube

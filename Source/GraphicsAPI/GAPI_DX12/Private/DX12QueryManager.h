@@ -13,7 +13,7 @@ namespace cube
     class DX12QueryManager
     {
     public:
-        static constexpr int MAX_NUM_TIMESTAMP = 256;
+        static constexpr int MAX_NUM_QUERY = 1024;
 
     public:
         DX12QueryManager(DX12Device& device);
@@ -25,27 +25,36 @@ namespace cube
         void Shutdown();
 
         void SetNumGPUSync(Uint32 newNumGPUSync);
-        void MoveToNextIndex(Uint64 nextGPUFrame);
+        void MoveToNextGPUSync(Uint64 nextGPUFrame);
 
-        gapi::TimestampList GetLastTimestampList() const { return mLastTimestampList; }
+        gapi::TimestampRangeList GetLastTimestampRangeList() const { return mLastTimestampRangeList; }
 
-        ID3D12QueryHeap* GetCurrentTimestampHeap() const { return mTimestampHeaps[mCurrentIndex].Get(); }
-        int AddTimestamp(const String& name);
-        void ResolveTimestampQueryData(ID3D12GraphicsCommandList* commandList);
+        ID3D12QueryHeap* GetCurrentTimestampHeap() const { return mTimestampHeaps[mCurrentGPUSyncIndex].Get(); }
+
+        Uint32 GetCurrentLastQueryIndexAndUse(Uint32 numUseQueries);
+        void AddTimestampRange(StringView name, Uint32 beginQueryIndex, Uint32 endQueryIndex);
+        void ResolveQueryData(ID3D12GraphicsCommandList* commandList);
 
     private:
         void UpdateLastTimestamp(Uint64 gpuFrame);
 
         DX12Device& mDevice;
 
-        Uint32 mCurrentIndex;
+        Uint32 mCurrentGPUSyncIndex;
 
         Vector<ComPtr<ID3D12QueryHeap>> mTimestampHeaps;
-        DX12Allocation mTimestampGPUBuffer;
+        Vector<Uint32> mLastQueryIndices;
+        DX12Allocation mQueryGPUBuffer;
 
-        Array<Uint64, MAX_NUM_TIMESTAMP> mLastTimestampCPUBuffer;
-        gapi::TimestampList mLastTimestampList;
+        Array<Uint64, MAX_NUM_QUERY> mLastQueryCPUBuffer;
+        gapi::TimestampRangeList mLastTimestampRangeList;
 
-        Vector<Vector<String>> mTimestampNames;
+        struct DX12TimestampRange
+        {
+            String name;
+            Uint32 beginQueryIndex;
+            Uint32 endQueryIndex;
+        };
+        Vector<Vector<DX12TimestampRange>> mTimestampRanges;
     };
 } // namespace cube

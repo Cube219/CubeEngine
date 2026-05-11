@@ -63,7 +63,8 @@ namespace cube
 
             virtual void CopyTexture(SharedPtr<Texture> srcTexture, SharedPtr<Texture> dstTexture) override;
 
-            void InsertTimestamp(const String& name) override;
+            virtual void BeginTimestamp(StringView name) override;
+            virtual void EndTimestamp() override;
 
             void Submit() override;
 
@@ -96,7 +97,14 @@ namespace cube
             Uint32 mComputeThreadGroupSizeZ;
 
             bool mIsInRenderPass = false;
-            bool mHasTimestampQuery = false;
+            bool mHasQuery = false;
+
+            struct TimestampBegin
+            {
+                String name;
+                Uint32 beginQueryIndex;
+            };
+            Vector<TimestampBegin> mTimestampStack;
 
             Vector<AnsiString> mCurrentEventNameList;
         };

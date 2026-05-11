@@ -20,6 +20,8 @@ namespace cube
     {
         mDevice = device;
 
+        SetSupportedFeatures();
+
         mNumGPUSync = numGPUSync;
         mGPUSyncEvent = [mDevice newSharedEvent];
         mGPUSyncEvent.label = @"GPUSyncEvent";
@@ -84,7 +86,7 @@ namespace cube
             [mGPUSyncEvent waitUntilSignaledValue:gpuFrame-1 timeoutMS:100000000000];
         }
 
-        mTimestampManager.MoveToNextIndex(gpuFrame);
+        mTimestampManager.MoveToNextGPUSync(gpuFrame);
         mTransientHeapManager.MoveToNextIndex(gpuFrame);
     }
 
@@ -105,4 +107,13 @@ namespace cube
         [waitAllGPUSyncCommandBuffer commit];
         [waitAllGPUSyncCommandBuffer waitUntilCompleted];
     }}
+
+    void MetalDevice::SetSupportedFeatures()
+    {
+        mIsCounterSamplingSupported = [mDevice supportsCounterSampling:MTLCounterSamplingPointAtStageBoundary];
+        if (!mIsCounterSamplingSupported)
+        {
+            CUBE_LOG(Warning, Metal, "Device {0} does not support counter sampling at stage boundary. GPU timestamp will be disabled.", mDevice.name);
+        }
+    }
 } // namespace cube

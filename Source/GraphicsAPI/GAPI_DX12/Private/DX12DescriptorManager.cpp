@@ -92,7 +92,7 @@ namespace cube
 
         D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {
             .Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
-            .NumDescriptors = 1024,
+            .NumDescriptors = 4096,
             .Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
             .NodeMask = 0
         };
