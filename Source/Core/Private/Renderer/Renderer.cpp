@@ -503,7 +503,7 @@ namespace cube
             {
                 RG_GPU_TIMESTAMP_SCOPE(builder, CUBE_T("Texture Viewer"));
 
-                mTextureViewer.FetchInfo(builder);
+                mTextureViewer.Update(builder);
             }
         }
         builder.ExecuteAndSubmit(*mCommandList);

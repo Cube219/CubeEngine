@@ -36,7 +36,7 @@ namespace cube
     {
         CUBE_BEGIN_SHADER_PARAMETER_LIST(TextureViewerFetchInfoShaderParameterList)
             CUBE_SHADER_PARAMETER(Vector4, sizeAndInvSize)
-            CUBE_SHADER_PARAMETER(RGTextureSRVHandle, copiedTexture)
+            CUBE_SHADER_PARAMETER(RGTextureSRVHandle, canvasTexture)
             CUBE_SHADER_PARAMETER(int, positionToReadX)
             CUBE_SHADER_PARAMETER(int, positionToReadY)
             CUBE_SHADER_PARAMETER(RGBufferUAVHandle, readbackBuffer)
@@ -123,6 +123,11 @@ namespace cube
         }
 
         mCurrentFrameIndex = 0;
+
+        mCanvasTexture = nullptr;
+        mCanvasTextureWidth = 0;
+        mCanvasTextureHeight = 0;
+        mCanvasMipLevel = 0;
     }
 
     void TextureViewer::Shutdown()
@@ -140,7 +145,9 @@ namespace cube
         mCopyToTextureViewer2DPipelineInfo = {};
         mCopyToTextureViewer2DShader = nullptr;
 
-        mCopiedTextureSRV = nullptr;
+        mCanvasTextureSRV = nullptr;
+        mCanvasTexture = nullptr;
+
         mCopiedTexture = nullptr;
     }
 
@@ -155,29 +162,33 @@ namespace cube
         ImGui::SetNextWindowSize({ 600, 630 }, ImGuiCond_FirstUseEver);
         if (ImGui::Begin("Texture Viewer", &mShow))
         {
-            if (mIsCopied)
+            if (mCopiedTexture)
             {
-                ImGui::Text("Name: %s", mName.c_str());
-                ImGui::Text("Captured rendering frame: %llu", mRenderingFrame);
-                switch (mTextureInfo.type)
+                const gapi::TextureInfo& textureInfo = mCopiedTexture->GetInfo();
+
+                ImGui::Text("Name: %s", mCopiedTextureName.c_str());
+                ImGui::Text("Captured rendering frame: %llu", mCopiedRenderingFrame);
+                switch (textureInfo.type)
                 {
                 case gapi::TextureType::Texture2D:
                 {
                     ImGui::Text("Type: Texture2D");
-                    ImGui::Text("Dimensions: %d x %d", mTextureInfo.width, mTextureInfo.height);
-                    ImGui::Text("MipLevel: %d", mSubresourceRange.firstMipLevel);
+                    ImGui::Text("Dimensions: %d x %d", textureInfo.width, textureInfo.height);
+                    ImGui::Text("MipLevels: %d", textureInfo.mipLevels);
                     break;
                 }
                 case gapi::TextureType::TextureCube:
                 {
                     ImGui::Text("Type: TextureCube");
-                    ImGui::Text("Dimensions: %d x %d", mTextureInfo.width, mTextureInfo.height);
-                    ImGui::Text("MipLevel: %d", mSubresourceRange.firstMipLevel);
+                    ImGui::Text("Dimensions: %d x %d", textureInfo.width, textureInfo.height);
+                    ImGui::Text("MipLevels: %d", textureInfo.mipLevels);
                     break;
                 }
                 default:
                     break;
                 }
+                ImGui::SetNextItemWidth(120);
+                ImGui::SliderInt("MipLevel", &mMipLevel, 0, textureInfo.mipLevels - 1);
 
                 const float bottomTextLineSize = ImGui::GetTextLineHeightWithSpacing();
                 const ImVec2 contentRegion = ImGui::GetContentRegionAvail();
@@ -220,8 +231,8 @@ namespace cube
                     mPanOffsetY += io.MouseDelta.y;
                 }
 
-                const float scaledWidth = static_cast<float>(mCopiedTextureWidth) * mZoom;
-                const float scaledHeight = static_cast<float>(mCopiedTextureHeight) * mZoom;
+                const float scaledWidth = static_cast<float>(mCanvasTextureWidth) * mZoom;
+                const float scaledHeight = static_cast<float>(mCanvasTextureHeight) * mZoom;
                 const Float2 imageMin(
                     canvasOrigin.x + (canvasSize.x - scaledWidth) * 0.5f + mPanOffsetX,
                     canvasOrigin.y + (canvasSize.y - scaledHeight) * 0.5f + mPanOffsetY
@@ -230,7 +241,7 @@ namespace cube
 
                 ImDrawList* drawList = ImGui::GetWindowDrawList();
                 drawList->AddCallback(ImGui::GetPlatformIO().DrawCallback_SetSamplerNearest);
-                drawList->AddImage(mCopiedTextureSRV->GetImTextureID(), { imageMin.x, imageMin.y }, { imageMax.x, imageMax.y });
+                drawList->AddImage(mCanvasTextureSRV->GetImTextureID(), { imageMin.x, imageMin.y }, { imageMax.x, imageMax.y });
                 drawList->AddCallback(ImDrawCallback_ResetRenderState);
 
                 ImGui::EndChild();
@@ -243,7 +254,7 @@ namespace cube
                 {
                     ImGUIPixelInfo({ -1, -1 }, imageMin, imageMax);
                 }
-                // TODO: Select miplevel / array index.
+                // TODO: Select array index.
                 // TODO: RGBA mask / color range.
             }
             else
@@ -266,7 +277,7 @@ namespace cube
         ProcessReadbackInfo();
     }
 
-    void TextureViewer::SetTexture(RGBuilder& builder, RGTextureHandle texture, gapi::SubresourceRangeInput subresourceRange)
+    void TextureViewer::SetTexture(RGBuilder& builder, RGTextureHandle texture)
     {
         const gapi::TextureInfo& textureInfo = texture->GetTextureInfo();
         if (textureInfo.type != gapi::TextureType::Texture2D && textureInfo.type != gapi::TextureType::TextureCube)
@@ -274,107 +285,49 @@ namespace cube
             NOT_IMPLEMENTED();
         }
 
-        CreateNewCopiedTextureIfNeeded(textureInfo);
+        CreateNewCanvasTextureIfNeeded(textureInfo);
 
-        mName = String_Convert<AnsiString>(texture->GetDebugName());
-        mRenderingFrame = mRenderer.GetCurrentRenderingFrame();
-        mTextureInfo = textureInfo;
-        mSubresourceRange = subresourceRange;
+        mCopiedTextureName = String_Convert<AnsiString>(texture->GetDebugName());
+        mCopiedRenderingFrame = mRenderer.GetCurrentRenderingFrame();
 
-        RGTextureSRVHandle srcSRV = builder.CreateSRV(texture, subresourceRange.firstMipLevel, 1);
-        RGTextureHandle dstTex = builder.RegisterTexture(mCopiedTexture);
-        RGTextureUAVHandle dstUAV = builder.CreateUAV(dstTex);
+        mCopiedTexture = mRenderer.GetGAPI().CreateTexture({
+            .usage = gapi::ResourceUsage::GPUOnly,
+            .textureInfo = textureInfo,
+            .debugName = CUBE_T("TextureViewer CopiedTexture")
+        });
 
-        if (textureInfo.type == gapi::TextureType::Texture2D)
-        {
-            auto params = builder.CreateShaderParameterList<CopyToTextureViewerShaderParameterList>();
-            params->Get()->dstSizeAndInvSize = Vector4(
-                static_cast<float>(mCopiedTextureWidth), static_cast<float>(mCopiedTextureHeight),
-                1.0f / static_cast<float>(mCopiedTextureWidth), 1.0f / static_cast<float>(mCopiedTextureHeight)
-            );
-            params->Get()->srcTexture2D = srcSRV;
-            params->Get()->dstTexture = dstUAV;
+        RGTextureHandle copiedTexture = builder.RegisterTexture(mCopiedTexture);
+        builder.AddPass(Format<FrameString>(CUBE_T("TextureViewer CopyToTexture - {0}"), mCopiedTextureName),
+            [src = texture, dst = copiedTexture](gapi::CommandList& commandList)
+            {
+                commandList.CopyTexture(src->GetGAPITexture(), dst->GetGAPITexture());
+            }, [src = texture, dst = copiedTexture](RGBuilder& builder)
+            {
+                builder.UseResource(src, {}, gapi::ResourceStateFlag::CopySrc);
+                builder.UseResource(dst, {}, gapi::ResourceStateFlag::CopyDst);
+            },
+            false, true
+        );
 
-            SharedPtr<ComputePipeline> copyToTextureViewer2DPipeline = mRenderer.GetPipelineManager().GetOrCreateComputePipeline({
-                .pipelineInfo = mCopyToTextureViewer2DPipelineInfo,
-                .debugName = CUBE_T("CopyToTextureViewer2D Pipeline")
-            });
-            builder.AddPass(
-                Format<FrameString>(CUBE_T("TextureViewer CopyToTexture - {0}"), mName), copyToTextureViewer2DPipeline,
-                RGBuilder::MakeParameterListArray(params),
-                [width = mCopiedTextureWidth, height = mCopiedTextureHeight](gapi::CommandList& commandList){
-                    commandList.DispatchThreads(width, height, 1);
-                }
-            );
-        }
-        else if (textureInfo.type == gapi::TextureType::TextureCube)
-        {
-            const Uint32 srcWidth = mTextureInfo.width;
-            const Uint32 srcHeight = mTextureInfo.height;
-
-            auto params = builder.CreateShaderParameterList<CopyToTextureViewerCubeShaderParameterList>();
-            params->Get()->srcSizeAndInvSize = Vector4(
-                static_cast<float>(srcWidth), static_cast<float>(srcHeight),
-                1.0f / static_cast<float>(srcWidth), 1.0f / static_cast<float>(srcHeight)
-            );
-            params->Get()->srcTextureCube = srcSRV;
-            params->Get()->dstTexture = dstUAV;
-
-            SharedPtr<ComputePipeline> copyToTextureViewerCubePipeline = mRenderer.GetPipelineManager().GetOrCreateComputePipeline({
-                .pipelineInfo = mCopyToTextureViewerCubePipelineInfo,
-                .debugName = CUBE_T("CopyToTextureViewerCube Pipeline")
-            });
-            builder.AddPass(
-                Format<FrameString>(CUBE_T("TextureViewer CopyToTextureCube - {0}"), mName), copyToTextureViewerCubePipeline,
-                RGBuilder::MakeParameterListArray(params),
-                [width = srcWidth, height = srcHeight](gapi::CommandList& commandList){
-                    commandList.DispatchThreads(width, height, 6);
-                }
-            );
-        }
-
-        mIsCopied = true;
+        DrawToCanvasTextureIfNeeded(builder, true);
     }
 
-    void TextureViewer::FetchInfo(RGBuilder& builder)
+    void TextureViewer::Update(RGBuilder& builder)
     {
-        if (!mShow || !mIsCopied)
+        if (!mShow || !mCopiedTexture)
         {
             return;
         }
 
-        RGTextureHandle copiedTexture = builder.RegisterTexture(mCopiedTexture);
-        RGTextureSRVHandle copiedSRV = builder.CreateSRV(copiedTexture);
-        RGBufferHandle readbackBuffer = builder.RegisterBuffer(GetCurrentReadbackBuffer().buffer);
-        RGBufferUAVHandle readbackUAV = builder.CreateUAV(readbackBuffer, ReadbackBuffer::format);
-
-        auto params = builder.CreateShaderParameterList<TextureViewerFetchInfoShaderParameterList>();
-        params->Get()->sizeAndInvSize = Vector4(
-            static_cast<float>(mCopiedTextureWidth), static_cast<float>(mCopiedTextureHeight),
-            1.0f / static_cast<float>(mCopiedTextureWidth), 1.0f / static_cast<float>(mCopiedTextureHeight)
-        );
-        params->Get()->copiedTexture = copiedSRV;
-        params->Get()->positionToReadX = mPixelX;
-        params->Get()->positionToReadY = mPixelY;
-        params->Get()->readbackBuffer = readbackUAV;
-
-        SharedPtr<ComputePipeline> fetchInfoPipeline = mRenderer.GetPipelineManager().GetOrCreateComputePipeline({
-            .pipelineInfo = mFetchInfoPipelineInfo,
-            .debugName = CUBE_T("TextureViewerFetchInfoCS Pipeline")
-        });
-        builder.AddPass(
-            Format<FrameString>(CUBE_T("TextureViewer FetchInfo - {0}"), mName),
-            fetchInfoPipeline,
-            RGBuilder::MakeParameterListArray(params),
-            [](gapi::CommandList& commandList)
-            {
-                commandList.DispatchThreads(1, 1, 1);
-            }
-        );
+        DrawToCanvasTextureIfNeeded(builder);
+        FetchInfo(builder);
     }
 
     void TextureViewer::ImGUIPixelInfo(Float2 mousePos, Float2 imageMin, Float2 imageMax)
     {
+        CHECK(mCopiedTexture);
+        const gapi::TextureInfo& textureInfo = mCopiedTexture->GetInfo();
+
         bool pixelPrinted = false;
         bool colorPrinted = false;
 
@@ -388,13 +341,21 @@ namespace cube
             {
                 const float bottomTextLineSize = ImGui::GetTextLineHeightWithSpacing();
 
-                mPixelX = static_cast<int>(u * static_cast<float>(mCopiedTextureWidth));
-                mPixelY = static_cast<int>(v * static_cast<float>(mCopiedTextureHeight));
+                mPixelX = static_cast<int>(u * static_cast<float>(mCanvasTextureWidth));
+                mPixelY = static_cast<int>(v * static_cast<float>(mCanvasTextureHeight));
 
-                if (mTextureInfo.type == gapi::TextureType::TextureCube)
+                const Uint32 canvasMipWidth = std::max(1u, mCanvasTextureWidth >> mMipLevel);
+                const Uint32 canvasMipHeight = std::max(1u, mCanvasTextureHeight >> mMipLevel);
+
+                const int pixelMipX = static_cast<int>(u * static_cast<float>(canvasMipWidth));
+                const int pixelMipY = static_cast<int>(v * static_cast<float>(canvasMipHeight));
+                const float mipU = (static_cast<float>(pixelMipX) + 0.5f) / static_cast<float>(canvasMipWidth);
+                const float mipV = (static_cast<float>(pixelMipY) + 0.5f) / static_cast<float>(canvasMipHeight);
+
+                if (textureInfo.type == gapi::TextureType::TextureCube)
                 {
-                    const Uint32 faceWidth = mTextureInfo.width;
-                    const Uint32 faceHeight = mTextureInfo.height;
+                    const Uint32 faceWidth = textureInfo.width;
+                    const Uint32 faceHeight = textureInfo.height;
 
                     static const Uint32 cubeMultiplierX[6] = { 2, 0, 1, 1, 1, 3 };
                     static const Uint32 cubeMultiplierY[6] = { 1, 1, 0, 2, 1, 1 };
@@ -421,13 +382,20 @@ namespace cube
                         const float faceV = (static_cast<float>(faceY) + 0.5f) / static_cast<float>(faceHeight);
                         static const char* faceStr[6] = { "+X", "-X", "+Y", "-Y", "+Z", "-Z" };
 
-                        ImGui::Text("Pixel (%d, %d, %s) / UV (%.4f, %.4f)", faceX, faceY, faceStr[faceIndex], faceU, faceV);
+                        const Uint32 faceMipWidth = std::max(1u, faceWidth >> mMipLevel);
+                        const Uint32 faceMipHeight = std::max(1u, faceHeight >> mMipLevel);
+                        const int faceMipX = static_cast<int>(faceU * static_cast<float>(faceMipWidth));
+                        const int faceMipY = static_cast<int>(faceV * static_cast<float>(faceMipHeight));
+                        const float faceMipU = (static_cast<float>(faceMipX) + 0.5f) / static_cast<float>(faceMipWidth);
+                        const float faceMipV = (static_cast<float>(faceMipY) + 0.5f) / static_cast<float>(faceMipHeight);
+
+                        ImGui::Text("Pixel (%d, %d, %s) / UV (%.4f, %.4f)", faceMipX, faceMipY, faceStr[faceIndex], faceMipU, faceMipV);
                         pixelPrinted = true;
                     }
                 }
                 else
                 {
-                    ImGui::Text("Pixel (%d, %d) / UV (%.4f, %.4f)", mPixelX, mPixelY, u, v);
+                    ImGui::Text("Pixel (%d, %d) / UV (%.4f, %.4f)", pixelMipX, pixelMipY, mipU, mipV);
                     pixelPrinted = true;
                 }
 
@@ -455,7 +423,41 @@ namespace cube
         }
     }
 
-    void TextureViewer::CreateNewCopiedTextureIfNeeded(const gapi::TextureInfo& info)
+    void TextureViewer::FetchInfo(RGBuilder& builder)
+    {
+        CHECK(mCanvasTexture);
+
+        RGTextureHandle canvasTexture = builder.RegisterTexture(mCanvasTexture);
+        RGTextureSRVHandle canvasSRV = builder.CreateSRV(canvasTexture);
+        RGBufferHandle readbackBuffer = builder.RegisterBuffer(GetCurrentReadbackBuffer().buffer);
+        RGBufferUAVHandle readbackUAV = builder.CreateUAV(readbackBuffer, ReadbackBuffer::format);
+
+        auto params = builder.CreateShaderParameterList<TextureViewerFetchInfoShaderParameterList>();
+        params->Get()->sizeAndInvSize = Vector4(
+            static_cast<float>(mCanvasTextureWidth), static_cast<float>(mCanvasTextureHeight),
+            1.0f / static_cast<float>(mCanvasTextureWidth), 1.0f / static_cast<float>(mCanvasTextureHeight)
+        );
+        params->Get()->canvasTexture = canvasSRV;
+        params->Get()->positionToReadX = mPixelX;
+        params->Get()->positionToReadY = mPixelY;
+        params->Get()->readbackBuffer = readbackUAV;
+
+        SharedPtr<ComputePipeline> fetchInfoPipeline = mRenderer.GetPipelineManager().GetOrCreateComputePipeline({
+            .pipelineInfo = mFetchInfoPipelineInfo,
+            .debugName = CUBE_T("TextureViewerFetchInfoCS Pipeline")
+        });
+        builder.AddPass(
+            Format<FrameString>(CUBE_T("TextureViewer FetchInfo - {0}"), mCopiedTextureName),
+            fetchInfoPipeline,
+            RGBuilder::MakeParameterListArray(params),
+            [](gapi::CommandList& commandList)
+            {
+                commandList.DispatchThreads(1, 1, 1);
+            }
+        );
+    }
+
+    void TextureViewer::CreateNewCanvasTextureIfNeeded(const gapi::TextureInfo& info)
     {
         Uint32 newWidth = info.width;
         Uint32 newHeight = info.height;
@@ -465,17 +467,18 @@ namespace cube
             newHeight *= 3;
         }
 
-        if (mCopiedTexture && mCopiedTextureWidth == newWidth && mCopiedTextureHeight == newHeight)
+        if (mCanvasTexture && mCanvasTextureWidth == newWidth && mCanvasTextureHeight == newHeight)
         {
             return;
         }
 
-        mCopiedTextureSRV = nullptr;
-        mCopiedTexture = nullptr;
-        mCopiedTextureWidth = newWidth;
-        mCopiedTextureHeight = newHeight;
+        mCanvasTextureSRV = nullptr;
+        mCanvasTexture = nullptr;
+        mCanvasTextureWidth = newWidth;
+        mCanvasTextureHeight = newHeight;
+        mCanvasMipLevel = 0;
 
-        mCopiedTexture = mRenderer.GetGAPI().CreateTexture({
+        mCanvasTexture = mRenderer.GetGAPI().CreateTexture({
             .usage = gapi::ResourceUsage::GPUOnly,
             .textureInfo = {
                 .format = gapi::ElementFormat::RGBA8_UNorm,
@@ -484,9 +487,78 @@ namespace cube
                 .width = newWidth,
                 .height = newHeight
             },
-            .debugName = CUBE_T("TextureViewer CopiedTexture")
+            .debugName = CUBE_T("TextureViewer CanvasTexture")
         });
-        mCopiedTextureSRV = mCopiedTexture->CreateSRV({});
+        mCanvasTextureSRV = mCanvasTexture->CreateSRV({});
+    }
+
+    void TextureViewer::DrawToCanvasTextureIfNeeded(RGBuilder& builder, bool force)
+    {
+        CHECK(mCopiedTexture);
+        CHECK(mCanvasTexture);
+        const gapi::TextureInfo textureInfo = mCopiedTexture->GetInfo();
+
+        mMipLevel = std::min(mMipLevel, static_cast<int>(textureInfo.mipLevels) - 1);
+
+        if (!force && mMipLevel == static_cast<int>(mCanvasMipLevel))
+        {
+            return;
+        }
+
+        RGTextureHandle src = builder.RegisterTexture(mCopiedTexture);
+        RGTextureSRVHandle srcSRV = builder.CreateSRV(src, mMipLevel, 1);
+        RGTextureHandle dstTex = builder.RegisterTexture(mCanvasTexture);
+        RGTextureUAVHandle dstUAV = builder.CreateUAV(dstTex);
+
+        if (textureInfo.type == gapi::TextureType::Texture2D)
+        {
+            auto params = builder.CreateShaderParameterList<CopyToTextureViewerShaderParameterList>();
+            params->Get()->dstSizeAndInvSize = Vector4(
+                static_cast<float>(mCanvasTextureWidth), static_cast<float>(mCanvasTextureHeight),
+                1.0f / static_cast<float>(mCanvasTextureWidth), 1.0f / static_cast<float>(mCanvasTextureHeight)
+            );
+            params->Get()->srcTexture2D = srcSRV;
+            params->Get()->dstTexture = dstUAV;
+
+            SharedPtr<ComputePipeline> copyToTextureViewer2DPipeline = mRenderer.GetPipelineManager().GetOrCreateComputePipeline({
+                .pipelineInfo = mCopyToTextureViewer2DPipelineInfo,
+                .debugName = CUBE_T("CopyToTextureViewer2D Pipeline")
+            });
+            builder.AddPass(
+                Format<FrameString>(CUBE_T("TextureViewer CopyToCanvas - {0}"), mCopiedTextureName), copyToTextureViewer2DPipeline,
+                RGBuilder::MakeParameterListArray(params),
+                [width = mCanvasTextureWidth, height = mCanvasTextureHeight](gapi::CommandList& commandList){
+                    commandList.DispatchThreads(width, height, 1);
+                }
+            );
+        }
+        else if (textureInfo.type == gapi::TextureType::TextureCube)
+        {
+            const Uint32 srcWidth = textureInfo.width;
+            const Uint32 srcHeight = textureInfo.height;
+
+            auto params = builder.CreateShaderParameterList<CopyToTextureViewerCubeShaderParameterList>();
+            params->Get()->srcSizeAndInvSize = Vector4(
+                static_cast<float>(srcWidth), static_cast<float>(srcHeight),
+                1.0f / static_cast<float>(srcWidth), 1.0f / static_cast<float>(srcHeight)
+            );
+            params->Get()->srcTextureCube = srcSRV;
+            params->Get()->dstTexture = dstUAV;
+
+            SharedPtr<ComputePipeline> copyToTextureViewerCubePipeline = mRenderer.GetPipelineManager().GetOrCreateComputePipeline({
+                .pipelineInfo = mCopyToTextureViewerCubePipelineInfo,
+                .debugName = CUBE_T("CopyToTextureViewerCube Pipeline")
+            });
+            builder.AddPass(
+                Format<FrameString>(CUBE_T("TextureViewer CopyToCanvas - {0}"), mCopiedTextureName), copyToTextureViewerCubePipeline,
+                RGBuilder::MakeParameterListArray(params),
+                [width = srcWidth, height = srcHeight](gapi::CommandList& commandList){
+                    commandList.DispatchThreads(width, height, 6);
+                }
+            );
+        }
+
+        mCanvasMipLevel = mMipLevel;
     }
 
     void TextureViewer::ProcessReadbackInfo()

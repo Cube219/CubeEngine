@@ -33,14 +33,17 @@ namespace cube
         void MoveToNextFrame();
 
         void Show() { mShow = true; }
-        void SetTexture(RGBuilder& builder, RGTextureHandle texture, gapi::SubresourceRangeInput subresourceRange);
+        void SetTexture(RGBuilder& builder, RGTextureHandle texture);
 
-        void FetchInfo(RGBuilder& builder);
+        void Update(RGBuilder& builder);
 
     private:
         void ImGUIPixelInfo(Float2 mousePos, Float2 imageMin, Float2 imageMax);
+        void FetchInfo(RGBuilder& builder);
 
-        void CreateNewCopiedTextureIfNeeded(const gapi::TextureInfo& info);
+        void CreateNewCanvasTextureIfNeeded(const gapi::TextureInfo& info);
+        void DrawToCanvasTextureIfNeeded(RGBuilder& builder, bool force = false);
+
         void ProcessReadbackInfo();
 
         Renderer& mRenderer;
@@ -53,13 +56,24 @@ namespace cube
         ComputePipelineInfo mFetchInfoPipelineInfo;
 
         bool mShow = false;
-
-        Uint32 mCopiedTextureWidth;
-        Uint32 mCopiedTextureHeight;
-        SharedPtr<gapi::Texture> mCopiedTexture;
-        SharedPtr<gapi::TextureSRV> mCopiedTextureSRV;
-
         Uint32 mCurrentFrameIndex = 0;
+
+        Uint64 mCopiedRenderingFrame;
+        AnsiString mCopiedTextureName;
+        SharedPtr<gapi::Texture> mCopiedTexture;
+
+        Uint32 mCanvasTextureWidth;
+        Uint32 mCanvasTextureHeight;
+        Uint32 mCanvasMipLevel;
+        SharedPtr<gapi::Texture> mCanvasTexture;
+        SharedPtr<gapi::TextureSRV> mCanvasTextureSRV;
+
+        float mZoom = 1.0f;
+        float mPanOffsetX = 0.0f;
+        float mPanOffsetY = 0.0f;
+        int mPixelX = -1;
+        int mPixelY = -1;
+        int mMipLevel = 0;
 
         // TODO: Use info queue to get data immediately?
         struct ReadbackBuffer
@@ -79,17 +93,5 @@ namespace cube
             Float4 color;
         };
         ReadbackInfo mReadbackInfo;
-
-        float mZoom = 1.0f;
-        float mPanOffsetX = 0.0f;
-        float mPanOffsetY = 0.0f;
-        int mPixelX = -1;
-        int mPixelY = -1;
-
-        bool mIsCopied = false;
-        AnsiString mName;
-        Uint64 mRenderingFrame;
-        gapi::TextureInfo mTextureInfo;
-        gapi::SubresourceRangeInput mSubresourceRange;
     };
 } // namespace cube

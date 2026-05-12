@@ -3,7 +3,7 @@ import Common;
 struct TextureViewerFetchInfoShaderParameterList
 {
     float4 sizeAndInvSize;
-    Bindless<Texture2D> copiedTexture;
+    Bindless<Texture2D> canvasTexture;
 
     int positionToReadX;
     int positionToReadY;
@@ -29,7 +29,7 @@ void TextureViewerFetchInfoCS(
         return;
     }
 
-    float4 color = params.copiedTexture.Load(int3(pos, 0));
+    float4 color = params.canvasTexture.Load(int3(pos, 0));
     params.readbackBuffer[0] = color.x;
     params.readbackBuffer[1] = color.y;
     params.readbackBuffer[2] = color.z;
