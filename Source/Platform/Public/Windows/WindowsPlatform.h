@@ -64,10 +64,8 @@ namespace cube
 
             static HWND mWindow;
             static WindowsString mWindowTitle;
-            static Uint32 mWindowWidth;
-            static Uint32 mWindowHeight;
-            static Int32 mWindowPosX;
-            static Int32 mWindowPosY;
+            static Uint2 mWindowSize;
+            static Int2 mWindowPos;
 
             static bool mIsCursorShown;
 

@@ -125,8 +125,7 @@ namespace cube
         mCurrentFrameIndex = 0;
 
         mCanvasTexture = nullptr;
-        mCanvasTextureWidth = 0;
-        mCanvasTextureHeight = 0;
+        mCanvasTextureSize = { 0, 0 };
         mCanvasMipLevel = 0;
     }
 
@@ -212,30 +211,26 @@ namespace cube
 
                     if (std::abs(newZoom - oldZoom) > std::numeric_limits<float>::epsilon())
                     {
-                        const float canvasCenterX = canvasOrigin.x + canvasSize.x * 0.5f;
-                        const float canvasCenterY = canvasOrigin.y + canvasSize.y * 0.5f;
-                        const float imageCenterX = canvasCenterX + mPanOffsetX;
-                        const float imageCenterY = canvasCenterY + mPanOffsetY;
+                        const Float2 canvasCenter = { canvasOrigin.x + canvasSize.x * 0.5f, canvasOrigin.y + canvasSize.y * 0.5f };
+                        const Float2 imageCenter = canvasCenter + mPanOffset;
+                        const Float2 mousePos = { io.MousePos.x, io.MousePos.y };
                         const float scale = newZoom / oldZoom;
-                        const float newImageCenterX = io.MousePos.x - (io.MousePos.x - imageCenterX) * scale;
-                        const float newImageCenterY = io.MousePos.y - (io.MousePos.y - imageCenterY) * scale;
-                        mPanOffsetX = newImageCenterX - canvasCenterX;
-                        mPanOffsetY = newImageCenterY - canvasCenterY;
+                        const Float2 newImageCenter = mousePos - (mousePos - imageCenter) * scale;
+                        mPanOffset = newImageCenter - canvasCenter;
                         mZoom = newZoom;
                     }
                 }
 
                 if (isActive && ImGui::IsMouseDragging(ImGuiMouseButton_Right, 0.0f))
                 {
-                    mPanOffsetX += io.MouseDelta.x;
-                    mPanOffsetY += io.MouseDelta.y;
+                    mPanOffset += Float2{ io.MouseDelta.x, io.MouseDelta.y };
                 }
 
-                const float scaledWidth = static_cast<float>(mCanvasTextureWidth) * mZoom;
-                const float scaledHeight = static_cast<float>(mCanvasTextureHeight) * mZoom;
+                const float scaledWidth = static_cast<float>(mCanvasTextureSize.x) * mZoom;
+                const float scaledHeight = static_cast<float>(mCanvasTextureSize.y) * mZoom;
                 const Float2 imageMin(
-                    canvasOrigin.x + (canvasSize.x - scaledWidth) * 0.5f + mPanOffsetX,
-                    canvasOrigin.y + (canvasSize.y - scaledHeight) * 0.5f + mPanOffsetY
+                    canvasOrigin.x + (canvasSize.x - scaledWidth) * 0.5f + mPanOffset.x,
+                    canvasOrigin.y + (canvasSize.y - scaledHeight) * 0.5f + mPanOffset.y
                 );
                 const Float2 imageMax(imageMin.x + scaledWidth, imageMin.y + scaledHeight);
 
@@ -341,11 +336,13 @@ namespace cube
             {
                 const float bottomTextLineSize = ImGui::GetTextLineHeightWithSpacing();
 
-                mPixelX = static_cast<int>(u * static_cast<float>(mCanvasTextureWidth));
-                mPixelY = static_cast<int>(v * static_cast<float>(mCanvasTextureHeight));
+                mPixel = {
+                    static_cast<int>(u * static_cast<float>(mCanvasTextureSize.x)),
+                    static_cast<int>(v * static_cast<float>(mCanvasTextureSize.y))
+                };
 
-                const Uint32 canvasMipWidth = std::max(1u, mCanvasTextureWidth >> mMipLevel);
-                const Uint32 canvasMipHeight = std::max(1u, mCanvasTextureHeight >> mMipLevel);
+                const Uint32 canvasMipWidth = std::max(1u, mCanvasTextureSize.x >> mMipLevel);
+                const Uint32 canvasMipHeight = std::max(1u, mCanvasTextureSize.y >> mMipLevel);
 
                 const int pixelMipX = static_cast<int>(u * static_cast<float>(canvasMipWidth));
                 const int pixelMipY = static_cast<int>(v * static_cast<float>(canvasMipHeight));
@@ -364,8 +361,8 @@ namespace cube
                     {
                         const Uint32 faceMinX = faceWidth * cubeMultiplierX[i];
                         const Uint32 faceMinY = faceHeight * cubeMultiplierY[i];
-                        if ((static_cast<int>(faceMinX) <= mPixelX && mPixelX < static_cast<int>(faceMinX + faceWidth))
-                            && (static_cast<int>(faceMinY) <= mPixelY && mPixelY < static_cast<int>(faceMinY + faceHeight)))
+                        if ((static_cast<int>(faceMinX) <= mPixel.x && mPixel.x < static_cast<int>(faceMinX + faceWidth))
+                            && (static_cast<int>(faceMinY) <= mPixel.y && mPixel.y < static_cast<int>(faceMinY + faceHeight)))
                         {
                             faceIndex = i;
                             break;
@@ -376,8 +373,8 @@ namespace cube
                     {
                         const Uint32 faceMinX = faceWidth * cubeMultiplierX[faceIndex];
                         const Uint32 faceMinY = faceHeight * cubeMultiplierY[faceIndex];
-                        const Uint32 faceX = mPixelX - faceMinX;
-                        const Uint32 faceY = mPixelY - faceMinY;
+                        const Uint32 faceX = mPixel.x - faceMinX;
+                        const Uint32 faceY = mPixel.y - faceMinY;
                         const float faceU = (static_cast<float>(faceX) + 0.5f) / static_cast<float>(faceWidth);
                         const float faceV = (static_cast<float>(faceY) + 0.5f) / static_cast<float>(faceHeight);
                         static const char* faceStr[6] = { "+X", "-X", "+Y", "-Y", "+Z", "-Z" };
@@ -413,8 +410,7 @@ namespace cube
         if (!pixelPrinted)
         {
             ImGui::Text("Pixel / UV");
-            mPixelX = -1;
-            mPixelY = -1;
+            mPixel = { -1, -1 };
         }
 
         if (!colorPrinted)
@@ -434,12 +430,12 @@ namespace cube
 
         auto params = builder.CreateShaderParameterList<TextureViewerFetchInfoShaderParameterList>();
         params->Get()->sizeAndInvSize = Vector4(
-            static_cast<float>(mCanvasTextureWidth), static_cast<float>(mCanvasTextureHeight),
-            1.0f / static_cast<float>(mCanvasTextureWidth), 1.0f / static_cast<float>(mCanvasTextureHeight)
+            static_cast<float>(mCanvasTextureSize.x), static_cast<float>(mCanvasTextureSize.y),
+            1.0f / static_cast<float>(mCanvasTextureSize.x), 1.0f / static_cast<float>(mCanvasTextureSize.y)
         );
         params->Get()->canvasTexture = canvasSRV;
-        params->Get()->positionToReadX = mPixelX;
-        params->Get()->positionToReadY = mPixelY;
+        params->Get()->positionToReadX = mPixel.x;
+        params->Get()->positionToReadY = mPixel.y;
         params->Get()->readbackBuffer = readbackUAV;
 
         SharedPtr<ComputePipeline> fetchInfoPipeline = mRenderer.GetPipelineManager().GetOrCreateComputePipeline({
@@ -467,15 +463,14 @@ namespace cube
             newHeight *= 3;
         }
 
-        if (mCanvasTexture && mCanvasTextureWidth == newWidth && mCanvasTextureHeight == newHeight)
+        if (mCanvasTexture && mCanvasTextureSize == Uint2{ newWidth, newHeight })
         {
             return;
         }
 
         mCanvasTextureSRV = nullptr;
         mCanvasTexture = nullptr;
-        mCanvasTextureWidth = newWidth;
-        mCanvasTextureHeight = newHeight;
+        mCanvasTextureSize = { newWidth, newHeight };
         mCanvasMipLevel = 0;
 
         mCanvasTexture = mRenderer.GetGAPI().CreateTexture({
@@ -514,8 +509,8 @@ namespace cube
         {
             auto params = builder.CreateShaderParameterList<CopyToTextureViewerShaderParameterList>();
             params->Get()->dstSizeAndInvSize = Vector4(
-                static_cast<float>(mCanvasTextureWidth), static_cast<float>(mCanvasTextureHeight),
-                1.0f / static_cast<float>(mCanvasTextureWidth), 1.0f / static_cast<float>(mCanvasTextureHeight)
+                static_cast<float>(mCanvasTextureSize.x), static_cast<float>(mCanvasTextureSize.y),
+                1.0f / static_cast<float>(mCanvasTextureSize.x), 1.0f / static_cast<float>(mCanvasTextureSize.y)
             );
             params->Get()->srcTexture2D = srcSRV;
             params->Get()->dstTexture = dstUAV;
@@ -527,8 +522,8 @@ namespace cube
             builder.AddPass(
                 Format<FrameString>(CUBE_T("TextureViewer CopyToCanvas - {0}"), mCopiedTextureName), copyToTextureViewer2DPipeline,
                 RGBuilder::MakeParameterListArray(params),
-                [width = mCanvasTextureWidth, height = mCanvasTextureHeight](gapi::CommandList& commandList){
-                    commandList.DispatchThreads(width, height, 1);
+                [size = mCanvasTextureSize](gapi::CommandList& commandList){
+                    commandList.DispatchThreads(size.x, size.y, 1);
                 }
             );
         }

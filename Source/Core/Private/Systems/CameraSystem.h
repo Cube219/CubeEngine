@@ -43,8 +43,7 @@ namespace cube
 
         static float mFOV;
         static Vector3 mPosition;
-        static float mAxisXAngle;
-        static float mAxisYAngle;
+        static Float2 mAxisAngles;
         static Vector3 mDirection;
         static Matrix mRotation;
         static float mAspectRatio;
@@ -68,13 +67,10 @@ namespace cube
         static bool mIsLeftMousePressed;
         static bool mIsRightMousePressed;
         static bool mIsMouseMoved;
-        static Int32 mLastMouseX;
-        static Int32 mLastMouseY;
-        static Int32 mCurrentMouseX;
-        static Int32 mCurrentMouseY;
+        static Int2 mLastMousePos;
+        static Int2 mCurrentMousePos;
         static bool mIsMouseLocked;
-        static Int32 mLockedMouseX;
-        static Int32 mLockedMouseY;
+        static Int2 mLockedMousePos;
         static float mMouseSpeed;
 
         static bool mIsMouseWheelMoved;

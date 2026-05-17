@@ -31,10 +31,8 @@ namespace cube
 
         HWND WindowsPlatform::mWindow;
         WindowsString WindowsPlatform::mWindowTitle;
-        Uint32 WindowsPlatform::mWindowWidth;
-        Uint32 WindowsPlatform::mWindowHeight;
-        Int32 WindowsPlatform::mWindowPosX;
-        Int32 WindowsPlatform::mWindowPosY;
+        Uint2 WindowsPlatform::mWindowSize;
+        Int2 WindowsPlatform::mWindowPos;
 
         bool WindowsPlatform::mIsCursorShown = true;
 
@@ -68,10 +66,8 @@ namespace cube
         void WindowsPlatform::InitWindow(StringView title, Uint32 width, Uint32 height, Int32 posX, Int32 posY)
         {
             mWindowTitle = String_Convert<WindowsString>(title);
-            mWindowWidth = width;
-            mWindowHeight = height;
-            mWindowPosX = posX;
-            mWindowPosY = posY;
+            mWindowSize = { width, height };
+            mWindowPos = { posX, posY };
 
             mInstance = GetModuleHandle(NULL);
 
@@ -97,13 +93,13 @@ namespace cube
         void WindowsPlatform::ShowWindow()
         {
             // Create Window
-            RECT rect = { 0, 0, (LONG)mWindowWidth, (LONG)mWindowHeight };
+            RECT rect = { 0, 0, (LONG)mWindowSize.x, (LONG)mWindowSize.y };
             AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, FALSE);
 
             mWindow = CreateWindowEx(0,
                 mWindowTitle.c_str(), mWindowTitle.c_str(),
                 WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_SYSMENU,
-                mWindowPosX, mWindowPosY,
+                mWindowPos.x, mWindowPos.y,
                 rect.right - rect.left, rect.bottom - rect.top,
                 nullptr, nullptr, mInstance, nullptr
             );
@@ -238,22 +234,22 @@ namespace cube
 
         Uint32 WindowsPlatform::GetWindowWidth()
         {
-            return mWindowWidth;
+            return mWindowSize.x;
         }
 
         Uint32 WindowsPlatform::GetWindowHeight()
         {
-            return mWindowHeight;
+            return mWindowSize.y;
         }
 
         Int32 WindowsPlatform::GetWindowPositionX()
         {
-            return mWindowPosX;
+            return mWindowPos.x;
         }
 
         Int32 WindowsPlatform::GetWindowPositionY()
         {
-            return mWindowPosY;
+            return mWindowPos.y;
         }
 
         SharedPtr<WindowsDLib> WindowsPlatform::LoadDLib(const FilePath& path)
@@ -338,17 +334,15 @@ namespace cube
             case WM_SIZE:
                 if (wParam != SIZE_MINIMIZED)
                 {
-                    WindowsPlatform::mWindowWidth = lParam & 0xffff;
-                    WindowsPlatform::mWindowHeight = (lParam & 0xffff0000) >> 16;
+                    WindowsPlatform::mWindowSize = { static_cast<Uint32>(lParam & 0xffff), static_cast<Uint32>((lParam & 0xffff0000) >> 16) };
 
-                    BasePlatform::GetResizeEvent().Dispatch(WindowsPlatform::mWindowWidth, WindowsPlatform::mWindowHeight);
+                    BasePlatform::GetResizeEvent().Dispatch(WindowsPlatform::mWindowSize.x, WindowsPlatform::mWindowSize.y);
                 }
                 break;
 
             case WM_MOVE:
             {
-                WindowsPlatform::mWindowPosX = (short)LOWORD(lParam);
-                WindowsPlatform::mWindowPosY = (short)HIWORD(lParam);
+                WindowsPlatform::mWindowPos = { (short)LOWORD(lParam), (short)HIWORD(lParam) };
                 break;
             }
 

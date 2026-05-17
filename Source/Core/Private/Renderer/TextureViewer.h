@@ -62,17 +62,14 @@ namespace cube
         AnsiString mCopiedTextureName;
         SharedPtr<gapi::Texture> mCopiedTexture;
 
-        Uint32 mCanvasTextureWidth;
-        Uint32 mCanvasTextureHeight;
+        Uint2 mCanvasTextureSize;
         Uint32 mCanvasMipLevel;
         SharedPtr<gapi::Texture> mCanvasTexture;
         SharedPtr<gapi::TextureSRV> mCanvasTextureSRV;
 
         float mZoom = 1.0f;
-        float mPanOffsetX = 0.0f;
-        float mPanOffsetY = 0.0f;
-        int mPixelX = -1;
-        int mPixelY = -1;
+        Float2 mPanOffset = { 0.0f, 0.0f };
+        Int2 mPixel = { -1, -1 };
         int mMipLevel = 0;
 
         // TODO: Use info queue to get data immediately?

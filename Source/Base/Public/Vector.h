@@ -40,26 +40,116 @@ namespace cube
 
 namespace cube
 {
-    struct Float2
+    template <typename T>
+    struct PrimitiveVector2
     {
-        float x;
-        float y;
+        T x;
+        T y;
+
+        PrimitiveVector2 operator+(const PrimitiveVector2& rhs) const { return PrimitiveVector2{ x + rhs.x, y + rhs.y }; }
+        PrimitiveVector2 operator-(const PrimitiveVector2& rhs) const { return PrimitiveVector2{ x - rhs.x, y - rhs.y }; }
+        PrimitiveVector2 operator*(T rhs) const { return PrimitiveVector2{ x * rhs, y * rhs }; }
+        PrimitiveVector2 operator*(const PrimitiveVector2& rhs) const { return PrimitiveVector2{ x * rhs.x, y * rhs.y }; }
+        PrimitiveVector2 operator/(T rhs) const { return PrimitiveVector2{ x / rhs, y / rhs }; }
+        PrimitiveVector2 operator/(const PrimitiveVector2& rhs) const { return PrimitiveVector2{ x / rhs.x, y / rhs.y }; }
+
+        PrimitiveVector2 operator-() const { return PrimitiveVector2{ -x, -y }; }
+        const PrimitiveVector2& operator+() const { return *this; }
+
+        PrimitiveVector2& operator+=(const PrimitiveVector2& rhs) { x += rhs.x; y += rhs.y; return *this; }
+        PrimitiveVector2& operator-=(const PrimitiveVector2& rhs) { x -= rhs.x; y -= rhs.y; return *this; }
+        PrimitiveVector2& operator*=(T rhs) { x *= rhs; y *= rhs; return *this; }
+        PrimitiveVector2& operator*=(const PrimitiveVector2& rhs) { x *= rhs.x; y *= rhs.y; return *this; }
+        PrimitiveVector2& operator/=(T rhs) { x /= rhs; y /= rhs; return *this; }
+        PrimitiveVector2& operator/=(const PrimitiveVector2& rhs) { x /= rhs.x; y /= rhs.y; return *this; }
+
+        bool operator==(const PrimitiveVector2& rhs) const { return x == rhs.x && y == rhs.y; }
+        bool operator!=(const PrimitiveVector2& rhs) const { return !(*this == rhs); }
     };
 
-    struct Float3
+    template <typename T>
+    inline PrimitiveVector2<T> operator*(T lhs, const PrimitiveVector2<T>& rhs) { return PrimitiveVector2<T>{ lhs * rhs.x, lhs * rhs.y }; }
+    template <typename T>
+    inline PrimitiveVector2<T> operator/(T lhs, const PrimitiveVector2<T>& rhs) { return PrimitiveVector2<T>{ lhs / rhs.x, lhs / rhs.y }; }
+
+    template <typename T>
+    struct PrimitiveVector3
     {
-        float x;
-        float y;
-        float z;
+        T x;
+        T y;
+        T z;
+
+        PrimitiveVector3 operator+(const PrimitiveVector3& rhs) const { return PrimitiveVector3{ x + rhs.x, y + rhs.y, z + rhs.z }; }
+        PrimitiveVector3 operator-(const PrimitiveVector3& rhs) const { return PrimitiveVector3{ x - rhs.x, y - rhs.y, z - rhs.z }; }
+        PrimitiveVector3 operator*(T rhs) const { return PrimitiveVector3{ x * rhs, y * rhs, z * rhs }; }
+        PrimitiveVector3 operator*(const PrimitiveVector3& rhs) const { return PrimitiveVector3{ x * rhs.x, y * rhs.y, z * rhs.z }; }
+        PrimitiveVector3 operator/(T rhs) const { return PrimitiveVector3{ x / rhs, y / rhs, z / rhs }; }
+        PrimitiveVector3 operator/(const PrimitiveVector3& rhs) const { return PrimitiveVector3{ x / rhs.x, y / rhs.y, z / rhs.z }; }
+
+        PrimitiveVector3 operator-() const { return PrimitiveVector3{ -x, -y, -z }; }
+        const PrimitiveVector3& operator+() const { return *this; }
+
+        PrimitiveVector3& operator+=(const PrimitiveVector3& rhs) { x += rhs.x; y += rhs.y; z += rhs.z; return *this; }
+        PrimitiveVector3& operator-=(const PrimitiveVector3& rhs) { x -= rhs.x; y -= rhs.y; z -= rhs.z; return *this; }
+        PrimitiveVector3& operator*=(T rhs) { x *= rhs; y *= rhs; z *= rhs; return *this; }
+        PrimitiveVector3& operator*=(const PrimitiveVector3& rhs) { x *= rhs.x; y *= rhs.y; z *= rhs.z; return *this; }
+        PrimitiveVector3& operator/=(T rhs) { x /= rhs; y /= rhs; z /= rhs; return *this; }
+        PrimitiveVector3& operator/=(const PrimitiveVector3& rhs) { x /= rhs.x; y /= rhs.y; z /= rhs.z; return *this; }
+
+        bool operator==(const PrimitiveVector3& rhs) const { return x == rhs.x && y == rhs.y && z == rhs.z; }
+        bool operator!=(const PrimitiveVector3& rhs) const { return !(*this == rhs); }
     };
 
-    struct Float4
+    template <typename T>
+    inline PrimitiveVector3<T> operator*(T lhs, const PrimitiveVector3<T>& rhs) { return PrimitiveVector3<T>{ lhs * rhs.x, lhs * rhs.y, lhs * rhs.z }; }
+    template <typename T>
+    inline PrimitiveVector3<T> operator/(T lhs, const PrimitiveVector3<T>& rhs) { return PrimitiveVector3<T>{ lhs / rhs.x, lhs / rhs.y, lhs / rhs.z }; }
+
+    template <typename T>
+    struct PrimitiveVector4
     {
-        float x;
-        float y;
-        float z;
-        float w;
+        T x;
+        T y;
+        T z;
+        T w;
+
+        PrimitiveVector4 operator+(const PrimitiveVector4& rhs) const { return PrimitiveVector4{ x + rhs.x, y + rhs.y, z + rhs.z, w + rhs.w }; }
+        PrimitiveVector4 operator-(const PrimitiveVector4& rhs) const { return PrimitiveVector4{ x - rhs.x, y - rhs.y, z - rhs.z, w - rhs.w }; }
+        PrimitiveVector4 operator*(T rhs) const { return PrimitiveVector4{ x * rhs, y * rhs, z * rhs, w * rhs }; }
+        PrimitiveVector4 operator*(const PrimitiveVector4& rhs) const { return PrimitiveVector4{ x * rhs.x, y * rhs.y, z * rhs.z, w * rhs.w }; }
+        PrimitiveVector4 operator/(T rhs) const { return PrimitiveVector4{ x / rhs, y / rhs, z / rhs, w / rhs }; }
+        PrimitiveVector4 operator/(const PrimitiveVector4& rhs) const { return PrimitiveVector4{ x / rhs.x, y / rhs.y, z / rhs.z, w / rhs.w }; }
+
+        PrimitiveVector4 operator-() const { return PrimitiveVector4{ -x, -y, -z, -w }; }
+        const PrimitiveVector4& operator+() const { return *this; }
+
+        PrimitiveVector4& operator+=(const PrimitiveVector4& rhs) { x += rhs.x; y += rhs.y; z += rhs.z; w += rhs.w; return *this; }
+        PrimitiveVector4& operator-=(const PrimitiveVector4& rhs) { x -= rhs.x; y -= rhs.y; z -= rhs.z; w -= rhs.w; return *this; }
+        PrimitiveVector4& operator*=(T rhs) { x *= rhs; y *= rhs; z *= rhs; w *= rhs; return *this; }
+        PrimitiveVector4& operator*=(const PrimitiveVector4& rhs) { x *= rhs.x; y *= rhs.y; z *= rhs.z; w *= rhs.w; return *this; }
+        PrimitiveVector4& operator/=(T rhs) { x /= rhs; y /= rhs; z /= rhs; w /= rhs; return *this; }
+        PrimitiveVector4& operator/=(const PrimitiveVector4& rhs) { x /= rhs.x; y /= rhs.y; z /= rhs.z; w /= rhs.w; return *this; }
+
+        bool operator==(const PrimitiveVector4& rhs) const { return x == rhs.x && y == rhs.y && z == rhs.z && w == rhs.w; }
+        bool operator!=(const PrimitiveVector4& rhs) const { return !(*this == rhs); }
     };
+
+    template <typename T>
+    inline PrimitiveVector4<T> operator*(T lhs, const PrimitiveVector4<T>& rhs) { return PrimitiveVector4<T>{ lhs * rhs.x, lhs * rhs.y, lhs * rhs.z, lhs * rhs.w }; }
+    template <typename T>
+    inline PrimitiveVector4<T> operator/(T lhs, const PrimitiveVector4<T>& rhs) { return PrimitiveVector4<T>{ lhs / rhs.x, lhs / rhs.y, lhs / rhs.z, lhs / rhs.w }; }
+
+    using Float2 = PrimitiveVector2<float>;
+    using Float3 = PrimitiveVector3<float>;
+    using Float4 = PrimitiveVector4<float>;
+
+    using Int2 = PrimitiveVector2<Int32>;
+    using Int3 = PrimitiveVector3<Int32>;
+    using Int4 = PrimitiveVector4<Int32>;
+
+    using Uint2 = PrimitiveVector2<Uint32>;
+    using Uint3 = PrimitiveVector3<Uint32>;
+    using Uint4 = PrimitiveVector4<Uint32>;
 
     class Matrix;
 

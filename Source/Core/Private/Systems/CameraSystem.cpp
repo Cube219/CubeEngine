@@ -14,8 +14,7 @@ namespace cube
 {
     float CameraSystem::mFOV;
     Vector3 CameraSystem::mPosition;
-    float CameraSystem::mAxisXAngle;
-    float CameraSystem::mAxisYAngle;
+    Float2 CameraSystem::mAxisAngles;
     Vector3 CameraSystem::mDirection;
     Matrix CameraSystem::mRotation;
     float CameraSystem::mAspectRatio;
@@ -39,13 +38,10 @@ namespace cube
     bool CameraSystem::mIsLeftMousePressed;
     bool CameraSystem::mIsRightMousePressed;
     bool CameraSystem::mIsMouseMoved;
-    Int32 CameraSystem::mLastMouseX;
-    Int32 CameraSystem::mLastMouseY;
-    Int32 CameraSystem::mCurrentMouseX;
-    Int32 CameraSystem::mCurrentMouseY;
+    Int2 CameraSystem::mLastMousePos;
+    Int2 CameraSystem::mCurrentMousePos;
     bool CameraSystem::mIsMouseLocked = false;
-    Int32 CameraSystem::mLockedMouseX;
-    Int32 CameraSystem::mLockedMouseY;
+    Int2 CameraSystem::mLockedMousePos;
     float CameraSystem::mMouseSpeed = 3.0f;
 
     bool CameraSystem::mIsMouseWheelMoved;
@@ -139,16 +135,14 @@ namespace cube
         });
         mMousePositionEventFunc = platform::Platform::GetMousePositionEvent().AddListener([](Int32 x, Int32 y)
         {
-            if (x == mCurrentMouseX && y == mCurrentMouseY)
+            if (mCurrentMousePos == Int2{ x, y })
             {
                 return;
             }
             mIsMouseMoved = true;
 
-            mLastMouseX = mCurrentMouseX;
-            mLastMouseY = mCurrentMouseY;
-            mCurrentMouseX = x;
-            mCurrentMouseY = y;
+            mLastMousePos = mCurrentMousePos;
+            mCurrentMousePos = { x, y };
         });
         mMouseWheelEventFunc = platform::Platform::GetMouseWheelEvent().AddListener([](int delta)
         {
@@ -218,8 +212,7 @@ namespace cube
         { // Mouse
             if (mIsRightMousePressed && !mIsMouseLocked)
             {
-                mLockedMouseX = mCurrentMouseX;
-                mLockedMouseY = mCurrentMouseY;
+                mLockedMousePos = mCurrentMousePos;
                 platform::Platform::HideCursor();
             }
             else if (!mIsRightMousePressed && mIsMouseLocked)
@@ -230,15 +223,14 @@ namespace cube
 
             if (mIsMouseLocked && mIsMouseMoved)
             {
-                Int32 deltaX = mCurrentMouseX - mLockedMouseX;
-                Int32 deltaY = mCurrentMouseY - mLockedMouseY;
+                Int2 delta = mCurrentMousePos - mLockedMousePos;
 
                 float scaledMouseSpeed = mMouseSpeed * 0.02f;
-                mAxisXAngle = Math::Max(-89.9f, Math::Min(89.9f, mAxisXAngle - static_cast<float>(deltaY) * scaledMouseSpeed));
-                mAxisYAngle = mAxisYAngle - static_cast<float>(deltaX) * scaledMouseSpeed;
+                mAxisAngles.x = Math::Max(-89.9f, Math::Min(89.9f, mAxisAngles.x - static_cast<float>(delta.y) * scaledMouseSpeed));
+                mAxisAngles.y = mAxisAngles.y - static_cast<float>(delta.x) * scaledMouseSpeed;
                 UpdateDirection();
 
-                platform::Platform::MoveCursor(mLockedMouseX, mLockedMouseY);
+                platform::Platform::MoveCursor(mLockedMousePos.x, mLockedMousePos.y);
                 mIsMouseMoved = false;
             }
 
@@ -326,15 +318,14 @@ namespace cube
 
     void CameraSystem::UpdateDirection()
     {
-        mRotation = MatrixUtility::GetRotationX(Math::Deg2Rad(mAxisXAngle)) * MatrixUtility::GetRotationY(Math::Deg2Rad(mAxisYAngle));
+        mRotation = MatrixUtility::GetRotationX(Math::Deg2Rad(mAxisAngles.x)) * MatrixUtility::GetRotationY(Math::Deg2Rad(mAxisAngles.y));
         mDirection = Vector3(Vector4(0.0f, 0.0f, -1.0f, 0.0f) * mRotation);
     }
 
     void CameraSystem::Reset()
     {
         mPosition = { 10.0f, 10.0f, 10.0f };
-        mAxisXAngle = -30.0f;
-        mAxisYAngle = 45.0f;
+        mAxisAngles = { -30.0f, 45.0f };
 
         UpdateDirection();
         UpdateViewMatrix();
