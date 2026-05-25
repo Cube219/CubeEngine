@@ -124,13 +124,12 @@ namespace cube
                 .shader = mGenerateIrradianceMapShader
             };
 
-            platform::FilePath environmentMappingShaderFilePath2 = Engine::GetShaderDirectoryPath() / CUBE_T("EnvironmentMapping2.slang");
             mGenerateIntegratedBRDFLUTShader = mRenderer.GetShaderManager().CreateShader({
                 .shaderInfo = {
                     .type = gapi::ShaderType::Compute,
                     .entryPoint = "GenerateIntegratedBRDFLUTCS"
                 },
-                .filePaths = { &environmentMappingShaderFilePath2, 1 },
+                .filePaths = { &environmentMappingShaderFilePath, 1 },
                 .debugName = CUBE_T("GenerateIntegratedBRDFLUT CS")
             });
             CHECK(mGenerateIntegratedBRDFLUTShader);
@@ -139,13 +138,12 @@ namespace cube
                 .shader = mGenerateIntegratedBRDFLUTShader
             };
 
-            platform::FilePath environmentMappingShaderFilePath3 = Engine::GetShaderDirectoryPath() / CUBE_T("EnvironmentMapping3.slang");
             mGeneratePrefilterMapShader = mRenderer.GetShaderManager().CreateShader({
                 .shaderInfo = {
                     .type = gapi::ShaderType::Compute,
                     .entryPoint = "GeneratePrefilterMapCS"
                 },
-                .filePaths = { &environmentMappingShaderFilePath3, 1 },
+                .filePaths = { &environmentMappingShaderFilePath, 1 },
                 .debugName = CUBE_T("GeneratePrefilterMap CS")
             });
             CHECK(mGeneratePrefilterMapShader);

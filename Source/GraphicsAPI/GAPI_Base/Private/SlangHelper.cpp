@@ -333,7 +333,7 @@ namespace cube
         outReflection.threadGroupSizeY = threadGroupSize[1];
         outReflection.threadGroupSizeZ = threadGroupSize[2];
 
-        auto ProcessParameterBlock = [&](VariableLayoutReflection* blockVariableLayout)
+        auto ProcessParameterBlock = [&](VariableLayoutReflection* blockVariableLayout, Uint32 bindingOffset)
         {
             TypeLayoutReflection* blockTypeLayout = blockVariableLayout->getTypeLayout();
 
@@ -343,7 +343,7 @@ namespace cube
                 VariableLayoutReflection* parameterVariableLayout = blockTypeLayout->getElementVarLayout();
 
                 const char* parameterTypeName = parameterTypeLayout->getName();
-                Uint32 index = blockVariableLayout->getBindingIndex();
+                Uint32 index = blockVariableLayout->getBindingIndex() + bindingOffset;
                 gapi::ShaderParameterBlockReflection& outBlockReflection = outReflection.blocks.emplace_back(String_Convert<String>(parameterTypeName), index);
 
                 if (parameterTypeLayout->getKind() == TypeReflection::Kind::Struct)
@@ -545,15 +545,18 @@ namespace cube
         for (Uint32 blockIndex = 0; blockIndex < numParameterBlocks; ++blockIndex)
         {
             VariableLayoutReflection* blockVariableLayout = layout->getParameterByIndex(blockIndex);
-            ProcessParameterBlock(blockVariableLayout);
+            ProcessParameterBlock(blockVariableLayout, 0);
         }
 
         // Parameter blocks in entry point parameters. (used in CS)
+        VariableLayoutReflection* entryPointVarLayout = entryPoint->getVarLayout();
+        Uint32 entryPointBindOffset = entryPointVarLayout->getBindingIndex();
+
         const Uint32 numParameterBlocksInEntryPoint = entryPoint->getParameterCount();
         for (Uint32 blockIndex = 0; blockIndex < numParameterBlocksInEntryPoint; ++blockIndex)
         {
             VariableLayoutReflection* blockVariableLayout = entryPoint->getParameterByIndex(blockIndex);
-            ProcessParameterBlock(blockVariableLayout);
+            ProcessParameterBlock(blockVariableLayout, entryPointBindOffset);
         }
     }
 

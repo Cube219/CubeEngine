@@ -34,7 +34,7 @@ namespace cube
                 .shaderInfo = {
                     .type = gapi::ShaderType::Compute,
                     .language = gapi::ShaderLanguage::Slang,
-                    .entryPoint = "CSMain"
+                    .entryPoint = "GenerateMipmapsCS"
                 },
                 .filePaths = { &shaderFilePath, 1 },
                 .debugName = CUBE_T("GenerateMipmapsShaderCS")

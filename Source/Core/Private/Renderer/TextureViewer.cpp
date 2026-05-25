@@ -37,8 +37,7 @@ namespace cube
         CUBE_BEGIN_SHADER_PARAMETER_LIST(TextureViewerFetchInfoShaderParameterList)
             CUBE_SHADER_PARAMETER(Vector4, sizeAndInvSize)
             CUBE_SHADER_PARAMETER(RGTextureSRVHandle, canvasTexture)
-            CUBE_SHADER_PARAMETER(int, positionToReadX)
-            CUBE_SHADER_PARAMETER(int, positionToReadY)
+            CUBE_SHADER_PARAMETER(Int2, positionToRead)
             CUBE_SHADER_PARAMETER(RGBufferUAVHandle, readbackBuffer)
         CUBE_END_SHADER_PARAMETER_LIST
     };
@@ -51,9 +50,8 @@ namespace cube
 
     void TextureViewer::Initialize(Uint32 numGPUSync)
     {
+        platform::FilePath textureViewerShaderFilePath = Engine::GetShaderDirectoryPath() / CUBE_T("TextureViewer.slang");
         {
-            platform::FilePath textureViewerShaderFilePath = Engine::GetShaderDirectoryPath() / CUBE_T("TextureViewer.slang");
-
             mCopyToTextureViewer2DShader = mRenderer.GetShaderManager().CreateShader({
                 .shaderInfo = {
                     .type = gapi::ShaderType::Compute,
@@ -70,8 +68,6 @@ namespace cube
         }
 
         {
-            platform::FilePath textureViewerShaderFilePath = Engine::GetShaderDirectoryPath() / CUBE_T("TextureViewerCube.slang");
-
             mCopyToTextureViewerCubeShader = mRenderer.GetShaderManager().CreateShader({
                 .shaderInfo = {
                     .type = gapi::ShaderType::Compute,
@@ -88,8 +84,6 @@ namespace cube
         }
 
         {
-            platform::FilePath textureViewerShaderFilePath = Engine::GetShaderDirectoryPath() / CUBE_T("TextureViewer2.slang");
-
             mFetchInfoShader = mRenderer.GetShaderManager().CreateShader({
                 .shaderInfo = {
                     .type = gapi::ShaderType::Compute,
@@ -434,8 +428,7 @@ namespace cube
             1.0f / static_cast<float>(mCanvasTextureSize.x), 1.0f / static_cast<float>(mCanvasTextureSize.y)
         );
         params->Get()->canvasTexture = canvasSRV;
-        params->Get()->positionToReadX = mPixel.x;
-        params->Get()->positionToReadY = mPixel.y;
+        params->Get()->positionToRead = mPixel;
         params->Get()->readbackBuffer = readbackUAV;
 
         SharedPtr<ComputePipeline> fetchInfoPipeline = mRenderer.GetPipelineManager().GetOrCreateComputePipeline({
