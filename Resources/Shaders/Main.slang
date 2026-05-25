@@ -56,7 +56,13 @@ PSOutput PSMain(PSInput input) : SV_TARGET
         color += directionalLight.CalculateLight(view, normal, materialValue);
     }
 
-    EnvironmentMapLight envMapLight = EnvironmentMapLight(envMapParams.diffuseIrradianceMap);
+    EnvironmentMapLight envMapLight = EnvironmentMapLight(
+        envMapParams.diffuseIrradianceMap,
+        envMapParams.integratedBRDFLUT,
+        envMapParams.prefilterMap,
+        envMapParams.prefilterSampler,
+        envMapParams.prefilterMapMipLevels
+    );
     color += envMapLight.CalculateLight(view, normal, materialValue);
     
     float gamma = 2.2;

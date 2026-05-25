@@ -14,6 +14,7 @@ namespace cube
             Uint32 height;
             bool vsync;
 
+            gapi::ElementFormat backbufferFormat;
             Uint32 backbufferCount;
 
             StringView debugName;
@@ -22,7 +23,9 @@ namespace cube
         class SwapChain
         {
         public:
-            SwapChain() = default;
+            SwapChain(const SwapChainCreateInfo& createInfo)
+                : mBackbufferFormat(createInfo.backbufferFormat)
+            {}
             virtual ~SwapChain() = default;
 
             virtual void AcquireNextImage() = 0;
@@ -32,6 +35,10 @@ namespace cube
             virtual void SetVsync(bool vsync) = 0;
 
             virtual SharedPtr<Texture> GetCurrentBackbuffer() const = 0;
+            gapi::ElementFormat GetBackbufferFormat() const { return mBackbufferFormat; };
+
+        private:
+            gapi::ElementFormat mBackbufferFormat;
         };
     } // namespace gapi
 } // namespace cube

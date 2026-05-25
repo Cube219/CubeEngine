@@ -121,8 +121,8 @@ namespace cube
             virtual void BeginEvent(StringView name) = 0;
             virtual void EndEvent() = 0;
 
-            virtual void SetViewports(ArrayView<Viewport> viewports) = 0;
-            virtual void SetScissors(ArrayView<ScissorRect> scissors) = 0;
+            virtual void SetViewports(ConstArrayView<Viewport> viewports) = 0;
+            virtual void SetScissors(ConstArrayView<ScissorRect> scissors) = 0;
             virtual void SetPrimitiveTopology(PrimitiveTopology primitiveTopology) = 0;
 
             virtual void SetGraphicsPipeline(SharedPtr<GraphicsPipeline> graphicsPipeline) = 0;

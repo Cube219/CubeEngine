@@ -121,7 +121,7 @@ namespace cube
             mCurrentEventNameList.pop_back();
         }
 
-        void DX12CommandList::SetViewports(ArrayView<Viewport> viewports)
+        void DX12CommandList::SetViewports(ConstArrayView<Viewport> viewports)
         {
             CHECK(IsWriting());
 
@@ -142,7 +142,7 @@ namespace cube
             mCommandList->RSSetViewports(d3d12Viewports.size(), d3d12Viewports.data());
         }
 
-        void DX12CommandList::SetScissors(ArrayView<ScissorRect> scissors)
+        void DX12CommandList::SetScissors(ConstArrayView<ScissorRect> scissors)
         {
             CHECK(IsWriting());
 

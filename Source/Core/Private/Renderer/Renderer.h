@@ -84,6 +84,9 @@ namespace cube
         SharedPtr<gapi::Texture> GetDummyBlackTextureCube() const { return mDummyBlackTextureCube->GetGAPITexture(); }
         SharedPtr<gapi::Texture> GetDummyWhiteTexture2D() const { return mDummyWhiteTexture2D->GetGAPITexture(); }
 
+        gapi::ElementFormat GetBackbufferFormat() const { return mBackbufferFormat; }
+        gapi::ElementFormat GetDepthStencilFormat() const { return mDepthStencilFormat; }
+
         void SetObjectModelMatrix(const Vector3& position, const Vector3& rotation, const Vector3& scale);
         void SetViewMatrix(const Vector3& eye, const Vector3& target, const Vector3& upDir);
         void SetPerspectiveMatrix(float fovAngleY, float aspectRatio, float nearZ, float farZ);
@@ -132,6 +135,8 @@ namespace cube
         SharedPtr<gapi::SwapChain> mSwapChain;
         SharedPtr<gapi::Texture> mCurrentBackbuffer;
         SharedPtr<gapi::Texture> mDepthStencilTexture;
+        gapi::ElementFormat mBackbufferFormat;
+        gapi::ElementFormat mDepthStencilFormat;
 
         bool mIsDirectionalLightEnabled;
         Vector3 mDirectionalLightDirection;

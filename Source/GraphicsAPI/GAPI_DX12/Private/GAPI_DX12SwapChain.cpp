@@ -2,6 +2,7 @@
 
 
 #include "DX12Device.h"
+#include "DX12Types.h"
 #include "DX12Utility.h"
 #include "GAPI_DX12Texture.h"
 #include "Windows/WindowsPlatform.h"
@@ -55,7 +56,8 @@ namespace cube
         }
 
         DX12SwapChain::DX12SwapChain(IDXGIFactory2* factory, DX12Device& device, const SwapChainCreateInfo& createInfo)
-            : mDevice(device)
+            : SwapChain(createInfo)
+            , mDevice(device)
             , mFence(device)
         {
             mWidth = createInfo.width;
@@ -69,8 +71,7 @@ namespace cube
             mCurrentIndex = 0;
             mFenceValues = {};
 
-            mFormat = ElementFormat::RGBA8_UNorm;
-            mSwapChainFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+            mSwapChainFormat = GetDX12ElementFormatInfo(createInfo.backbufferFormat).format;
 
             DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
             swapChainDesc.BufferCount = mBackbufferCount;
@@ -154,7 +155,7 @@ namespace cube
             TextureCreateInfo backbufferCreateInfo = {
                 .usage = ResourceUsage::GPUOnly,
                 .textureInfo = {
-                    .format = mFormat,
+                    .format = GetBackbufferFormat(),
                     .type = TextureType::Texture2D,
                     .flags = TextureFlag::RenderTarget,
                     .width = mWidth,

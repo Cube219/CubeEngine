@@ -257,7 +257,7 @@ namespace cube
 
             // Also create depth stencil descriptor in here.
             MTLDepthStencilDescriptor* depthStencilDesc = [[MTLDepthStencilDescriptor alloc] init];
-            depthStencilDesc.depthCompareFunction = ConvertToMTLCompareFunction(pipelineInfo.depthStencilState.depthFunction);
+            depthStencilDesc.depthCompareFunction = pipelineInfo.depthStencilState.enableDepth ? ConvertToMTLCompareFunction(pipelineInfo.depthStencilState.depthFunction) : MTLCompareFunctionAlways;
             depthStencilDesc.depthWriteEnabled = pipelineInfo.depthStencilState.enableDepth;
             if (pipelineInfo.depthStencilState.enableStencil)
             {

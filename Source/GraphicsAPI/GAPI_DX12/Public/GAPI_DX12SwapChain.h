@@ -65,7 +65,6 @@ namespace cube
 
             ComPtr<IDXGISwapChain1> mSwapChain;
             ComPtr<IDXGISwapChain3> mSwapChain3;
-            ElementFormat mFormat;
             DXGI_FORMAT mSwapChainFormat;
             Array<SharedPtr<DX12BackbufferTexture>, MAX_BACKBUFFER_SIZE> mBackbufferTextures;
 

@@ -3,6 +3,7 @@
 #include "CoreHeader.h"
 
 #include "GAPI_Sampler.h"
+#include "Renderer/RenderTypes.h"
 
 namespace cube
 {
@@ -19,7 +20,7 @@ namespace cube
 
         // Note: Add SharedPtr<gapi::Sampler> version if needed
         Uint64 GetDefaultLinearSamplerId();
-        Uint64 GetSamplerId(const gapi::SamplerCreateInfo& createInfo);
+        BindlessSampler GetSampler(const gapi::SamplerCreateInfo& createInfo);
 
     private:
         gapi::Sampler* GetOrCreateSampler(const gapi::SamplerCreateInfo& createInfo);

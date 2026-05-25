@@ -50,8 +50,10 @@ void GenerateIrradianceMapCS(
     uint3 groupID : SV_GroupID,
 )
 {
+    GenerateIrradianceMapShaderParameterList params = generateIrradianceMapParams;
+
     const uint3 dstCoord = uint3(threadID.xy, groupID.z);
-    if (any(dstCoord.xy >= generateIrradianceMapParams.widthAndInvWidth.xx))
+    if (any(dstCoord.xy >= params.widthAndInvWidth.xx))
     {
         return;
     }
@@ -59,5 +61,5 @@ void GenerateIrradianceMapCS(
     const float2 uv = (float2(dstCoord.xy) + 0.5) * generateIrradianceMapParams.widthAndInvWidth.yy;
     const float3 normal = Cubemap::CubemapUVToVector(uv, dstCoord.z);
 
-    generateIrradianceMapParams.dstDiffuseIrradianceMap[dstCoord] = float4(CalculateDiffuseIrradiance(generateIrradianceMapParams.srcIBL, normal, generateIrradianceMapParams.numSlices), 1);
+    params.dstDiffuseIrradianceMap[dstCoord] = float4(CalculateDiffuseIrradiance(params.srcIBL, normal, params.numSlices), 1);
 }

@@ -308,7 +308,7 @@ namespace cube
     }
 
     ShaderManager::ShaderManager(Renderer& renderer)
-        : mMaterialShaderManager(*this, renderer.GetPipelineManager())
+        : mMaterialShaderManager(renderer, *this, renderer.GetPipelineManager())
         , mRenderer(renderer)
     {
     }
@@ -317,7 +317,7 @@ namespace cube
     {
         mUseDebugMode = useDebugMode;
 
-        mMaterialShaderManager.Initialize(&mRenderer.GetGAPI());
+        mMaterialShaderManager.Initialize();
     }
 
     void ShaderManager::Shutdown()

@@ -35,8 +35,8 @@ namespace cube
             virtual void BeginEvent(StringView name) override;
             virtual void EndEvent() override;
 
-            void SetViewports(ArrayView<Viewport> viewports) override;
-            void SetScissors(ArrayView<ScissorRect> scissors) override;
+            void SetViewports(ConstArrayView<Viewport> viewports) override;
+            void SetScissors(ConstArrayView<ScissorRect> scissors) override;
             void SetPrimitiveTopology(PrimitiveTopology primitiveTopology) override;
 
             void SetGraphicsPipeline(SharedPtr<GraphicsPipeline> graphicsPipeline) override;

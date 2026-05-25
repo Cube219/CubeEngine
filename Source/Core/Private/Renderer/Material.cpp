@@ -147,8 +147,9 @@ namespace cube
         }
     }
 
-    MaterialShaderManager::MaterialShaderManager(ShaderManager& shaderManager, PipelineManager& pipelineManager)
-        : mShaderManager(shaderManager)
+    MaterialShaderManager::MaterialShaderManager(Renderer& renderer, ShaderManager& shaderManager, PipelineManager& pipelineManager)
+        : mRenderer(renderer)
+        , mShaderManager(shaderManager)
         , mPipelineManager(pipelineManager)
     {
     }
@@ -239,8 +240,9 @@ namespace cube
             },
             .numRenderTargets = 1,
             .renderTargetFormats = {
-                gapi::ElementFormat::RGBA8_UNorm
-            }
+                mRenderer.GetBackbufferFormat()
+            },
+            .depthStencilFormat = mRenderer.GetDepthStencilFormat()
         };
         return mPipelineManager.GetOrCreateGraphicsPipeline({
             .pipelineInfo = pipelineInfo,
@@ -254,7 +256,7 @@ namespace cube
         mMaterialVertexShaders.clear();
     }
 
-    void MaterialShaderManager::Initialize(GAPI* gapi)
+    void MaterialShaderManager::Initialize()
     {
     }
 

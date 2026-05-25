@@ -101,13 +101,19 @@ namespace cube
 
     MetalShaderCompileResult MetalShaderCompiler::CompileFromSlang(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult)
     {
-        const SlangCompileOptions compileOption = {
+        SlangCompileOptions compileOption = {
 #if CUBE_METAL_SLANG_PRINT_MSL
             .target = gapi::ShaderLanguage::Metal
 #else
             .target = gapi::ShaderLanguage::MetalLib
 #endif
         };
+
+        if (createInfo.withDebugSymbol)
+        {
+            // Force use Metal instead of MetalLib for GPU debugging (Metal shader code is needed).
+            compileOption.target = gapi::ShaderLanguage::Metal;
+        }
 
         gapi::ShaderReflection reflection;
         Blob shader = SlangHelper::Compile(createInfo, compileOption, compileResult, &reflection);
@@ -128,21 +134,26 @@ namespace cube
             CUBE_LOG(Info, Metal, "Compiled Metal code from\n\t{0}:\n{1}", pathList, shaderCode);
 #endif
             // Compile the shader once again
+            MetalShaderCompileResult result;
             compileResult.isSuccess = false;
 
-#if CUBE_METAL_SLANG_PRINT_MSL
-            gapi::ShaderCreateInfo metalCreateInfo = createInfo;
-            metalCreateInfo.language = gapi::ShaderLanguage::Metal;
-            metalCreateInfo.shaderCodeInfos[0].code = shader;
+            if (compileOption.target == gapi::ShaderLanguage::Metal)
+            {
 
-            MetalShaderCompileResult result = CompileFromMetal(metalCreateInfo, compileResult);
-#else
-            gapi::ShaderCreateInfo metalLibCreateInfo = createInfo;
-            metalLibCreateInfo.language = gapi::ShaderLanguage::MetalLib;
-            metalLibCreateInfo.shaderCodeInfos[0].code = shader;
+                gapi::ShaderCreateInfo metalCreateInfo = createInfo;
+                metalCreateInfo.language = gapi::ShaderLanguage::Metal;
+                metalCreateInfo.shaderCodeInfos[0].code = shader;
 
-            MetalShaderCompileResult result = CompileFromMetalLib(metalLibCreateInfo, compileResult);
-#endif
+                result = CompileFromMetal(metalCreateInfo, compileResult);
+            }
+            else
+            {
+                gapi::ShaderCreateInfo metalLibCreateInfo = createInfo;
+                metalLibCreateInfo.language = gapi::ShaderLanguage::MetalLib;
+                metalLibCreateInfo.shaderCodeInfos[0].code = shader;
+
+                result = CompileFromMetalLib(metalLibCreateInfo, compileResult);
+            }
             // Use reflection from slang compiler first.
             result.reflection = std::move(reflection);
             return result;

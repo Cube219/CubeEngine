@@ -32,10 +32,10 @@ namespace cube
                 constantBuffers.clear();
             }
 
-            void SetViewports(ArrayView<Viewport> newViewports);
+            void SetViewports(ConstArrayView<Viewport> newViewports);
             void ApplyViewports(id<MTLRenderCommandEncoder> encoder);
 
-            void SetScissors(ArrayView<ScissorRect> newScissors);
+            void SetScissors(ConstArrayView<ScissorRect> newScissors);
             void ApplyScissors(id<MTLRenderCommandEncoder> encoder);
 
             void SetPrimitiveTopology(PrimitiveTopology newPrimitiveTopology);
@@ -61,8 +61,8 @@ namespace cube
             virtual void BeginEvent(StringView name) override;
             virtual void EndEvent() override;
 
-            virtual void SetViewports(ArrayView<Viewport> viewports) override;
-            virtual void SetScissors(ArrayView<ScissorRect> scissors) override;
+            virtual void SetViewports(ConstArrayView<Viewport> viewports) override;
+            virtual void SetScissors(ConstArrayView<ScissorRect> scissors) override;
             virtual void SetPrimitiveTopology(PrimitiveTopology primitiveTopology) override;
 
             virtual void SetGraphicsPipeline(SharedPtr<GraphicsPipeline> graphicsPipeline) override;

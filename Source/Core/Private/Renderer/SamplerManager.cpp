@@ -17,12 +17,6 @@ namespace cube
             .addressU = SamplerAddressMode::Wrap,
             .addressV = SamplerAddressMode::Wrap,
             .addressW = SamplerAddressMode::Wrap,
-            .useAnisotropy = false,
-            .maxAnisotropy = 0,
-            .mipLodBias = 0.0f,
-            .minLod = 0.0f,
-            .maxLod = std::numeric_limits<float>().max(),
-            .borderColor = { 0.0f, 0.0f, 0.0f, 1.0f }
         };
 
         mDefaultLinearSamplerCreateInfo = defaultSamplerCreateInfo;
@@ -42,9 +36,11 @@ namespace cube
         return GetOrCreateSampler(mDefaultLinearSamplerCreateInfo)->GetBindlessId();
     }
 
-    Uint64 SamplerManager::GetSamplerId(const gapi::SamplerCreateInfo& createInfo)
+    BindlessSampler SamplerManager::GetSampler(const gapi::SamplerCreateInfo& createInfo)
     {
-        return GetOrCreateSampler(createInfo)->GetBindlessId();
+        return BindlessSampler{
+            .id = GetOrCreateSampler(createInfo)->GetBindlessId()
+        };
     }
 
     gapi::Sampler* SamplerManager::GetOrCreateSampler(const gapi::SamplerCreateInfo& createInfo)

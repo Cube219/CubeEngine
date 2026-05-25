@@ -70,6 +70,9 @@ namespace cube
             .imGUI = imGUIContext
         });
 
+        mBackbufferFormat = gapi::ElementFormat::RGBA8_UNorm;
+        mDepthStencilFormat = gapi::ElementFormat::D32_Float;
+
         mShaderParameterListManager.Initialize(mGAPI.get(), mNumGPUSync);
         mShaderManager.Initialize(false);
         mTextureManager.Initialize(mGAPI.get(), mNumGPUSync);
@@ -90,13 +93,14 @@ namespace cube
             .width = mViewportWidth,
             .height = mViewportHeight,
             .vsync = true,
+            .backbufferFormat = mBackbufferFormat,
             .backbufferCount = 2,
             .debugName = CUBE_T("MainSwapChain")
         });
         mDepthStencilTexture = mGAPI->CreateTexture({
             .usage = gapi::ResourceUsage::GPUOnly,
             .textureInfo = {
-                .format = gapi::ElementFormat::D32_Float,
+                .format = mDepthStencilFormat,
                 .type = gapi::TextureType::Texture2D,
                 .flags = gapi::TextureFlag::DepthStencil,
                 .width = mViewportWidth,
@@ -288,7 +292,7 @@ namespace cube
             mDepthStencilTexture = mGAPI->CreateTexture({
                 .usage = gapi::ResourceUsage::GPUOnly,
                 .textureInfo = {
-                    .format = gapi::ElementFormat::D32_Float,
+                    .format = mDepthStencilFormat,
                     .type = gapi::TextureType::Texture2D,
                     .flags = gapi::TextureFlag::DepthStencil,
                     .width = mViewportWidth,
@@ -418,8 +422,12 @@ namespace cube
                 globalShaderParameterList->Get()->directionalLightIntensity = mDirectionalLightIntensity;
                 builder.BindShaderParameterList(globalShaderParameterList);
 
-                RGShaderParameterListHandle<EnvironmentMapLightShaderParameterList> envMapShaderParameterList = builder.CreateShaderParameterList<EnvironmentMapLightShaderParameterList>();
+                auto envMapShaderParameterList = builder.CreateShaderParameterList<EnvironmentMapLightShaderParameterList>();
                 envMapShaderParameterList->Get()->diffuseIrradianceMap = mEnvironmentMapping.GetDiffuseIrradianceMap(builder);
+                envMapShaderParameterList->Get()->integratedBRDFLUT = mEnvironmentMapping.GetIntegratedBRDFLUT(builder);
+                envMapShaderParameterList->Get()->prefilterMap = mEnvironmentMapping.GetPrefilterMap(builder);
+                envMapShaderParameterList->Get()->prefilterSampler = mEnvironmentMapping.GetPrefilterMapSampler();
+                envMapShaderParameterList->Get()->prefilterMapMipLevels = mEnvironmentMapping.GetPrefilterMapMipLevels();
 
                 RGBuilder::RenderPassInfo renderPassInfo;
                 renderPassInfo.colors.push_back({
@@ -563,7 +571,7 @@ namespace cube
 
     void Renderer::ClearResources()
     {
-        mEnvironmentMapping.ClearReaources();
+        mEnvironmentMapping.ClearResources();
 
         mZAxisMaterial = nullptr;
         mYAxisMaterial = nullptr;

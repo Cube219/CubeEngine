@@ -7,6 +7,7 @@
 #include "Renderer/Mesh.h"
 #include "RenderGraph.h"
 #include "Shader.h"
+#include "Allocator/FrameAllocator.h"
 
 namespace cube
 {
@@ -20,6 +21,28 @@ namespace cube
         CUBE_END_SHADER_PARAMETER_LIST
     };
     CUBE_REGISTER_SHADER_PARAMETER_LIST(GenerateIrradianceMapShaderParameterList);
+
+    class GenerateIntegratedBRDFLUTShaderParameterList : public ShaderParameterList
+    {
+        CUBE_BEGIN_SHADER_PARAMETER_LIST(GenerateIntegratedBRDFLUTShaderParameterList)
+            CUBE_SHADER_PARAMETER(Uint32, sampleCount)
+            CUBE_SHADER_PARAMETER(float, width)
+            CUBE_SHADER_PARAMETER(RGTextureUAVHandle, dstIntegratedBRDFLUT)
+        CUBE_END_SHADER_PARAMETER_LIST
+    };
+    CUBE_REGISTER_SHADER_PARAMETER_LIST(GenerateIntegratedBRDFLUTShaderParameterList);
+
+    class GeneratePrefilterMapShaderParameterList : public ShaderParameterList
+    {
+        CUBE_BEGIN_SHADER_PARAMETER_LIST(GeneratePrefilterMapShaderParameterList)
+            CUBE_SHADER_PARAMETER(Uint32, numSamples)
+            CUBE_SHADER_PARAMETER(Vector2, widthAndInvWidth)
+            CUBE_SHADER_PARAMETER(float, roughness)
+            CUBE_SHADER_PARAMETER(RGTextureSRVHandle, srcIBL)
+            CUBE_SHADER_PARAMETER(RGTextureUAVHandle, dstPrefilterMap)
+        CUBE_END_SHADER_PARAMETER_LIST
+    };
+    CUBE_REGISTER_SHADER_PARAMETER_LIST(GeneratePrefilterMapShaderParameterList);
 
     class SkyboxShaderParameterList : public ShaderParameterList
     {
@@ -79,7 +102,8 @@ namespace cube
                     .depthFunction = gapi::CompareFunction::GreaterEqual
                 },
                 .numRenderTargets = 1,
-                .renderTargetFormats = { gapi::ElementFormat::RGBA8_UNorm }
+                .renderTargetFormats = { mRenderer.GetBackbufferFormat() },
+                .depthStencilFormat = mRenderer.GetDepthStencilFormat()
             };
         }
 
@@ -92,13 +116,53 @@ namespace cube
                     .entryPoint = "GenerateIrradianceMapCS"
                 },
                 .filePaths = { &environmentMappingShaderFilePath, 1 },
-                .debugName = CUBE_T("GenerateIrradianceMapCS")
+                .debugName = CUBE_T("GenerateIrradianceMap CS")
             });
             CHECK(mGenerateIrradianceMapShader);
 
             mGenerateIrradianceMapPipelineInfo = {
                 .shader = mGenerateIrradianceMapShader
             };
+
+            platform::FilePath environmentMappingShaderFilePath2 = Engine::GetShaderDirectoryPath() / CUBE_T("EnvironmentMapping2.slang");
+            mGenerateIntegratedBRDFLUTShader = mRenderer.GetShaderManager().CreateShader({
+                .shaderInfo = {
+                    .type = gapi::ShaderType::Compute,
+                    .entryPoint = "GenerateIntegratedBRDFLUTCS"
+                },
+                .filePaths = { &environmentMappingShaderFilePath2, 1 },
+                .debugName = CUBE_T("GenerateIntegratedBRDFLUT CS")
+            });
+            CHECK(mGenerateIntegratedBRDFLUTShader);
+
+            mGenerateIntegratedBRDFLUTPipelineInfo = {
+                .shader = mGenerateIntegratedBRDFLUTShader
+            };
+
+            platform::FilePath environmentMappingShaderFilePath3 = Engine::GetShaderDirectoryPath() / CUBE_T("EnvironmentMapping3.slang");
+            mGeneratePrefilterMapShader = mRenderer.GetShaderManager().CreateShader({
+                .shaderInfo = {
+                    .type = gapi::ShaderType::Compute,
+                    .entryPoint = "GeneratePrefilterMapCS"
+                },
+                .filePaths = { &environmentMappingShaderFilePath3, 1 },
+                .debugName = CUBE_T("GeneratePrefilterMap CS")
+            });
+            CHECK(mGeneratePrefilterMapShader);
+            
+            mGeneratePrefilterMapPipelineInfo = {
+                .shader = mGeneratePrefilterMapShader
+            };
+
+            mPrefilterMapSampler = mRenderer.GetSamplerManager().GetSampler({
+                .minFilter = gapi::SamplerFilterType::Linear,
+                .magFilter = gapi::SamplerFilterType::Linear,
+                .mipFilter = gapi::SamplerFilterType::Linear,
+                .addressU = gapi::SamplerAddressMode::Wrap,
+                .addressV = gapi::SamplerAddressMode::Wrap,
+                .addressW = gapi::SamplerAddressMode::Wrap,
+                .debugName = CUBE_T("PrefilterMap Sampler")
+            });
         }
 
         mCommandList = mRenderer.GetGAPI().CreateCommandList({
@@ -110,6 +174,10 @@ namespace cube
     {
         mCommandList = nullptr;
 
+        mGeneratePrefilterMapPipelineInfo = {};
+        mGeneratePrefilterMapShader = nullptr;
+        mGenerateIntegratedBRDFLUTPipelineInfo = {};
+        mGenerateIntegratedBRDFLUTShader = nullptr;
         mGenerateIrradianceMapPipelineInfo = {};
         mGenerateIrradianceMapShader = nullptr;
 
@@ -133,21 +201,49 @@ namespace cube
             ImGui::BeginDisabled(!isEnabled);
 
             {
-                ImGui::Text("Skybox");
-
-                for (int i = 0; i < static_cast<int>(SkyboxType::Num); ++i)
+                FrameAnsiString prefilterMapStr = Format<FrameAnsiString>("PrefilterMap {0}", mCurrentSkyboxMipLevel);
+                auto GetSkyboxTypeStr = [this, &prefilterMapStr]() -> const char*
                 {
-                    if (i > 0)
+                    switch (mCurrentSkyboxType)
                     {
-                        ImGui::SameLine();
+                    case SkyboxType::None: return "None";
+                    case SkyboxType::IBL: return "IBL";
+                    case SkyboxType::DiffuseIrradianceMap: return "DiffuseIrradianceMap";
+                    case SkyboxType::PrefilterMap: return prefilterMapStr.c_str();
+                    case SkyboxType::Num: return "Num";
                     }
-
-                    const char* name = SkyboxTypeToString[i];
-                    if (ImGui::RadioButton(name, (i == static_cast<int>(mCurrentSkyboxType))))
+                    return "";
+                };
+                ImGui::SetNextItemWidth(160);
+                if (ImGui::BeginCombo("Skybox", GetSkyboxTypeStr()))
+                {
+                    if (ImGui::Selectable("None", mCurrentSkyboxType == SkyboxType::None))
                     {
-                        mCurrentSkyboxType = static_cast<SkyboxType>(i);
-                        
+                        mCurrentSkyboxType = SkyboxType::None;
                     }
+                    if (mIBLTexture && ImGui::Selectable("IBL", mCurrentSkyboxType == SkyboxType::IBL))
+                    {
+                        mCurrentSkyboxType = SkyboxType::IBL;
+                    }
+                    if (mDiffuseIrradianceMap && ImGui::Selectable("DiffuseIrradianceMap", mCurrentSkyboxType == SkyboxType::DiffuseIrradianceMap))
+                    {
+                        mCurrentSkyboxType = SkyboxType::DiffuseIrradianceMap;
+                    }
+                    if (mPrefilterMap)
+                    {
+                        const int mipLevels = mPrefilterMap->GetMipLevels();
+                        for (int i = 0; i < mipLevels; ++i)
+                        {
+                            FrameAnsiString label = Format<FrameAnsiString>("PrefilterMap {0}", i);
+                            if (ImGui::Selectable(label.c_str(), mCurrentSkyboxType == SkyboxType::PrefilterMap && mCurrentSkyboxMipLevel == i))
+                            {
+                                mCurrentSkyboxType = SkyboxType::PrefilterMap;
+                                mCurrentSkyboxMipLevel = i;
+                            }
+                        }
+                    }
+                    
+                    ImGui::EndCombo();
                 }
             }
             ImGui::EndDisabled();
@@ -200,11 +296,19 @@ namespace cube
             mIBLTexture = std::make_shared<TextureResource>(createInfo);
 
             GenerateIrradianceMap();
+            GeneratePrefilterMap();
+        }
+
+        if (!mIntegratedBRDFLUT)
+        {
+            GenerateIntegratedBRDFLUT();
         }
     }
 
-    void EnvironmentMapping::ClearReaources()
+    void EnvironmentMapping::ClearResources()
     {
+        mPrefilterMap = nullptr;
+        mIntegratedBRDFLUT = nullptr;
         mDiffuseIrradianceMap = nullptr;
         mIBLTexture = nullptr;
     }
@@ -221,15 +325,30 @@ namespace cube
             return;
         }
 
-        // Use IBL texture as default.
-        SharedPtr<gapi::Texture> skyboxGAPITexture = mIBLTexture->GetGAPITexture();
-        if (mCurrentSkyboxType == SkyboxType::DiffuseIrradianceMap)
+        RGTextureHandle skyboxTexture;
+        RGTextureSRVHandle skyboxSRV;
+        switch (mCurrentSkyboxType)
         {
-            skyboxGAPITexture = mDiffuseIrradianceMap;
+        default:
+        case SkyboxType::IBL:
+        {
+            skyboxTexture = builder.RegisterTexture(mIBLTexture->GetGAPITexture());
+            skyboxSRV = builder.CreateSRV(skyboxTexture);
+            break;
         }
-
-        RGTextureHandle skyboxTexture = builder.RegisterTexture(skyboxGAPITexture);
-        RGTextureSRVHandle skyboxSRV = builder.CreateSRV(skyboxTexture);
+        case SkyboxType::DiffuseIrradianceMap:
+        {
+            skyboxTexture = builder.RegisterTexture(mDiffuseIrradianceMap);
+            skyboxSRV = builder.CreateSRV(skyboxTexture);
+            break;
+        }
+        case SkyboxType::PrefilterMap:
+        {
+            skyboxTexture = builder.RegisterTexture(mPrefilterMap);
+            skyboxSRV = builder.CreateSRV(skyboxTexture, mCurrentSkyboxMipLevel, 1);
+            break;
+        }
+        }
 
         SharedPtr<Mesh> boxMesh = mRenderer.GetBoxMesh();
         RGBufferHandle rgBoxVertexBuffer = builder.RegisterBuffer(boxMesh->GetVertexBuffer());
@@ -271,6 +390,49 @@ namespace cube
         }
     }
 
+    RGTextureSRVHandle EnvironmentMapping::GetIntegratedBRDFLUT(RGBuilder& builder) const
+    {
+        if (mIsEnabled && mIntegratedBRDFLUT)
+        {
+            RGTextureHandle rgTexture = builder.RegisterTexture(mIntegratedBRDFLUT);
+            return builder.CreateSRV(rgTexture);
+        }
+        else
+        {
+            return builder.GetDummyBlackTexture2D();
+        }
+    }
+
+    RGTextureSRVHandle EnvironmentMapping::GetPrefilterMap(RGBuilder& builder) const
+    {
+        if (mIsEnabled && mPrefilterMap)
+        {
+            RGTextureHandle rgTexture = builder.RegisterTexture(mPrefilterMap);
+            return builder.CreateSRV(rgTexture);
+        }
+        else
+        {
+            return builder.GetDummyBlackTextureCube();
+        }
+    }
+
+    BindlessSampler EnvironmentMapping::GetPrefilterMapSampler() const
+    {
+        return mPrefilterMapSampler;
+    }
+
+    Uint32 EnvironmentMapping::GetPrefilterMapMipLevels() const
+    {
+        if (mIsEnabled && mPrefilterMap)
+        {
+            return mPrefilterMap->GetInfo().mipLevels;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+
     void EnvironmentMapping::GenerateIrradianceMap()
     {
         CHECK(mIBLTexture);
@@ -293,8 +455,6 @@ namespace cube
 
         RGBuilder builder(mRenderer);
         {
-            RG_GPU_EVENT_SCOPE(builder, CUBE_T("GenerateIrradianceMap"));
-
             RGTextureHandle srcIBL = builder.RegisterTexture(mIBLTexture->GetGAPITexture());
             RGTextureSRVHandle srcIBLSRV = builder.CreateSRV(srcIBL);
             RGTextureHandle dstDiffuseEnvMap = builder.RegisterTexture(mDiffuseIrradianceMap);
@@ -318,6 +478,107 @@ namespace cube
             {
                 commandList.DispatchThreads(width, height, 6);
             });
+        }
+        builder.ExecuteAndSubmit(*mCommandList);
+    }
+
+    void EnvironmentMapping::GenerateIntegratedBRDFLUT()
+    {
+        const gapi::ElementFormat format = gapi::ElementFormat::RG16_Float;
+        const Uint32 width = 512;
+
+        mIntegratedBRDFLUT = mRenderer.GetGAPI().CreateTexture({
+            .usage = gapi::ResourceUsage::GPUOnly,
+            .textureInfo = {
+                .format = format,
+                .type = gapi::TextureType::Texture2D,
+                .flags = gapi::TextureFlag::UAV,
+                .width = width,
+                .height = width,
+            },
+            .debugName = CUBE_T("IntegratedBRDF LUT")
+        });
+
+        RGBuilder builder(mRenderer);
+        {
+            RGTextureHandle dstIntegratedBRDFLUT = builder.RegisterTexture(mIntegratedBRDFLUT);
+            RGTextureUAVHandle dstIntegratedBRDFLUTUAV = builder.CreateUAV(dstIntegratedBRDFLUT);
+
+            auto params = builder.CreateShaderParameterList<GenerateIntegratedBRDFLUTShaderParameterList>();
+            params->Get()->sampleCount = 1024;
+            params->Get()->width = width;
+            params->Get()->dstIntegratedBRDFLUT = dstIntegratedBRDFLUTUAV;
+
+            SharedPtr<ComputePipeline> generateIntegratedBRDFLUTPipeline = mRenderer.GetPipelineManager().GetOrCreateComputePipeline({
+                .pipelineInfo = mGenerateIntegratedBRDFLUTPipelineInfo,
+                .debugName = CUBE_T("GenerateIntegratedBRDFLUT Pipeline")
+            });
+            builder.AddPass(CUBE_T("Generate IntegratedBRDFLUT"),
+                generateIntegratedBRDFLUTPipeline,
+                params,
+                [width](gapi::CommandList& commandList)
+            {
+                commandList.DispatchThreads(width, width, 1);
+            });
+        }
+        builder.ExecuteAndSubmit(*mCommandList);
+    }
+
+    void EnvironmentMapping::GeneratePrefilterMap()
+    {
+        CHECK(mIBLTexture);
+
+        const gapi::ElementFormat format = gapi::ElementFormat::RGBA16_Float;
+        const Uint32 width = 256;
+        const Uint32 mipLevels = 5;
+
+        mPrefilterMap = mRenderer.GetGAPI().CreateTexture({
+            .usage = gapi::ResourceUsage::GPUOnly,
+            .textureInfo = {
+                .format = format,
+                .type = gapi::TextureType::TextureCube,
+                .flags = gapi::TextureFlag::UAV,
+                .width = width,
+                .height = width,
+                .mipLevels = mipLevels
+            },
+            .debugName = CUBE_T("Prefilter Map")
+        });
+
+        RGBuilder builder(mRenderer);
+        {
+            RGTextureHandle srcIBL = builder.RegisterTexture(mIBLTexture->GetGAPITexture());
+            RGTextureSRVHandle srcIBLSRV = builder.CreateSRV(srcIBL);
+            RGTextureHandle dstPrefilterMap = builder.RegisterTexture(mPrefilterMap);
+
+            SharedPtr<ComputePipeline> generatePrefilterMapPipeline = mRenderer.GetPipelineManager().GetOrCreateComputePipeline({
+                .pipelineInfo = mGeneratePrefilterMapPipelineInfo,
+                .debugName = CUBE_T("GeneratePrefilterMap Pipeline")
+            });
+
+            for (Uint32 mipLevel = 0; mipLevel < mipLevels; ++mipLevel)
+            {
+                const float roughness = static_cast<float>(mipLevel) / (mipLevels - 1);
+                const Uint32 mipWidth = (width >> mipLevel);
+
+                RGTextureUAVHandle dstPrefilterMapUAV = builder.CreateUAV(dstPrefilterMap, mipLevel);
+
+                auto params = builder.CreateShaderParameterList<GeneratePrefilterMapShaderParameterList>();
+                params->Get()->numSamples = 256;
+                params->Get()->widthAndInvWidth = Vector2(static_cast<float>(mipWidth), 1.0f / static_cast<float>(mipWidth));
+                params->Get()->roughness = roughness;
+                params->Get()->srcIBL = srcIBLSRV;
+                params->Get()->dstPrefilterMap = dstPrefilterMapUAV;
+
+                builder.AddPass(Format<FrameString>(CUBE_T("GeneratePrefilterMap [{0}]"), mipLevel),
+                    generatePrefilterMapPipeline,
+                    params,
+                    [mipWidth](gapi::CommandList& commandList)
+                    {
+                        commandList.DispatchThreads(mipWidth, mipWidth, 6);
+                    }
+                );
+            }
         }
         builder.ExecuteAndSubmit(*mCommandList);
     }

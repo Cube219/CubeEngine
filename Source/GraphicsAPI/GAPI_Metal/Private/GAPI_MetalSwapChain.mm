@@ -5,6 +5,7 @@
 #include "MacOS/MacOSPlatform.h"
 #include "MacOS/MacOSUtility.h"
 #include "MetalDevice.h"
+#include "MetalTypes.h"
 
 @implementation CubeMTKView
 
@@ -92,10 +93,12 @@ namespace cube
         // MetalSwapChain
 
         MetalSwapChain::MetalSwapChain(MetalDevice& device, CubeImGUIMTKView* imGUIView, const SwapChainCreateInfo& createInfo)
-            : mDevice(device)
+            : SwapChain(createInfo)
+            , mDevice(device)
         {
             platform::MacOSUtility::DispatchToMainThreadAndWait(
-                [this, device = device.GetMTLDevice(), imGUIView, width = createInfo.width, height = createInfo.height]
+                [this, device = device.GetMTLDevice(), imGUIView,
+                 width = createInfo.width, height = createInfo.height, format = createInfo.backbufferFormat]
                 {
                 CubeWindow* window = platform::MacOSPlatform::GetWindow();
                 NSRect windowFrame = window.contentView.bounds;
@@ -112,14 +115,14 @@ namespace cube
                 size.width = width;
                 size.height = height;
                 mView.drawableSize = size;
-                mView.colorPixelFormat = MTLPixelFormatRGBA8Unorm;
+                mView.colorPixelFormat = GetMetalElementFormatInfo(format).pixelFormat;
                 [window.contentView addSubview:mView positioned:NSWindowBelow relativeTo:imGUIView];
             });
 
             TextureCreateInfo texCreateInfo = {
                 .usage = ResourceUsage::GPUOnly,
                 .textureInfo = {
-                    .format = ElementFormat::RGBA8_UNorm,
+                    .format = createInfo.backbufferFormat,
                     .type = TextureType::Texture2D,
                     .flags = TextureFlag::RenderTarget,
                     .width = createInfo.width,

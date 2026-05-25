@@ -22,6 +22,10 @@ namespace cube
     {
         CUBE_BEGIN_SHADER_PARAMETER_LIST(EnvironmentMapLightShaderParameterList)
             CUBE_SHADER_PARAMETER(RGTextureSRVHandle, diffuseIrradianceMap)
+            CUBE_SHADER_PARAMETER(RGTextureSRVHandle, integratedBRDFLUT)
+            CUBE_SHADER_PARAMETER(RGTextureSRVHandle, prefilterMap)
+            CUBE_SHADER_PARAMETER(BindlessSampler, prefilterSampler)
+            CUBE_SHADER_PARAMETER(Uint32, prefilterMapMipLevels)
         CUBE_END_SHADER_PARAMETER_LIST
     };
 
@@ -37,7 +41,7 @@ namespace cube
         void OnLoopImGUI();
 
         void LoadResources();
-        void ClearReaources();
+        void ClearResources();
 
         bool IsSupported() const { return mIBLTexture != nullptr; }
         bool IsEnabled() const { return mIsEnabled; }
@@ -48,9 +52,17 @@ namespace cube
 
         // Return black cube texture if disabled.
         RGTextureSRVHandle GetDiffuseIrradianceMap(RGBuilder& builder) const;
+        // Return black 2d texture if disabled.
+        RGTextureSRVHandle GetIntegratedBRDFLUT(RGBuilder& builder) const;
+        // Return black cube texture if disabled.
+        RGTextureSRVHandle GetPrefilterMap(RGBuilder& builder) const;
+        BindlessSampler GetPrefilterMapSampler() const;
+        Uint32 GetPrefilterMapMipLevels() const;
 
     private:
         void GenerateIrradianceMap();
+        void GenerateIntegratedBRDFLUT();
+        void GeneratePrefilterMap();
 
         Renderer& mRenderer;
 
@@ -61,15 +73,12 @@ namespace cube
             None,
             IBL,
             DiffuseIrradianceMap,
+            PrefilterMap,
 
             Num
         };
-        static constexpr Array<const char*, 3> SkyboxTypeToString = {
-            "None",
-            "IBL",
-            "DiffuseIrradianceMap",
-        };
         SkyboxType mCurrentSkyboxType;
+        Uint32 mCurrentSkyboxMipLevel;
 
         SharedPtr<TextureResource> mIBLTexture;
         SharedPtr<Shader> mSkyboxVS;
@@ -78,8 +87,15 @@ namespace cube
 
         SharedPtr<Shader> mGenerateIrradianceMapShader;
         ComputePipelineInfo mGenerateIrradianceMapPipelineInfo;
+        SharedPtr<Shader> mGenerateIntegratedBRDFLUTShader;
+        ComputePipelineInfo mGenerateIntegratedBRDFLUTPipelineInfo;
+        SharedPtr<Shader> mGeneratePrefilterMapShader;
+        ComputePipelineInfo mGeneratePrefilterMapPipelineInfo;
         SharedPtr<gapi::CommandList> mCommandList;
 
         SharedPtr<gapi::Texture> mDiffuseIrradianceMap;
+        SharedPtr<gapi::Texture> mIntegratedBRDFLUT;
+        SharedPtr<gapi::Texture> mPrefilterMap;
+        BindlessSampler mPrefilterMapSampler;
     };
 } // namespace cube

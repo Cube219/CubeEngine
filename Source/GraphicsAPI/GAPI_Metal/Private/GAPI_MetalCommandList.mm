@@ -75,7 +75,7 @@ namespace cube
             return mtlColor;
         }
 
-        void MetalEncoderState::SetViewports(ArrayView<Viewport> newViewports)
+        void MetalEncoderState::SetViewports(ConstArrayView<Viewport> newViewports)
         {
             viewports.resize(newViewports.size());
             for (int i = 0; i < newViewports.size(); ++i)
@@ -97,7 +97,7 @@ namespace cube
             }
         }
 
-        void MetalEncoderState::SetScissors(ArrayView<ScissorRect> newScissors)
+        void MetalEncoderState::SetScissors(ConstArrayView<ScissorRect> newScissors)
         {
             scissors.resize(newScissors.size());
             for (int i = 0; i < newScissors.size(); ++i)
@@ -271,7 +271,7 @@ namespace cube
             }
         }
 
-        void MetalCommandList::SetViewports(ArrayView<Viewport> viewports)
+        void MetalCommandList::SetViewports(ConstArrayView<Viewport> viewports)
         {
             CHECK(IsWriting());
 
@@ -282,7 +282,7 @@ namespace cube
             }
         }
 
-        void MetalCommandList::SetScissors(ArrayView<ScissorRect> scissors)
+        void MetalCommandList::SetScissors(ConstArrayView<ScissorRect> scissors)
         {
             CHECK(IsWriting());
 

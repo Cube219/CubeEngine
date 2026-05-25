@@ -28,7 +28,7 @@ namespace cube
 
         Uint32 numRenderTargets;
         Array<gapi::ElementFormat, gapi::MAX_NUM_RENDER_TARGETS> renderTargetFormats;
-        gapi::ElementFormat depthStencilFormat = gapi::ElementFormat::D32_Float;
+        gapi::ElementFormat depthStencilFormat = gapi::ElementFormat::Unknown;
 
         Uint64 GetHashValue() const;
         gapi::GraphicsPipelineInfo GetGAPIVersion() const;

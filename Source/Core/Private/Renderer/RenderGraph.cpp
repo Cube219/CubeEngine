@@ -286,6 +286,8 @@ namespace cube
 
     RGTextureHandle RGBuilder::RegisterTexture(SharedPtr<gapi::Texture> texture)
     {
+        CHECK(texture);
+
         if (auto findIt = mRegisteredTextures.find(texture.get()); findIt != mRegisteredTextures.end())
         {
             return findIt->second;

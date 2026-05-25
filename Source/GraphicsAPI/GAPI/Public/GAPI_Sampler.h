@@ -34,14 +34,14 @@ namespace cube
             SamplerAddressMode addressV;
             SamplerAddressMode addressW;
 
-            bool useAnisotropy;
-            Uint32 maxAnisotropy;
+            bool useAnisotropy = false;
+            Uint32 maxAnisotropy = 1;
 
-            float mipLodBias;
-            float minLod;
-            float maxLod;
+            float mipLodBias = 0.0f;
+            float minLod = 0.0f;
+            float maxLod = std::numeric_limits<float>().max();
 
-            float borderColor[4];
+            float borderColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
             StringView debugName;
 

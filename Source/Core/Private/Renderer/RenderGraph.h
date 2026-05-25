@@ -115,6 +115,17 @@ namespace cube
             );
         }
 
+        void AddPass(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline,
+             PassFunction&& passFunction,
+             bool addTimestamp = false
+        )
+        {
+            AddPassInternal(name, graphicsPipeline, nullptr, {},
+                std::move(passFunction), nullptr,
+                addTimestamp
+            );
+        }
+
         void AddPass(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, RGShaderParameterListBaseHandle parameterList,
             PassFunction&& passFunction,
             bool addTimestamp = false

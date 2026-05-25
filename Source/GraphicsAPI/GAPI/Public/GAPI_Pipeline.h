@@ -107,10 +107,10 @@ namespace cube
 
         struct StencilDesc
         {
-            CompareFunction function;
-            StencilOperator failOp;
-            StencilOperator depthFailOp;
-            StencilOperator passOp;
+            CompareFunction function = CompareFunction::Equal;
+            StencilOperator failOp = StencilOperator::Zero;
+            StencilOperator depthFailOp = StencilOperator::Zero;
+            StencilOperator passOp = StencilOperator::Keep;
         };
 
         struct DepthStencilState
@@ -149,7 +149,7 @@ namespace cube
 
             Uint32 numRenderTargets;
             Array<ElementFormat, MAX_NUM_RENDER_TARGETS> renderTargetFormats;
-            ElementFormat depthStencilFormat = ElementFormat::D32_Float;
+            ElementFormat depthStencilFormat = ElementFormat::Unknown;
         };
 
         struct GraphicsPipelineCreateInfo
