@@ -394,9 +394,51 @@ namespace cube
                         {
                             TypeReflection* vectorType = fieldType->getElementType();
                             TypeReflection::ScalarType vectorScalarType = vectorType->getScalarType();
-                            if (vectorScalarType == TypeReflection::Float32)
+                            Uint32 numElements = fieldType->getElementCount();
+                            if (vectorScalarType == TypeReflection::Int32)
                             {
-                                Uint32 numElements = fieldType->getElementCount();
+                                switch (numElements)
+                                {
+                                case 1:
+                                    type = gapi::ShaderParameterReflection::Type::Int;
+                                    break;
+                                case 2:
+                                    type = gapi::ShaderParameterReflection::Type::Int2;
+                                    break;
+                                case 3:
+                                    type = gapi::ShaderParameterReflection::Type::Int3;
+                                    break;
+                                case 4:
+                                    type = gapi::ShaderParameterReflection::Type::Int4;
+                                    break;
+                                default:
+                                    NO_ENTRY_FORMAT("Invalid vector count: {0}", numElements);
+                                    break;
+                                }
+                            }
+                            else if (vectorScalarType == TypeReflection::UInt32)
+                            {
+                                switch (numElements)
+                                {
+                                case 1:
+                                    type = gapi::ShaderParameterReflection::Type::Uint;
+                                    break;
+                                case 2:
+                                    type = gapi::ShaderParameterReflection::Type::Uint2;
+                                    break;
+                                case 3:
+                                    type = gapi::ShaderParameterReflection::Type::Uint3;
+                                    break;
+                                case 4:
+                                    type = gapi::ShaderParameterReflection::Type::Uint4;
+                                    break;
+                                default:
+                                    NO_ENTRY_FORMAT("Invalid vector count: {0}", numElements);
+                                    break;
+                                }
+                            }
+                            else if (vectorScalarType == TypeReflection::Float32)
+                            {
                                 switch (numElements)
                                 {
                                 case 1:
@@ -418,7 +460,7 @@ namespace cube
                             }
                             else
                             {
-                                CUBE_LOG(Warning, Slang, "Unsupported type in vector. Only float32 is allowed.");
+                                CUBE_LOG(Warning, Slang, "Unsupported type in vector. Only int32, uint32 and float32 are allowed.");
                             }
                             break;
                         }
@@ -432,6 +474,9 @@ namespace cube
                                 break;
                             case TypeReflection::ScalarType::Int32:
                                 type = gapi::ShaderParameterReflection::Type::Int;
+                                break;
+                            case TypeReflection::ScalarType::UInt32:
+                                type = gapi::ShaderParameterReflection::Type::Uint;
                                 break;
                             case TypeReflection::ScalarType::Float32:
                                 type = gapi::ShaderParameterReflection::Type::Float;

@@ -345,30 +345,30 @@ namespace cube
     // ===== ShaderParameterTypeInfo specializations for RG handles =====
 
     template <>
-    struct ShaderParameterTypeInfo<RGBufferSRVHandle>
+    struct ShaderParameterCPUTypeInfo<RGBufferSRVHandle>
     {
-        static constexpr ShaderParameterType type = ShaderParameterType::RGBufferSRV;
+        static constexpr ShaderParameterCPUType type = ShaderParameterCPUType::RGBufferSRV;
         static constexpr Uint32 size = sizeof(RGBufferSRVHandle);
     };
 
     template <>
-    struct ShaderParameterTypeInfo<RGBufferUAVHandle>
+    struct ShaderParameterCPUTypeInfo<RGBufferUAVHandle>
     {
-        static constexpr ShaderParameterType type = ShaderParameterType::RGBufferUAV;
+        static constexpr ShaderParameterCPUType type = ShaderParameterCPUType::RGBufferUAV;
         static constexpr Uint32 size = sizeof(RGBufferUAVHandle);
     };
 
     template <>
-    struct ShaderParameterTypeInfo<RGTextureSRVHandle>
+    struct ShaderParameterCPUTypeInfo<RGTextureSRVHandle>
     {
-        static constexpr ShaderParameterType type = ShaderParameterType::RGTextureSRV;
+        static constexpr ShaderParameterCPUType type = ShaderParameterCPUType::RGTextureSRV;
         static constexpr Uint32 size = sizeof(RGTextureSRVHandle);
     };
 
     template <>
-    struct ShaderParameterTypeInfo<RGTextureUAVHandle>
+    struct ShaderParameterCPUTypeInfo<RGTextureUAVHandle>
     {
-        static constexpr ShaderParameterType type = ShaderParameterType::RGTextureUAV;
+        static constexpr ShaderParameterCPUType type = ShaderParameterCPUType::RGTextureUAV;
         static constexpr Uint32 size = sizeof(RGTextureUAVHandle);
     };
 } // namespace cube

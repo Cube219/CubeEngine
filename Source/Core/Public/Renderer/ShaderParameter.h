@@ -32,16 +32,25 @@ namespace cube
 
     // ===== ParameterTypeInfo =====
     // Note: Also update CompatibleShaderParameterReflectionTypeMap each ShaderParameterHelper implementations.
-    // TODO: Add Int2,3,4 / Uint2,3,4
-    enum class ShaderParameterType
+    enum class ShaderParameterCPUType
     {
         Unknown,
         Bool,
         Int,
+        Int2,
+        Int3,
+        Int4,
+        Uint,
+        Uint2,
+        Uint3,
+        Uint4,
         Float,
         Float2,
         Float3,
         Float4,
+        Vector2,
+        Vector3,
+        Vector4,
         Matrix,
         BindlessTexture,
         BindlessSampler,
@@ -54,39 +63,59 @@ namespace cube
         Num
     };
 
-    inline const Character* ToString(ShaderParameterType type)
+    inline const Character* ToString(ShaderParameterCPUType type)
     {
         switch (type)
         {
-        case ShaderParameterType::Unknown:
+        case ShaderParameterCPUType::Unknown:
             return CUBE_T("Unknown");
-        case ShaderParameterType::Bool:
+        case ShaderParameterCPUType::Bool:
             return CUBE_T("Bool");
-        case ShaderParameterType::Int:
+        case ShaderParameterCPUType::Int:
             return CUBE_T("Int");
-        case ShaderParameterType::Float:
+        case ShaderParameterCPUType::Int2:
+            return CUBE_T("Int2");
+        case ShaderParameterCPUType::Int3:
+            return CUBE_T("Int3");
+        case ShaderParameterCPUType::Int4:
+            return CUBE_T("Int4");
+        case ShaderParameterCPUType::Uint:
+            return CUBE_T("Uint");
+        case ShaderParameterCPUType::Uint2:
+            return CUBE_T("Uint2");
+        case ShaderParameterCPUType::Uint3:
+            return CUBE_T("Uint3");
+        case ShaderParameterCPUType::Uint4:
+            return CUBE_T("Uint4");
+        case ShaderParameterCPUType::Float:
             return CUBE_T("Float");
-        case ShaderParameterType::Float2:
+        case ShaderParameterCPUType::Float2:
             return CUBE_T("Float2");
-        case ShaderParameterType::Float3:
+        case ShaderParameterCPUType::Float3:
             return CUBE_T("Float3");
-        case ShaderParameterType::Float4:
+        case ShaderParameterCPUType::Float4:
             return CUBE_T("Float4");
-        case ShaderParameterType::Matrix:
+        case ShaderParameterCPUType::Vector2:
+            return CUBE_T("Vector2");
+        case ShaderParameterCPUType::Vector3:
+            return CUBE_T("Vector3");
+        case ShaderParameterCPUType::Vector4:
+            return CUBE_T("Vector4");
+        case ShaderParameterCPUType::Matrix:
             return CUBE_T("Matrix");
-        case ShaderParameterType::BindlessTexture:
+        case ShaderParameterCPUType::BindlessTexture:
             return CUBE_T("BindlessTexture");
-        case ShaderParameterType::BindlessSampler:
+        case ShaderParameterCPUType::BindlessSampler:
             return CUBE_T("BindlessSampler");
-        case ShaderParameterType::BindlessCombinedTextureSampler:
+        case ShaderParameterCPUType::BindlessCombinedTextureSampler:
             return CUBE_T("BindlessCombinedTextureSampler");
-        case ShaderParameterType::RGBufferSRV:
+        case ShaderParameterCPUType::RGBufferSRV:
             return CUBE_T("RGBufferSRV");
-        case ShaderParameterType::RGBufferUAV:
+        case ShaderParameterCPUType::RGBufferUAV:
             return CUBE_T("RGBufferUAV");
-        case ShaderParameterType::RGTextureSRV:
+        case ShaderParameterCPUType::RGTextureSRV:
             return CUBE_T("RGTextureSRV");
-        case ShaderParameterType::RGTextureUAV:
+        case ShaderParameterCPUType::RGTextureUAV:
             return CUBE_T("RGTextureUAV");
         default:
             break;
@@ -98,82 +127,151 @@ namespace cube
     struct NoEntry : std::false_type {};
 
     template <typename T>
-    struct ShaderParameterTypeInfo
+    struct ShaderParameterCPUTypeInfo
     {
-        static constexpr ShaderParameterType type = ShaderParameterType::Bool;
+        static constexpr ShaderParameterCPUType type = ShaderParameterCPUType::Bool;
         static constexpr Uint32 size = sizeof(bool);
         
         static_assert(NoEntry<T>::value, "ShaderParameterTypeInfo is not specialized for this type.");
     };
 
     template <>
-    struct ShaderParameterTypeInfo<bool>
+    struct ShaderParameterCPUTypeInfo<bool>
     {
-        static constexpr ShaderParameterType type = ShaderParameterType::Bool;
+        static constexpr ShaderParameterCPUType type = ShaderParameterCPUType::Bool;
         static constexpr Uint32 size = sizeof(bool);
     };
 
     template <>
-    struct ShaderParameterTypeInfo<int>
+    struct ShaderParameterCPUTypeInfo<int>
     {
-        static constexpr ShaderParameterType type = ShaderParameterType::Int;
+        static constexpr ShaderParameterCPUType type = ShaderParameterCPUType::Int;
         static constexpr Uint32 size = sizeof(int);
     };
 
     template <>
-    struct ShaderParameterTypeInfo<float>
+    struct ShaderParameterCPUTypeInfo<Int2>
     {
-        static constexpr ShaderParameterType type = ShaderParameterType::Float;
+        static constexpr ShaderParameterCPUType type = ShaderParameterCPUType::Int2;
+        static constexpr Uint32 size = sizeof(Int2);
+    };
+
+    template <>
+    struct ShaderParameterCPUTypeInfo<Int3>
+    {
+        static constexpr ShaderParameterCPUType type = ShaderParameterCPUType::Int3;
+        static constexpr Uint32 size = sizeof(Int3);
+    };
+
+    template <>
+    struct ShaderParameterCPUTypeInfo<Int4>
+    {
+        static constexpr ShaderParameterCPUType type = ShaderParameterCPUType::Int4;
+        static constexpr Uint32 size = sizeof(Int4);
+    };
+
+    template <>
+    struct ShaderParameterCPUTypeInfo<Uint32>
+    {
+        static constexpr ShaderParameterCPUType type = ShaderParameterCPUType::Uint;
+        static constexpr Uint32 size = sizeof(Uint32);
+    };
+
+    template <>
+    struct ShaderParameterCPUTypeInfo<Uint2>
+    {
+        static constexpr ShaderParameterCPUType type = ShaderParameterCPUType::Uint2;
+        static constexpr Uint32 size = sizeof(Uint2);
+    };
+
+    template <>
+    struct ShaderParameterCPUTypeInfo<Uint3>
+    {
+        static constexpr ShaderParameterCPUType type = ShaderParameterCPUType::Uint3;
+        static constexpr Uint32 size = sizeof(Uint3);
+    };
+
+    template <>
+    struct ShaderParameterCPUTypeInfo<Uint4>
+    {
+        static constexpr ShaderParameterCPUType type = ShaderParameterCPUType::Uint4;
+        static constexpr Uint32 size = sizeof(Uint4);
+    };
+
+    template <>
+    struct ShaderParameterCPUTypeInfo<float>
+    {
+        static constexpr ShaderParameterCPUType type = ShaderParameterCPUType::Float;
         static constexpr Uint32 size = sizeof(float);
     };
 
-    // TODO: Add Float2,3,4
     template <>
-    struct ShaderParameterTypeInfo<Vector2>
+    struct ShaderParameterCPUTypeInfo<Float2>
     {
-        static constexpr ShaderParameterType type = ShaderParameterType::Float2;
+        static constexpr ShaderParameterCPUType type = ShaderParameterCPUType::Float2;
         static constexpr Uint32 size = sizeof(Float2);
     };
 
     template <>
-    struct ShaderParameterTypeInfo<Vector3>
+    struct ShaderParameterCPUTypeInfo<Float3>
     {
-        static constexpr ShaderParameterType type = ShaderParameterType::Float3;
+        static constexpr ShaderParameterCPUType type = ShaderParameterCPUType::Float3;
         static constexpr Uint32 size = sizeof(Float3);
     };
 
     template <>
-    struct ShaderParameterTypeInfo<Vector4>
+    struct ShaderParameterCPUTypeInfo<Float4>
     {
-        static constexpr ShaderParameterType type = ShaderParameterType::Float4;
+        static constexpr ShaderParameterCPUType type = ShaderParameterCPUType::Float4;
         static constexpr Uint32 size = sizeof(Float4);
     };
-    
+
     template <>
-    struct ShaderParameterTypeInfo<Matrix>
+    struct ShaderParameterCPUTypeInfo<Vector2>
     {
-        static constexpr ShaderParameterType type = ShaderParameterType::Matrix;
+        static constexpr ShaderParameterCPUType type = ShaderParameterCPUType::Vector2;
+        static constexpr Uint32 size = sizeof(Vector2);
+    };
+
+    template <>
+    struct ShaderParameterCPUTypeInfo<Vector3>
+    {
+        static constexpr ShaderParameterCPUType type = ShaderParameterCPUType::Vector3;
+        static constexpr Uint32 size = sizeof(Vector3);
+    };
+
+    template <>
+    struct ShaderParameterCPUTypeInfo<Vector4>
+    {
+        static constexpr ShaderParameterCPUType type = ShaderParameterCPUType::Vector4;
+        static constexpr Uint32 size = sizeof(Vector4);
+    };
+
+    template <>
+    struct ShaderParameterCPUTypeInfo<Matrix>
+    {
+        static constexpr ShaderParameterCPUType type = ShaderParameterCPUType::Matrix;
         static constexpr Uint32 size = sizeof(Matrix);
     };
 
     template <>
-    struct ShaderParameterTypeInfo<BindlessTexture>
+    struct ShaderParameterCPUTypeInfo<BindlessTexture>
     {
-        static constexpr ShaderParameterType type = ShaderParameterType::BindlessTexture;
+        static constexpr ShaderParameterCPUType type = ShaderParameterCPUType::BindlessTexture;
         static constexpr Uint32 size = sizeof(BindlessTexture);
     };
 
     template <>
-    struct ShaderParameterTypeInfo<BindlessSampler>
+    struct ShaderParameterCPUTypeInfo<BindlessSampler>
     {
-        static constexpr ShaderParameterType type = ShaderParameterType::BindlessSampler;
+        static constexpr ShaderParameterCPUType type = ShaderParameterCPUType::BindlessSampler;
         static constexpr Uint32 size = sizeof(BindlessSampler);
     };
 
     template <>
-    struct ShaderParameterTypeInfo<BindlessCombinedTextureSampler>
+    struct ShaderParameterCPUTypeInfo<BindlessCombinedTextureSampler>
     {
-        static constexpr ShaderParameterType type = ShaderParameterType::BindlessCombinedTextureSampler;
+        static constexpr ShaderParameterCPUType type = ShaderParameterCPUType::BindlessCombinedTextureSampler;
         static constexpr Uint32 size = sizeof(BindlessCombinedTextureSampler);
     };
 
@@ -183,7 +281,7 @@ namespace cube
     struct ShaderParameterInfo
     {
         const char* name;
-        ShaderParameterType type;
+        ShaderParameterCPUType type;
 
         Uint32 offsetInCPU;
         Uint32 sizeInCPU;
@@ -265,8 +363,8 @@ public: \
             auto& paramInfo = infos.parameterInfos.back(); \
             \
             paramInfo.name = #paramName; \
-            paramInfo.type = ShaderParameterTypeInfo<paramType>::type; \
-            paramInfo.sizeInCPU = ShaderParameterTypeInfo<paramType>::size; \
+            paramInfo.type = ShaderParameterCPUTypeInfo<paramType>::type; \
+            paramInfo.sizeInCPU = ShaderParameterCPUTypeInfo<paramType>::size; \
             paramInfo.offsetInCPU = offsetof(ParameterListType, paramName); \
         } \
     }; \

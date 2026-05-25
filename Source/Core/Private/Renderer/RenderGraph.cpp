@@ -831,7 +831,7 @@ namespace cube
 
                     switch (shaderParameterInfo.type)
                     {
-                    case ShaderParameterType::RGBufferSRV:
+                    case ShaderParameterCPUType::RGBufferSRV:
                     {
                         RGBufferSRVHandle& srv = *reinterpret_cast<RGBufferSRVHandle*>(src);
                         CHECK_FORMAT(srv.IsValid(), "Null srv in shader parameter '{0}'.", shaderParameterInfo.name);
@@ -839,7 +839,7 @@ namespace cube
                         UseResource(srv);
                         break;
                     }
-                    case ShaderParameterType::RGBufferUAV:
+                    case ShaderParameterCPUType::RGBufferUAV:
                     {
                         RGBufferUAVHandle& uav = *reinterpret_cast<RGBufferUAVHandle*>(src);
                         CHECK_FORMAT(uav.IsValid(), "Null uav in shader parameter '{0}'.", shaderParameterInfo.name);
@@ -847,7 +847,7 @@ namespace cube
                         UseResource(uav);
                         break;
                     }
-                    case ShaderParameterType::RGTextureSRV:
+                    case ShaderParameterCPUType::RGTextureSRV:
                     {
                         RGTextureSRVHandle& srv = *reinterpret_cast<RGTextureSRVHandle*>(src);
                         CHECK_FORMAT(srv.IsValid(), "Null srv in shader parameter '{0}'.", shaderParameterInfo.name);
@@ -855,7 +855,7 @@ namespace cube
                         UseResource(srv);
                         break;
                     }
-                    case ShaderParameterType::RGTextureUAV:
+                    case ShaderParameterCPUType::RGTextureUAV:
                     {
                         RGTextureUAVHandle& uav = *reinterpret_cast<RGTextureUAVHandle*>(src);
                         CHECK_FORMAT(uav.IsValid(), "Null uav in shader parameter '{0}'.", shaderParameterInfo.name);

@@ -33,49 +33,56 @@ namespace cube
 
             for (ShaderParameterInfo& paramInfo : inOutParameterListInfo.parameterInfos)
             {
-                Uint32 size = 0;
+                Uint32 sizeInGPU = 0;
                 Uint32 alignment = 1;
 
                 switch (paramInfo.type)
                 {
-                case ShaderParameterType::Bool:
-                    size = 1;
+                case ShaderParameterCPUType::Bool:
+                    sizeInGPU = 1;
                     alignment = 1;
                     break;
-                case ShaderParameterType::Int:
-                    size = sizeof(Int32);
-                    alignment = sizeof(Int32);
-                    break;
-                case ShaderParameterType::Float:
-                    size = sizeof(float);
-                    alignment = sizeof(float);
-                    break;
                 // Non-packed vector size is power of 2 in Metal.
-                case ShaderParameterType::Float2:
-                    size = 8;
+                case ShaderParameterCPUType::Int:
+                case ShaderParameterCPUType::Uint:
+                case ShaderParameterCPUType::Float:
+                    sizeInGPU = 4;
+                    alignment = 4;
+                    break;
+                case ShaderParameterCPUType::Int2:
+                case ShaderParameterCPUType::Uint2:
+                case ShaderParameterCPUType::Float2:
+                case ShaderParameterCPUType::Vector2:
+                    sizeInGPU = 8;
                     alignment = 8;
                     break;
-                case ShaderParameterType::Float3:
-                case ShaderParameterType::Float4:
-                    size = 16;
+                case ShaderParameterCPUType::Int3:
+                case ShaderParameterCPUType::Int4:
+                case ShaderParameterCPUType::Uint3:
+                case ShaderParameterCPUType::Uint4:
+                case ShaderParameterCPUType::Float3:
+                case ShaderParameterCPUType::Float4:
+                case ShaderParameterCPUType::Vector3:
+                case ShaderParameterCPUType::Vector4:
+                    sizeInGPU = 16;
                     alignment = 16;
                     break;
-                case ShaderParameterType::Matrix:
-                    size = 64;
+                case ShaderParameterCPUType::Matrix:
+                    sizeInGPU = 64;
                     // Matrix is treated as array of Float4 so it is aligned to 16.
                     alignment = 16;
                     break;
-                case ShaderParameterType::BindlessTexture:
-                case ShaderParameterType::BindlessSampler:
-                case ShaderParameterType::RGBufferSRV:
-                case ShaderParameterType::RGBufferUAV:
-                case ShaderParameterType::RGTextureSRV:
-                case ShaderParameterType::RGTextureUAV:
-                    size = sizeof(Uint64);
+                case ShaderParameterCPUType::BindlessTexture:
+                case ShaderParameterCPUType::BindlessSampler:
+                case ShaderParameterCPUType::RGBufferSRV:
+                case ShaderParameterCPUType::RGBufferUAV:
+                case ShaderParameterCPUType::RGTextureSRV:
+                case ShaderParameterCPUType::RGTextureUAV:
+                    sizeInGPU = sizeof(Uint64);
                     alignment = sizeof(Uint64);
                     break;
-                case ShaderParameterType::BindlessCombinedTextureSampler:
-                    size = sizeof(Uint64) * 2;
+                case ShaderParameterCPUType::BindlessCombinedTextureSampler:
+                    sizeInGPU = sizeof(Uint64) * 2;
                     alignment = sizeof(Uint64);
                     break;
                 default:
@@ -85,10 +92,10 @@ namespace cube
 
                 Uint32 alignedOffset = Align(currentOffset, alignment);
 
-                paramInfo.sizeInGPU = size;
+                paramInfo.sizeInGPU = sizeInGPU;
                 paramInfo.offsetInGPU = alignedOffset;
 
-                currentOffset = alignedOffset + size;
+                currentOffset = alignedOffset + sizeInGPU;
                 totalBufferSize = std::max(totalBufferSize, currentOffset);
             }
 
@@ -106,14 +113,37 @@ namespace cube
 
                 switch (paramInfo.type)
                 {
-                case ShaderParameterType::Bool:
+                case ShaderParameterCPUType::Bool:
                 {
                     CHECK_PARAMS(paramInfo.sizeInGPU >= sizeof(bool));
                     bool value = *reinterpret_cast<const bool*>(src);
                     memcpy(dst, &value, sizeof(Uint32));
                     break;
                 }
-                case ShaderParameterType::Float2:
+                case ShaderParameterCPUType::Int:
+                case ShaderParameterCPUType::Uint:
+                case ShaderParameterCPUType::Float:
+                {
+                    CHECK_PARAMS(paramInfo.sizeInCPU == paramInfo.sizeInGPU);
+                    memcpy(dst, src, paramInfo.sizeInCPU);
+                    break;
+                }
+                case ShaderParameterCPUType::Int2:
+                case ShaderParameterCPUType::Int3:
+                case ShaderParameterCPUType::Int4:
+                case ShaderParameterCPUType::Uint2:
+                case ShaderParameterCPUType::Uint3:
+                case ShaderParameterCPUType::Uint4:
+                case ShaderParameterCPUType::Float2:
+                case ShaderParameterCPUType::Float3:
+                case ShaderParameterCPUType::Float4:
+                {
+                    // Non-packed vector slot in Metal is power-of-2 sized, so sizeInGPU can be larger than sizeInCPU (e.g. Int3/Float3: 12 vs 16).
+                    CHECK_PARAMS(paramInfo.sizeInGPU >= paramInfo.sizeInCPU);
+                    memcpy(dst, src, paramInfo.sizeInCPU);
+                    break;
+                }
+                case ShaderParameterCPUType::Vector2:
                 {
                     CHECK_PARAMS(paramInfo.sizeInGPU >= sizeof(Float2));
                     const Vector2* v2 = reinterpret_cast<const Vector2*>(src);
@@ -121,7 +151,7 @@ namespace cube
                     memcpy(dst, &f2, sizeof(Float2));
                     break;
                 }
-                case ShaderParameterType::Float3:
+                case ShaderParameterCPUType::Vector3:
                 {
                     CHECK_PARAMS(paramInfo.sizeInGPU >= sizeof(Float3));
                     const Vector3* v3 = reinterpret_cast<const Vector3*>(src);
@@ -129,7 +159,7 @@ namespace cube
                     memcpy(dst, &f3, sizeof(Float3));
                     break;
                 }
-                case ShaderParameterType::Float4:
+                case ShaderParameterCPUType::Vector4:
                 {
                     CHECK_PARAMS(paramInfo.sizeInGPU >= sizeof(Float4));
                     const Vector4* v4 = reinterpret_cast<const Vector4*>(src);
@@ -137,7 +167,7 @@ namespace cube
                     memcpy(dst, &f4, sizeof(Float4));
                     break;
                 }
-                case ShaderParameterType::Matrix:
+                case ShaderParameterCPUType::Matrix:
                 {
                     const Matrix* data = reinterpret_cast<const Matrix*>(src);
                     struct
@@ -154,21 +184,21 @@ namespace cube
                     memcpy(dst, &floatMatrix, sizeof(floatMatrix));
                     break;
                 }
-                case ShaderParameterType::BindlessTexture:
+                case ShaderParameterCPUType::BindlessTexture:
                 {
                     const BindlessTexture* bindlessTexture = reinterpret_cast<const BindlessTexture*>(src);
                     Uint64 id = bindlessTexture->id;
                     memcpy(dst, &id, sizeof(Uint64));
                     break;
                 }
-                case ShaderParameterType::BindlessSampler:
+                case ShaderParameterCPUType::BindlessSampler:
                 {
                     const BindlessSampler* bindlessSampler = reinterpret_cast<const BindlessSampler*>(src);
                     Uint64 id = bindlessSampler->id;
                     memcpy(dst, &id, sizeof(Uint64));
                     break;
                 }
-                case ShaderParameterType::BindlessCombinedTextureSampler:
+                case ShaderParameterCPUType::BindlessCombinedTextureSampler:
                 {
                     const BindlessCombinedTextureSampler* bindlessCombinedTextureSampler = reinterpret_cast<const BindlessCombinedTextureSampler*>(src);
                     Uint64 ids[2];
@@ -177,7 +207,7 @@ namespace cube
                     memcpy(dst, ids, sizeof(ids));
                     break;
                 }
-                case ShaderParameterType::RGBufferSRV:
+                case ShaderParameterCPUType::RGBufferSRV:
                 {
                     const RGBufferSRVHandle& srv = *reinterpret_cast<const RGBufferSRVHandle*>(src);
                     CHECK_FORMAT(srv.IsValid(), "Null srv in shader parameter '{0}'.", paramInfo.name);
@@ -187,7 +217,7 @@ namespace cube
                     memcpy(dst, &id, sizeof(Uint64));
                     break;
                 }
-                case ShaderParameterType::RGBufferUAV:
+                case ShaderParameterCPUType::RGBufferUAV:
                 {
                     const RGBufferUAVHandle& uav = *reinterpret_cast<const RGBufferUAVHandle*>(src);
                     CHECK_FORMAT(uav.IsValid(), "Null uav in shader parameter '{0}'.", paramInfo.name);
@@ -197,7 +227,7 @@ namespace cube
                     memcpy(dst, &id, sizeof(Uint64));
                     break;
                 }
-                case ShaderParameterType::RGTextureSRV:
+                case ShaderParameterCPUType::RGTextureSRV:
                 {
                     const RGTextureSRVHandle& srv = *reinterpret_cast<const RGTextureSRVHandle*>(src);
                     CHECK_FORMAT(srv.IsValid(), "Null srv in shader parameter '{0}'.", paramInfo.name);
@@ -207,7 +237,7 @@ namespace cube
                     memcpy(dst, &id, sizeof(Uint64));
                     break;
                 }
-                case ShaderParameterType::RGTextureUAV:
+                case ShaderParameterCPUType::RGTextureUAV:
                 {
                     const RGTextureUAVHandle& uav = *reinterpret_cast<const RGTextureUAVHandle*>(src);
                     CHECK_FORMAT(uav.IsValid(), "Null uav in shader parameter '{0}'.", paramInfo.name);
@@ -215,13 +245,6 @@ namespace cube
 
                     Uint64 id = uav->GetUAV()->GetBindlessId();
                     memcpy(dst, &id, sizeof(Uint64));
-                    break;
-                }
-                case ShaderParameterType::Int:
-                case ShaderParameterType::Float:
-                {
-                    CHECK_PARAMS(paramInfo.sizeInCPU == paramInfo.sizeInGPU);
-                    memcpy(dst, src, paramInfo.sizeInCPU);
                     break;
                 }
                 default:
@@ -235,49 +258,88 @@ namespace cube
 
         void MetalShaderParameterHelper::InitializeCompatibleShaderParameterReflectionTypeMap()
         {
-            mCompatibleShaderParameterReflectionTypeMap.resize(static_cast<int>(ShaderParameterType::Num));
+            mCompatibleShaderParameterReflectionTypeMap.resize(static_cast<int>(ShaderParameterCPUType::Num));
 
-            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::Bool)] = {
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterCPUType::Bool)] = {
                 ShaderParameterReflection::Type::Bool
             };
-            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::Int)] = {
-                ShaderParameterReflection::Type::Int
+            // Int and Uint are bidirectionally compatible.
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterCPUType::Int)] = {
+                ShaderParameterReflection::Type::Int,
+                ShaderParameterReflection::Type::Uint
             };
-            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::Float)] = {
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterCPUType::Int2)] = {
+                ShaderParameterReflection::Type::Int2,
+                ShaderParameterReflection::Type::Uint2
+            };
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterCPUType::Int3)] = {
+                ShaderParameterReflection::Type::Int3,
+                ShaderParameterReflection::Type::Uint3
+            };
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterCPUType::Int4)] = {
+                ShaderParameterReflection::Type::Int4,
+                ShaderParameterReflection::Type::Uint4
+            };
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterCPUType::Uint)] = {
+                ShaderParameterReflection::Type::Int,
+                ShaderParameterReflection::Type::Uint
+            };
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterCPUType::Uint2)] = {
+                ShaderParameterReflection::Type::Int2,
+                ShaderParameterReflection::Type::Uint2
+            };
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterCPUType::Uint3)] = {
+                ShaderParameterReflection::Type::Int3,
+                ShaderParameterReflection::Type::Uint3
+            };
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterCPUType::Uint4)] = {
+                ShaderParameterReflection::Type::Int4,
+                ShaderParameterReflection::Type::Uint4
+            };
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterCPUType::Float)] = {
                 ShaderParameterReflection::Type::Float
             };
-            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::Float2)] = {
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterCPUType::Float2)] = {
                 ShaderParameterReflection::Type::Float2
             };
-            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::Float3)] = {
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterCPUType::Float3)] = {
                 ShaderParameterReflection::Type::Float3
             };
-            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::Float4)] = {
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterCPUType::Float4)] = {
                 ShaderParameterReflection::Type::Float4
             };
-            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::Matrix)] = {
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterCPUType::Vector2)] = {
+                ShaderParameterReflection::Type::Float2
+            };
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterCPUType::Vector3)] = {
+                ShaderParameterReflection::Type::Float3
+            };
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterCPUType::Vector4)] = {
+                ShaderParameterReflection::Type::Float4
+            };
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterCPUType::Matrix)] = {
                 ShaderParameterReflection::Type::Matrix
             };
             // Metal use raw resource type for bindless.
-            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::BindlessTexture)] = {
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterCPUType::BindlessTexture)] = {
                 ShaderParameterReflection::Type::Texture
             };
-            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::BindlessSampler)] = {
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterCPUType::BindlessSampler)] = {
                 ShaderParameterReflection::Type::Sampler
             };
-            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::BindlessCombinedTextureSampler)] = {
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterCPUType::BindlessCombinedTextureSampler)] = {
                 ShaderParameterReflection::Type::CombinedTextureSampler
             };
-            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::RGBufferSRV)] = {
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterCPUType::RGBufferSRV)] = {
                 ShaderParameterReflection::Type::Buffer
             };
-            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::RGBufferUAV)] = {
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterCPUType::RGBufferUAV)] = {
                 ShaderParameterReflection::Type::Buffer
             };
-            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::RGTextureSRV)] = {
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterCPUType::RGTextureSRV)] = {
                 ShaderParameterReflection::Type::Texture
             };
-            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterType::RGTextureUAV)] = {
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterCPUType::RGTextureUAV)] = {
                 ShaderParameterReflection::Type::Texture
             };
         }
