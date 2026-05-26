@@ -7,6 +7,7 @@ struct CopyToTextureViewerShaderParameterList
     float4 dstSizeAndInvSize;
     Bindless<Texture2D> srcTexture2D;
     Bindless<RWTexture2D> dstTexture;
+    uint4 rgbaMask;
 };
 
 [shader("compute")]
@@ -24,7 +25,18 @@ void CopyToTextureViewer2DCS(
 
     const float2 uv = (float2(dstCoord) + 0.5) * params.dstSizeAndInvSize.zw;
 
-    params.dstTexture[dstCoord] = params.srcTexture2D.Sample(GetStaticPointClampSampler(), uv);
+    float4 color = params.srcTexture2D.Sample(GetStaticPointClampSampler(), uv);
+    uint4 mask = params.rgbaMask;
+    if (mask.x == 0 && mask.y == 0 && mask.z == 0 && mask.w != 0)
+    {
+        color = float4(color.a, color.a, color.a, 1.0);
+    }
+    else
+    {
+        color.rgb *= float3(mask.xyz);
+        color.a = mask.w > 0 ? color.a : 1.0;
+    }
+    params.dstTexture[dstCoord] = color;
 }
 
 struct CopyToTextureViewerCubeShaderParameterList
@@ -32,6 +44,7 @@ struct CopyToTextureViewerCubeShaderParameterList
     float4 srcSizeAndInvSize;
     Bindless<TextureCube> srcTextureCube;
     Bindless<RWTexture2D> dstTexture;
+    uint4 rgbaMask;
 };
 
 static uint2 cubeCoordMultiplier[6] = {
@@ -60,7 +73,18 @@ void CopyToTextureViewerCubeCS(
     const float3 normal = Cubemap::CubemapUVToVector(srcUV, srcCoord.z);
     const uint2 dstCoord = srcCoord.xy + uint2(params.srcSizeAndInvSize.xy) * cubeCoordMultiplier[srcCoord.z];
 
-    params.dstTexture[dstCoord] = params.srcTextureCube.Sample(GetStaticPointClampSampler(), normal);
+    float4 color = params.srcTextureCube.Sample(GetStaticPointClampSampler(), normal);
+    uint4 mask = params.rgbaMask;
+    if (mask.x == 0 && mask.y == 0 && mask.z == 0 && mask.w != 0)
+    {
+        color = float4(color.a, color.a, color.a, 1.0);
+    }
+    else
+    {
+        color.rgb *= float3(mask.xyz);
+        color.a = mask.w > 0 ? color.a : 1.0;
+    }
+    params.dstTexture[dstCoord] = color;
 }
 
 struct TextureViewerFetchInfoShaderParameterList

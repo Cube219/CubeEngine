@@ -18,6 +18,7 @@ namespace cube
             CUBE_SHADER_PARAMETER(Vector4, dstSizeAndInvSize)
             CUBE_SHADER_PARAMETER(RGTextureSRVHandle, srcTexture2D)
             CUBE_SHADER_PARAMETER(RGTextureUAVHandle, dstTexture)
+            CUBE_SHADER_PARAMETER(Uint4, rgbaMask)
         CUBE_END_SHADER_PARAMETER_LIST
     };
     CUBE_REGISTER_SHADER_PARAMETER_LIST(CopyToTextureViewerShaderParameterList);
@@ -28,6 +29,7 @@ namespace cube
             CUBE_SHADER_PARAMETER(Vector4, srcSizeAndInvSize)
             CUBE_SHADER_PARAMETER(RGTextureSRVHandle, srcTextureCube)
             CUBE_SHADER_PARAMETER(RGTextureUAVHandle, dstTexture)
+            CUBE_SHADER_PARAMETER(Uint4, rgbaMask)
         CUBE_END_SHADER_PARAMETER_LIST
     };
     CUBE_REGISTER_SHADER_PARAMETER_LIST(CopyToTextureViewerCubeShaderParameterList);
@@ -42,6 +44,73 @@ namespace cube
         CUBE_END_SHADER_PARAMETER_LIST
     };
     CUBE_REGISTER_SHADER_PARAMETER_LIST(TextureViewerFetchInfoShaderParameterList);
+
+    namespace
+    {
+        Uint4 GetFormatChannelMask(gapi::ElementFormat format)
+        {
+            switch (format)
+            {
+            case gapi::ElementFormat::R8_Typeless:
+            case gapi::ElementFormat::R8_UInt:
+            case gapi::ElementFormat::R8_SInt:
+            case gapi::ElementFormat::R8_UNorm:
+            case gapi::ElementFormat::R8_SNorm:
+            case gapi::ElementFormat::R16_Typeless:
+            case gapi::ElementFormat::R16_Float:
+            case gapi::ElementFormat::R16_UInt:
+            case gapi::ElementFormat::R16_SInt:
+            case gapi::ElementFormat::R16_UNorm:
+            case gapi::ElementFormat::R16_SNorm:
+            case gapi::ElementFormat::R32_Typeless:
+            case gapi::ElementFormat::R32_Float:
+            case gapi::ElementFormat::R32_UInt:
+            case gapi::ElementFormat::R32_SInt:
+            case gapi::ElementFormat::D16_UNorm:
+            case gapi::ElementFormat::D32_Float:
+            case gapi::ElementFormat::BC4_Typeless:
+            case gapi::ElementFormat::BC4_UNorm:
+            case gapi::ElementFormat::BC4_SNorm:
+                return { 1, 0, 0, 0 };
+
+            case gapi::ElementFormat::RG8_Typeless:
+            case gapi::ElementFormat::RG8_UInt:
+            case gapi::ElementFormat::RG8_SInt:
+            case gapi::ElementFormat::RG8_UNorm:
+            case gapi::ElementFormat::RG8_SNorm:
+            case gapi::ElementFormat::RG16_Typeless:
+            case gapi::ElementFormat::RG16_Float:
+            case gapi::ElementFormat::RG16_UInt:
+            case gapi::ElementFormat::RG16_SInt:
+            case gapi::ElementFormat::RG16_UNorm:
+            case gapi::ElementFormat::RG16_SNorm:
+            case gapi::ElementFormat::RG32_Typeless:
+            case gapi::ElementFormat::RG32_Float:
+            case gapi::ElementFormat::RG32_UInt:
+            case gapi::ElementFormat::RG32_SInt:
+            case gapi::ElementFormat::D24_UNorm_S8_UInt:
+            case gapi::ElementFormat::BC5_Typeless:
+            case gapi::ElementFormat::BC5_UNorm:
+            case gapi::ElementFormat::BC5_SNorm:
+                return { 1, 1, 0, 0 };
+
+            case gapi::ElementFormat::RGB32_Typeless:
+            case gapi::ElementFormat::RGB32_Float:
+            case gapi::ElementFormat::RGB32_UInt:
+            case gapi::ElementFormat::RGB32_SInt:
+            case gapi::ElementFormat::RG11B10_Float:
+            case gapi::ElementFormat::RGB9E5_Exp:
+            case gapi::ElementFormat::B5G6R5_UNorm:
+            case gapi::ElementFormat::BC6H_Typeless:
+            case gapi::ElementFormat::BC6H_UFloat:
+            case gapi::ElementFormat::BC6H_SFloat:
+                return { 1, 1, 1, 0 };
+
+            default:
+                return { 1, 1, 1, 1 };
+            }
+        }
+    } // anonymous namespace
 
     TextureViewer::TextureViewer(Renderer& renderer)
         : mRenderer(renderer)
@@ -121,6 +190,7 @@ namespace cube
         mCanvasTexture = nullptr;
         mCanvasTextureSize = { 0, 0 };
         mCanvasMipLevel = 0;
+        mCanvasRGBAMask = { 1, 1, 1, 1 };
     }
 
     void TextureViewer::Shutdown()
@@ -183,6 +253,30 @@ namespace cube
                 ImGui::SetNextItemWidth(120);
                 ImGui::SliderInt("MipLevel", &mMipLevel, 0, textureInfo.mipLevels - 1);
 
+                {
+                    const Uint4 formatChannelMask = GetFormatChannelMask(textureInfo.format);
+
+                    ImGui::SameLine();
+                    ImGui::BeginDisabled(formatChannelMask.x == 0);
+                    ImGui::Checkbox("R", &mMaskR);
+                    ImGui::EndDisabled();
+
+                    ImGui::SameLine();
+                    ImGui::BeginDisabled(formatChannelMask.y == 0);
+                    ImGui::Checkbox("G", &mMaskG);
+                    ImGui::EndDisabled();
+
+                    ImGui::SameLine();
+                    ImGui::BeginDisabled(formatChannelMask.z == 0);
+                    ImGui::Checkbox("B", &mMaskB);
+                    ImGui::EndDisabled();
+
+                    ImGui::SameLine();
+                    ImGui::BeginDisabled(formatChannelMask.w == 0);
+                    ImGui::Checkbox("A", &mMaskA);
+                    ImGui::EndDisabled();
+                }
+
                 const float bottomTextLineSize = ImGui::GetTextLineHeightWithSpacing();
                 const ImVec2 contentRegion = ImGui::GetContentRegionAvail();
                 const ImVec2 canvasExtent = ImVec2(contentRegion.x, contentRegion.y - bottomTextLineSize * 2);
@@ -244,7 +338,6 @@ namespace cube
                     ImGUIPixelInfo({ -1, -1 }, imageMin, imageMax);
                 }
                 // TODO: Select array index.
-                // TODO: RGBA mask / color range.
             }
             else
             {
@@ -465,6 +558,7 @@ namespace cube
         mCanvasTexture = nullptr;
         mCanvasTextureSize = { newWidth, newHeight };
         mCanvasMipLevel = 0;
+        mCanvasRGBAMask = { 1, 1, 1, 1 };
 
         mCanvasTexture = mRenderer.GetGAPI().CreateTexture({
             .usage = gapi::ResourceUsage::GPUOnly,
@@ -488,7 +582,15 @@ namespace cube
 
         mMipLevel = std::min(mMipLevel, static_cast<int>(textureInfo.mipLevels) - 1);
 
-        if (!force && mMipLevel == static_cast<int>(mCanvasMipLevel))
+        const Uint4 formatChannelMask = GetFormatChannelMask(textureInfo.format);
+        const Uint4 currentRGBAMask = {
+            mMaskR ? formatChannelMask.x : 0u,
+            mMaskG ? formatChannelMask.y : 0u,
+            mMaskB ? formatChannelMask.z : 0u,
+            mMaskA ? formatChannelMask.w : 0u
+        };
+
+        if (!force && mMipLevel == static_cast<int>(mCanvasMipLevel) && currentRGBAMask == mCanvasRGBAMask)
         {
             return;
         }
@@ -507,6 +609,7 @@ namespace cube
             );
             params->Get()->srcTexture2D = srcSRV;
             params->Get()->dstTexture = dstUAV;
+            params->Get()->rgbaMask = currentRGBAMask;
 
             SharedPtr<ComputePipeline> copyToTextureViewer2DPipeline = mRenderer.GetPipelineManager().GetOrCreateComputePipeline({
                 .pipelineInfo = mCopyToTextureViewer2DPipelineInfo,
@@ -532,6 +635,7 @@ namespace cube
             );
             params->Get()->srcTextureCube = srcSRV;
             params->Get()->dstTexture = dstUAV;
+            params->Get()->rgbaMask = currentRGBAMask;
 
             SharedPtr<ComputePipeline> copyToTextureViewerCubePipeline = mRenderer.GetPipelineManager().GetOrCreateComputePipeline({
                 .pipelineInfo = mCopyToTextureViewerCubePipelineInfo,
@@ -547,6 +651,7 @@ namespace cube
         }
 
         mCanvasMipLevel = mMipLevel;
+        mCanvasRGBAMask = currentRGBAMask;
     }
 
     void TextureViewer::ProcessReadbackInfo()

@@ -64,6 +64,7 @@ namespace cube
 
         Uint2 mCanvasTextureSize;
         Uint32 mCanvasMipLevel;
+        Uint4 mCanvasRGBAMask;
         SharedPtr<gapi::Texture> mCanvasTexture;
         SharedPtr<gapi::TextureSRV> mCanvasTextureSRV;
 
@@ -71,6 +72,10 @@ namespace cube
         Float2 mPanOffset = { 0.0f, 0.0f };
         Int2 mPixel = { -1, -1 };
         int mMipLevel = 0;
+        bool mMaskR = true;
+        bool mMaskG = true;
+        bool mMaskB = true;
+        bool mMaskA = true;
 
         // TODO: Use info queue to get data immediately?
         struct ReadbackBuffer
