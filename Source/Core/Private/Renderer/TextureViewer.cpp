@@ -19,6 +19,7 @@ namespace cube
             CUBE_SHADER_PARAMETER(RGTextureSRVHandle, srcTexture2D)
             CUBE_SHADER_PARAMETER(RGTextureUAVHandle, dstTexture)
             CUBE_SHADER_PARAMETER(Uint4, rgbaMask)
+            CUBE_SHADER_PARAMETER(Vector2, colorRange)
         CUBE_END_SHADER_PARAMETER_LIST
     };
     CUBE_REGISTER_SHADER_PARAMETER_LIST(CopyToTextureViewerShaderParameterList);
@@ -30,20 +31,32 @@ namespace cube
             CUBE_SHADER_PARAMETER(RGTextureSRVHandle, srcTextureCube)
             CUBE_SHADER_PARAMETER(RGTextureUAVHandle, dstTexture)
             CUBE_SHADER_PARAMETER(Uint4, rgbaMask)
+            CUBE_SHADER_PARAMETER(Vector2, colorRange)
         CUBE_END_SHADER_PARAMETER_LIST
     };
     CUBE_REGISTER_SHADER_PARAMETER_LIST(CopyToTextureViewerCubeShaderParameterList);
 
-    class TextureViewerFetchInfoShaderParameterList : public ShaderParameterList
+    class TextureViewerFetchInfo2DShaderParameterList : public ShaderParameterList
     {
-        CUBE_BEGIN_SHADER_PARAMETER_LIST(TextureViewerFetchInfoShaderParameterList)
+        CUBE_BEGIN_SHADER_PARAMETER_LIST(TextureViewerFetchInfo2DShaderParameterList)
             CUBE_SHADER_PARAMETER(Vector4, sizeAndInvSize)
-            CUBE_SHADER_PARAMETER(RGTextureSRVHandle, canvasTexture)
+            CUBE_SHADER_PARAMETER(RGTextureSRVHandle, srcTexture2D)
             CUBE_SHADER_PARAMETER(Int2, positionToRead)
             CUBE_SHADER_PARAMETER(RGBufferUAVHandle, readbackBuffer)
         CUBE_END_SHADER_PARAMETER_LIST
     };
-    CUBE_REGISTER_SHADER_PARAMETER_LIST(TextureViewerFetchInfoShaderParameterList);
+    CUBE_REGISTER_SHADER_PARAMETER_LIST(TextureViewerFetchInfo2DShaderParameterList);
+
+    class TextureViewerFetchInfoCubeShaderParameterList : public ShaderParameterList
+    {
+        CUBE_BEGIN_SHADER_PARAMETER_LIST(TextureViewerFetchInfoCubeShaderParameterList)
+            CUBE_SHADER_PARAMETER(Vector4, faceSizeAndInvSize)
+            CUBE_SHADER_PARAMETER(RGTextureSRVHandle, srcTextureCube)
+            CUBE_SHADER_PARAMETER(Int2, positionToRead)
+            CUBE_SHADER_PARAMETER(RGBufferUAVHandle, readbackBuffer)
+        CUBE_END_SHADER_PARAMETER_LIST
+    };
+    CUBE_REGISTER_SHADER_PARAMETER_LIST(TextureViewerFetchInfoCubeShaderParameterList);
 
     namespace
     {
@@ -153,18 +166,34 @@ namespace cube
         }
 
         {
-            mFetchInfoShader = mRenderer.GetShaderManager().CreateShader({
+            mFetchInfo2DShader = mRenderer.GetShaderManager().CreateShader({
                 .shaderInfo = {
                     .type = gapi::ShaderType::Compute,
-                    .entryPoint = "TextureViewerFetchInfoCS"
+                    .entryPoint = "TextureViewerFetchInfo2DCS"
                 },
                 .filePaths = { &textureViewerShaderFilePath, 1 },
-                .debugName = CUBE_T("TextureViewerFetchInfoCS")
+                .debugName = CUBE_T("TextureViewerFetchInfo2DCS")
             });
-            CHECK(mFetchInfoShader);
+            CHECK(mFetchInfo2DShader);
 
-            mFetchInfoPipelineInfo = {
-                .shader = mFetchInfoShader
+            mFetchInfo2DPipelineInfo = {
+                .shader = mFetchInfo2DShader
+            };
+        }
+
+        {
+            mFetchInfoCubeShader = mRenderer.GetShaderManager().CreateShader({
+                .shaderInfo = {
+                    .type = gapi::ShaderType::Compute,
+                    .entryPoint = "TextureViewerFetchInfoCubeCS"
+                },
+                .filePaths = { &textureViewerShaderFilePath, 1 },
+                .debugName = CUBE_T("TextureViewerFetchInfoCubeCS")
+            });
+            CHECK(mFetchInfoCubeShader);
+
+            mFetchInfoCubePipelineInfo = {
+                .shader = mFetchInfoCubeShader
             };
         }
 
@@ -191,6 +220,7 @@ namespace cube
         mCanvasTextureSize = { 0, 0 };
         mCanvasMipLevel = 0;
         mCanvasRGBAMask = { 1, 1, 1, 1 };
+        mCanvasColorRange = { 0.0f, 1.0f };
     }
 
     void TextureViewer::Shutdown()
@@ -201,8 +231,10 @@ namespace cube
         }
         mReadbackBuffers.clear();
 
-        mFetchInfoPipelineInfo = {};
-        mFetchInfoShader = nullptr;
+        mFetchInfoCubePipelineInfo = {};
+        mFetchInfoCubeShader = nullptr;
+        mFetchInfo2DPipelineInfo = {};
+        mFetchInfo2DShader = nullptr;
         mCopyToTextureViewerCubePipelineInfo = {};
         mCopyToTextureViewerCubeShader = nullptr;
         mCopyToTextureViewer2DPipelineInfo = {};
@@ -275,6 +307,15 @@ namespace cube
                     ImGui::BeginDisabled(formatChannelMask.w == 0);
                     ImGui::Checkbox("A", &mMaskA);
                     ImGui::EndDisabled();
+                }
+
+                ImGui::SetNextItemWidth(200);
+                ImGui::DragFloatRange2("Range", &mRangeMin, &mRangeMax, 0.01f, 0.0f, std::numeric_limits<float>::max(), "Min: %.3f", "Max: %.3f");
+                ImGui::SameLine();
+                if (ImGui::Button("Reset"))
+                {
+                    mRangeMin = 0.0f;
+                    mRangeMax = 1.0f;
                 }
 
                 const float bottomTextLineSize = ImGui::GetTextLineHeightWithSpacing();
@@ -508,35 +549,64 @@ namespace cube
 
     void TextureViewer::FetchInfo(RGBuilder& builder)
     {
-        CHECK(mCanvasTexture);
+        CHECK(mCopiedTexture);
 
-        RGTextureHandle canvasTexture = builder.RegisterTexture(mCanvasTexture);
-        RGTextureSRVHandle canvasSRV = builder.CreateSRV(canvasTexture);
+        const gapi::TextureInfo& textureInfo = mCopiedTexture->GetInfo();
+        RGTextureHandle src = builder.RegisterTexture(mCopiedTexture);
+        RGTextureSRVHandle srcSRV = builder.CreateSRV(src, mMipLevel, 1);
         RGBufferHandle readbackBuffer = builder.RegisterBuffer(GetCurrentReadbackBuffer().buffer);
         RGBufferUAVHandle readbackUAV = builder.CreateUAV(readbackBuffer, ReadbackBuffer::format);
 
-        auto params = builder.CreateShaderParameterList<TextureViewerFetchInfoShaderParameterList>();
-        params->Get()->sizeAndInvSize = Vector4(
-            static_cast<float>(mCanvasTextureSize.x), static_cast<float>(mCanvasTextureSize.y),
-            1.0f / static_cast<float>(mCanvasTextureSize.x), 1.0f / static_cast<float>(mCanvasTextureSize.y)
-        );
-        params->Get()->canvasTexture = canvasSRV;
-        params->Get()->positionToRead = mPixel;
-        params->Get()->readbackBuffer = readbackUAV;
+        if (textureInfo.type == gapi::TextureType::Texture2D)
+        {
+            auto params = builder.CreateShaderParameterList<TextureViewerFetchInfo2DShaderParameterList>();
+            params->Get()->sizeAndInvSize = Vector4(
+                static_cast<float>(mCanvasTextureSize.x), static_cast<float>(mCanvasTextureSize.y),
+                1.0f / static_cast<float>(mCanvasTextureSize.x), 1.0f / static_cast<float>(mCanvasTextureSize.y)
+            );
+            params->Get()->srcTexture2D = srcSRV;
+            params->Get()->positionToRead = mPixel;
+            params->Get()->readbackBuffer = readbackUAV;
 
-        SharedPtr<ComputePipeline> fetchInfoPipeline = mRenderer.GetPipelineManager().GetOrCreateComputePipeline({
-            .pipelineInfo = mFetchInfoPipelineInfo,
-            .debugName = CUBE_T("TextureViewerFetchInfoCS Pipeline")
-        });
-        builder.AddPass(
-            Format<FrameString>(CUBE_T("TextureViewer FetchInfo - {0}"), mCopiedTextureName),
-            fetchInfoPipeline,
-            RGBuilder::MakeParameterListArray(params),
-            [](gapi::CommandList& commandList)
-            {
-                commandList.DispatchThreads(1, 1, 1);
-            }
-        );
+            SharedPtr<ComputePipeline> pipeline = mRenderer.GetPipelineManager().GetOrCreateComputePipeline({
+                .pipelineInfo = mFetchInfo2DPipelineInfo,
+                .debugName = CUBE_T("TextureViewerFetchInfo2D Pipeline")
+            });
+            builder.AddPass(
+                Format<FrameString>(CUBE_T("TextureViewer FetchInfo - {0}"), mCopiedTextureName),
+                pipeline,
+                RGBuilder::MakeParameterListArray(params),
+                [](gapi::CommandList& commandList)
+                {
+                    commandList.DispatchThreads(1, 1, 1);
+                }
+            );
+        }
+        else if (textureInfo.type == gapi::TextureType::TextureCube)
+        {
+            auto params = builder.CreateShaderParameterList<TextureViewerFetchInfoCubeShaderParameterList>();
+            params->Get()->faceSizeAndInvSize = Vector4(
+                static_cast<float>(textureInfo.width), static_cast<float>(textureInfo.height),
+                1.0f / static_cast<float>(textureInfo.width), 1.0f / static_cast<float>(textureInfo.height)
+            );
+            params->Get()->srcTextureCube = srcSRV;
+            params->Get()->positionToRead = mPixel;
+            params->Get()->readbackBuffer = readbackUAV;
+
+            SharedPtr<ComputePipeline> pipeline = mRenderer.GetPipelineManager().GetOrCreateComputePipeline({
+                .pipelineInfo = mFetchInfoCubePipelineInfo,
+                .debugName = CUBE_T("TextureViewerFetchInfoCube Pipeline")
+            });
+            builder.AddPass(
+                Format<FrameString>(CUBE_T("TextureViewer FetchInfo - {0}"), mCopiedTextureName),
+                pipeline,
+                RGBuilder::MakeParameterListArray(params),
+                [](gapi::CommandList& commandList)
+                {
+                    commandList.DispatchThreads(1, 1, 1);
+                }
+            );
+        }
     }
 
     void TextureViewer::CreateNewCanvasTextureIfNeeded(const gapi::TextureInfo& info)
@@ -559,6 +629,7 @@ namespace cube
         mCanvasTextureSize = { newWidth, newHeight };
         mCanvasMipLevel = 0;
         mCanvasRGBAMask = { 1, 1, 1, 1 };
+        mCanvasColorRange = { 0.0f, 1.0f };
 
         mCanvasTexture = mRenderer.GetGAPI().CreateTexture({
             .usage = gapi::ResourceUsage::GPUOnly,
@@ -589,8 +660,9 @@ namespace cube
             mMaskB ? formatChannelMask.z : 0u,
             mMaskA ? formatChannelMask.w : 0u
         };
+        const Float2 currentColorRange = { mRangeMin, mRangeMax };
 
-        if (!force && mMipLevel == static_cast<int>(mCanvasMipLevel) && currentRGBAMask == mCanvasRGBAMask)
+        if (!force && mMipLevel == static_cast<int>(mCanvasMipLevel) && currentRGBAMask == mCanvasRGBAMask && currentColorRange == mCanvasColorRange)
         {
             return;
         }
@@ -610,6 +682,7 @@ namespace cube
             params->Get()->srcTexture2D = srcSRV;
             params->Get()->dstTexture = dstUAV;
             params->Get()->rgbaMask = currentRGBAMask;
+            params->Get()->colorRange = Vector2(mRangeMin, mRangeMax);
 
             SharedPtr<ComputePipeline> copyToTextureViewer2DPipeline = mRenderer.GetPipelineManager().GetOrCreateComputePipeline({
                 .pipelineInfo = mCopyToTextureViewer2DPipelineInfo,
@@ -636,6 +709,7 @@ namespace cube
             params->Get()->srcTextureCube = srcSRV;
             params->Get()->dstTexture = dstUAV;
             params->Get()->rgbaMask = currentRGBAMask;
+            params->Get()->colorRange = Vector2(mRangeMin, mRangeMax);
 
             SharedPtr<ComputePipeline> copyToTextureViewerCubePipeline = mRenderer.GetPipelineManager().GetOrCreateComputePipeline({
                 .pipelineInfo = mCopyToTextureViewerCubePipelineInfo,
@@ -652,6 +726,7 @@ namespace cube
 
         mCanvasMipLevel = mMipLevel;
         mCanvasRGBAMask = currentRGBAMask;
+        mCanvasColorRange = currentColorRange;
     }
 
     void TextureViewer::ProcessReadbackInfo()

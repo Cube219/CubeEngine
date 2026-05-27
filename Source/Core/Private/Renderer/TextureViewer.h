@@ -52,8 +52,10 @@ namespace cube
         ComputePipelineInfo mCopyToTextureViewer2DPipelineInfo;
         SharedPtr<Shader> mCopyToTextureViewerCubeShader;
         ComputePipelineInfo mCopyToTextureViewerCubePipelineInfo;
-        SharedPtr<Shader> mFetchInfoShader;
-        ComputePipelineInfo mFetchInfoPipelineInfo;
+        SharedPtr<Shader> mFetchInfo2DShader;
+        ComputePipelineInfo mFetchInfo2DPipelineInfo;
+        SharedPtr<Shader> mFetchInfoCubeShader;
+        ComputePipelineInfo mFetchInfoCubePipelineInfo;
 
         bool mShow = false;
         Uint32 mCurrentFrameIndex = 0;
@@ -65,6 +67,7 @@ namespace cube
         Uint2 mCanvasTextureSize;
         Uint32 mCanvasMipLevel;
         Uint4 mCanvasRGBAMask;
+        Float2 mCanvasColorRange;
         SharedPtr<gapi::Texture> mCanvasTexture;
         SharedPtr<gapi::TextureSRV> mCanvasTextureSRV;
 
@@ -76,6 +79,8 @@ namespace cube
         bool mMaskG = true;
         bool mMaskB = true;
         bool mMaskA = true;
+        float mRangeMin = 0.0f;
+        float mRangeMax = 1.0f;
 
         // TODO: Use info queue to get data immediately?
         struct ReadbackBuffer
