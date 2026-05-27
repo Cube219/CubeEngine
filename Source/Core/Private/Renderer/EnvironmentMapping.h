@@ -60,6 +60,11 @@ namespace cube
         Uint32 GetPrefilterMapMipLevels() const;
 
     private:
+        void LoadIBLTextureList();
+
+        void ClearCurrentIBLTexture();
+        void LoadCurrentIBLTexture();
+
         void GenerateIrradianceMap();
         void GenerateIntegratedBRDFLUT();
         void GeneratePrefilterMap();
@@ -78,7 +83,11 @@ namespace cube
             Num
         };
         SkyboxType mCurrentSkyboxType;
-        Uint32 mCurrentSkyboxMipLevel;
+        Uint32 mCurrentSkyboxMipLevel = 0;
+
+        bool mIBLDropdownExpandedLastFrame = false;
+        Vector<AnsiString> mIBLTextureList;
+        AnsiString mCurrentSelectedIBLTextureName;
 
         SharedPtr<TextureResource> mIBLTexture;
         SharedPtr<Shader> mSkyboxVS;

@@ -64,6 +64,7 @@ namespace cube
     void EnvironmentMapping::Initialize(bool enable)
     {
         mIsEnabled = enable;
+        mIBLDropdownExpandedLastFrame = false;
 
         mCurrentSkyboxType = SkyboxType::IBL;
 
@@ -198,6 +199,37 @@ namespace cube
 
             ImGui::BeginDisabled(!isEnabled);
 
+            ImGui::SetNextItemWidth(160);
+            if (ImGui::BeginCombo("IBL Texture", mCurrentSelectedIBLTextureName.c_str()))
+            {
+                if (!mIBLDropdownExpandedLastFrame)
+                {
+                    LoadIBLTextureList();
+                }
+                mIBLDropdownExpandedLastFrame = true;
+
+                for (const AnsiString& IBLTextureName : mIBLTextureList)
+                {
+                    const bool selected = mCurrentSelectedIBLTextureName == IBLTextureName;
+                    if (ImGui::Selectable(IBLTextureName.c_str(), selected))
+                    {
+                        mCurrentSelectedIBLTextureName = IBLTextureName;
+                        LoadCurrentIBLTexture();
+                    }
+
+                    if (selected)
+                    {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+
+                ImGui::EndCombo();
+            }
+            else
+            {
+                mIBLDropdownExpandedLastFrame = false;
+            }
+
             {
                 FrameAnsiString prefilterMapStr = Format<FrameAnsiString>("PrefilterMap {0}", mCurrentSkyboxMipLevel);
                 auto GetSkyboxTypeStr = [this, &prefilterMapStr]() -> const char*
@@ -252,49 +284,18 @@ namespace cube
 
     void EnvironmentMapping::LoadResources()
     {
-        platform::FilePath IBLPath = Engine::GetRootDirectoryPath() / CUBE_T("Resources/Textures/IBL/NissiBeach2");
-        if (platform::FileSystem::IsExist(IBLPath))
+        // Load the first IBL texture as default.
+        LoadIBLTextureList();
+        if (mIBLTextureList.size() > 0)
         {
-            TextureRawData negXData = TextureHelper::LoadFromFile(IBLPath / CUBE_T("negx.jpg"), TextureHelper::LoadElementType::Float);
-            TextureRawData negYData = TextureHelper::LoadFromFile(IBLPath / CUBE_T("negy.jpg"), TextureHelper::LoadElementType::Float);
-            TextureRawData negZData = TextureHelper::LoadFromFile(IBLPath / CUBE_T("negz.jpg"), TextureHelper::LoadElementType::Float);
-            TextureRawData posXData = TextureHelper::LoadFromFile(IBLPath / CUBE_T("posx.jpg"), TextureHelper::LoadElementType::Float);
-            TextureRawData posYData = TextureHelper::LoadFromFile(IBLPath / CUBE_T("posy.jpg"), TextureHelper::LoadElementType::Float);
-            TextureRawData posZData = TextureHelper::LoadFromFile(IBLPath / CUBE_T("posz.jpg"), TextureHelper::LoadElementType::Float);
+            mCurrentSelectedIBLTextureName = mIBLTextureList[0];
+            LoadCurrentIBLTexture();
 
-            const Uint64 totalSize = negXData.data.GetSize() + negYData.data.GetSize() + negZData.data.GetSize()
-                + posXData.data.GetSize() + posYData.data.GetSize() + posZData.data.GetSize();
-            Blob totalData = Blob(totalSize);
+            if (!mIBLTexture)
             {
-                Byte* pData = (Byte*)totalData.GetData();
-#define CUBE_APPEND_DATA(v) \
-                memcpy(pData, (v).data.GetData(), (v).data.GetSize()); \
-                pData += (v).data.GetSize();
-
-                CUBE_APPEND_DATA(posXData);
-                CUBE_APPEND_DATA(negXData);
-                CUBE_APPEND_DATA(posYData);
-                CUBE_APPEND_DATA(negYData);
-                CUBE_APPEND_DATA(posZData);
-                CUBE_APPEND_DATA(negZData);
-#undef CUBE_APPEND_DATA
+                // Failed to load.
+                mCurrentSelectedIBLTextureName = "";
             }
-
-            TextureResourceCreateInfo createInfo = {
-                .textureInfo = {
-                    .format = negXData.format,
-                    .type = gapi::TextureType::TextureCube,
-                    .width = negXData.width,
-                    .height = negYData.height,
-                },
-                .data = BlobView(totalData),
-                .bytesPerElement = negXData.bytesPerElement,
-                .debugName = CUBE_T("IBLTexture")
-            };
-            mIBLTexture = std::make_shared<TextureResource>(createInfo);
-
-            GenerateIrradianceMap();
-            GeneratePrefilterMap();
         }
 
         if (!mIntegratedBRDFLUT)
@@ -305,10 +306,9 @@ namespace cube
 
     void EnvironmentMapping::ClearResources()
     {
-        mPrefilterMap = nullptr;
         mIntegratedBRDFLUT = nullptr;
-        mDiffuseIrradianceMap = nullptr;
-        mIBLTexture = nullptr;
+
+        ClearCurrentIBLTexture();
     }
 
     void EnvironmentMapping::SetEnable(bool newEnable)
@@ -428,6 +428,81 @@ namespace cube
         else
         {
             return 0;
+        }
+    }
+
+    void EnvironmentMapping::LoadIBLTextureList()
+    {
+        mIBLTextureList.clear();
+
+        const platform::FilePath IBLBasePath = Engine::GetRootDirectoryPath() / CUBE_T("Resources/Textures/IBL");
+        static const char* nameListToLoad[] = {
+            "Brudslojan",
+            "NissiBeach2"
+        };
+        for (const char* nameToLoad : nameListToLoad)
+        {
+            if (platform::FileSystem::IsExist(IBLBasePath / nameToLoad))
+            {
+                mIBLTextureList.push_back(nameToLoad);
+            }
+        }
+    }
+
+    void EnvironmentMapping::ClearCurrentIBLTexture()
+    {
+        mPrefilterMap = nullptr;
+        mDiffuseIrradianceMap = nullptr;
+        mIBLTexture = nullptr;
+    }
+
+    void EnvironmentMapping::LoadCurrentIBLTexture()
+    {
+        ClearCurrentIBLTexture();
+
+        const platform::FilePath IBLPath = Engine::GetRootDirectoryPath() / CUBE_T("Resources/Textures/IBL") / mCurrentSelectedIBLTextureName;
+        if (platform::FileSystem::IsExist(IBLPath))
+        {
+            TextureRawData negXData = TextureHelper::LoadFromFile(IBLPath / CUBE_T("negx.jpg"), TextureHelper::LoadElementType::Float);
+            TextureRawData negYData = TextureHelper::LoadFromFile(IBLPath / CUBE_T("negy.jpg"), TextureHelper::LoadElementType::Float);
+            TextureRawData negZData = TextureHelper::LoadFromFile(IBLPath / CUBE_T("negz.jpg"), TextureHelper::LoadElementType::Float);
+            TextureRawData posXData = TextureHelper::LoadFromFile(IBLPath / CUBE_T("posx.jpg"), TextureHelper::LoadElementType::Float);
+            TextureRawData posYData = TextureHelper::LoadFromFile(IBLPath / CUBE_T("posy.jpg"), TextureHelper::LoadElementType::Float);
+            TextureRawData posZData = TextureHelper::LoadFromFile(IBLPath / CUBE_T("posz.jpg"), TextureHelper::LoadElementType::Float);
+
+            const Uint64 totalSize = negXData.data.GetSize() + negYData.data.GetSize() + negZData.data.GetSize()
+                + posXData.data.GetSize() + posYData.data.GetSize() + posZData.data.GetSize();
+            Blob totalData = Blob(totalSize);
+            {
+                Byte* pData = (Byte*)totalData.GetData();
+#define CUBE_APPEND_DATA(v) \
+                memcpy(pData, (v).data.GetData(), (v).data.GetSize()); \
+                pData += (v).data.GetSize();
+
+                CUBE_APPEND_DATA(posXData);
+                CUBE_APPEND_DATA(negXData);
+                CUBE_APPEND_DATA(posYData);
+                CUBE_APPEND_DATA(negYData);
+                CUBE_APPEND_DATA(posZData);
+                CUBE_APPEND_DATA(negZData);
+#undef CUBE_APPEND_DATA
+            }
+
+            TextureResourceCreateInfo createInfo = {
+                .textureInfo = {
+                    .format = negXData.format,
+                    .type = gapi::TextureType::TextureCube,
+                    .width = negXData.width,
+                    .height = negXData.height,
+                },
+                .data = BlobView(totalData),
+                .bytesPerElement = negXData.bytesPerElement,
+                .debugName = CUBE_T("IBLTexture")
+            };
+            mIBLTexture = std::make_shared<TextureResource>(createInfo);
+
+            GenerateIrradianceMap();
+            GeneratePrefilterMap();
         }
     }
 
