@@ -37,13 +37,10 @@ void CopyToTextureViewer2DCS(
         color.rgb *= float3(mask.xyz);
         color.a = mask.w > 0 ? color.a : 1.0;
     }
-    {
-        float rangeDenom = params.colorRange.y - params.colorRange.x;
-        if (rangeDenom > 0.0)
-        {
-            color.rgb = saturate((color.rgb - params.colorRange.x) / rangeDenom);
-        }
-    }
+
+    float rangeDenom = max(params.colorRange.y - params.colorRange.x, 0.000001);
+    color.rgb = saturate((color.rgb - params.colorRange.x) / rangeDenom);
+
     params.dstTexture[dstCoord] = color;
 }
 
@@ -93,13 +90,10 @@ void CopyToTextureViewerCubeCS(
         color.rgb *= float3(mask.xyz);
         color.a = mask.w > 0 ? color.a : 1.0;
     }
-    {
-        float rangeDenom = params.colorRange.y - params.colorRange.x;
-        if (rangeDenom > 0.0)
-        {
-            color.rgb = saturate((color.rgb - params.colorRange.x) / rangeDenom);
-        }
-    }
+
+    float rangeDenom = max(params.colorRange.y - params.colorRange.x, 0.000001);
+    color.rgb = saturate((color.rgb - params.colorRange.x) / rangeDenom);
+
     params.dstTexture[dstCoord] = color;
 }
 

@@ -254,7 +254,7 @@ namespace cube
         }
 
         ImGui::SetNextWindowPos({ 400, 160 }, ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize({ 600, 630 }, ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize({ 600, 650 }, ImGuiCond_FirstUseEver);
         if (ImGui::Begin("Texture Viewer", &mShow))
         {
             if (mCopiedTexture)
@@ -282,6 +282,9 @@ namespace cube
                 default:
                     break;
                 }
+
+                ImGui::Separator();
+
                 ImGui::SetNextItemWidth(120);
                 ImGui::SliderInt("MipLevel", &mMipLevel, 0, textureInfo.mipLevels - 1);
 
@@ -309,8 +312,9 @@ namespace cube
                     ImGui::EndDisabled();
                 }
 
-                ImGui::SetNextItemWidth(200);
-                ImGui::DragFloatRange2("Range", &mRangeMin, &mRangeMax, 0.01f, 0.0f, std::numeric_limits<float>::max(), "Min: %.3f", "Max: %.3f");
+                ImGui::SetNextItemWidth(120);
+                ImGui::DragFloatRange2("Range", &mRangeMin, &mRangeMax, 0.001f, 0.0f, std::numeric_limits<float>::max(), "%.3f", "%.3f");
+
                 ImGui::SameLine();
                 if (ImGui::Button("Reset"))
                 {
