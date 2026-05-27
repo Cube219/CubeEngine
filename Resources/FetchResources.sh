@@ -36,6 +36,7 @@ fetch_resource() {
 
 echo "Fetching IBL texture..."
 IBL_DIR="$SCRIPT_DIR/Textures/IBL"
+fetch_resource "$IBL_DIR" "Brudslojan" "https://www.humus.name/Textures/Brudslojan.zip"
 fetch_resource "$IBL_DIR" "NissiBeach2" "https://www.humus.name/Textures/NissiBeach2.zip"
 
 rmdir "$TMP_DIR" 2>/dev/null

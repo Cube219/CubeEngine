@@ -39,6 +39,7 @@ function Fetch-Resource {
 Write-Host "Fetching IBL texture..."
 $IBLPath = Join-Path $ScriptDir "Textures"
 $IBLPath = Join-Path $IBLPath "IBL"
+Fetch-Resource -DstDir $IBLPath -Name "Brudslojan" -Url "https://www.humus.name/Textures/Brudslojan.zip"
 Fetch-Resource -DstDir $IBLPath -Name "NissiBeach2" -Url "https://www.humus.name/Textures/NissiBeach2.zip"
 
 if (Test-Path $TmpDir) {

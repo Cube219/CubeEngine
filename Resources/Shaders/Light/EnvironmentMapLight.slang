@@ -57,7 +57,7 @@ public struct EnvironmentMapLight : ILight
         
         const float3 Kd = PBRSpecular.DiffuseWeight(param);
 
-        return Kd * diffuse + specular;
+        return (Kd * diffuse + specular) * materialValue.indirectOcclusion;
 #else
         BRDFParam param = BRDFParam(
             normal, view, normal,
@@ -67,7 +67,8 @@ public struct EnvironmentMapLight : ILight
 
         const float3 Kd = 1.0;
         // Reverse z for right-handed.
-        return Kd * diffuseIrradianceMap.Sample(GetStaticLinearWrapSampler(), float3(normal.xy, -normal.z)).xyz * materialValue.diffuseColor;
+        return (Kd * diffuseIrradianceMap.Sample(GetStaticLinearWrapSampler(), float3(normal.xy, -normal.z)).xyz * materialValue.diffuseColor)
+            * materialValue.indirectOcclusion;
 #endif
     }
 }

@@ -64,6 +64,8 @@ PSOutput PSMain(PSInput input) : SV_TARGET
         envMapParams.prefilterMapMipLevels
     );
     color += envMapLight.CalculateLight(view, normal, materialValue);
+
+    color += materialValue.emissive;
     
     float gamma = 2.2;
     color = pow(color, float3(1.0/gamma));

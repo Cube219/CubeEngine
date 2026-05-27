@@ -30,6 +30,8 @@ public struct MaterialValue
     public float shininess = 0.0f;
 #endif
     public float3 normal = float3(0.0f, 0.0f, 1.0f);
+    public float3 emissive = float3(0.0f, 0.0f, 0.0f);
+    public float indirectOcclusion = 1.0f;
 };
 
 public interface IMaterial
