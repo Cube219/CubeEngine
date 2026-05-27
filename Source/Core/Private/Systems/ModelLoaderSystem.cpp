@@ -246,6 +246,9 @@ namespace cube
                 .rotation = Vector3(0, -90.0f),
                 .scale = Vector3(2.0f)
             },
+            {
+                .name = CUBE_T("AlphaBlendModeTest"),
+            },
         };
         Vector<String> gltfList = platform::FileSystem::GetList(resourceBasePath);
         for (const ModelLoadInfo& modelInfo : gltfLoadModelInfos)
@@ -720,12 +723,23 @@ namespace cube
 
             SharedPtr<Material> material = materials.back();
 
+            if (gltfMaterial.alphaMode == "MASK")
+            {
+                material->SetMode(MaterialMode::Mask);
+                material->SetAlphaCutoff(static_cast<float>(gltfMaterial.alphaCutoff));
+            }
+            // Otherwise use default value (opaque).
+            // TODO: Implement BLEND mode.
+
             FrameString channelMappingCode;
             if (gltfMaterial.pbrMetallicRoughness.baseColorTexture.index != -1)
             {
                 material->SetTexture(0, LoadTexture(materialName, CUBE_T("baseColorTexture"), gltfMaterial.pbrMetallicRoughness.baseColorTexture.index));
+                channelMappingCode += CUBE_T("float4 baseColor = materialData.textureSlot0.Sample(GetStaticLinearWrapSampler(), input.uv).rgba;\n");
                 // Encoded in sRGB. Decode to linear.
-                channelMappingCode += CUBE_T("value.albedo = pow(materialData.textureSlot0.Sample(GetStaticLinearWrapSampler(), input.uv).rgb, 2.2);\n");
+                channelMappingCode += CUBE_T("baseColor.rgb = pow(baseColor.rgb, 2.2);\n");
+                channelMappingCode += CUBE_T("value.albedo = baseColor.rgb;\n");
+                channelMappingCode += CUBE_T("value.alpha = baseColor.a;\n");
             }
             if (gltfMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index != -1)
             {
@@ -753,7 +767,6 @@ namespace cube
                 channelMappingCode += CUBE_T("float occlusion = materialData.textureSlot4.Sample(GetStaticLinearWrapSampler(), input.uv).r;\n");
                 channelMappingCode += CUBE_T("value.indirectOcclusion = occlusion;\n");
             }
-
             material->SetChannelMappingCode(channelMappingCode);
         }
 

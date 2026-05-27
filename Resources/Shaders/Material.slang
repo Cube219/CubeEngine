@@ -4,6 +4,13 @@ import Common;
 import Global;
 import MainInterface;
 
+// Must match in Material.h.
+public enum MaterialMode
+{
+    Opaque,
+    Mask
+}
+
 public struct MaterialShaderParameterList
 {
     public float4 baseColor;
@@ -11,11 +18,24 @@ public struct MaterialShaderParameterList
     public float4 specularColor;
     public float shininess;
 
+    public uint materialMode;
+    public float alphaCutoff;
+
     public Bindless<Texture2D> textureSlot0;
     public Bindless<Texture2D> textureSlot1;
     public Bindless<Texture2D> textureSlot2;
     public Bindless<Texture2D> textureSlot3;
     public Bindless<Texture2D> textureSlot4;
+
+    public bool IsOpaque()
+    {
+        return materialMode == MaterialMode.Opaque;
+    }
+
+    public bool IsMask()
+    {
+        return materialMode == MaterialMode.Mask;
+    }
 };
 
 public struct MaterialValue
@@ -31,6 +51,7 @@ public struct MaterialValue
 #endif
     public float3 normal = float3(0.0f, 0.0f, 1.0f);
     public float3 emissive = float3(0.0f, 0.0f, 0.0f);
+    public float alpha = 1.0f;
     public float indirectOcclusion = 1.0f;
 };
 

@@ -68,6 +68,16 @@ namespace cube
         CalculateMaterialHash();
     }
 
+    void Material::SetMode(MaterialMode mode)
+    {
+        mMode = mode;
+    }
+
+    void Material::SetAlphaCutoff(float alphaCutoff)
+    {
+        mAlphaCutoff = alphaCutoff;
+    }
+
     void Material::SetTexture(int slotIndex, SharedPtr<TextureResource> texture)
     {
         CHECK_FORMAT(0 <= slotIndex && slotIndex < 5, "Texture slot out of range! ({0})", slotIndex);
@@ -83,6 +93,10 @@ namespace cube
         parameters->Get()->diffuseColor = mConstantDiffuseColor;
         parameters->Get()->specularColor = mConstantSpecularColor;
         parameters->Get()->shininess = mConstantShininess;
+
+        parameters->Get()->materialMode = static_cast<Uint32>(mMode);
+        parameters->Get()->alphaCutoff = mAlphaCutoff;
+
         if (mTextures[0])
         {
             RGTextureHandle texture = builder.RegisterTexture(mTextures[0]->GetGAPITexture());

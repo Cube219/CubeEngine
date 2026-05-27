@@ -34,12 +34,22 @@ namespace cube
             CUBE_SHADER_PARAMETER(Vector4, specularColor)
             CUBE_SHADER_PARAMETER(float, shininess)
 
+            CUBE_SHADER_PARAMETER(Uint32, materialMode)
+            CUBE_SHADER_PARAMETER(float, alphaCutoff)
+
             CUBE_SHADER_PARAMETER(RGTextureSRVHandle, textureSlot0)
             CUBE_SHADER_PARAMETER(RGTextureSRVHandle, textureSlot1)
             CUBE_SHADER_PARAMETER(RGTextureSRVHandle, textureSlot2)
             CUBE_SHADER_PARAMETER(RGTextureSRVHandle, textureSlot3)
             CUBE_SHADER_PARAMETER(RGTextureSRVHandle, textureSlot4)
         CUBE_END_SHADER_PARAMETER_LIST
+    };
+
+    // Must match in Material.slang.
+    enum class MaterialMode
+    {
+        Opaque,
+        Mask
     };
 
     class Material
@@ -55,6 +65,9 @@ namespace cube
         void SetSpecularColor(Vector4 color);
         void SetShininess(float shininess);
         void SetIsPBR(bool isPBR);
+
+        void SetMode(MaterialMode mode);
+        void SetAlphaCutoff(float alphaCutoff);
 
         void SetTexture(int slotIndex, SharedPtr<TextureResource> texture);
 
@@ -75,6 +88,9 @@ namespace cube
         Vector4 mConstantDiffuseColor;
         Vector4 mConstantSpecularColor;
         float mConstantShininess = 0.0f;
+
+        MaterialMode mMode = MaterialMode::Opaque;
+        float mAlphaCutoff = 0.0f;
 
         Array<SharedPtr<TextureResource>, 5> mTextures;
 

@@ -40,6 +40,14 @@ PSOutput PSMain(PSInput input) : SV_TARGET
     Material material;
     MaterialValue materialValue = material.GetMaterialValue(materialParams, input);
 
+    if (materialParams.IsMask())
+    {
+        if (materialValue.alpha < materialParams.alphaCutoff)
+        {
+            discard;
+        }
+    }
+
     float3 normal = input.normal;
     float3 tangent = input.tangent.xyz;
     float3 bitangent = normalize(cross(normal, tangent) * input.tangent.w);
