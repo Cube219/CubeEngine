@@ -70,6 +70,8 @@ namespace cube
         void Initialize(const char* debugName, Uint64 blockSize = 1 * 1024 * 1024); // 1 MiB
         void Shutdown();
 
+        bool IsInitialized() const { return mInitialized; }
+
         void* Allocate(Uint64 size);
         void Free(void* ptr);
 
@@ -79,6 +81,7 @@ namespace cube
         void DiscardAllocations();
 
     private:
+        void EnsureInitialization();
         void AllocateAdditionalBlock(Uint64 size);
 
         bool mInitialized;

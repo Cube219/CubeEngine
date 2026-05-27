@@ -111,7 +111,12 @@ namespace cube
     {}
 
     FrameAllocator::~FrameAllocator()
-    {}
+    {
+        if (mInitialized)
+        {
+            Shutdown();
+        }
+    }
 
     void FrameAllocator::Initialize(const char* debugName, Uint64 blockSize)
     {
@@ -139,7 +144,7 @@ namespace cube
         {
             LoggerUseDefaultAllocatorScope scope;
 
-            CUBE_LOG(Warning, Allocator, "The frame allocator is not initialized but try to shudown it.");
+            CUBE_LOG(Warning, Allocator, "The frame allocator is not initialized but shutdown was triggered.");
 
             return;
         }
@@ -153,6 +158,8 @@ namespace cube
 
     void* FrameAllocator::Allocate(Uint64 size)
     {
+        EnsureInitialization();
+
         void* ptr = mMemoryBlock.Allocate(size);
 
         if (ptr != nullptr)
@@ -195,12 +202,16 @@ namespace cube
     {
         // Do nothing except for debugging
 #ifdef CUBE_FRAME_ALLOCATOR_TRACK_ALLOCATION
+        EnsureInitialization();
+
         mAllocatedSize -= *(Uint64*)((Uint8*)ptr - sizeof(Uint64));
 #endif
     }
 
     void* FrameAllocator::AllocateAligned(Uint64 size, Uint64 alignment)
     {
+        EnsureInitialization();
+
         void* ptr = mMemoryBlock.AllocateAligned(size, alignment);
 
         if (ptr != nullptr)
@@ -243,12 +254,19 @@ namespace cube
     {
         // Do nothing except for debugging
 #ifdef CUBE_FRAME_ALLOCATOR_TRACK_ALLOCATION
+        EnsureInitialization();
+
         mAllocatedSize -= *(Uint64*)((Uint8*)ptr - sizeof(Uint64));
 #endif
     }
 
     void FrameAllocator::DiscardAllocations()
     {
+        if (!mInitialized)
+        {
+            return;
+        }
+
 #ifdef CUBE_FRAME_ALLOCATOR_TRACK_ALLOCATION
         {
             LoggerUseDefaultAllocatorScope scope;
@@ -275,5 +293,15 @@ namespace cube
         }
 
         mAdditionalMemBlocks.emplace_back(size);
+    }
+
+    void FrameAllocator::EnsureInitialization()
+    {
+        if (!mInitialized)
+        {
+            Initialize("FrameAllocator (auto initialized)");
+
+            CUBE_LOG(Warning, Allocator, "Frame allocator was used before initialized. Auto-initialized with default settings.");
+        }
     }
 } // namespace cube
