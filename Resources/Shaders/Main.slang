@@ -1,3 +1,4 @@
+import GammaCorrection;
 import Global;
 import Light;
 import MainInterface;
@@ -74,9 +75,8 @@ PSOutput PSMain(PSInput input) : SV_TARGET
     color += envMapLight.CalculateLight(view, normal, materialValue);
 
     color += materialValue.emissive;
-    
-    float gamma = 2.2;
-    color = pow(color, float3(1.0/gamma));
+
+    color = LinearTosRGB(color);
 
     PSOutput output;
     output.color = float4(color, 1);

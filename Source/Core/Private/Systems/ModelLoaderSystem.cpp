@@ -458,8 +458,7 @@ namespace cube
                 material->SetTexture(0, LoadTexture(materialName, CUBE_T("baseColorTexture"), gltfMaterial.pbrMetallicRoughness.baseColorTexture.index));
                 channelMappingCode += CUBE_T("float4 baseColor = materialData.textureSlot0.Sample(GetStaticLinearWrapSampler(), input.uv).rgba;\n");
                 // Encoded in sRGB. Decode to linear.
-                channelMappingCode += CUBE_T("baseColor.rgb = pow(baseColor.rgb, 2.2);\n");
-                channelMappingCode += CUBE_T("value.albedo = baseColor.rgb;\n");
+                channelMappingCode += CUBE_T("value.albedo = sRGBToLinear(baseColor.rgb);\n");
                 channelMappingCode += CUBE_T("value.alpha = baseColor.a;\n");
             }
             if (gltfMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index != -1)
@@ -479,8 +478,8 @@ namespace cube
             {
                 material->SetTexture(3, LoadTexture(materialName, CUBE_T("emissiveTexture"), gltfMaterial.emissiveTexture.index));
                 // Encoded in sRGB. Decode to linear.
-                channelMappingCode += CUBE_T("float3 emissive = pow(materialData.textureSlot3.Sample(GetStaticLinearWrapSampler(), input.uv).rgb, 2.2);\n");
-                channelMappingCode += CUBE_T("value.emissive = emissive;\n");
+                channelMappingCode += CUBE_T("float3 emissive = materialData.textureSlot3.Sample(GetStaticLinearWrapSampler(), input.uv).rgb;\n");
+                channelMappingCode += CUBE_T("value.emissive = sRGBToLinear(emissive);\n");
             }
             if (gltfMaterial.occlusionTexture.index != -1)
             {

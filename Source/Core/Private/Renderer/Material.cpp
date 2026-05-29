@@ -39,7 +39,14 @@ namespace cube
     {
         mChannelMappingCode = channelMappingCode;
 
-        CalculateMaterialHash();
+        mIsMaterialHashDirty = true;
+    }
+
+    void Material::AddAdditionalImportCode(StringView importCode)
+    {
+        mAdditionalImportCodes.push_back({ importCode.begin(), importCode.end() });
+
+        mIsMaterialHashDirty = true;
     }
 
     void Material::SetBaseColor(Vector4 color)
@@ -65,7 +72,8 @@ namespace cube
     void Material::SetIsPBR(bool isPBR)
     {
         mIsPBR = isPBR;
-        CalculateMaterialHash();
+
+        mIsMaterialHashDirty = true;
     }
 
     void Material::SetMode(MaterialMode mode)
@@ -151,14 +159,24 @@ namespace cube
         return parameters;
     }
 
-    void Material::CalculateMaterialHash()
+    Uint64 Material::GetMaterialHash()
     {
-        mMaterialHash = std::hash<String>{}(mChannelMappingCode);
-        // Mix in isPBR flag so PBR and non-PBR materials get separate shader/pipelines.
-        if (!mIsPBR)
+        if (mIsMaterialHashDirty)
         {
-            mMaterialHash = HashCombine(mMaterialHash, 1);
+            mMaterialHash = std::hash<String>{}(mChannelMappingCode);
+            for (const String& importCode : mAdditionalImportCodes)
+            {
+                mMaterialHash = HashCombine(mMaterialHash, std::hash<String>{}(importCode));
+            }
+            // Mix in isPBR flag so PBR and non-PBR materials get separate shader/pipelines.
+            if (!mIsPBR)
+            {
+                mMaterialHash = HashCombine(mMaterialHash, 1);
+            }
         }
+        mIsMaterialHashDirty = false;
+
+        return mMaterialHash;
     }
 
     MaterialShaderManager::MaterialShaderManager(Renderer& renderer, ShaderManager& shaderManager, PipelineManager& pipelineManager)
@@ -170,7 +188,7 @@ namespace cube
 
     SharedPtr<GraphicsPipeline> MaterialShaderManager::GetOrCreateMaterialPipeline(SharedPtr<Material> material, const MeshMetadata& meshMeta, gapi::RasterizerState::FillMode fillMode)
     {
-        const Uint64 shaderHash = material->mMaterialHash;
+        const Uint64 shaderHash = material->GetMaterialHash();
 
         // Generate material shader codes
         FrameString getMaterialShaderCode = Format<FrameString>(
