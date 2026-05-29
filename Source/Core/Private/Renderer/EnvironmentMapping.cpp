@@ -343,7 +343,7 @@ namespace cube
         case SkyboxType::PrefilterMap:
         {
             skyboxTexture = builder.RegisterTexture(mPrefilterMap);
-            skyboxSRV = builder.CreateSRV(skyboxTexture, mCurrentSkyboxMipLevel, 1);
+            skyboxSRV = builder.CreateSRV(skyboxTexture, { .subresourceRange = { .firstMipLevel = mCurrentSkyboxMipLevel, .mipLevels = 1 } });
             break;
         }
         }
@@ -634,7 +634,7 @@ namespace cube
                 const float roughness = static_cast<float>(mipLevel) / (mipLevels - 1);
                 const Uint32 mipWidth = (width >> mipLevel);
 
-                RGTextureUAVHandle dstPrefilterMapUAV = builder.CreateUAV(dstPrefilterMap, mipLevel);
+                RGTextureUAVHandle dstPrefilterMapUAV = builder.CreateUAV(dstPrefilterMap, { .subresourceRange = { .firstMipLevel = mipLevel } });
 
                 auto params = builder.CreateShaderParameterList<GeneratePrefilterMapShaderParameterList>();
                 params->Get()->numSamples = 256;

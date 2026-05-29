@@ -28,18 +28,16 @@ namespace cube
         RGBufferHandle RegisterBuffer(SharedPtr<gapi::Buffer> buffer);
         RGBufferHandle CreateBuffer(const gapi::BufferInfo& bufferInfo, StringView debugName);
 
-        // TODO: Remove duplication
         RGBufferSRVHandle CreateSRV(RGBufferHandle rgBuffer, gapi::ElementFormat format = gapi::ElementFormat::Unknown, Uint64 firstElement = 0, Uint64 numElements = std::numeric_limits<Uint64>::max());
         RGBufferUAVHandle CreateUAV(RGBufferHandle rgBuffer, gapi::ElementFormat format = gapi::ElementFormat::Unknown, Uint64 firstElement = 0, Uint64 numElements = std::numeric_limits<Uint64>::max());
 
         RGTextureHandle RegisterTexture(SharedPtr<gapi::Texture> texture);
         RGTextureHandle CreateTexture(const gapi::TextureInfo& textureInfo, StringView debugName);
 
-        // TODO: Remove duplication
-        RGTextureSRVHandle CreateSRV(RGTextureHandle rgTexture, Uint32 firstMipLevel = 0, Int32 mipLevels = -1);
-        RGTextureUAVHandle CreateUAV(RGTextureHandle rgTexture, Uint32 mipLevel = 0, Uint32 firstSliceIndex = 0, Int32 sliceSize = -1);
-        RGTextureRTVHandle CreateRTV(RGTextureHandle rgTexture, Uint32 mipLevel = 0);
-        RGTextureDSVHandle CreateDSV(RGTextureHandle rgTexture, Uint32 mipLevel = 0);
+        RGTextureSRVHandle CreateSRV(RGTextureHandle rgTexture, const gapi::TextureSRVCreateInfo& createInfo = {});
+        RGTextureUAVHandle CreateUAV(RGTextureHandle rgTexture, const gapi::TextureUAVCreateInfo& createInfo = {});
+        RGTextureRTVHandle CreateRTV(RGTextureHandle rgTexture, const gapi::TextureRTVCreateInfo& createInfo = {});
+        RGTextureDSVHandle CreateDSV(RGTextureHandle rgTexture, const gapi::TextureDSVCreateInfo& createInfo = {});
 
         RGTextureSRVHandle GetDummyBlackTexture2D();
         RGTextureSRVHandle GetDummyBlackTextureCube();
@@ -235,6 +233,11 @@ namespace cube
         Vector<RGResource*> mResources;
         Map<gapi::Buffer*, RGBufferHandle> mRegisteredBuffers;
         Map<gapi::Texture*, RGTextureHandle> mRegisteredTextures;
+
+        // Caches to avoid creating duplicated views with the same parameters.
+        // The view type is encoded into the cache key, so each base map can hold every view kind.
+        HashMap<Uint64, RGBufferView*> mCachedBufferViews;
+        HashMap<Uint64, RGTextureView*> mCachedTextureViews;
         RGTextureSRVHandle mDummyBlackTexture2D;
         RGTextureSRVHandle mDummyBlackTextureCube;
         RGTextureSRVHandle mDummyWhiteTexture2D;

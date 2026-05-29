@@ -10,6 +10,7 @@ namespace cube
     {
         class Buffer;
         class Texture;
+        struct TextureInfo;
 
         enum class ResourceType
         {
@@ -109,6 +110,7 @@ namespace cube
             Uint32 sliceSize = SubresourceRangeInput::AllRange;
 
             SubresourceRange Clamp(const Texture* texture) const;
+            SubresourceRange Clamp(const gapi::TextureInfo& textureInfo) const;
 
             bool IsOverlap(const SubresourceRangeInput& rhs) const
             {
@@ -124,15 +126,6 @@ namespace cube
                     return false;
                 }
                 return true;
-            }
-
-            SubresourceRangeInput() = default;
-            SubresourceRangeInput(const SubresourceRange& other)
-                : firstMipLevel(other.firstMipLevel)
-                , mipLevels(other.mipLevels)
-                , firstSliceIndex(other.firstSliceIndex)
-                , sliceSize(other.sliceSize)
-            {
             }
         };
     } // namespace gapi

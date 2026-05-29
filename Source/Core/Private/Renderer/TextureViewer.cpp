@@ -557,7 +557,7 @@ namespace cube
 
         const gapi::TextureInfo& textureInfo = mCopiedTexture->GetInfo();
         RGTextureHandle src = builder.RegisterTexture(mCopiedTexture);
-        RGTextureSRVHandle srcSRV = builder.CreateSRV(src, mMipLevel, 1);
+        RGTextureSRVHandle srcSRV = builder.CreateSRV(src, { .subresourceRange = { .firstMipLevel = static_cast<Uint32>(mMipLevel), .mipLevels = 1 } });
         RGBufferHandle readbackBuffer = builder.RegisterBuffer(GetCurrentReadbackBuffer().buffer);
         RGBufferUAVHandle readbackUAV = builder.CreateUAV(readbackBuffer, ReadbackBuffer::format);
 
@@ -672,7 +672,7 @@ namespace cube
         }
 
         RGTextureHandle src = builder.RegisterTexture(mCopiedTexture);
-        RGTextureSRVHandle srcSRV = builder.CreateSRV(src, mMipLevel, 1);
+        RGTextureSRVHandle srcSRV = builder.CreateSRV(src, { .subresourceRange = { .firstMipLevel = static_cast<Uint32>(mMipLevel), .mipLevels = 1 } });
         RGTextureHandle dstTex = builder.RegisterTexture(mCanvasTexture);
         RGTextureUAVHandle dstUAV = builder.CreateUAV(dstTex);
 

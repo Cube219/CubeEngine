@@ -5,9 +5,21 @@
 #include "GAPI_CommandList.h"
 #include "Pipeline.h"
 #include "Texture.h"
+#include "Renderer/RenderGraphTypes.h"
+
 
 namespace cube
 {
+    // Discriminator mixed into view cache keys so different view kinds sharing the same
+    // source resource and parameters do not collide within a single base-view cache.
+    enum class RGViewType : Uint64
+    {
+        SRV,
+        UAV,
+        RTV,
+        DSV
+    };
+
     // ===== Resources =====
 
     RGResource::RGResource(Int32 index, StringView debugName)
@@ -99,7 +111,13 @@ namespace cube
 
     Uint64 RGTexture::GetSubresourceHashKey(const gapi::SubresourceRange& range) const
     {
-        return HashCombine(reinterpret_cast<Uint64>(mTexture.get()), range.GetHash());
+        // Use index because resource may not be created right now.
+        return HashCombine(mIndex, range.GetHash());
+    }
+
+    Uint64 RGTexture::GetSubresourceHashKey(const gapi::SubresourceRangeInput& range) const
+    {
+        return GetSubresourceHashKey(range.Clamp(mTextureInfo));
     }
 
     void RGTexture::CreateResource(GAPI& gapi)
@@ -146,19 +164,17 @@ namespace cube
         {
             mRGTexture->CreateResource(gapi);
 
-            mSRV = mRGTexture->mTexture->CreateSRV({
-                .subresourceRange = mSubresourceRangeInput
-            });
+            mSRV = mRGTexture->mTexture->CreateSRV(mCreateInfo);
             mSubresourceRange = mSRV->GetSubresourceRange();
             mSubresourceHashKey = mRGTexture->GetSubresourceHashKey(mSubresourceRange);
         }
     }
 
-    RGTextureSRV::RGTextureSRV(int index, RGTexture* rgTexture, Uint32 firstMipLevel, Uint32 mipLevels)
+    RGTextureSRV::RGTextureSRV(int index, RGTexture* rgTexture, const gapi::TextureSRVCreateInfo& createInfo)
         : RGTextureView(index, rgTexture)
+        , mCreateInfo(createInfo)
     {
-        mSubresourceRangeInput.firstMipLevel = firstMipLevel;
-        mSubresourceRangeInput.mipLevels = mipLevels;
+        mSubresourceRangeInput = createInfo.subresourceRange;
     }
 
     void RGTextureUAV::CreateResource(GAPI& gapi)
@@ -167,21 +183,19 @@ namespace cube
         {
             mRGTexture->CreateResource(gapi);
 
-            mUAV = mRGTexture->mTexture->CreateUAV({
-                .subresourceRange = mSubresourceRangeInput
-            });
+            mUAV = mRGTexture->mTexture->CreateUAV(mCreateInfo);
             mSubresourceRange = mUAV->GetSubresourceRange();
             mSubresourceHashKey = mRGTexture->GetSubresourceHashKey(mSubresourceRange);
         }
     }
 
-    RGTextureUAV::RGTextureUAV(int index, RGTexture* rgTexture, Uint32 mipLevel, Uint32 firstSliceIndex, Uint32 sliceSize)
+    RGTextureUAV::RGTextureUAV(int index, RGTexture* rgTexture, const gapi::TextureUAVCreateInfo& createInfo)
         : RGTextureView(index, rgTexture)
+        , mCreateInfo(createInfo)
     {
-        mSubresourceRangeInput.firstMipLevel = mipLevel;
+        // A UAV always targets a single mip level.
+        mSubresourceRangeInput = createInfo.subresourceRange;
         mSubresourceRangeInput.mipLevels = 1;
-        mSubresourceRangeInput.firstSliceIndex = firstSliceIndex;
-        mSubresourceRangeInput.sliceSize = sliceSize;
     }
 
     void RGTextureRTV::CreateResource(GAPI& gapi)
@@ -190,18 +204,18 @@ namespace cube
         {
             mRGTexture->CreateResource(gapi);
 
-            mRTV = mRGTexture->mTexture->CreateRTV({
-                .subresourceRange = mSubresourceRangeInput
-            });
+            mRTV = mRGTexture->mTexture->CreateRTV(mCreateInfo);
             mSubresourceRange = mRTV->GetSubresourceRange();
             mSubresourceHashKey = mRGTexture->GetSubresourceHashKey(mSubresourceRange);
         }
     }
 
-    RGTextureRTV::RGTextureRTV(int index, RGTexture* rgTexture, Uint32 mipLevel)
+    RGTextureRTV::RGTextureRTV(int index, RGTexture* rgTexture, const gapi::TextureRTVCreateInfo& createInfo)
         : RGTextureView(index, rgTexture)
+        , mCreateInfo(createInfo)
     {
-        mSubresourceRangeInput.firstMipLevel = mipLevel;
+        // An RTV always targets a single mip level.
+        mSubresourceRangeInput = createInfo.subresourceRange;
         mSubresourceRangeInput.mipLevels = 1;
     }
 
@@ -211,18 +225,18 @@ namespace cube
         {
             mRGTexture->CreateResource(gapi);
 
-            mDSV = mRGTexture->mTexture->CreateDSV({
-                .subresourceRange = mSubresourceRangeInput
-            });
+            mDSV = mRGTexture->mTexture->CreateDSV(mCreateInfo);
             mSubresourceRange = mDSV->GetSubresourceRange();
             mSubresourceHashKey = mRGTexture->GetSubresourceHashKey(mSubresourceRange);
         }
     }
 
-    RGTextureDSV::RGTextureDSV(int index, RGTexture* rgTexture, Uint32 mipLevel)
+    RGTextureDSV::RGTextureDSV(int index, RGTexture* rgTexture, const gapi::TextureDSVCreateInfo& createInfo)
         : RGTextureView(index, rgTexture)
+        , mCreateInfo(createInfo)
     {
-        mSubresourceRangeInput.firstMipLevel = mipLevel;
+        // A DSV always targets a single mip level.
+        mSubresourceRangeInput = createInfo.subresourceRange;
         mSubresourceRangeInput.mipLevels = 1;
     }
 
@@ -270,16 +284,30 @@ namespace cube
 
     RGBufferSRVHandle RGBuilder::CreateSRV(RGBufferHandle rgBuffer, gapi::ElementFormat format, Uint64 firstElement, Uint64 numElements)
     {
+        const Uint64 cacheKey = HashCombine(static_cast<Uint64>(RGViewType::SRV), reinterpret_cast<Uint64>(rgBuffer.mResource), static_cast<Uint64>(format), firstElement, numElements);
+        if (auto findIt = mCachedBufferViews.find(cacheKey); findIt != mCachedBufferViews.end())
+        {
+            return RGBufferSRVHandle(static_cast<RGBufferSRV*>(findIt->second));
+        }
+
         RGBufferSRV* rgSRV = new RGBufferSRV(mResources.size(), rgBuffer.mResource, format, firstElement, numElements);
         mResources.push_back(rgSRV);
+        mCachedBufferViews.insert({ cacheKey, rgSRV });
 
         return RGBufferSRVHandle(rgSRV);
     }
 
     RGBufferUAVHandle RGBuilder::CreateUAV(RGBufferHandle rgBuffer, gapi::ElementFormat format, Uint64 firstElement, Uint64 numElements)
     {
+        const Uint64 cacheKey = HashCombine(static_cast<Uint64>(RGViewType::UAV), reinterpret_cast<Uint64>(rgBuffer.mResource), static_cast<Uint64>(format), firstElement, numElements);
+        if (auto findIt = mCachedBufferViews.find(cacheKey); findIt != mCachedBufferViews.end())
+        {
+            return RGBufferUAVHandle(static_cast<RGBufferUAV*>(findIt->second));
+        }
+
         RGBufferUAV* rgUAV = new RGBufferUAV(mResources.size(), rgBuffer.mResource, format, firstElement, numElements);
         mResources.push_back(rgUAV);
+        mCachedBufferViews.insert({ cacheKey, rgUAV });
 
         return RGBufferUAVHandle(rgUAV);
     }
@@ -309,34 +337,62 @@ namespace cube
         return RGTextureHandle(rgTexture);
     }
 
-    RGTextureSRVHandle RGBuilder::CreateSRV(RGTextureHandle rgTexture, Uint32 firstMipLevel, Int32 mipLevels)
+    RGTextureSRVHandle RGBuilder::CreateSRV(RGTextureHandle rgTexture, const gapi::TextureSRVCreateInfo& createInfo)
     {
-        RGTextureSRV* rgSRV = new RGTextureSRV(mResources.size(), rgTexture.mResource, firstMipLevel, mipLevels);
+        const Uint64 cacheKey = HashCombine(static_cast<Uint64>(RGViewType::SRV), rgTexture->GetSubresourceHashKey(createInfo.subresourceRange));
+        if (auto findIt = mCachedTextureViews.find(cacheKey); findIt != mCachedTextureViews.end())
+        {
+            return RGTextureSRVHandle(static_cast<RGTextureSRV*>(findIt->second));
+        }
+
+        RGTextureSRV* rgSRV = new RGTextureSRV(mResources.size(), rgTexture.mResource, createInfo);
         mResources.push_back(rgSRV);
+        mCachedTextureViews.insert({ cacheKey, rgSRV });
 
         return RGTextureSRVHandle(rgSRV);
     }
 
-    RGTextureUAVHandle RGBuilder::CreateUAV(RGTextureHandle rgTexture, Uint32 mipLevel, Uint32 firstSliceIndex, Int32 sliceSize)
+    RGTextureUAVHandle RGBuilder::CreateUAV(RGTextureHandle rgTexture, const gapi::TextureUAVCreateInfo& createInfo)
     {
-        RGTextureUAV* rgUAV = new RGTextureUAV(mResources.size(), rgTexture.mResource, mipLevel, firstSliceIndex, sliceSize);
+        const Uint64 cacheKey = HashCombine(static_cast<Uint64>(RGViewType::UAV), rgTexture->GetSubresourceHashKey(createInfo.subresourceRange), static_cast<Uint64>(createInfo.firstDepthIndex), static_cast<Uint64>(createInfo.depthSize));
+        if (auto findIt = mCachedTextureViews.find(cacheKey); findIt != mCachedTextureViews.end())
+        {
+            return RGTextureUAVHandle(static_cast<RGTextureUAV*>(findIt->second));
+        }
+
+        RGTextureUAV* rgUAV = new RGTextureUAV(mResources.size(), rgTexture.mResource, createInfo);
         mResources.push_back(rgUAV);
+        mCachedTextureViews.insert({ cacheKey, rgUAV });
 
         return RGTextureUAVHandle(rgUAV);
     }
 
-    RGTextureRTVHandle RGBuilder::CreateRTV(RGTextureHandle rgTexture, Uint32 mipLevel)
+    RGTextureRTVHandle RGBuilder::CreateRTV(RGTextureHandle rgTexture, const gapi::TextureRTVCreateInfo& createInfo)
     {
-        RGTextureRTV* rgRTV = new RGTextureRTV(mResources.size(), rgTexture.mResource, mipLevel);
+        const Uint64 cacheKey = HashCombine(static_cast<Uint64>(RGViewType::RTV), rgTexture->GetSubresourceHashKey(createInfo.subresourceRange), static_cast<Uint64>(createInfo.firstDepthIndex), static_cast<Uint64>(createInfo.depthSize));
+        if (auto findIt = mCachedTextureViews.find(cacheKey); findIt != mCachedTextureViews.end())
+        {
+            return RGTextureRTVHandle(static_cast<RGTextureRTV*>(findIt->second));
+        }
+
+        RGTextureRTV* rgRTV = new RGTextureRTV(mResources.size(), rgTexture.mResource, createInfo);
         mResources.push_back(rgRTV);
+        mCachedTextureViews.insert({ cacheKey, rgRTV });
 
         return RGTextureRTVHandle(rgRTV);
     }
 
-    RGTextureDSVHandle RGBuilder::CreateDSV(RGTextureHandle rgTexture, Uint32 mipLevel)
+    RGTextureDSVHandle RGBuilder::CreateDSV(RGTextureHandle rgTexture, const gapi::TextureDSVCreateInfo& createInfo)
     {
-        RGTextureDSV* rgDSV = new RGTextureDSV(mResources.size(), rgTexture.mResource, mipLevel);
+        const Uint64 cacheKey = HashCombine(static_cast<Uint64>(RGViewType::DSV), rgTexture->GetSubresourceHashKey(createInfo.subresourceRange));
+        if (auto findIt = mCachedTextureViews.find(cacheKey); findIt != mCachedTextureViews.end())
+        {
+            return RGTextureDSVHandle(static_cast<RGTextureDSV*>(findIt->second));
+        }
+
+        RGTextureDSV* rgDSV = new RGTextureDSV(mResources.size(), rgTexture.mResource, createInfo);
         mResources.push_back(rgDSV);
+        mCachedTextureViews.insert({ cacheKey, rgDSV });
 
         return RGTextureDSVHandle(rgDSV);
     }
@@ -1092,6 +1148,8 @@ namespace cube
         mLastPass = {};
         mRegisteredTextures.clear();
         mRegisteredBuffers.clear();
+        mCachedBufferViews.clear();
+        mCachedTextureViews.clear();
         for (RGResource* resource : mResources)
         {
             delete resource;

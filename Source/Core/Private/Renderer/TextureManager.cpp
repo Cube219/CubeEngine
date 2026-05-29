@@ -88,8 +88,8 @@ namespace cube
                 width = std::max(1u, width >> 1);
                 height = std::max(1u, height >> 1);
 
-                RGTextureSRVHandle srcSRV = builder.CreateSRV(rgTexture, mipIndex - 1, 1);
-                RGTextureUAVHandle dstUAV = builder.CreateUAV(rgTexture, mipIndex);
+                RGTextureSRVHandle srcSRV = builder.CreateSRV(rgTexture, { .subresourceRange = { .firstMipLevel = mipIndex - 1, .mipLevels = 1 } });
+                RGTextureUAVHandle dstUAV = builder.CreateUAV(rgTexture, { .subresourceRange = { .firstMipLevel = mipIndex } });
 
                 RGShaderParameterListHandle<GenerateMipmapsShaderParameterList> params = builder.CreateShaderParameterList<GenerateMipmapsShaderParameterList>();
                 params->Get()->srcTexture = srcSRV;

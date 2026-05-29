@@ -166,6 +166,7 @@ namespace cube
     public:
         SharedPtr<gapi::Texture> GetGAPITexture() const { return mTexture; }
         Uint64 GetSubresourceHashKey(const gapi::SubresourceRange& range) const;
+        Uint64 GetSubresourceHashKey(const gapi::SubresourceRangeInput& range) const;
 
         virtual void CreateResource(GAPI& gapi) override;
         virtual bool IsResourceCreated() const override { return mTexture != nullptr; }
@@ -243,9 +244,10 @@ namespace cube
     private:
         friend class RGBuilder;
 
-        RGTextureSRV(int index, RGTexture* rgTexture, Uint32 firstMipLevel, Uint32 mipLevels);
+        RGTextureSRV(int index, RGTexture* rgTexture, const gapi::TextureSRVCreateInfo& createInfo);
         virtual ~RGTextureSRV() = default;
 
+        gapi::TextureSRVCreateInfo mCreateInfo;
         SharedPtr<gapi::TextureSRV> mSRV;
     };
     using RGTextureSRVHandle = RGResourceHandler<RGTextureSRV>;
@@ -261,9 +263,10 @@ namespace cube
     private:
         friend class RGBuilder;
 
-        RGTextureUAV(int index, RGTexture* rgTexture, Uint32 mipLevel, Uint32 firstSliceIndex, Uint32 sliceSize);
+        RGTextureUAV(int index, RGTexture* rgTexture, const gapi::TextureUAVCreateInfo& createInfo);
         virtual ~RGTextureUAV() = default;
 
+        gapi::TextureUAVCreateInfo mCreateInfo;
         SharedPtr<gapi::TextureUAV> mUAV;
     };
     using RGTextureUAVHandle = RGResourceHandler<RGTextureUAV>;
@@ -279,9 +282,10 @@ namespace cube
     private:
         friend class RGBuilder;
 
-        RGTextureRTV(int index, RGTexture* rgTexture, Uint32 mipLevel);
+        RGTextureRTV(int index, RGTexture* rgTexture, const gapi::TextureRTVCreateInfo& createInfo);
         virtual ~RGTextureRTV() = default;
 
+        gapi::TextureRTVCreateInfo mCreateInfo;
         SharedPtr<gapi::TextureRTV> mRTV;
     };
     using RGTextureRTVHandle = RGResourceHandler<RGTextureRTV>;
@@ -297,9 +301,10 @@ namespace cube
     private:
         friend class RGBuilder;
 
-        RGTextureDSV(int index, RGTexture* rgTexture, Uint32 mipLevel);
+        RGTextureDSV(int index, RGTexture* rgTexture, const gapi::TextureDSVCreateInfo& createInfo);
         virtual ~RGTextureDSV() = default;
 
+        gapi::TextureDSVCreateInfo mCreateInfo;
         SharedPtr<gapi::TextureDSV> mDSV;
     };
     using RGTextureDSVHandle = RGResourceHandler<RGTextureDSV>;
