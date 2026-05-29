@@ -228,14 +228,9 @@ namespace cube
         platform::Platform::Shutdown();
     }
 
-    void Engine::SetMesh(SharedPtr<MeshData> mesh, const MeshMetadata& meshMeta)
+    void Engine::SetScene(SharedPtr<Scene> scene)
     {
-        mRenderer->SetMesh(mesh, meshMeta);
-    }
-
-    void Engine::SetMaterials(const Vector<SharedPtr<Material>>& materials)
-    {
-        mRenderer->SetMaterials(materials);
+        mRenderer->SetScene(scene);
     }
 
     void Engine::OnLoop()

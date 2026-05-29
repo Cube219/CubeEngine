@@ -25,8 +25,6 @@ set(PRIVATE_FILES
     Private/Renderer/Renderer.h
     Private/Renderer/RenderGraph.cpp
     Private/Renderer/RenderGraph.h
-    Private/Renderer/RenderObject.cpp
-    Private/Renderer/RenderObject.h
     Private/Renderer/RenderProfiling.cpp
     Private/Renderer/RenderProfiling.h
     Private/Renderer/SamplerManager.cpp
@@ -40,6 +38,10 @@ set(PRIVATE_FILES
     Private/Renderer/TextureManager.h
     Private/Renderer/TextureViewer.cpp
     Private/Renderer/TextureViewer.h
+    Private/Scene/Scene.cpp
+    Private/Scene/Scene.h
+    Private/Scene/SceneObject.cpp
+    Private/Scene/SceneObject.h
     Private/Systems/CameraSystem.cpp
     Private/Systems/CameraSystem.h
     Private/Systems/ModelLoaderSystem.cpp

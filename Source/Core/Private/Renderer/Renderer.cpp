@@ -17,6 +17,8 @@
 #include "Renderer/RenderGraphTypes.h"
 #include "RenderGraph.h"
 #include "Texture.h"
+#include "Scene/Scene.h"
+#include "Scene/SceneObject.h"
 
 namespace cube
 {
@@ -337,21 +339,9 @@ namespace cube
         }
     }
 
-    void Renderer::SetMesh(SharedPtr<MeshData> meshData, const MeshMetadata& meshMeta)
+    void Renderer::SetScene(SharedPtr<Scene> scene)
     {
-        if (meshData)
-        {
-            mMesh = std::make_shared<Mesh>(meshData, meshMeta);
-        }
-        else
-        {
-            mMesh = std::make_shared<Mesh>(MeshHelper::GenerateBoxMeshData(), meshMeta);
-        }
-    }
-
-    void Renderer::SetMaterials(const Vector<SharedPtr<Material>>& materials)
-    {
-        mMaterials = materials;
+        mScene = scene;
     }
 
     void Renderer::SetGlobalConstantBuffers()
@@ -453,35 +443,47 @@ namespace cube
                     commandList.SetPrimitiveTopology(gapi::PrimitiveTopology::TriangleList);
                 });
 
-                FrameVector<RGBuilder::DrawMeshInfo> drawMeshInfos;
-                drawMeshInfos.push_back({
-                    .mesh = mMesh,
-                    .fillMode = fillMode,
-                    .materials = mMaterials,
-                    .model = mModelMatrix
-                });
+                if (mScene)
+                {
+                    FrameVector<RGBuilder::DrawMeshInfo> drawMeshInfos;
+                    for (const UniquePtr<SceneObject>& sceneObject : mScene->GetSceneObjects())
+                    {
+                        if (SharedPtr<Mesh> mesh = sceneObject->GetMesh())
+                        {
+                            drawMeshInfos.push_back({
+                                .mesh = mesh,
+                                .fillMode = fillMode,
+                                .materials = sceneObject->GetMaterials(),
+                                .model = sceneObject->GetModelMatrix() * mModelMatrix
+                            });
+                        }
+                    }
 
-                builder.AddDrawMeshPass(CUBE_T("Draw Center Object"), drawMeshInfos, RGBuilder::MakeParameterListArray(envMapShaderParameterList));
+                    builder.AddDrawMeshPass(CUBE_T("Draw Scene"), drawMeshInfos, RGBuilder::MakeParameterListArray(envMapShaderParameterList));
+                }
 
                 if (mShowAxis)
                 {
                     FrameVector<RGBuilder::DrawMeshInfo> drawAxisMeshInfos;
+                    WeakPtr<Material> xAxisMaterial = mXAxisMaterial;
                     drawAxisMeshInfos.push_back({
                         .mesh = mBoxMesh,
                         .fillMode = fillMode,
-                        .materials = { &mXAxisMaterial, 1 },
-                        .model = mXAxisModelMatrix
+                        .materials = { &xAxisMaterial, 1 },
+                        .model = mXAxisModelMatrix,
                     });
+                    WeakPtr<Material> yAxisMaterial = mYAxisMaterial;
                     drawAxisMeshInfos.push_back({
                         .mesh = mBoxMesh,
                         .fillMode = fillMode,
-                        .materials = { &mYAxisMaterial, 1 },
+                        .materials = { &yAxisMaterial, 1 },
                         .model = mYAxisModelMatrix
                     });
+                    WeakPtr<Material> zAxisMaterial = mZAxisMaterial;
                     drawAxisMeshInfos.push_back({
                         .mesh = mBoxMesh,
                         .fillMode = fillMode,
-                        .materials = { &mZAxisMaterial, 1 },
+                        .materials = { &zAxisMaterial, 1 },
                         .model = mZAxisModelMatrix
                     });
                     builder.AddDrawMeshPass(CUBE_T("Draw Axis"), drawAxisMeshInfos, RGBuilder::MakeParameterListArray(envMapShaderParameterList));
@@ -521,8 +523,6 @@ namespace cube
     {
         // Use default mesh metadata.
         mBoxMesh = std::make_shared<Mesh>(MeshHelper::GenerateBoxMeshData(), MeshMetadata{});
-        SetMesh(nullptr, MeshMetadata{}); // Load default mesh
-
         mDefaultMaterial = std::make_shared<Material>(CUBE_T("DefaultMaterial"));
 
         {
@@ -582,8 +582,7 @@ namespace cube
         mDummyBlackTexture2D = nullptr;
         mDefaultMaterial = nullptr;
 
-        mMaterials.clear();
-        mMesh = nullptr;
+        mScene = nullptr;
         mBoxMesh = nullptr;
     }
 } // namespace cube

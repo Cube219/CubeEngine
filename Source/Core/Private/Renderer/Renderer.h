@@ -22,6 +22,7 @@ namespace cube
     class GraphicsPipeline;
     class Material;
     class MeshData;
+    class Scene;
     class Shader;
 
     class GlobalShaderParameterList : public ShaderParameterList
@@ -94,8 +95,7 @@ namespace cube
         float GetGPUTimeMS() const;
         Uint64 GetCurrentRenderingFrame() const { return mCurrentRenderingFrame; };
 
-        void SetMesh(SharedPtr<MeshData> meshData, const MeshMetadata& meshMeta);
-        void SetMaterials(const Vector<SharedPtr<Material>>& materials);
+        void SetScene(SharedPtr<Scene> scene);
 
     private:
         void SetGlobalConstantBuffers();
@@ -143,9 +143,8 @@ namespace cube
         Vector3 mDirectionalLightIntensity;
 
         Matrix mModelMatrix;
-        SharedPtr<Mesh> mMesh;
-        Vector<SharedPtr<Material>> mMaterials;
         SharedPtr<Material> mDefaultMaterial;
+        SharedPtr<Scene> mScene;
 
         SharedPtr<TextureResource> mDummyBlackTexture2D;
         SharedPtr<TextureResource> mDummyWhiteTexture2D;

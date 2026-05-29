@@ -488,12 +488,12 @@ namespace cube
             const Vector<SubMesh>& subMeshes = drawMeshInfo.mesh->GetSubMeshes();
             for (const SubMesh& subMesh : subMeshes)
             {
-                SharedPtr<Material> material;
-                if (subMesh.materialIndex < drawMeshInfo.materials.size())
+                SharedPtr<Material> material = nullptr;
+                if (0 <= subMesh.materialIndex && subMesh.materialIndex < drawMeshInfo.materials.size())
                 {
-                    material = drawMeshInfo.materials[subMesh.materialIndex];
+                    material = drawMeshInfo.materials[subMesh.materialIndex].lock();
                 }
-                else
+                if (!material)
                 {
                     material = mRenderer.GetDefaultMaterial();
                 }

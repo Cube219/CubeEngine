@@ -9,10 +9,8 @@
 
 namespace cube
 {
-    class Material;
-    class MeshData;
-    struct MeshMetadata;
     class Renderer;
+    class Scene;
 
     class Engine
     {
@@ -42,8 +40,7 @@ namespace cube
 
         CUBE_CORE_EXPORT static AnsiStringView GetCommandLineParam(AnsiStringView name);
 
-        static void SetMesh(SharedPtr<MeshData> meshData, const MeshMetadata& meshMeta);
-        static void SetMaterials(const Vector<SharedPtr<Material>>& materials);
+        static void SetScene(SharedPtr<Scene> scene);
 
     private:
         static void OnLoop();

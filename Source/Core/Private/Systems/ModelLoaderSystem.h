@@ -5,11 +5,13 @@
 #include "CubeString.h"
 #include "FileSystem.h"
 #include "Vector.h"
+#include "Renderer/Mesh.h"
 
 namespace cube
 {
     class Material;
     class MeshData;
+    class Scene;
 
     enum class ModelType
     {
@@ -27,12 +29,6 @@ namespace cube
         Vector3 scale = Vector3(1.0f, 1.0f, 1.0f);
     };
 
-    struct ModelResources
-    {
-        SharedPtr<MeshData> mesh = nullptr;
-        Vector<SharedPtr<Material>> materials;
-    };
-
     class ModelLoaderSystem
     {
     public:
@@ -44,14 +40,16 @@ namespace cube
 
         static void OnLoopImGUIContent();
 
-        static ModelResources LoadModel(const ModelPathInfo& pathInfo);
+        static SharedPtr<Scene> LoadModel(const ModelPathInfo& pathInfo);
 
     private:
         static void LoadModelList();
         static void LoadCurrentModelAndSet(bool resetTransform = true);
 
-        static ModelResources LoadModel_glTF(const ModelPathInfo& pathInfo);
-        static ModelResources LoadModel_Obj(const ModelPathInfo& pathInfo);
+        static SharedPtr<Scene> LoadModel_glTF(const ModelPathInfo& pathInfo);
+        static SharedPtr<Scene> LoadModel_Obj(const ModelPathInfo& pathInfo);
+
+        static MeshMetadata GetMeshMetadata();
 
         static void UpdateModelMatrix();
         static void ResetModelTransform();

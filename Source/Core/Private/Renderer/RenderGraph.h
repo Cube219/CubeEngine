@@ -86,7 +86,7 @@ namespace cube
         {
             SharedPtr<Mesh> mesh;
             gapi::RasterizerState::FillMode fillMode = gapi::RasterizerState::FillMode::Solid;
-            ArrayView<SharedPtr<Material>> materials;
+            ConstArrayView<WeakPtr<Material>> materials;
             Matrix model;
         };
 
