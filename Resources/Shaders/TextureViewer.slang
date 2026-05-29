@@ -123,7 +123,7 @@ void TextureViewerFetchInfo2DCS(
     }
 
     float2 uv = (float2(pos) + 0.5) * params.sizeAndInvSize.zw;
-    float4 color = params.srcTexture2D.Sample(GetStaticPointClampSampler(), uv);
+    float4 color = params.srcTexture2D.SampleLevel(GetStaticPointClampSampler(), uv, 0);
     params.readbackBuffer[0] = color.x;
     params.readbackBuffer[1] = color.y;
     params.readbackBuffer[2] = color.z;
@@ -173,7 +173,7 @@ void TextureViewerFetchInfoCubeCS(
 
     float2 faceUV = (float2(facePixel) + 0.5) * params.faceSizeAndInvSize.zw;
     float3 normal = Cubemap::CubemapUVToVector(faceUV, faceIndex);
-    float4 color = params.srcTextureCube.Sample(GetStaticPointClampSampler(), normal);
+    float4 color = params.srcTextureCube.SampleLevel(GetStaticPointClampSampler(), normal, 0);
     params.readbackBuffer[0] = color.x;
     params.readbackBuffer[1] = color.y;
     params.readbackBuffer[2] = color.z;
