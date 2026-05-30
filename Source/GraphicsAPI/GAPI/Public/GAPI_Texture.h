@@ -81,7 +81,14 @@ namespace cube
             Uint32 GetArraySize() const { return mInfo.arraySize; }
             Uint32 GetMipLevels() const { return mInfo.mipLevels; }
 
-            Uint32 GetNumSlices() const { return IsCubemap() ? mInfo.arraySize * 6 : mInfo.arraySize; }
+            Uint32 GetNumSlices() const
+            {
+                if (mInfo.type == TextureType::Texture3D)
+                {
+                    return mInfo.depth;
+                }
+                return IsCubemap() ? mInfo.arraySize * 6 : mInfo.arraySize;
+            }
             bool IsCubemap() const { return (mInfo.type == TextureType::TextureCube) || (mInfo.type == TextureType::TextureCubeArray); }
 
             Uint32 GetNumSubresources() const { return mSubresourceLayouts.size(); }
@@ -140,11 +147,6 @@ namespace cube
         struct TextureUAVCreateInfo
         {
             SubresourceRangeInput subresourceRange;
-
-            // TODO: Remove this and use slice in subresource range.
-            // [firstDepthIndex, firstDepthIndex + depthSize - 1]
-            Uint32 firstDepthIndex = 0;
-            Uint32 depthSize = SubresourceRangeInput::AllRange;
         };
 
         class TextureUAV
@@ -152,8 +154,6 @@ namespace cube
         public:
             TextureUAV(const TextureUAVCreateInfo& createInfo, SharedPtr<Texture> texture) :
                 mTexture(texture),
-                mFirstDepthIndex(createInfo.firstDepthIndex),
-                mDepthSize(createInfo.depthSize == SubresourceRangeInput::AllRange ? texture->GetDepth() - createInfo.firstDepthIndex : static_cast<Uint32>(createInfo.depthSize)),
                 mBindlessId(-1) // Set in child class
             {
                 SubresourceRangeInput uavRange = createInfo.subresourceRange;
@@ -165,8 +165,6 @@ namespace cube
             Uint32 GetMipLevel() const { return mSubresourceRange.firstMipLevel; }
             Uint32 GetFirstSliceIndex() const { return mSubresourceRange.firstSliceIndex; }
             Uint32 GetSliceSize() const { return mSubresourceRange.sliceSize; }
-            Uint32 GetFirstDepthIndex() const { return mFirstDepthIndex; }
-            Uint32 GetDepthSize() const { return mDepthSize; }
             SubresourceRange GetSubresourceRange() const { return mSubresourceRange; }
 
             Uint64 GetBindlessId() const { return mBindlessId; }
@@ -175,8 +173,6 @@ namespace cube
             SharedPtr<Texture> mTexture;
 
             SubresourceRange mSubresourceRange;
-            Uint32 mFirstDepthIndex;
-            Uint32 mDepthSize;
 
             Uint64 mBindlessId;
         };
@@ -184,10 +180,6 @@ namespace cube
         struct TextureRTVCreateInfo
         {
             SubresourceRangeInput subresourceRange;
-
-            // TODO: Remove this and use slice in subresource range.
-            Uint32 firstDepthIndex = 0;
-            Uint32 depthSize = SubresourceRangeInput::AllRange;
         };
 
         class TextureRTV
@@ -195,8 +187,6 @@ namespace cube
         public:
             TextureRTV(const TextureRTVCreateInfo& createInfo, SharedPtr<Texture> texture)
                 : mTexture(texture)
-                , mFirstDepthIndex(createInfo.firstDepthIndex)
-                , mDepthSize(createInfo.depthSize == SubresourceRangeInput::AllRange ? texture->GetDepth() - createInfo.firstDepthIndex : static_cast<Uint32>(createInfo.depthSize))
             {
                 SubresourceRangeInput rtvRange = createInfo.subresourceRange;
                 rtvRange.mipLevels = 1;
@@ -205,24 +195,18 @@ namespace cube
             TextureRTV()
                 : mTexture(nullptr)
                 , mSubresourceRange({ .firstMipLevel = 0, .mipLevels = 1, .firstSliceIndex = 0, .sliceSize = 1 })
-                , mFirstDepthIndex(0)
-                , mDepthSize(1)
             {}
             virtual ~TextureRTV() = default;
 
             Uint32 GetMipLevel() const { return mSubresourceRange.firstMipLevel; }
             Uint32 GetFirstSliceIndex() const { return mSubresourceRange.firstSliceIndex; }
             Uint32 GetSliceSize() const { return mSubresourceRange.sliceSize; }
-            Uint32 GetFirstDepthIndex() const { return mFirstDepthIndex; }
-            Uint32 GetDepthSize() const { return mDepthSize; }
             SubresourceRange GetSubresourceRange() const { return mSubresourceRange; }
 
         protected:
             SharedPtr<Texture> mTexture;
 
             SubresourceRange mSubresourceRange;
-            Uint32 mFirstDepthIndex;
-            Uint32 mDepthSize;
         };
 
         struct TextureDSVCreateInfo

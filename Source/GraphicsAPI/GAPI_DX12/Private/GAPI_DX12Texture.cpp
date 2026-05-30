@@ -324,8 +324,8 @@ namespace cube
             case TextureType::Texture3D:
                 uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
                 uavDesc.Texture3D.MipSlice = GetMipLevel();
-                uavDesc.Texture3D.FirstWSlice = createInfo.firstDepthIndex;
-                uavDesc.Texture3D.WSize = createInfo.depthSize;
+                uavDesc.Texture3D.FirstWSlice = GetFirstSliceIndex();
+                uavDesc.Texture3D.WSize = GetSliceSize();
                 break;
             case TextureType::TextureCube:
             case TextureType::TextureCubeArray:
@@ -382,8 +382,8 @@ namespace cube
             case TextureType::Texture3D:
                 rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE3D;
                 rtvDesc.Texture3D.MipSlice = GetMipLevel();
-                rtvDesc.Texture3D.FirstWSlice = createInfo.firstDepthIndex;
-                rtvDesc.Texture3D.WSize = createInfo.depthSize;
+                rtvDesc.Texture3D.FirstWSlice = GetFirstSliceIndex();
+                rtvDesc.Texture3D.WSize = GetSliceSize();
                 break;
             case TextureType::TextureCube:
             case TextureType::TextureCubeArray:
@@ -444,7 +444,7 @@ namespace cube
                 dsvDesc.Texture2DArray.ArraySize = GetSliceSize() * 6;
                 break;
             case TextureType::Texture3D:
-                CHECK_FORMAT(false, "Depth stencil view does not support Texture3D texture (D3D12 has no DSV_DIMENSION_TEXTURE3D).");
+                NO_ENTRY("Depth stencil view does not support Texture3D texture (D3D12 has no DSV_DIMENSION_TEXTURE3D).");
                 break;
             default:
                 NOT_IMPLEMENTED();
