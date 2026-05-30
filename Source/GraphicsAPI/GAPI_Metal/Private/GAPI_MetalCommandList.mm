@@ -581,11 +581,15 @@ namespace cube
             }
         }
 
-        void MetalCommandList::Submit()
+        void MetalCommandList::Submit(bool waitUntilFinished)
         {
             CHECK(!IsWriting());
 
             [mCommandBuffer commit];
+            if (waitUntilFinished)
+            {
+                [mCommandBuffer waitUntilCompleted];
+            }
             mCommandBuffer = nil;
         }
 

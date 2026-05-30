@@ -66,7 +66,7 @@ namespace cube
             virtual void BeginTimestamp(StringView name) override;
             virtual void EndTimestamp() override;
 
-            void Submit() override;
+            void Submit(bool waitUntilFinished) override;
 
             bool IsWriting() const { return mState == State::Writing; }
             bool IsInRenderPass() const { return mIsInRenderPass; }
@@ -81,11 +81,7 @@ namespace cube
                 Closed
             };
 
-            DX12CommandListManager& mCommandListManager;
-            DX12DescriptorManager& mDescriptorManager;
-            DX12QueueManager& mQueueManager;
-            DX12QueryManager& mQueryManager;
-            DX12ShaderParameterHelper& mShaderParameterHelper;
+            DX12Device& mDevice;
 
             ComPtr<ID3D12GraphicsCommandList> mCommandList;
             State mState;

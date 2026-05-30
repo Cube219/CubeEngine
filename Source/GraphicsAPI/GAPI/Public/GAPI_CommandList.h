@@ -152,7 +152,7 @@ namespace cube
             virtual void BeginTimestamp(StringView name) = 0;
             virtual void EndTimestamp() = 0;
 
-            virtual void Submit() = 0;
+            virtual void Submit(bool waitUntilFinished = false) = 0;
         };
     } // namespace gapi
 } // namespace cube

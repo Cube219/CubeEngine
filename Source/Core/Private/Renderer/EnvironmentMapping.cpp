@@ -510,6 +510,7 @@ namespace cube
     {
         CHECK(mIBLTexture);
 
+        // TODO: Split work to avoid GPU hang.
         const gapi::ElementFormat format = gapi::ElementFormat::RGBA16_Float;
         const Uint32 width = 256;
         const Uint32 height = 256;
@@ -552,7 +553,7 @@ namespace cube
                 commandList.DispatchThreads(width, height, 6);
             });
         }
-        builder.ExecuteAndSubmit(*mCommandList);
+        builder.ExecuteAndSubmit(*mCommandList, true);
     }
 
     void EnvironmentMapping::GenerateIntegratedBRDFLUT()
@@ -594,12 +595,14 @@ namespace cube
                 commandList.DispatchThreads(width, width, 1);
             });
         }
-        builder.ExecuteAndSubmit(*mCommandList);
+        builder.ExecuteAndSubmit(*mCommandList, true);
     }
 
     void EnvironmentMapping::GeneratePrefilterMap()
     {
         CHECK(mIBLTexture);
+
+        // TODO: Split work to avoid GPU hang.
 
         const gapi::ElementFormat format = gapi::ElementFormat::RGBA16_Float;
         const Uint32 width = 256;
@@ -653,6 +656,6 @@ namespace cube
                 );
             }
         }
-        builder.ExecuteAndSubmit(*mCommandList);
+        builder.ExecuteAndSubmit(*mCommandList, true);
     }
 } // namespace cube

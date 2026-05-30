@@ -2,6 +2,7 @@
 
 #include "Logger.h"
 #include "MacOS/MacOSString.h"
+#include "Platform.h"
 
 namespace cube
 {
@@ -82,8 +83,10 @@ namespace cube
     {
         if (gpuFrame >= mNumGPUSync)
         {
-            // TODO: Use other way? It causes freezing UI update in long GPU work.
-            [mGPUSyncEvent waitUntilSignaledValue:gpuFrame-1 timeoutMS:100000000000];
+            while([mGPUSyncEvent waitUntilSignaledValue:gpuFrame-mNumGPUSync timeoutMS:500] == NO)
+            {
+                platform::Platform::Sleep(0);
+            }
         }
 
         mTimestampManager.MoveToNextGPUSync(gpuFrame);

@@ -674,7 +674,7 @@ namespace cube
         });
     }
 
-    void RGBuilder::ExecuteAndSubmit(gapi::CommandList& commandList)
+    void RGBuilder::ExecuteAndSubmit(gapi::CommandList& commandList, bool waitUntilFinished)
     {
         CHECK(mState == State::Init);
         CHECK(!mIsInRenderPass);
@@ -735,7 +735,7 @@ namespace cube
         commandList.EndTimestamp();
 
         commandList.End();
-        commandList.Submit();
+        commandList.Submit(waitUntilFinished);
 
         mState = State::Submitted;
 

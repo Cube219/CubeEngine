@@ -92,7 +92,7 @@ namespace cube
             virtual void BeginTimestamp(StringView name) override;
             virtual void EndTimestamp() override;
 
-            virtual void Submit() override;
+            virtual void Submit(bool waitUntilFinished) override;
 
         private:
             void UseResourceInternal(id<MTLResource> resource, MTLResourceUsage usage);

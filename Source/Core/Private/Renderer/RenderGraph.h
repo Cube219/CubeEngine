@@ -178,7 +178,7 @@ namespace cube
         void UseResource(RGTextureDSVHandle rgDSV);
         void UseResource(RGTextureHandle rgTexture, gapi::SubresourceRangeInput range, gapi::ResourceStateFlags states);
 
-        void ExecuteAndSubmit(gapi::CommandList& commandList);
+        void ExecuteAndSubmit(gapi::CommandList& commandList, bool waitUntilFinished = false);
 
     private:
         struct PassInfo

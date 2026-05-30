@@ -37,14 +37,10 @@ namespace cube
         }
 
         DX12CommandList::DX12CommandList(DX12Device& device, const CommandListCreateInfo& info)
-            : mCommandListManager(device.GetCommandListManager())
-            , mDescriptorManager(device.GetDescriptorManager())
-            , mQueueManager(device.GetQueueManager())
-            , mQueryManager(device.GetQueryManager())
-            , mShaderParameterHelper(device.GetShaderParameterHelper())
+            : mDevice(device)
             , mState(State::Closed)
         {
-            device.GetDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, mCommandListManager.GetCurrentAllocator(), nullptr, IID_PPV_ARGS(&mCommandList));
+            device.GetDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, mDevice.GetCommandListManager().GetCurrentAllocator(), nullptr, IID_PPV_ARGS(&mCommandList));
             SET_DEBUG_NAME(mCommandList, info.debugName);
             CHECK_HR(mCommandList->Close());
         }
@@ -58,11 +54,11 @@ namespace cube
         {
             CHECK(mState == State::Initial);
 
-            ArrayView<ID3D12DescriptorHeap*> heaps = mDescriptorManager.GetD3D12ShaderVisibleHeaps();
+            ArrayView<ID3D12DescriptorHeap*> heaps = mDevice.GetDescriptorManager().GetD3D12ShaderVisibleHeaps();
             mCommandList->SetDescriptorHeaps(heaps.size(), heaps.data());
 
-            mCommandList->SetGraphicsRootSignature(mShaderParameterHelper.GetRootSignature());
-            mCommandList->SetComputeRootSignature(mShaderParameterHelper.GetRootSignature());
+            mCommandList->SetGraphicsRootSignature(mDevice.GetShaderParameterHelper().GetRootSignature());
+            mCommandList->SetComputeRootSignature(mDevice.GetShaderParameterHelper().GetRootSignature());
 
             mHasQuery = false;
             mTimestampStack.clear();
@@ -81,7 +77,7 @@ namespace cube
 
             if (mHasQuery)
             {
-                mQueryManager.ResolveQueryData(mCommandList.Get());
+                mDevice.GetQueryManager().ResolveQueryData(mCommandList.Get());
             }
 
             CHECK_HR(mCommandList->Close());
@@ -97,7 +93,7 @@ namespace cube
 
             CHECK(mState == State::Closed);
 
-            CHECK_HR(mCommandList->Reset(mCommandListManager.GetCurrentAllocator(), nullptr));
+            CHECK_HR(mCommandList->Reset(mDevice.GetCommandListManager().GetCurrentAllocator(), nullptr));
             mHasQuery = false;
             mState = State::Initial;
         }
@@ -283,9 +279,10 @@ namespace cube
             D3D12_GPU_VIRTUAL_ADDRESS gpuAddress = dx12SRV->GetGPUAddress();
 
             // Register space index is used in Slang's ParameterBlock.
-            CHECK(index < mShaderParameterHelper.GetMaxNumSpace());
-            mCommandList->SetGraphicsRootConstantBufferView(index * mShaderParameterHelper.GetMaxNumRegister(), gpuAddress);
-            mCommandList->SetComputeRootConstantBufferView(index * mShaderParameterHelper.GetMaxNumRegister(), gpuAddress);
+            DX12ShaderParameterHelper& shaderParameterHelper = mDevice.GetShaderParameterHelper();
+            CHECK(index < shaderParameterHelper.GetMaxNumSpace());
+            mCommandList->SetGraphicsRootConstantBufferView(index * shaderParameterHelper.GetMaxNumRegister(), gpuAddress);
+            mCommandList->SetComputeRootConstantBufferView(index * shaderParameterHelper.GetMaxNumRegister(), gpuAddress);
 
             CUBE_DX12_BOUND_OBJECT(constantBuffer);
         }
@@ -429,8 +426,10 @@ namespace cube
         {
             CHECK(IsWriting());
 
-            const Uint32 beginQueryIndex = mQueryManager.GetCurrentLastQueryIndexAndUse(1);
-            mCommandList->EndQuery(mQueryManager.GetCurrentTimestampHeap(), D3D12_QUERY_TYPE_TIMESTAMP, beginQueryIndex);
+            DX12QueryManager& queryManager = mDevice.GetQueryManager();
+            
+            const Uint32 beginQueryIndex = queryManager.GetCurrentLastQueryIndexAndUse(1);
+            mCommandList->EndQuery(queryManager.GetCurrentTimestampHeap(), D3D12_QUERY_TYPE_TIMESTAMP, beginQueryIndex);
 
             mTimestampStack.push_back({
                 .name = { name.begin(), name.end() },
@@ -443,28 +442,40 @@ namespace cube
         void DX12CommandList::EndTimestamp()
         {
             CHECK(IsWriting());
-
             CHECK(!mTimestampStack.empty());
 
-            const Uint32 endQueryIndex = mQueryManager.GetCurrentLastQueryIndexAndUse(1);
-            mCommandList->EndQuery(mQueryManager.GetCurrentTimestampHeap(), D3D12_QUERY_TYPE_TIMESTAMP, endQueryIndex);
+            DX12QueryManager& queryManager = mDevice.GetQueryManager();
+
+            const Uint32 endQueryIndex = queryManager.GetCurrentLastQueryIndexAndUse(1);
+            mCommandList->EndQuery(queryManager.GetCurrentTimestampHeap(), D3D12_QUERY_TYPE_TIMESTAMP, endQueryIndex);
 
             const TimestampBegin& topTimestamp = mTimestampStack.back();
-            mQueryManager.AddTimestampRange(topTimestamp.name, topTimestamp.beginQueryIndex, endQueryIndex);
+            queryManager.AddTimestampRange(topTimestamp.name, topTimestamp.beginQueryIndex, endQueryIndex);
             mTimestampStack.pop_back();
 
             mHasQuery = true;
         }
 
-        void DX12CommandList::Submit()
+        void DX12CommandList::Submit(bool waitUntilFinished)
         {
             CHECK(mState == State::Closed);
 
             ID3D12CommandList* cmdLists[] = { mCommandList.Get() };
-            mQueueManager.GetMainQueue()->ExecuteCommandLists(1, cmdLists);
+            mDevice.GetQueueManager().GetMainQueue()->ExecuteCommandLists(1, cmdLists);
 
-            mCommandListManager.AddBoundObjects(mBoundObjects);
+            mDevice.GetCommandListManager().AddBoundObjects(mBoundObjects);
             mBoundObjects.clear();
+
+            if (waitUntilFinished)
+            {
+                DX12Fence waitFence(mDevice);
+                waitFence.Initialize(CUBE_T("Wait Submit CommandList Fence"));
+
+                waitFence.Signal(mDevice.GetQueueManager().GetMainQueue(), 1);
+                waitFence.Wait(1);
+
+                waitFence.Shutdown();
+            }
         }
 
         void DX12CommandList::ProcessBeforeEnd()

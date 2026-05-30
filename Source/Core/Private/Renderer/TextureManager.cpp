@@ -105,6 +105,6 @@ namespace cube
             }
         }
 
-        builder.ExecuteAndSubmit(*mCommandList);
+        builder.ExecuteAndSubmit(*mCommandList, true);
     }
 } // namespace cube
