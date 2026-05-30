@@ -4,7 +4,7 @@
 
 namespace cube
 {
-#ifdef CUBE_USE_CHECK
+#if CUBE_USE_CHECK
     Vector<UniquePtr<ICheckerExtension>> Checker::mExtensions;
 
     bool Checker::mIsDebuggerAttached = false;

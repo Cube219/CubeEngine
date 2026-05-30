@@ -6,12 +6,12 @@
 #include "Logger.h"
 
 #ifndef CUBE_USE_CHECK
-#define CUBE_USE_CHECK _DEBUG
+#define CUBE_USE_CHECK CUBE_DEBUG
 #endif
 
 namespace cube
 {
-#ifdef CUBE_USE_CHECK
+#if CUBE_USE_CHECK
 
     class ICheckerExtension
     {
