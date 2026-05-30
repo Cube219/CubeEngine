@@ -652,6 +652,7 @@ namespace cube
                     }
                 );
             }
+            mRenderer.GetTextureViewer().SetTexture(builder, dstPrefilterMap);
         }
         builder.ExecuteAndSubmit(*mCommandList);
     }

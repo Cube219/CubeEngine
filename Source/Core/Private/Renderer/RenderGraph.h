@@ -28,8 +28,8 @@ namespace cube
         RGBufferHandle RegisterBuffer(SharedPtr<gapi::Buffer> buffer);
         RGBufferHandle CreateBuffer(const gapi::BufferInfo& bufferInfo, StringView debugName);
 
-        RGBufferSRVHandle CreateSRV(RGBufferHandle rgBuffer, gapi::ElementFormat format = gapi::ElementFormat::Unknown, Uint64 firstElement = 0, Uint64 numElements = std::numeric_limits<Uint64>::max());
-        RGBufferUAVHandle CreateUAV(RGBufferHandle rgBuffer, gapi::ElementFormat format = gapi::ElementFormat::Unknown, Uint64 firstElement = 0, Uint64 numElements = std::numeric_limits<Uint64>::max());
+        RGBufferSRVHandle CreateSRV(RGBufferHandle rgBuffer, const gapi::BufferSRVCreateInfo& createInfo = {});
+        RGBufferUAVHandle CreateUAV(RGBufferHandle rgBuffer, const gapi::BufferUAVCreateInfo& createInfo = {});
 
         RGTextureHandle RegisterTexture(SharedPtr<gapi::Texture> texture);
         RGTextureHandle CreateTexture(const gapi::TextureInfo& textureInfo, StringView debugName);
@@ -201,7 +201,7 @@ namespace cube
             {
                 int rgResourceIndex;
                 gapi::ResourceStateFlags state;
-                gapi::SubresourceRangeInput subresourceRange;
+                gapi::SubresourceRange subresourceRange;
             };
             Vector<ResourceUseInfo> resourceUseInfos;
 

@@ -32,6 +32,8 @@ namespace cube
             }
         }
 
+        int GetIndex() const { return mIndex; }
+
     protected:
         friend class RGBuilder;
 
@@ -87,11 +89,23 @@ namespace cube
         RGResourceType* mResource = nullptr;
     };
 
+    // ===== Buffer =====
+
+    enum class RGViewType
+    {
+        SRV,
+        UAV,
+        RTV,
+        DSV
+    };
+
     class RGBuffer : public RGResource
     {
     public:
         virtual void CreateResource(GAPI& gapi) override;
         virtual bool IsResourceCreated() const override { return mBuffer != nullptr; }
+
+        Uint64 CalculateViewHashKey(RGViewType type, gapi::ElementFormat format, Uint64 firstElement, Uint64 numElements) const;
 
     private:
         friend class RGBuilder;
@@ -110,18 +124,24 @@ namespace cube
     class RGBufferView : public RGResource
     {
     public:
+        Uint64 GetViewHashKey() const
+        {
+            return mViewHashKey;
+        }
 
     protected:
         friend class RGBuilder;
 
-        RGBufferView(int index, RGBuffer* rgBuffer, gapi::ElementFormat format, Uint64 firstElement, Uint64 numElements);
+        RGBufferView(int index, RGBuffer* rgBuffer, RGViewType type, gapi::ElementFormat format, Uint64 firstElement, Uint64 numElements);
         virtual ~RGBufferView() = default;
 
         RGBuffer* mRGBuffer;
 
+        RGViewType mType;
         gapi::ElementFormat mFormat;
         Uint64 mFirstElement;
         Uint64 mNumElements;
+        Uint64 mViewHashKey;
     };
     using RGBufferViewHandle = RGResourceHandler<RGBufferView>;
 
@@ -136,7 +156,7 @@ namespace cube
     private:
         friend class RGBuilder;
 
-        RGBufferSRV(int index, RGBuffer* rgBuffer, gapi::ElementFormat format, Uint64 firstElement, Uint64 numElements);
+        RGBufferSRV(int index, RGBuffer* rgBuffer, const gapi::BufferSRVCreateInfo& createInfo);
         virtual ~RGBufferSRV() = default;
 
         SharedPtr<gapi::BufferSRV> mSRV;
@@ -154,24 +174,27 @@ namespace cube
     private:
         friend class RGBuilder;
 
-        RGBufferUAV(int index, RGBuffer* rgBuffer, gapi::ElementFormat format, Uint64 firstElement, Uint64 numElements);
+        RGBufferUAV(int index, RGBuffer* rgBuffer, const gapi::BufferUAVCreateInfo& createInfo);
         virtual ~RGBufferUAV() = default;
 
         SharedPtr<gapi::BufferUAV> mUAV;
     };
     using RGBufferUAVHandle = RGResourceHandler<RGBufferUAV>;
 
+    // ===== Texture =====
+
     class RGTexture : public RGResource
     {
     public:
         SharedPtr<gapi::Texture> GetGAPITexture() const { return mTexture; }
-        Uint64 GetSubresourceHashKey(const gapi::SubresourceRange& range) const;
-        Uint64 GetSubresourceHashKey(const gapi::SubresourceRangeInput& range) const;
 
         virtual void CreateResource(GAPI& gapi) override;
         virtual bool IsResourceCreated() const override { return mTexture != nullptr; }
 
         const gapi::TextureInfo& GetTextureInfo() const { return mTextureInfo; }
+
+        Uint64 CalculateViewHashKey(RGViewType type, const gapi::SubresourceRange& subresourceRange) const;
+        Uint64 CalculateViewHashKey(RGViewType type, const gapi::SubresourceRangeInput& subresourceRangeInput) const;
 
     protected:
         friend class RGBuilder;
@@ -201,13 +224,12 @@ namespace cube
 
         const gapi::SubresourceRange GetSubresourceRange() const
         {
-            CHECK(mRGTexture->GetGAPITexture());
             return mSubresourceRange;
         }
-        Uint64 GetSubresourceHashKey() const
+
+        Uint64 GetViewHashKey() const
         {
-            CHECK(mSubresourceHashKey);
-            return mSubresourceHashKey;
+            return mViewHashKey;
         }
 
         bool IsOverlap(RGTextureView* rhs) const
@@ -216,20 +238,19 @@ namespace cube
             {
                 return false;
             }
-            // Use subresource range input so it can be called before creating resource.
-            return mSubresourceRangeInput.IsOverlap(rhs->mSubresourceRangeInput);
+            return mSubresourceRange.IsOverlap(rhs->mSubresourceRange);
         }
 
     protected:
         friend class RGBuilder;
 
-        RGTextureView(int index, RGTexture* rgTexture);
+        RGTextureView(int index, RGTexture* rgTexture, RGViewType type, const gapi::SubresourceRangeInput& subresourceRange);
         virtual ~RGTextureView() = default;
 
         RGTexture* mRGTexture;
-        gapi::SubresourceRangeInput mSubresourceRangeInput;
+        RGViewType mType;
         gapi::SubresourceRange mSubresourceRange;
-        Uint64 mSubresourceHashKey;
+        Uint64 mViewHashKey;
     };
     using RGTextureViewHandle = RGResourceHandler<RGTextureView>;
 
@@ -309,6 +330,8 @@ namespace cube
     };
     using RGTextureDSVHandle = RGResourceHandler<RGTextureDSV>;
 
+    // ===== Shader parameter =====
+
     class RGShaderParameterListBase : public RGResource
     {
     protected:
@@ -345,7 +368,6 @@ namespace cube
     template <typename ShaderParameterListType>
         requires std::derived_from<ShaderParameterListType, ShaderParameterList>
     using RGShaderParameterListHandle = RGResourceHandler<RGShaderParameterList<ShaderParameterListType>>;
-
 
     // ===== ShaderParameterTypeInfo specializations for RG handles =====
 

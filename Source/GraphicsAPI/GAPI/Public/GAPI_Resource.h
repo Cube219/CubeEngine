@@ -77,6 +77,14 @@ namespace cube
             Uint32 firstSliceIndex;
             Uint32 sliceSize;
 
+            bool operator==(const SubresourceRange& rhs) const
+            {
+                return firstMipLevel == rhs.firstMipLevel
+                    && mipLevels == rhs.mipLevels
+                    && firstSliceIndex == rhs.firstSliceIndex
+                    && sliceSize == rhs.sliceSize;
+            }
+
             Uint64 GetHash() const
             {
                 return HashCombine(firstMipLevel, mipLevels, firstSliceIndex, sliceSize);

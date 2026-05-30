@@ -141,6 +141,7 @@ namespace cube
         {
             SubresourceRangeInput subresourceRange;
 
+            // TODO: Remove this and use slice in subresource range.
             // [firstDepthIndex, firstDepthIndex + depthSize - 1]
             Uint32 firstDepthIndex = 0;
             Uint32 depthSize = SubresourceRangeInput::AllRange;
@@ -184,6 +185,7 @@ namespace cube
         {
             SubresourceRangeInput subresourceRange;
 
+            // TODO: Remove this and use slice in subresource range.
             Uint32 firstDepthIndex = 0;
             Uint32 depthSize = SubresourceRangeInput::AllRange;
         };

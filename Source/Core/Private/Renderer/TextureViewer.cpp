@@ -559,7 +559,7 @@ namespace cube
         RGTextureHandle src = builder.RegisterTexture(mCopiedTexture);
         RGTextureSRVHandle srcSRV = builder.CreateSRV(src, { .subresourceRange = { .firstMipLevel = static_cast<Uint32>(mMipLevel), .mipLevels = 1 } });
         RGBufferHandle readbackBuffer = builder.RegisterBuffer(GetCurrentReadbackBuffer().buffer);
-        RGBufferUAVHandle readbackUAV = builder.CreateUAV(readbackBuffer, ReadbackBuffer::format);
+        RGBufferUAVHandle readbackUAV = builder.CreateUAV(readbackBuffer, { .typedFormat = ReadbackBuffer::format });
 
         if (textureInfo.type == gapi::TextureType::Texture2D)
         {
