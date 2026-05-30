@@ -152,8 +152,6 @@ namespace cube
 
     void GAPI_DX12::OnBeforePresent(gapi::Texture* backbuffer)
     {
-        // TODO: Fix transition error when imgui is off.
-        // TODO: Guard pix event.
         if (mImGUIContext.context)
         {
             mImGUIRenderCommandList->Reset(mMainDevice->GetCommandListManager().GetCurrentAllocator(), nullptr);
@@ -166,9 +164,7 @@ namespace cube
             D3D12_CPU_DESCRIPTOR_HANDLE currentRTVDescriptor = dx12BackbufferRTV->GetDescriptorHandle();
             
             // Render Dear ImGui graphics
-            // const float clear_color_with_alpha[4] = { 0.2f, 0.2f, 0.2f, 1.0f };
-            // mImGUIRenderCommandList->ClearRenderTargetView(currentRTVDescriptor, clear_color_with_alpha, 0, nullptr);
-            D3D12_RESOURCE_BARRIER barrier = {
+            D3D12_RESOURCE_BARRIER beforeBarrier = {
                 .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
                 .Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
                 .Transition = {
@@ -177,11 +173,22 @@ namespace cube
                     .StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET
                 }
             };
-            mImGUIRenderCommandList->ResourceBarrier(1, &barrier);
+            mImGUIRenderCommandList->ResourceBarrier(1, &beforeBarrier);
             mImGUIRenderCommandList->OMSetRenderTargets(1, &currentRTVDescriptor, FALSE, nullptr);
             ArrayView<ID3D12DescriptorHeap*> heaps = mMainDevice->GetDescriptorManager().GetD3D12ShaderVisibleHeaps();
             mImGUIRenderCommandList->SetDescriptorHeaps(heaps.size(), heaps.data());
             ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), mImGUIRenderCommandList.Get());
+
+            D3D12_RESOURCE_BARRIER afterBarrier = {
+                .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
+                .Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
+                .Transition = {
+                    .pResource = dx12BackbufferRTV->GetDX12Texture()->GetResource(),
+                    .StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET,
+                    .StateAfter = D3D12_RESOURCE_STATE_COMMON
+                }
+            };
+            mImGUIRenderCommandList->ResourceBarrier(1, &afterBarrier);
 
             PIXEndEvent(mImGUIRenderCommandList.Get());
 

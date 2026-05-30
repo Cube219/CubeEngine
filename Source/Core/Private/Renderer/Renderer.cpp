@@ -261,7 +261,7 @@ namespace cube
             mCommandList->ResourceTransition({
                 .resourceType = gapi::TransitionState::ResourceType::Texture,
                 .texture = mCurrentBackbuffer,
-                .src = gapi::ResourceStateFlag::RenderTarget,
+                .src =  gapi::ResourceStateFlag::Common,
                 .dst = gapi::ResourceStateFlag::Present
             });
 

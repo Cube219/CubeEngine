@@ -103,7 +103,7 @@ namespace cube
         });
         mMouseDownEventFunc = platform::Platform::GetMouseDownEvent().AddListener([](MouseButton mouseButton)
         {
-            if (ImGui::GetIO().WantCaptureMouse)
+            if (Engine::IsDrawingImGUI() && ImGui::GetIO().WantCaptureMouse)
             {
                 return;
             }
@@ -146,7 +146,7 @@ namespace cube
         });
         mMouseWheelEventFunc = platform::Platform::GetMouseWheelEvent().AddListener([](int delta)
         {
-            if (ImGui::GetIO().WantCaptureMouse)
+            if (Engine::IsDrawingImGUI() && ImGui::GetIO().WantCaptureMouse)
             {
                 return;
             }

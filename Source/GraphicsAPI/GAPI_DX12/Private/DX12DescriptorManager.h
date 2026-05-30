@@ -44,7 +44,6 @@ namespace cube
         Uint32 mTotalNumIndices;
     };
 
-    // TODO: Is it needed buffering descriptor heap?
     class DX12DescriptorManager
     {
     public:

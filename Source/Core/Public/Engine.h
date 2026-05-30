@@ -33,6 +33,8 @@ namespace cube
         CUBE_CORE_EXPORT static void StartLoop();
         CUBE_CORE_EXPORT static void Shutdown();
 
+        static bool IsDrawingImGUI() { return mDrawImGUI; }
+
         static Renderer* GetRenderer() { return mRenderer.get(); }
 
         CUBE_CORE_EXPORT static const platform::FilePath& GetRootDirectoryPath() { return mRootDirectoryPath; }
