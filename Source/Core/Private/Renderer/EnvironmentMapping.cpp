@@ -48,8 +48,6 @@ namespace cube
     {
         CUBE_BEGIN_SHADER_PARAMETER_LIST(SkyboxShaderParameterList)
             CUBE_SHADER_PARAMETER(RGTextureSRVHandle, skyboxTexture)
-            CUBE_SHADER_PARAMETER(RGBufferSRVHandle, vertexBuffer)
-            CUBE_SHADER_PARAMETER(bool, useFP16)
         CUBE_END_SHADER_PARAMETER_LIST
     };
     CUBE_REGISTER_SHADER_PARAMETER_LIST(SkyboxShaderParameterList);
@@ -345,15 +343,8 @@ namespace cube
         }
         }
 
-        SharedPtr<Mesh> boxMesh = mRenderer.GetBoxMesh();
-        RGBufferHandle rgBoxVertexBuffer = builder.RegisterBuffer(boxMesh->GetVertexBuffer());
-        RGBufferSRVHandle rgBoxVertexBufferSRV = builder.CreateSRV(rgBoxVertexBuffer);
-
-        // TODO: Remove vertex/index buffer and use inlined vertex data.
         auto skyboxParams = builder.CreateShaderParameterList<SkyboxShaderParameterList>();
         skyboxParams->Get()->skyboxTexture = skyboxSRV;
-        skyboxParams->Get()->vertexBuffer = rgBoxVertexBufferSRV;
-        skyboxParams->Get()->useFP16 = boxMesh->GetMeta().useFloat16;
 
         mSkyboxPipelineInfo.rasterizerState.fillMode = mRenderer.IsDrawInWireframe()
             ? gapi::RasterizerState::FillMode::Line
@@ -366,12 +357,10 @@ namespace cube
         });
 
         builder.AddPass(CUBE_T("Skybox"), skyboxPipeline, skyboxParams,
-        [boxMesh](gapi::CommandList& commandList)
+        [](gapi::CommandList& commandList)
         {
-            const SubMesh& boxSubMesh = boxMesh->GetSubMeshes()[0];
-            commandList.BindIndexBuffer(boxMesh->GetIndexBuffer(), 0);
-
-            commandList.DrawIndexed(boxSubMesh.numIndices, 0, 0);
+            // 6 faces * 2 triangles * 3 vertices.
+            commandList.Draw(6 * 2 * 3, 0);
         });
     }
 

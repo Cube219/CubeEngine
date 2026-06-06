@@ -6,11 +6,24 @@ import StaticSampler;
 struct SkyboxShaderParameterList
 {
     Bindless<TextureCube> skyboxTexture;
-    Bindless<ByteAddressBuffer> vertexBuffer;
-    bool useFP16;
 };
 ParameterBlock<GlobalShaderParameterList> globalParams;
 ParameterBlock<SkyboxShaderParameterList> skyboxParams;
+
+static float3 boxVertexPosition[] = {
+    float3(-0.5, -0.5, -0.5),
+    float3(-0.5, 0.5, -0.5),
+    float3(0.5, -0.5, -0.5),
+    float3(0.5, 0.5, -0.5),
+    float3(0.5, -0.5, 0.5),
+    float3(0.5, 0.5, 0.5),
+    float3(-0.5, -0.5, 0.5),
+    float3(-0.5, 0.5, 0.5),
+};
+
+static uint boxIndices[] = {
+    0,1,2,  2,1,3,  2,3,4,  4,3,5,  4,5,6,  6,5,7,  6,7,0,  0,7,1,  6,0,2,  2,4,6,  3,1,5,  5,1,7
+};
 
 struct SkyboxPSInput
 {
@@ -26,14 +39,15 @@ struct SkyboxPSOutput
 [shader("vertex")]
 SkyboxPSInput VSMain(uint vertexId : SV_VertexID)
 {
-    Vertex v = Vertex(skyboxParams.vertexBuffer, vertexId, skyboxParams.useFP16);
+    uint vertexIndex = boxIndices[vertexId];
+    float3 position = boxVertexPosition[vertexIndex];
 
     SkyboxPSInput output;
-    output.position = mul(float4(v.position + globalParams.viewPosition, 1), globalParams.viewProjection);
-    // Set z as 0 for early-z optimization.
+    output.position = mul(float4(position + globalParams.viewPosition, 1), globalParams.viewProjection);
+    // Set z to 0 for early-z optimization.
     output.position.z = 0;
-    // Reverse z to convert right-handed.
-    output.uvw = float3(v.position.x, v.position.y, -v.position.z);
+    // Reverse z to convert to right-handed coordinate.
+    output.uvw = float3(position.x, position.y, -position.z);
 
     return output;
 }
