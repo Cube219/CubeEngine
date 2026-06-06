@@ -451,14 +451,14 @@ namespace cube
         CHECK(!mIsInRenderPass);
 
         CHECK(info.colors.size() <= gapi::MAX_NUM_RENDER_TARGETS);
-        mRenderPassNumRenderTargets = static_cast<Uint32>(info.colors.size());
-        for (Uint32 i = 0; i < mRenderPassNumRenderTargets; ++i)
+        mRenderPassRenderTargetFormats.resize(info.colors.size());
+        for (Uint32 i = 0; i < static_cast<Uint32>(mRenderPassRenderTargetFormats.size()); ++i)
         {
             mRenderPassRenderTargetFormats[i] = info.colors[i].color->GetParent()->GetTextureInfo().format;
         }
-        if (info.depthstencil.dsv.IsValid())
+        if (info.depthStencil.dsv.IsValid())
         {
-            mRenderPassDepthStencilFormat = info.depthstencil.dsv->GetParent()->GetTextureInfo().format;
+            mRenderPassDepthStencilFormat = info.depthStencil.dsv->GetParent()->GetTextureInfo().format;
         }
         else
         {
@@ -479,10 +479,10 @@ namespace cube
             }
 
             gapi::DepthStencilAttachment depthStencil = {
-                .dsv = info.depthstencil.dsv.IsValid() ? info.depthstencil.dsv->GetDSV() : nullptr,
-                .loadOperation = info.depthstencil.loadOperation,
-                .storeOperation = info.depthstencil.storeOperation,
-                .clearDepth = info.depthstencil.clearDepth
+                .dsv = info.depthStencil.dsv.IsValid() ? info.depthStencil.dsv->GetDSV() : nullptr,
+                .loadOperation = info.depthStencil.loadOperation,
+                .storeOperation = info.depthStencil.storeOperation,
+                .clearDepth = info.depthStencil.clearDepth
             };
 
             commandList.BeginRenderPass(colors, depthStencil);
@@ -493,9 +493,9 @@ namespace cube
             {
                 builder.UseResource(color.color);
             }
-            if (info.depthstencil.dsv.IsValid())
+            if (info.depthStencil.dsv.IsValid())
             {
-                builder.UseResource(info.depthstencil.dsv);
+                builder.UseResource(info.depthStencil.dsv);
             }
 
             builder.mAttachedRTVsInRenderPass.reserve(info.colors.size());
@@ -503,7 +503,7 @@ namespace cube
             {
                 builder.mAttachedRTVsInRenderPass.push_back(colorAttachment.color);
             }
-            builder.mAttachedDSVInRenderPass = info.depthstencil.dsv;
+            builder.mAttachedDSVInRenderPass = info.depthStencil.dsv;
             builder.mRenderPassIndex = builder.mCurrentPassIndex;
             builder.mIsInRenderPass = true;
         });
@@ -516,8 +516,7 @@ namespace cube
         CHECK(mState == State::Init);
         CHECK(mIsInRenderPass);
 
-        mRenderPassNumRenderTargets = 0;
-        mRenderPassRenderTargetFormats.fill(gapi::ElementFormat::Unknown);
+        mRenderPassRenderTargetFormats.clear();
         mRenderPassDepthStencilFormat = gapi::ElementFormat::Unknown;
 
         AddPass(CUBE_T("##EndRenderPass"), [](gapi::CommandList& commandList)
@@ -545,15 +544,39 @@ namespace cube
         mIsInRenderPass = false;
     }
 
+    void RGBuilder::SetRenderTargetFormatsFromCurrentRenderPass(GraphicsPipelineInfo& inOutGraphicsPipelineInfo) const
+    {
+        CHECK(mState == State::Init);
+        CHECK(mIsInRenderPass);
+
+        inOutGraphicsPipelineInfo.numRenderTargets = static_cast<Uint32>(mRenderPassRenderTargetFormats.size());
+        for (Uint32 i = 0; i < static_cast<Uint32>(mRenderPassRenderTargetFormats.size()); ++i)
+        {
+            inOutGraphicsPipelineInfo.renderTargetFormats[i] = mRenderPassRenderTargetFormats[i];
+        }
+        inOutGraphicsPipelineInfo.depthStencilFormat = mRenderPassDepthStencilFormat;
+    }
+
+    void RGBuilder::SetRenderTargetFormatsFromCurrentRenderPass(MaterialPipelineStateInfo& inOutMaterialPipelineInfo) const
+    {
+        CHECK(mState == State::Init);
+        CHECK(mIsInRenderPass);
+
+        inOutMaterialPipelineInfo.numRenderTargets = static_cast<Uint32>(mRenderPassRenderTargetFormats.size());
+        for (Uint32 i = 0; i < static_cast<Uint32>(mRenderPassRenderTargetFormats.size()); ++i)
+        {
+            inOutMaterialPipelineInfo.renderTargetFormats[i] = mRenderPassRenderTargetFormats[i];
+        }
+        inOutMaterialPipelineInfo.depthStencilFormat = mRenderPassDepthStencilFormat;
+    }
+
     void RGBuilder::AddDrawMeshPass(StringView name, ArrayView<DrawMeshInfo> drawMeshInfos, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists)
     {
         CHECK(mState == State::Init);
         CHECK(mIsInRenderPass);
 
         MaterialPipelineStateInfo materialStateInfo = {};
-        materialStateInfo.numRenderTargets = mRenderPassNumRenderTargets;
-        materialStateInfo.renderTargetFormats = mRenderPassRenderTargetFormats;
-        materialStateInfo.depthStencilFormat = mRenderPassDepthStencilFormat;
+        SetRenderTargetFormatsFromCurrentRenderPass(materialStateInfo);
 
         FrameVector<RGShaderParameterListBaseHandle> paramListArray(3);
         paramListArray.insert(paramListArray.end(), parameterLists.begin(), parameterLists.end());

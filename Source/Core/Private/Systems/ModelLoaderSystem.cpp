@@ -458,9 +458,11 @@ namespace cube
                 material->SetTexture(0, LoadTexture(materialName, CUBE_T("baseColorTexture"), gltfMaterial.pbrMetallicRoughness.baseColorTexture.index));
                 channelMappingCode += CUBE_T("float4 baseColor = materialData.textureSlot0.Sample(GetStaticLinearWrapSampler(), input.uv).rgba;\n");
                 // Encoded in sRGB. Decode to linear.
-                channelMappingCode += CUBE_T("baseColor.rgb = pow(baseColor.rgb, 2.2);\n");
-                channelMappingCode += CUBE_T("value.albedo = baseColor.rgb;\n");
+                channelMappingCode += CUBE_T("value.albedo = GammaCorrection::sRGBToLinear(baseColor.rgb);\n");
                 channelMappingCode += CUBE_T("value.alpha = baseColor.a;\n");
+
+                material->AddAdditionalModule(CUBE_T("StaticSampler"));
+                material->AddAdditionalModule(CUBE_T("GammaCorrection"));
             }
             if (gltfMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index != -1)
             {
@@ -468,25 +470,34 @@ namespace cube
                 channelMappingCode += CUBE_T("float3 roughnessAndMetallic = materialData.textureSlot1.Sample(GetStaticLinearWrapSampler(), input.uv).rgb;\n");
                 channelMappingCode += CUBE_T("value.metallic = roughnessAndMetallic.b;\n");
                 channelMappingCode += CUBE_T("value.roughness = roughnessAndMetallic.g;\n");
+
+                material->AddAdditionalModule(CUBE_T("StaticSampler"));
             }
             if (gltfMaterial.normalTexture.index != -1)
             {
                 material->SetTexture(2, LoadTexture(materialName, CUBE_T("normalTexture"), gltfMaterial.normalTexture.index));
                 channelMappingCode += CUBE_T("float3 normal = normalize(materialData.textureSlot2.Sample(GetStaticLinearWrapSampler(), input.uv).rgb * 2.0f - 1.0f);\n");
                 channelMappingCode += CUBE_T("value.normal = normal;\n");
+
+                material->AddAdditionalModule(CUBE_T("StaticSampler"));
             }
             if (gltfMaterial.emissiveTexture.index != -1)
             {
                 material->SetTexture(3, LoadTexture(materialName, CUBE_T("emissiveTexture"), gltfMaterial.emissiveTexture.index));
                 // Encoded in sRGB. Decode to linear.
-                channelMappingCode += CUBE_T("float3 emissive = pow(materialData.textureSlot3.Sample(GetStaticLinearWrapSampler(), input.uv).rgb, 2.2);\n");
-                channelMappingCode += CUBE_T("value.emissive = emissive;\n");
+                channelMappingCode += CUBE_T("float3 emissive = materialData.textureSlot3.Sample(GetStaticLinearWrapSampler(), input.uv).rgb;\n");
+                channelMappingCode += CUBE_T("value.emissive = GammaCorrection::sRGBToLinear(emissive);\n");
+
+                material->AddAdditionalModule(CUBE_T("StaticSampler"));
+                material->AddAdditionalModule(CUBE_T("GammaCorrection"));
             }
             if (gltfMaterial.occlusionTexture.index != -1)
             {
                 material->SetTexture(4, LoadTexture(materialName, CUBE_T("occlusionTexture"), gltfMaterial.occlusionTexture.index));
                 channelMappingCode += CUBE_T("float occlusion = materialData.textureSlot4.Sample(GetStaticLinearWrapSampler(), input.uv).r;\n");
                 channelMappingCode += CUBE_T("value.indirectOcclusion = occlusion;\n");
+
+                material->AddAdditionalModule(CUBE_T("StaticSampler"));
             }
             material->SetChannelMappingCode(channelMappingCode);
         }
@@ -935,24 +946,32 @@ namespace cube
                     {
                         material->SetTexture(0, LoadTexture(CUBE_T("baseColorTexture"), objMaterial.diffuse_texname));
                         channelMappingCode += CUBE_T("value.albedo = materialData.textureSlot0.Sample(GetStaticLinearWrapSampler(), input.uv).rgb;\n");
+
+                        material->AddAdditionalModule(CUBE_T("StaticSampler"));
                     }
                     if (!objMaterial.metallic_texname.empty())
                     {
                         material->SetTexture(1, LoadTexture(CUBE_T("metallicTexture"), objMaterial.metallic_texname));
                         channelMappingCode += CUBE_T("float t1 = materialData.textureSlot1.Sample(GetStaticLinearWrapSampler(), input.uv).r;\n");
                         channelMappingCode += CUBE_T("value.metallic = t1;\n");
+
+                        material->AddAdditionalModule(CUBE_T("StaticSampler"));
                     }
                     if (!objMaterial.roughness_texname.empty())
                     {
                         material->SetTexture(2, LoadTexture(CUBE_T("roughnessTexture"), objMaterial.roughness_texname));
                         channelMappingCode += CUBE_T("float t2 = materialData.textureSlot2.Sample(GetStaticLinearWrapSampler(), input.uv).r;\n");
                         channelMappingCode += CUBE_T("value.roughness = t2;\n");
+
+                        material->AddAdditionalModule(CUBE_T("StaticSampler"));
                     }
                     if (!objMaterial.normal_texname.empty())
                     {
                         material->SetTexture(3, LoadTexture(CUBE_T("normalTexture"), objMaterial.normal_texname));
                         channelMappingCode += CUBE_T("float3 t3 = normalize(materialData.textureSlot3.Sample(GetStaticLinearWrapSampler(), input.uv).rgb * 2.0f - 1.0f);\n");
                         channelMappingCode += CUBE_T("value.normal = t3;\n");
+
+                        material->AddAdditionalModule(CUBE_T("StaticSampler"));
                     }
                 }
                 else
@@ -961,6 +980,8 @@ namespace cube
                     {
                         material->SetTexture(0, LoadTexture(CUBE_T("diffuseTexture"), objMaterial.diffuse_texname));
                         channelMappingCode += CUBE_T("value.diffuseColor = materialData.textureSlot0.Sample(GetStaticLinearWrapSampler(), input.uv).rgb;\n");
+
+                        material->AddAdditionalModule(CUBE_T("StaticSampler"));
                     }
                     else
                     {
@@ -971,6 +992,8 @@ namespace cube
                     {
                         material->SetTexture(1, LoadTexture(CUBE_T("specularTexture"), objMaterial.specular_texname));
                         channelMappingCode += CUBE_T("value.specularColor = materialData.textureSlot1.Sample(GetStaticLinearWrapSampler(), input.uv).rgb;\n");
+
+                        material->AddAdditionalModule(CUBE_T("StaticSampler"));
                     }
                     else
                     {
@@ -984,6 +1007,8 @@ namespace cube
                     {
                         material->SetTexture(2, LoadTexture(CUBE_T("normalTexture"), objMaterial.normal_texname));
                         channelMappingCode += CUBE_T("value.normal = normalize(materialData.textureSlot2.Sample(GetStaticLinearWrapSampler(), input.uv).rgb * 2.0f - 1.0f);\n");
+
+                        material->AddAdditionalModule(CUBE_T("StaticSampler"));
                     }
                 }
                 material->SetChannelMappingCode(channelMappingCode);

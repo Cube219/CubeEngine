@@ -59,6 +59,7 @@ namespace cube
         ~Material();
 
         void SetChannelMappingCode(StringView channelMappingCode);
+        void AddAdditionalModule(StringView moduleName);
 
         void SetBaseColor(Vector4 color);
         void SetDiffuseColor(Vector4 color);
@@ -78,9 +79,11 @@ namespace cube
     private:
         friend class MaterialShaderManager;
 
-        void CalculateMaterialHash();
+        Uint64 GetMaterialHash();
 
+        bool mIsMaterialHashDirty = true;
         Uint64 mMaterialHash;
+        Set<String> mAdditionalModules;
         String mChannelMappingCode;
 
         bool mIsPBR = true;

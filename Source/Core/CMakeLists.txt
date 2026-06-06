@@ -38,6 +38,10 @@ set(PRIVATE_FILES
     Private/Renderer/TextureManager.h
     Private/Renderer/TextureViewer.cpp
     Private/Renderer/TextureViewer.h
+    Private/Renderer/Tonemap.cpp
+    Private/Renderer/Tonemap.h
+    Private/Renderer/RenderUtils.cpp
+    Private/Renderer/RenderUtils.h
     Private/Scene/Scene.cpp
     Private/Scene/Scene.h
     Private/Scene/SceneObject.cpp

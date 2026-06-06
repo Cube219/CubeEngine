@@ -102,9 +102,6 @@ namespace cube
                     .enableDepth = true,
                     .depthFunction = gapi::CompareFunction::GreaterEqual
                 },
-                .numRenderTargets = 1,
-                .renderTargetFormats = { mRenderer.GetBackbufferFormat() },
-                .depthStencilFormat = mRenderer.GetDepthStencilFormat()
             };
         }
 
@@ -352,6 +349,7 @@ namespace cube
         RGBufferHandle rgBoxVertexBuffer = builder.RegisterBuffer(boxMesh->GetVertexBuffer());
         RGBufferSRVHandle rgBoxVertexBufferSRV = builder.CreateSRV(rgBoxVertexBuffer);
 
+        // TODO: Remove vertex/index buffer and use inlined vertex data.
         auto skyboxParams = builder.CreateShaderParameterList<SkyboxShaderParameterList>();
         skyboxParams->Get()->skyboxTexture = skyboxSRV;
         skyboxParams->Get()->vertexBuffer = rgBoxVertexBufferSRV;
@@ -360,6 +358,8 @@ namespace cube
         mSkyboxPipelineInfo.rasterizerState.fillMode = mRenderer.IsDrawInWireframe()
             ? gapi::RasterizerState::FillMode::Line
             : gapi::RasterizerState::FillMode::Solid;
+        builder.SetRenderTargetFormatsFromCurrentRenderPass(mSkyboxPipelineInfo);
+
         SharedPtr<GraphicsPipeline> skyboxPipeline = mRenderer.GetPipelineManager().GetOrCreateGraphicsPipeline({
             .pipelineInfo = mSkyboxPipelineInfo,
             .debugName = CUBE_T("SkyboxPipeline")

@@ -57,7 +57,6 @@ namespace cube
             return rgParameterList;
         }
 
-        // TODO: Automatically collect attachments before executing.
         struct RenderPassInfo
         {
             struct ColorAttachment
@@ -75,10 +74,13 @@ namespace cube
                 gapi::StoreOperation storeOperation = gapi::StoreOperation::Store;
                 float clearDepth;
             };
-            DepthAttachment depthstencil;
+            DepthAttachment depthStencil;
         };
         void BeginRenderPass(const RenderPassInfo& info);
         void EndRenderPass();
+
+        void SetRenderTargetFormatsFromCurrentRenderPass(GraphicsPipelineInfo& inOutGraphicsPipelineInfo) const;
+        void SetRenderTargetFormatsFromCurrentRenderPass(MaterialPipelineStateInfo& inOutMaterialPipelineInfo) const;
 
         struct DrawMeshInfo
         {
@@ -252,8 +254,7 @@ namespace cube
         };
         State mState = State::Init;
         bool mIsInRenderPass = false;
-        Uint32 mRenderPassNumRenderTargets = 0;
-        Array<gapi::ElementFormat, gapi::MAX_NUM_RENDER_TARGETS> mRenderPassRenderTargetFormats;
+        Vector<gapi::ElementFormat> mRenderPassRenderTargetFormats;
         gapi::ElementFormat mRenderPassDepthStencilFormat = gapi::ElementFormat::Unknown;
         // TODO: Group variables in each used states.
         int mRenderPassIndex = -1;

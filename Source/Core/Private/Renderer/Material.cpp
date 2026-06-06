@@ -39,7 +39,17 @@ namespace cube
     {
         mChannelMappingCode = channelMappingCode;
 
-        CalculateMaterialHash();
+        mIsMaterialHashDirty = true;
+    }
+
+    void Material::AddAdditionalModule(StringView moduleName)
+    {
+        auto res = mAdditionalModules.insert(String{ moduleName.begin(), moduleName.end() });
+
+        if (res.second)
+        {
+            mIsMaterialHashDirty = true;
+        }
     }
 
     void Material::SetBaseColor(Vector4 color)
@@ -65,7 +75,8 @@ namespace cube
     void Material::SetIsPBR(bool isPBR)
     {
         mIsPBR = isPBR;
-        CalculateMaterialHash();
+
+        mIsMaterialHashDirty = true;
     }
 
     void Material::SetMode(MaterialMode mode)
@@ -151,14 +162,24 @@ namespace cube
         return parameters;
     }
 
-    void Material::CalculateMaterialHash()
+    Uint64 Material::GetMaterialHash()
     {
-        mMaterialHash = std::hash<String>{}(mChannelMappingCode);
-        // Mix in isPBR flag so PBR and non-PBR materials get separate shader/pipelines.
-        if (!mIsPBR)
+        if (mIsMaterialHashDirty)
         {
-            mMaterialHash = HashCombine(mMaterialHash, 1);
+            mMaterialHash = std::hash<String>{}(mChannelMappingCode);
+            for (const String& moduleName : mAdditionalModules)
+            {
+                mMaterialHash = HashCombine(mMaterialHash, std::hash<String>{}(moduleName));
+            }
+            // Mix in isPBR flag so PBR and non-PBR materials get separate shader/pipelines.
+            if (!mIsPBR)
+            {
+                mMaterialHash = HashCombine(mMaterialHash, 1);
+            }
         }
+        mIsMaterialHashDirty = false;
+
+        return mMaterialHash;
     }
 
     MaterialShaderManager::MaterialShaderManager(Renderer& renderer, ShaderManager& shaderManager, PipelineManager& pipelineManager)
@@ -170,7 +191,7 @@ namespace cube
 
     SharedPtr<GraphicsPipeline> MaterialShaderManager::GetOrCreateMaterialPipeline(SharedPtr<Material> material, const MaterialPipelineStateInfo& stateInfo)
     {
-        const Uint64 shaderHash = material->mMaterialHash;
+        const Uint64 shaderHash = material->GetMaterialHash();
 
         // Generate material shader codes
         FrameString getMaterialShaderCode = Format<FrameString>(
@@ -185,18 +206,25 @@ namespace cube
             material->mChannelMappingCode
         );
 
+        FrameString additionalImports;
+        for (const String& additionalModule : material->mAdditionalModules)
+        {
+            additionalImports.append(Format<FrameString>(CUBE_T("\nimport {0};"), additionalModule));
+        }
+
         FrameString materialShaderCode = Format<FrameString>(
             CUBE_T("import MainInterface;\n")
             CUBE_T("import Material;\n")
-            CUBE_T("import StaticSampler;\n")
+            CUBE_T("{0}\n")
             CUBE_T("\n")
             CUBE_T("export struct Material : IMaterial\n")
             CUBE_T("{{\n")
             CUBE_T("\n")
-            CUBE_T("{0}\n")
+            CUBE_T("{1}\n")
             CUBE_T("\n")
             CUBE_T("}}\n"),
 
+            additionalImports,
             getMaterialShaderCode
         );
 

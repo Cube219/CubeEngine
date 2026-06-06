@@ -31,6 +31,8 @@ namespace cube
         , mTextureManager(*this)
         , mPipelineManager(*this)
         , mEnvironmentMapping(*this)
+        , mTonemap(*this)
+        , mRenderUtils(*this)
         , mTextureViewer(*this)
     {
     }
@@ -73,6 +75,7 @@ namespace cube
         });
 
         mBackbufferFormat = gapi::ElementFormat::RGBA8_UNorm;
+        mColorFormat = gapi::ElementFormat::RG11B10_Float;
         mDepthStencilFormat = gapi::ElementFormat::D32_Float;
 
         mShaderParameterListManager.Initialize(mGAPI.get(), mNumGPUSync);
@@ -99,23 +102,14 @@ namespace cube
             .backbufferCount = 2,
             .debugName = CUBE_T("MainSwapChain")
         });
-        mDepthStencilTexture = mGAPI->CreateTexture({
-            .usage = gapi::ResourceUsage::GPUOnly,
-            .textureInfo = {
-                .format = mDepthStencilFormat,
-                .type = gapi::TextureType::Texture2D,
-                .flags = gapi::TextureFlag::DepthStencil,
-                .width = mViewportWidth,
-                .height = mViewportHeight
-            },
-            .debugName = CUBE_T("MainDepthStencilTexture")
-        });
 
         mIsDirectionalLightEnabled = true;
         mDirectionalLightDirection = Vector3(1.0f, 1.0f, 1.0f).Normalized();
         mDirectionalLightIntensity = Vector3(1.0f, 1.0f, 1.0f);
 
         mEnvironmentMapping.Initialize(true);
+        mTonemap.Initialize();
+        mRenderUtils.Initialize();
 
         mTextureViewer.Initialize(mNumGPUSync);
 
@@ -132,9 +126,10 @@ namespace cube
 
         mTextureViewer.Shutdown();
 
+        mRenderUtils.Shutdown();
+        mTonemap.Shutdown();
         mEnvironmentMapping.Shutdown();
 
-        mDepthStencilTexture = nullptr;
         mCurrentBackbuffer = nullptr;
         mSwapChain = nullptr;
 
@@ -183,6 +178,11 @@ namespace cube
             ImGui::EndDisabled();
 
             mEnvironmentMapping.OnLoopImGUI();
+        }
+
+        if (ImGui::CollapsingHeader("PostProcess", ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            mTonemap.OnLoopImGUIContent();
         }
 
         if (ImGui::CollapsingHeader("Shader", ImGuiTreeNodeFlags_DefaultOpen))
@@ -286,23 +286,6 @@ namespace cube
         {
             mSwapChain->Resize(width, height);
         }
-
-        if (mDepthStencilTexture)
-        {
-            mDepthStencilTexture = nullptr;
-
-            mDepthStencilTexture = mGAPI->CreateTexture({
-                .usage = gapi::ResourceUsage::GPUOnly,
-                .textureInfo = {
-                    .format = mDepthStencilFormat,
-                    .type = gapi::TextureType::Texture2D,
-                    .flags = gapi::TextureFlag::DepthStencil,
-                    .width = mViewportWidth,
-                    .height = mViewportHeight
-                },
-                .debugName = CUBE_T("MainDepthStencilTexture")
-            });
-        }
     }
 
     void Renderer::SetObjectModelMatrix(const Vector3& position, const Vector3& rotation, const Vector3& scale)
@@ -364,30 +347,25 @@ namespace cube
         {
             RG_GPU_EVENT_SCOPE(builder, CUBE_T("Frame"));
 
-            // TODO: For testing. Remove this after testing.
-            RGTextureHandle externalColor = builder.RegisterTexture(mCurrentBackbuffer);
-            RGTextureHandle externalDepthStencil = builder.RegisterTexture(mDepthStencilTexture);
-
             gapi::TextureInfo colorTextureInfo = {
-                .format = mCurrentBackbuffer->GetFormat(),
+                .format = mColorFormat,
                 .type = gapi::TextureType::Texture2D,
                 .flags = gapi::TextureFlag::RenderTarget,
-                .width = mCurrentBackbuffer->GetWidth(),
-                .height = mCurrentBackbuffer->GetHeight()
+                .width = mViewportWidth,
+                .height = mViewportHeight
             };
-            RGTextureHandle color = builder.CreateTexture(colorTextureInfo, CUBE_T("Transient Color"));
+            RGTextureHandle color = builder.CreateTexture(colorTextureInfo, CUBE_T("ColorBuffer"));
             gapi::TextureInfo depthTextureInfo = {
-                .format = mDepthStencilTexture->GetFormat(),
+                .format = mDepthStencilFormat,
                 .type = gapi::TextureType::Texture2D,
                 .flags = gapi::TextureFlag::DepthStencil,
-                .width = mDepthStencilTexture->GetWidth(),
-                .height = mDepthStencilTexture->GetHeight()
+                .width = mViewportWidth,
+                .height = mViewportHeight
             };
-            RGTextureHandle depthStencil = builder.CreateTexture(depthTextureInfo, CUBE_T("Transient Depth"));
+            RGTextureHandle depthStencil = builder.CreateTexture(depthTextureInfo, CUBE_T("DepthStencilBuffer"));
 
             RGTextureRTVHandle colorRTV = builder.CreateRTV(color);
             RGTextureDSVHandle depthStencilDSV = builder.CreateDSV(depthStencil);
-
             {
                 RG_GPU_TIMESTAMP_SCOPE(builder, CUBE_T("MainPass"));
 
@@ -426,7 +404,7 @@ namespace cube
                     .storeOperation = gapi::StoreOperation::Store,
                     .clearColor = { 0.2f, 0.2f, 0.2f, 1.0f }
                 });
-                renderPassInfo.depthstencil = {
+                renderPassInfo.depthStencil = {
                     .dsv = depthStencilDSV,
                     .loadOperation = gapi::LoadOperation::Clear,
                     .storeOperation = gapi::StoreOperation::Store,
@@ -506,21 +484,18 @@ namespace cube
                 builder.EndRenderPass();
             }
 
-            builder.AddPass(CUBE_T("Copy To External"), 
-                [color, depthStencil, externalColor, externalDepthStencil](gapi::CommandList& commandList)
-                {
-                    commandList.CopyTexture(color->GetGAPITexture(), externalColor->GetGAPITexture());
-                    commandList.CopyTexture(depthStencil->GetGAPITexture(), externalDepthStencil->GetGAPITexture());
-                }, [color, depthStencil, externalColor, externalDepthStencil](RGBuilder& builder)
-                {
-                    builder.UseResource(color, {}, gapi::ResourceStateFlag::CopySrc);
-                    builder.UseResource(depthStencil, {}, gapi::ResourceStateFlag::CopySrc);
+            const gapi::TextureInfo tonemappedColorTextureInfo = {
+                .format = mColorFormat,
+                .type = gapi::TextureType::Texture2D,
+                .flags = gapi::TextureFlag::UAV,
+                .width = color->GetTextureInfo().width,
+                .height = color->GetTextureInfo().height
+            };
+            RGTextureHandle tonemappedColor = builder.CreateTexture(tonemappedColorTextureInfo, CUBE_T("Tonemapped Color"));
+            mTonemap.Execute(builder, color, tonemappedColor);
 
-                    builder.UseResource(externalColor, {}, gapi::ResourceStateFlag::CopyDst);
-                    builder.UseResource(externalDepthStencil, {}, gapi::ResourceStateFlag::CopyDst);
-                },
-                false, true
-            );
+            RGTextureHandle backbuffer = builder.RegisterTexture(mCurrentBackbuffer);
+            mRenderUtils.CopyTexturePS(builder, tonemappedColor, backbuffer);
 
             {
                 RG_GPU_TIMESTAMP_SCOPE(builder, CUBE_T("Texture Viewer"));

@@ -10,11 +10,13 @@
 #include "Pipeline.h"
 #include "Renderer/Mesh.h"
 #include "Renderer/ShaderParameter.h"
+#include "RenderUtils.h"
 #include "SamplerManager.h"
 #include "Shader.h"
 #include "Texture.h"
 #include "TextureManager.h"
 #include "TextureViewer.h"
+#include "Tonemap.h"
 #include "Vector.h"
 
 namespace cube
@@ -76,6 +78,7 @@ namespace cube
         PipelineManager& GetPipelineManager() { return mPipelineManager; }
 
         TextureViewer& GetTextureViewer() { return mTextureViewer; }
+        RenderUtils& GetRenderUtils() { return mRenderUtils; }
 
         bool IsDrawInWireframe() const { return mWireframe; }
 
@@ -117,6 +120,8 @@ namespace cube
         PipelineManager mPipelineManager;
 
         EnvironmentMapping mEnvironmentMapping;
+        Tonemap mTonemap;
+        RenderUtils mRenderUtils;
 
         TextureViewer mTextureViewer;
 
@@ -134,8 +139,8 @@ namespace cube
         Uint32 mViewportHeight;
         SharedPtr<gapi::SwapChain> mSwapChain;
         SharedPtr<gapi::Texture> mCurrentBackbuffer;
-        SharedPtr<gapi::Texture> mDepthStencilTexture;
         gapi::ElementFormat mBackbufferFormat;
+        gapi::ElementFormat mColorFormat;
         gapi::ElementFormat mDepthStencilFormat;
 
         bool mIsDirectionalLightEnabled;
