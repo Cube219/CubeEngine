@@ -83,7 +83,8 @@ namespace cube
         struct DrawMeshInfo
         {
             SharedPtr<Mesh> mesh;
-            gapi::RasterizerState::FillMode fillMode = gapi::RasterizerState::FillMode::Solid;
+            gapi::RasterizerState rasterizerState;
+            gapi::DepthStencilState depthStencilState;
             ConstArrayView<WeakPtr<Material>> materials;
             Matrix model;
         };
@@ -251,6 +252,9 @@ namespace cube
         };
         State mState = State::Init;
         bool mIsInRenderPass = false;
+        Uint32 mRenderPassNumRenderTargets = 0;
+        Array<gapi::ElementFormat, gapi::MAX_NUM_RENDER_TARGETS> mRenderPassRenderTargetFormats;
+        gapi::ElementFormat mRenderPassDepthStencilFormat = gapi::ElementFormat::Unknown;
         // TODO: Group variables in each used states.
         int mRenderPassIndex = -1;
         Vector<RGTextureRTVHandle> mAttachedRTVsInRenderPass;

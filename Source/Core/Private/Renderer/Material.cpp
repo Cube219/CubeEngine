@@ -168,7 +168,7 @@ namespace cube
     {
     }
 
-    SharedPtr<GraphicsPipeline> MaterialShaderManager::GetOrCreateMaterialPipeline(SharedPtr<Material> material, const MeshMetadata& meshMeta, gapi::RasterizerState::FillMode fillMode)
+    SharedPtr<GraphicsPipeline> MaterialShaderManager::GetOrCreateMaterialPipeline(SharedPtr<Material> material, const MaterialPipelineStateInfo& stateInfo)
     {
         const Uint64 shaderHash = material->mMaterialHash;
 
@@ -245,18 +245,11 @@ namespace cube
         GraphicsPipelineInfo pipelineInfo = {
             .vertexShader = vertexShader,
             .pixelShader = pixelShader,
-            .rasterizerState = {
-                .fillMode = fillMode
-            },
-            .depthStencilState = {
-                .enableDepth = true,
-                .depthFunction = gapi::CompareFunction::Greater
-            },
-            .numRenderTargets = 1,
-            .renderTargetFormats = {
-                mRenderer.GetBackbufferFormat()
-            },
-            .depthStencilFormat = mRenderer.GetDepthStencilFormat()
+            .rasterizerState = stateInfo.rasterizerState,
+            .depthStencilState = stateInfo.depthStencilState,
+            .numRenderTargets = stateInfo.numRenderTargets,
+            .renderTargetFormats = stateInfo.renderTargetFormats,
+            .depthStencilFormat = stateInfo.depthStencilFormat
         };
         return mPipelineManager.GetOrCreateGraphicsPipeline({
             .pipelineInfo = pipelineInfo,

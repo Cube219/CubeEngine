@@ -246,6 +246,8 @@ namespace cube
             return mSubresourceRange.IsOverlap(rhs.mSubresourceRange);
         }
 
+        RGTextureHandle GetParent() const { return mRGTexture; }
+
     protected:
         friend class RGBuilder;
 

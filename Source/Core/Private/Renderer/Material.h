@@ -97,13 +97,25 @@ namespace cube
         String mDebugName;
     };
 
+    struct MaterialPipelineStateInfo
+    {
+        gapi::RasterizerState rasterizerState;
+        gapi::DepthStencilState depthStencilState;
+        Uint32 numRenderTargets = 0;
+        Array<gapi::ElementFormat, gapi::MAX_NUM_RENDER_TARGETS> renderTargetFormats;
+        gapi::ElementFormat depthStencilFormat = gapi::ElementFormat::Unknown;
+    };
+
     class MaterialShaderManager
     {
     public:
         MaterialShaderManager(Renderer& renderer, ShaderManager& shaderManager, PipelineManager& pipelineManager);
         ~MaterialShaderManager() = default;
 
-        SharedPtr<GraphicsPipeline> GetOrCreateMaterialPipeline(SharedPtr<Material> material, const MeshMetadata& meshMeta, gapi::RasterizerState::FillMode fillMode = gapi::RasterizerState::FillMode::Solid);
+        SharedPtr<GraphicsPipeline> GetOrCreateMaterialPipeline(
+            SharedPtr<Material> material,
+            const MaterialPipelineStateInfo& stateInfo
+        );
 
         void ClearMaterialShaderCaches();
 

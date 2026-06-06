@@ -443,6 +443,14 @@ namespace cube
                     commandList.SetPrimitiveTopology(gapi::PrimitiveTopology::TriangleList);
                 });
 
+                const gapi::RasterizerState mainPassRasterizerState = {
+                    .fillMode = fillMode
+                };
+                const gapi::DepthStencilState mainPassDepthStencilState = {
+                    .enableDepth = true,
+                    .depthFunction = gapi::CompareFunction::Greater
+                };
+
                 if (mScene)
                 {
                     FrameVector<RGBuilder::DrawMeshInfo> drawMeshInfos;
@@ -452,7 +460,8 @@ namespace cube
                         {
                             drawMeshInfos.push_back({
                                 .mesh = mesh,
-                                .fillMode = fillMode,
+                                .rasterizerState = mainPassRasterizerState,
+                                .depthStencilState = mainPassDepthStencilState,
                                 .materials = sceneObject->GetMaterials(),
                                 .model = sceneObject->GetModelMatrix() * mModelMatrix
                             });
@@ -468,21 +477,24 @@ namespace cube
                     WeakPtr<Material> xAxisMaterial = mXAxisMaterial;
                     drawAxisMeshInfos.push_back({
                         .mesh = mBoxMesh,
-                        .fillMode = fillMode,
+                        .rasterizerState = mainPassRasterizerState,
+                        .depthStencilState = mainPassDepthStencilState,
                         .materials = { &xAxisMaterial, 1 },
                         .model = mXAxisModelMatrix,
                     });
                     WeakPtr<Material> yAxisMaterial = mYAxisMaterial;
                     drawAxisMeshInfos.push_back({
                         .mesh = mBoxMesh,
-                        .fillMode = fillMode,
+                        .rasterizerState = mainPassRasterizerState,
+                        .depthStencilState = mainPassDepthStencilState,
                         .materials = { &yAxisMaterial, 1 },
                         .model = mYAxisModelMatrix
                     });
                     WeakPtr<Material> zAxisMaterial = mZAxisMaterial;
                     drawAxisMeshInfos.push_back({
                         .mesh = mBoxMesh,
-                        .fillMode = fillMode,
+                        .rasterizerState = mainPassRasterizerState,
+                        .depthStencilState = mainPassDepthStencilState,
                         .materials = { &zAxisMaterial, 1 },
                         .model = mZAxisModelMatrix
                     });

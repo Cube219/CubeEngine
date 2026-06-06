@@ -450,6 +450,21 @@ namespace cube
         CHECK(mState == State::Init);
         CHECK(!mIsInRenderPass);
 
+        CHECK(info.colors.size() <= gapi::MAX_NUM_RENDER_TARGETS);
+        mRenderPassNumRenderTargets = static_cast<Uint32>(info.colors.size());
+        for (Uint32 i = 0; i < mRenderPassNumRenderTargets; ++i)
+        {
+            mRenderPassRenderTargetFormats[i] = info.colors[i].color->GetParent()->GetTextureInfo().format;
+        }
+        if (info.depthstencil.dsv.IsValid())
+        {
+            mRenderPassDepthStencilFormat = info.depthstencil.dsv->GetParent()->GetTextureInfo().format;
+        }
+        else
+        {
+            mRenderPassDepthStencilFormat = gapi::ElementFormat::Unknown;
+        }
+
         AddPass(CUBE_T("##BeginRenderPass"), [info](gapi::CommandList& commandList)
         {
             FrameVector<gapi::ColorAttachment> colors(info.colors.size());
@@ -501,6 +516,10 @@ namespace cube
         CHECK(mState == State::Init);
         CHECK(mIsInRenderPass);
 
+        mRenderPassNumRenderTargets = 0;
+        mRenderPassRenderTargetFormats.fill(gapi::ElementFormat::Unknown);
+        mRenderPassDepthStencilFormat = gapi::ElementFormat::Unknown;
+
         AddPass(CUBE_T("##EndRenderPass"), [](gapi::CommandList& commandList)
         {
             commandList.EndRenderPass();
@@ -529,12 +548,21 @@ namespace cube
     void RGBuilder::AddDrawMeshPass(StringView name, ArrayView<DrawMeshInfo> drawMeshInfos, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists)
     {
         CHECK(mState == State::Init);
+        CHECK(mIsInRenderPass);
+
+        MaterialPipelineStateInfo materialStateInfo = {};
+        materialStateInfo.numRenderTargets = mRenderPassNumRenderTargets;
+        materialStateInfo.renderTargetFormats = mRenderPassRenderTargetFormats;
+        materialStateInfo.depthStencilFormat = mRenderPassDepthStencilFormat;
 
         FrameVector<RGShaderParameterListBaseHandle> paramListArray(3);
         paramListArray.insert(paramListArray.end(), parameterLists.begin(), parameterLists.end());
 
         for (const DrawMeshInfo& drawMeshInfo : drawMeshInfos)
         {
+            materialStateInfo.rasterizerState = drawMeshInfo.rasterizerState;
+            materialStateInfo.depthStencilState = drawMeshInfo.depthStencilState;
+
             const MeshMetadata& meshMeta = drawMeshInfo.mesh->GetMeta();
 
             RGBufferHandle rgVertexBuffer = RegisterBuffer(drawMeshInfo.mesh->GetVertexBuffer());
@@ -568,7 +596,7 @@ namespace cube
                 {
                     material = mRenderer.GetDefaultMaterial();
                 }
-                SharedPtr<GraphicsPipeline> pipeline = mRenderer.GetShaderManager().GetMaterialShaderManager().GetOrCreateMaterialPipeline(material, meshMeta, drawMeshInfo.fillMode);
+                SharedPtr<GraphicsPipeline> pipeline = mRenderer.GetShaderManager().GetMaterialShaderManager().GetOrCreateMaterialPipeline(material, materialStateInfo);
                 RGShaderParameterListHandle<MaterialShaderParameterList> materialShaderParameterList = material->GenerateShaderParameterList(*this);
                 paramListArray[1] = materialShaderParameterList;
 
