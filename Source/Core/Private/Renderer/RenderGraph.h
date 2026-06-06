@@ -51,10 +51,10 @@ namespace cube
             SharedPtr<ShaderParameterListType> parameterList = shaderParameterListManager.CreateShaderParameterList<ShaderParameterListType>();
             const ShaderParameterListInfo& parameterListInfo = ShaderParameterListManager::GetShaderParameterListInfo<ShaderParameterListType>();
 
-            RGShaderParameterList<ShaderParameterListType>* rgParameterList = new RGShaderParameterList<ShaderParameterListType>(mResources.size(), parameterList, parameterListInfo);
+            RGShaderParameterListHandle<ShaderParameterListType> rgParameterList(new RGShaderParameterList<ShaderParameterListType>(mResources.size(), parameterList, parameterListInfo));
             mResources.push_back(rgParameterList);
 
-            return RGShaderParameterListHandle<ShaderParameterListType>(rgParameterList);
+            return rgParameterList;
         }
 
         // TODO: Automatically collect attachments before executing.
@@ -230,14 +230,14 @@ namespace cube
         int mCurrentPassIndex = -1;
         PassInfo mLastPass;
 
-        Vector<RGResource*> mResources;
+        Vector<RGResourceHandle> mResources;
         Map<gapi::Buffer*, RGBufferHandle> mRegisteredBuffers;
         Map<gapi::Texture*, RGTextureHandle> mRegisteredTextures;
 
         // Caches to avoid creating duplicated views with the same parameters.
         // The view type is encoded into the cache key, so each base map can hold every view kind.
-        HashMap<Uint64, RGBufferView*> mCachedBufferViews;
-        HashMap<Uint64, RGTextureView*> mCachedTextureViews;
+        HashMap<Uint64, RGBufferViewHandle> mCachedBufferViews;
+        HashMap<Uint64, RGTextureViewHandle> mCachedTextureViews;
         RGTextureSRVHandle mDummyBlackTexture2D;
         RGTextureSRVHandle mDummyBlackTextureCube;
         RGTextureSRVHandle mDummyWhiteTexture2D;

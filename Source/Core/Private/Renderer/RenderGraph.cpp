@@ -57,7 +57,7 @@ namespace cube
         return HashCombine((Uint64)type, GetIndex(), (Uint64)format, firstElement, numElements);
     }
 
-    RGBufferView::RGBufferView(int index, RGBuffer* rgBuffer, RGViewType type, gapi::ElementFormat format, Uint64 firstElement, Uint64 numElements)
+    RGBufferView::RGBufferView(int index, RGBufferHandle rgBuffer, RGViewType type, gapi::ElementFormat format, Uint64 firstElement, Uint64 numElements)
         : RGResource(index, rgBuffer->GetDebugName())
         , mRGBuffer(rgBuffer)
         , mType(type)
@@ -83,7 +83,7 @@ namespace cube
         }
     }
 
-    RGBufferSRV::RGBufferSRV(int index, RGBuffer* rgBuffer, const gapi::BufferSRVCreateInfo& createInfo)
+    RGBufferSRV::RGBufferSRV(int index, RGBufferHandle rgBuffer, const gapi::BufferSRVCreateInfo& createInfo)
         : RGBufferView(index, rgBuffer, RGViewType::SRV, createInfo.typedFormat, createInfo.firstElement, createInfo.numElements)
     {
     }
@@ -102,7 +102,7 @@ namespace cube
         }
     }
 
-    RGBufferUAV::RGBufferUAV(int index, RGBuffer* rgBuffer, const gapi::BufferUAVCreateInfo& createInfo)
+    RGBufferUAV::RGBufferUAV(int index, RGBufferHandle rgBuffer, const gapi::BufferUAVCreateInfo& createInfo)
         : RGBufferView(index, rgBuffer, RGViewType::UAV, createInfo.typedFormat, createInfo.firstElement, createInfo.numElements)
     {
     }
@@ -147,7 +147,7 @@ namespace cube
         CHECK_FORMAT(!mIsTransient, "Cannot register transient texture!");
     }
 
-    RGTextureView::RGTextureView(int index, RGTexture* rgTexture, RGViewType type, const gapi::SubresourceRangeInput& subresourceRange)
+    RGTextureView::RGTextureView(int index, RGTextureHandle rgTexture, RGViewType type, const gapi::SubresourceRangeInput& subresourceRange)
         : RGResource(index, rgTexture->GetDebugName())
         , mRGTexture(rgTexture)
         , mType(type)
@@ -168,7 +168,7 @@ namespace cube
         }
     }
 
-    RGTextureSRV::RGTextureSRV(int index, RGTexture* rgTexture, const gapi::TextureSRVCreateInfo& createInfo)
+    RGTextureSRV::RGTextureSRV(int index, RGTextureHandle rgTexture, const gapi::TextureSRVCreateInfo& createInfo)
         : RGTextureView(index, rgTexture, RGViewType::SRV, createInfo.subresourceRange)
         , mCreateInfo(createInfo)
     {
@@ -185,7 +185,7 @@ namespace cube
         }
     }
 
-    RGTextureUAV::RGTextureUAV(int index, RGTexture* rgTexture, const gapi::TextureUAVCreateInfo& createInfo)
+    RGTextureUAV::RGTextureUAV(int index, RGTextureHandle rgTexture, const gapi::TextureUAVCreateInfo& createInfo)
         : RGTextureView(index, rgTexture, RGViewType::UAV, [range = createInfo.subresourceRange]{
             // A UAV always targets a single mip level.
             gapi::SubresourceRangeInput uavRange = range;
@@ -207,7 +207,7 @@ namespace cube
         }
     }
 
-    RGTextureRTV::RGTextureRTV(int index, RGTexture* rgTexture, const gapi::TextureRTVCreateInfo& createInfo)
+    RGTextureRTV::RGTextureRTV(int index, RGTextureHandle rgTexture, const gapi::TextureRTVCreateInfo& createInfo)
         : RGTextureView(index, rgTexture, RGViewType::RTV, [range = createInfo.subresourceRange]{
             // An RTV always targets a single mip level.
             gapi::SubresourceRangeInput rtvRange = range;
@@ -229,7 +229,7 @@ namespace cube
         }
     }
 
-    RGTextureDSV::RGTextureDSV(int index, RGTexture* rgTexture, const gapi::TextureDSVCreateInfo& createInfo)
+    RGTextureDSV::RGTextureDSV(int index, RGTextureHandle rgTexture, const gapi::TextureDSVCreateInfo& createInfo)
         : RGTextureView(index, rgTexture, RGViewType::DSV, [range = createInfo.subresourceRange]{
             // A DSV always targets a single mip level.
             gapi::SubresourceRangeInput dsvRange = range;
@@ -266,20 +266,20 @@ namespace cube
             return findIt->second;
         }
 
-        RGBuffer* rgBuffer = new RGBuffer(mResources.size(), buffer);
+        RGBufferHandle rgBuffer(new RGBuffer(mResources.size(), buffer));
         mResources.push_back(rgBuffer);
 
-        mRegisteredBuffers.insert({ buffer.get(), RGBufferHandle(rgBuffer) });
+        mRegisteredBuffers.insert({ buffer.get(), rgBuffer });
 
-        return RGBufferHandle(rgBuffer);
+        return rgBuffer;
     }
 
     RGBufferHandle RGBuilder::CreateBuffer(const gapi::BufferInfo& bufferInfo, StringView debugName)
     {
-        RGBuffer* rgBuffer = new RGBuffer(mResources.size(), bufferInfo, debugName);
+        RGBufferHandle rgBuffer(new RGBuffer(mResources.size(), bufferInfo, debugName));
         mResources.push_back(rgBuffer);
 
-        return RGBufferHandle(rgBuffer);
+        return rgBuffer;
     }
 
     RGBufferSRVHandle RGBuilder::CreateSRV(RGBufferHandle rgBuffer, const gapi::BufferSRVCreateInfo& createInfo)
@@ -287,15 +287,15 @@ namespace cube
         const Uint64 cacheKey = rgBuffer->CalculateViewHashKey(RGViewType::SRV, createInfo.typedFormat, createInfo.firstElement, createInfo.numElements);
         if (auto findIt = mCachedBufferViews.find(cacheKey); findIt != mCachedBufferViews.end())
         {
-            return RGBufferSRVHandle(static_cast<RGBufferSRV*>(findIt->second));
+            return findIt->second.Cast<RGBufferSRV>();
         }
 
-        RGBufferSRV* rgSRV = new RGBufferSRV(mResources.size(), rgBuffer.mResource, createInfo);
+        RGBufferSRVHandle rgSRV(new RGBufferSRV(mResources.size(), rgBuffer, createInfo));
         mResources.push_back(rgSRV);
         CHECK(cacheKey == rgSRV->GetViewHashKey());
         mCachedBufferViews.insert({ cacheKey, rgSRV });
 
-        return RGBufferSRVHandle(rgSRV);
+        return rgSRV;
     }
 
     RGBufferUAVHandle RGBuilder::CreateUAV(RGBufferHandle rgBuffer, const gapi::BufferUAVCreateInfo& createInfo)
@@ -303,15 +303,15 @@ namespace cube
         const Uint64 cacheKey = rgBuffer->CalculateViewHashKey(RGViewType::UAV, createInfo.typedFormat, createInfo.firstElement, createInfo.numElements);
         if (auto findIt = mCachedBufferViews.find(cacheKey); findIt != mCachedBufferViews.end())
         {
-            return RGBufferUAVHandle(static_cast<RGBufferUAV*>(findIt->second));
+            return findIt->second.Cast<RGBufferUAV>();
         }
 
-        RGBufferUAV* rgUAV = new RGBufferUAV(mResources.size(), rgBuffer.mResource, createInfo);
+        RGBufferUAVHandle rgUAV(new RGBufferUAV(mResources.size(), rgBuffer, createInfo));
         mResources.push_back(rgUAV);
         CHECK(cacheKey == rgUAV->GetViewHashKey());
         mCachedBufferViews.insert({ cacheKey, rgUAV });
 
-        return RGBufferUAVHandle(rgUAV);
+        return rgUAV;
     }
 
     RGTextureHandle RGBuilder::RegisterTexture(SharedPtr<gapi::Texture> texture)
@@ -323,20 +323,20 @@ namespace cube
             return findIt->second;
         }
 
-        RGTexture* rgTexture = new RGTexture(mResources.size(), texture);
+        RGTextureHandle rgTexture(new RGTexture(mResources.size(), texture));
         mResources.push_back(rgTexture);
 
-        mRegisteredTextures.insert({ texture.get(), RGTextureHandle(rgTexture) });
+        mRegisteredTextures.insert({ texture.get(), rgTexture });
 
-        return RGTextureHandle(rgTexture);
+        return rgTexture;
     }
 
     RGTextureHandle RGBuilder::CreateTexture(const gapi::TextureInfo& textureInfo, StringView debugName)
     {
-        RGTexture* rgTexture = new RGTexture(mResources.size(), textureInfo, debugName);
+        RGTextureHandle rgTexture(new RGTexture(mResources.size(), textureInfo, debugName));
         mResources.push_back(rgTexture);
 
-        return RGTextureHandle(rgTexture);
+        return rgTexture;
     }
 
     RGTextureSRVHandle RGBuilder::CreateSRV(RGTextureHandle rgTexture, const gapi::TextureSRVCreateInfo& createInfo)
@@ -344,15 +344,15 @@ namespace cube
         const Uint64 cacheKey = rgTexture->CalculateViewHashKey(RGViewType::SRV, createInfo.subresourceRange);
         if (auto findIt = mCachedTextureViews.find(cacheKey); findIt != mCachedTextureViews.end())
         {
-            return RGTextureSRVHandle(static_cast<RGTextureSRV*>(findIt->second));
+            return findIt->second.Cast<RGTextureSRV>();
         }
 
-        RGTextureSRV* rgSRV = new RGTextureSRV(mResources.size(), rgTexture.mResource, createInfo);
+        RGTextureSRVHandle rgSRV(new RGTextureSRV(mResources.size(), rgTexture, createInfo));
         mResources.push_back(rgSRV);
         CHECK(cacheKey == rgSRV->GetViewHashKey());
         mCachedTextureViews.insert({ cacheKey, rgSRV });
 
-        return RGTextureSRVHandle(rgSRV);
+        return rgSRV;
     }
 
     RGTextureUAVHandle RGBuilder::CreateUAV(RGTextureHandle rgTexture, const gapi::TextureUAVCreateInfo& createInfo)
@@ -363,15 +363,15 @@ namespace cube
         const Uint64 cacheKey = rgTexture->CalculateViewHashKey(RGViewType::UAV, uavRange);
         if (auto findIt = mCachedTextureViews.find(cacheKey); findIt != mCachedTextureViews.end())
         {
-            return RGTextureUAVHandle(static_cast<RGTextureUAV*>(findIt->second));
+            return findIt->second.Cast<RGTextureUAV>();
         }
 
-        RGTextureUAV* rgUAV = new RGTextureUAV(mResources.size(), rgTexture.mResource, createInfo);
+        RGTextureUAVHandle rgUAV(new RGTextureUAV(mResources.size(), rgTexture, createInfo));
         mResources.push_back(rgUAV);
         CHECK(cacheKey == rgUAV->GetViewHashKey());
         mCachedTextureViews.insert({ cacheKey, rgUAV });
 
-        return RGTextureUAVHandle(rgUAV);
+        return rgUAV;
     }
 
     RGTextureRTVHandle RGBuilder::CreateRTV(RGTextureHandle rgTexture, const gapi::TextureRTVCreateInfo& createInfo)
@@ -382,15 +382,15 @@ namespace cube
         const Uint64 cacheKey = rgTexture->CalculateViewHashKey(RGViewType::RTV, rtvRange);
         if (auto findIt = mCachedTextureViews.find(cacheKey); findIt != mCachedTextureViews.end())
         {
-            return RGTextureRTVHandle(static_cast<RGTextureRTV*>(findIt->second));
+            return findIt->second.Cast<RGTextureRTV>();
         }
 
-        RGTextureRTV* rgRTV = new RGTextureRTV(mResources.size(), rgTexture.mResource, createInfo);
+        RGTextureRTVHandle rgRTV(new RGTextureRTV(mResources.size(), rgTexture, createInfo));
         mResources.push_back(rgRTV);
         CHECK(cacheKey == rgRTV->GetViewHashKey());
         mCachedTextureViews.insert({ cacheKey, rgRTV });
 
-        return RGTextureRTVHandle(rgRTV);
+        return rgRTV;
     }
 
     RGTextureDSVHandle RGBuilder::CreateDSV(RGTextureHandle rgTexture, const gapi::TextureDSVCreateInfo& createInfo)
@@ -401,15 +401,15 @@ namespace cube
         const Uint64 cacheKey = rgTexture->CalculateViewHashKey(RGViewType::DSV, dsvRange);
         if (auto findIt = mCachedTextureViews.find(cacheKey); findIt != mCachedTextureViews.end())
         {
-            return RGTextureDSVHandle(static_cast<RGTextureDSV*>(findIt->second));
+            return findIt->second.Cast<RGTextureDSV>();
         }
 
-        RGTextureDSV* rgDSV = new RGTextureDSV(mResources.size(), rgTexture.mResource, createInfo);
+        RGTextureDSVHandle rgDSV(new RGTextureDSV(mResources.size(), rgTexture, createInfo));
         mResources.push_back(rgDSV);
         CHECK(cacheKey == rgDSV->GetViewHashKey());
         mCachedTextureViews.insert({ cacheKey, rgDSV });
 
-        return RGTextureDSVHandle(rgDSV);
+        return rgDSV;
     }
 
     RGTextureSRVHandle RGBuilder::GetDummyBlackTexture2D()
@@ -860,20 +860,20 @@ namespace cube
         {
             for (const PassInfo::ResourceUseInfo& resourceUseInfo : pass.resourceUseInfos)
             {
-                RGResource* rgResource = mResources[resourceUseInfo.rgResourceIndex];
-                if (RGTextureSRV* rgSRV = dynamic_cast<RGTextureSRV*>(rgResource))
+                RGResourceHandle rgResource = mResources[resourceUseInfo.rgResourceIndex];
+                if (RGTextureSRVHandle rgSRV = rgResource.Cast<RGTextureSRV>(); rgSRV.IsValid())
                 {
                     commandList.UseResource(rgSRV->GetSRV());
                 }
-                else if (RGTextureUAV* rgUAV = dynamic_cast<RGTextureUAV*>(rgResource))
+                else if (RGTextureUAVHandle rgUAV = rgResource.Cast<RGTextureUAV>(); rgUAV.IsValid())
                 {
                     commandList.UseResource(rgUAV->GetUAV());
                 }
-                else if (RGBufferSRV* rgSRV = dynamic_cast<RGBufferSRV*>(rgResource))
+                else if (RGBufferSRVHandle rgSRV = rgResource.Cast<RGBufferSRV>(); rgSRV.IsValid())
                 {
                     commandList.UseResource(rgSRV->GetSRV());
                 }
-                else if (RGBufferUAV* rgUAV = dynamic_cast<RGBufferUAV*>(rgResource))
+                else if (RGBufferUAVHandle rgUAV = rgResource.Cast<RGBufferUAV>(); rgUAV.IsValid())
                 {
                     commandList.UseResource(rgUAV->GetUAV());
                 }
@@ -948,9 +948,9 @@ namespace cube
             {
                 for (const PassInfo::ResourceUseInfo& resourceUseInfo : pass.resourceUseInfos)
                 {
-                    RGResource* resource = mResources[resourceUseInfo.rgResourceIndex];
+                    RGResourceHandle resource = mResources[resourceUseInfo.rgResourceIndex];
 
-                    if (RGTexture* rgTexture = dynamic_cast<RGTexture*>(resource))
+                    if (RGTextureHandle rgTexture = resource.Cast<RGTexture>(); rgTexture.IsValid())
                     {
                         for (RGTextureRTVHandle attachedRTV : mAttachedRTVsInRenderPass)
                         {
@@ -963,15 +963,15 @@ namespace cube
                                 "Cannot use subresource currently attached to render pass.");
                         }
                     }
-                    else if (RGTextureView* rgTextureView = dynamic_cast<RGTextureView*>(resource))
+                    else if (RGTextureViewHandle rgTextureView = resource.Cast<RGTextureView>(); rgTextureView.IsValid())
                     {
                         for (RGTextureRTVHandle attachedRTV : mAttachedRTVsInRenderPass)
                         {
-                            CHECK_FORMAT(!(attachedRTV->IsOverlap(rgTextureView)), "Cannot use subresource currently attached to render pass.");
+                            CHECK_FORMAT(!(attachedRTV->IsOverlap(*rgTextureView)), "Cannot use subresource currently attached to render pass.");
                         }
                         if (mAttachedDSVInRenderPass.IsValid())
                         {
-                            CHECK_FORMAT(!(mAttachedDSVInRenderPass->IsOverlap(rgTextureView)), "Cannot use subresource currently attached to render pass.");
+                            CHECK_FORMAT(!(mAttachedDSVInRenderPass->IsOverlap(*rgTextureView)), "Cannot use subresource currently attached to render pass.");
                         }
                     }
                 }
@@ -998,7 +998,7 @@ namespace cube
 
             for (const PassInfo::ResourceUseInfo& resourceUseInfo : pass.resourceUseInfos)
             {
-                RGResource* resource = mResources[resourceUseInfo.rgResourceIndex];
+                RGResourceHandle resource = mResources[resourceUseInfo.rgResourceIndex];
                 resource->CreateResource(gapi);
                 resource->UpdateUsePassIndex(i);
             }
@@ -1006,9 +1006,9 @@ namespace cube
         mCurrentPassIndex = -1;
 
         // All RG resources were created, so write shader parameter lists at this time.
-        for (RGResource* resource : mResources)
+        for (RGResourceHandle resource : mResources)
         {
-            if (RGShaderParameterListBase* shaderParameterList = dynamic_cast<RGShaderParameterListBase*>(resource))
+            if (RGShaderParameterListBaseHandle shaderParameterList = resource.Cast<RGShaderParameterListBase>(); shaderParameterList.IsValid())
             {
                 shaderParameterList->mParameterList->WriteAllParametersToGPUBuffer();
             }
@@ -1049,9 +1049,9 @@ namespace cube
 
             for (const PassInfo::ResourceUseInfo& resourceUseInfo : pass.resourceUseInfos)
             {
-                RGResource* resource = mResources[resourceUseInfo.rgResourceIndex];
+                RGResourceHandle resource = mResources[resourceUseInfo.rgResourceIndex];
 
-                auto TryTransitionBuffer = [&](RGBuffer* rgBuffer)
+                auto TryTransitionBuffer = [&](RGBufferHandle rgBuffer)
                 {
                     SharedPtr<gapi::Buffer> buffer = rgBuffer->mBuffer;
 
@@ -1074,7 +1074,7 @@ namespace cube
                     currentStateIt->second = resourceUseInfo.state;
                 };
 
-                auto TryTransitionTexture = [&](RGTexture* rgTexture, const gapi::SubresourceRange& subresourceRange)
+                auto TryTransitionTexture = [&](RGTextureHandle rgTexture, const gapi::SubresourceRange& subresourceRange)
                 {
                     SharedPtr<gapi::Texture> texture = rgTexture->mTexture;
 
@@ -1106,19 +1106,19 @@ namespace cube
                     }
                 };
 
-                if (RGBufferView* bufferView = dynamic_cast<RGBufferView*>(resource))
+                if (RGBufferViewHandle bufferView = resource.Cast<RGBufferView>(); bufferView.IsValid())
                 {
                     TryTransitionBuffer(bufferView->mRGBuffer);
                 }
-                else if (RGBuffer* buffer = dynamic_cast<RGBuffer*>(resource))
+                else if (RGBufferHandle buffer = resource.Cast<RGBuffer>(); buffer.IsValid())
                 {
                     TryTransitionBuffer(buffer);
                 }
-                else if (RGTextureView* textureView = dynamic_cast<RGTextureView*>(resource))
+                else if (RGTextureViewHandle textureView = resource.Cast<RGTextureView>(); textureView.IsValid())
                 {
                     TryTransitionTexture(textureView->mRGTexture, textureView->GetSubresourceRange());
                 }
-                else if (RGTexture* texture = dynamic_cast<RGTexture*>(resource))
+                else if (RGTextureHandle texture = resource.Cast<RGTexture>(); texture.IsValid())
                 {
                     TryTransitionTexture(texture, resourceUseInfo.subresourceRange);
                 }
@@ -1165,9 +1165,9 @@ namespace cube
         mRegisteredBuffers.clear();
         mCachedBufferViews.clear();
         mCachedTextureViews.clear();
-        for (RGResource* resource : mResources)
+        for (RGResourceHandle resource : mResources)
         {
-            delete resource;
+            delete resource.mResource;
         }
         mResources.clear();
 

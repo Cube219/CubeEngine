@@ -57,6 +57,10 @@ namespace cube
         RGResourceHandler() = default;
 
         RGResourceType* operator->() const { return mResource; }
+        RGResourceType& operator*() const { return *mResource; }
+
+        bool operator==(const RGResourceHandler& rhs) const { return mResource == rhs.mResource; }
+        bool operator!=(const RGResourceHandler& rhs) const { return mResource != rhs.mResource; }
 
         template <typename RGResourceUpcastType>
             requires std::derived_from<RGResourceType, RGResourceUpcastType> && std::derived_from<RGResourceUpcastType, RGResource>
@@ -88,6 +92,7 @@ namespace cube
 
         RGResourceType* mResource = nullptr;
     };
+    using RGResourceHandle = RGResourceHandler<RGResource>;
 
     // ===== Buffer =====
 
@@ -132,10 +137,10 @@ namespace cube
     protected:
         friend class RGBuilder;
 
-        RGBufferView(int index, RGBuffer* rgBuffer, RGViewType type, gapi::ElementFormat format, Uint64 firstElement, Uint64 numElements);
+        RGBufferView(int index, RGBufferHandle rgBuffer, RGViewType type, gapi::ElementFormat format, Uint64 firstElement, Uint64 numElements);
         virtual ~RGBufferView() = default;
 
-        RGBuffer* mRGBuffer;
+        RGBufferHandle mRGBuffer;
 
         RGViewType mType;
         gapi::ElementFormat mFormat;
@@ -156,7 +161,7 @@ namespace cube
     private:
         friend class RGBuilder;
 
-        RGBufferSRV(int index, RGBuffer* rgBuffer, const gapi::BufferSRVCreateInfo& createInfo);
+        RGBufferSRV(int index, RGBufferHandle rgBuffer, const gapi::BufferSRVCreateInfo& createInfo);
         virtual ~RGBufferSRV() = default;
 
         SharedPtr<gapi::BufferSRV> mSRV;
@@ -174,7 +179,7 @@ namespace cube
     private:
         friend class RGBuilder;
 
-        RGBufferUAV(int index, RGBuffer* rgBuffer, const gapi::BufferUAVCreateInfo& createInfo);
+        RGBufferUAV(int index, RGBufferHandle rgBuffer, const gapi::BufferUAVCreateInfo& createInfo);
         virtual ~RGBufferUAV() = default;
 
         SharedPtr<gapi::BufferUAV> mUAV;
@@ -232,22 +237,22 @@ namespace cube
             return mViewHashKey;
         }
 
-        bool IsOverlap(RGTextureView* rhs) const
+        bool IsOverlap(const RGTextureView& rhs) const
         {
-            if (mRGTexture != rhs->mRGTexture)
+            if (mRGTexture != rhs.mRGTexture)
             {
                 return false;
             }
-            return mSubresourceRange.IsOverlap(rhs->mSubresourceRange);
+            return mSubresourceRange.IsOverlap(rhs.mSubresourceRange);
         }
 
     protected:
         friend class RGBuilder;
 
-        RGTextureView(int index, RGTexture* rgTexture, RGViewType type, const gapi::SubresourceRangeInput& subresourceRange);
+        RGTextureView(int index, RGTextureHandle rgTexture, RGViewType type, const gapi::SubresourceRangeInput& subresourceRange);
         virtual ~RGTextureView() = default;
 
-        RGTexture* mRGTexture;
+        RGTextureHandle mRGTexture;
         RGViewType mType;
         gapi::SubresourceRange mSubresourceRange;
         Uint64 mViewHashKey;
@@ -265,7 +270,7 @@ namespace cube
     private:
         friend class RGBuilder;
 
-        RGTextureSRV(int index, RGTexture* rgTexture, const gapi::TextureSRVCreateInfo& createInfo);
+        RGTextureSRV(int index, RGTextureHandle rgTexture, const gapi::TextureSRVCreateInfo& createInfo);
         virtual ~RGTextureSRV() = default;
 
         gapi::TextureSRVCreateInfo mCreateInfo;
@@ -284,7 +289,7 @@ namespace cube
     private:
         friend class RGBuilder;
 
-        RGTextureUAV(int index, RGTexture* rgTexture, const gapi::TextureUAVCreateInfo& createInfo);
+        RGTextureUAV(int index, RGTextureHandle rgTexture, const gapi::TextureUAVCreateInfo& createInfo);
         virtual ~RGTextureUAV() = default;
 
         gapi::TextureUAVCreateInfo mCreateInfo;
@@ -303,7 +308,7 @@ namespace cube
     private:
         friend class RGBuilder;
 
-        RGTextureRTV(int index, RGTexture* rgTexture, const gapi::TextureRTVCreateInfo& createInfo);
+        RGTextureRTV(int index, RGTextureHandle rgTexture, const gapi::TextureRTVCreateInfo& createInfo);
         virtual ~RGTextureRTV() = default;
 
         gapi::TextureRTVCreateInfo mCreateInfo;
@@ -322,7 +327,7 @@ namespace cube
     private:
         friend class RGBuilder;
 
-        RGTextureDSV(int index, RGTexture* rgTexture, const gapi::TextureDSVCreateInfo& createInfo);
+        RGTextureDSV(int index, RGTextureHandle rgTexture, const gapi::TextureDSVCreateInfo& createInfo);
         virtual ~RGTextureDSV() = default;
 
         gapi::TextureDSVCreateInfo mCreateInfo;
