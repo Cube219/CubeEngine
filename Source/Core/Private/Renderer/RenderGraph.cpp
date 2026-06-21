@@ -1114,9 +1114,17 @@ namespace cube
         {
             SharedPtr<gapi::Buffer> buffer;
             bool isRegisteredBuffer;
-            bool operator<(const BufferKey& rhs) const
+            
+            bool operator==(const BufferKey& rhs) const
             {
-                return buffer < rhs.buffer;
+                return buffer == rhs.buffer;
+            }
+        };
+        struct BufferKeyHash
+        {
+            size_t operator()(const BufferKey& key) const
+            {
+                return (size_t)key.buffer.get();
             }
         };
         struct BufferPendingBarrier
@@ -1153,16 +1161,34 @@ namespace cube
                 firstPassIndex = newPassIndex;
             }
         };
-        FrameMap<BufferKey, BufferPendingBarrier> currentBufferPendingBarriers;
+        FrameHashMap<BufferKey, BufferPendingBarrier, BufferKeyHash> currentBufferPendingBarriers;
 
         struct SubresourceKey
         {
             SharedPtr<gapi::Texture> texture;
             Uint32 subresourceIndex;
             bool isRegisteredTexture;
-            bool operator<(const SubresourceKey& rhs) const
+
+            Uint64 hash;
+
+            SubresourceKey(SharedPtr<gapi::Texture> inTexture, Uint32 inSubresourceIndex, bool inIsRegisteredTexture)
+                : texture(inTexture)
+                , subresourceIndex(inSubresourceIndex)
+                , isRegisteredTexture(inIsRegisteredTexture)
             {
-                return (texture == rhs.texture) ? subresourceIndex < rhs.subresourceIndex : texture < rhs.texture;
+                hash = HashCombine((Uint64)texture.get(), subresourceIndex, inIsRegisteredTexture);
+            }
+
+            bool operator==(const SubresourceKey& rhs) const
+            {
+                return hash == rhs.hash;
+            }
+        };
+        struct SubresourceKeyHash
+        {
+            size_t operator()(const SubresourceKey& key) const
+            {
+                return key.hash;
             }
         };
         struct SubresourcePendingBarrier
@@ -1205,7 +1231,7 @@ namespace cube
                 firstPassIndex = newPassIndex;
             }
         };
-        FrameMap<SubresourceKey, SubresourcePendingBarrier> currentSubresourcePendingBarriers;
+        FrameHashMap<SubresourceKey, SubresourcePendingBarrier, SubresourceKeyHash> currentSubresourcePendingBarriers;
 
         const int numPasses = static_cast<int>(mPasses.size());
         for (int i = 0; i < numPasses; ++i)

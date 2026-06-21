@@ -176,6 +176,6 @@ namespace cube
     template <typename Key, typename Value>
     using FrameMultiMap = std::multimap<Key, Value, std::less<Key>, FrameAllocator::StdAllocator<std::pair<const Key, Value>>>;
 
-    template <typename Key, typename Value>
-    using FrameHashMap = std::unordered_map<Key, Value, std::hash<Key>, std::equal_to<Key>, FrameAllocator::StdAllocator<std::pair<const Key, Value>>>;
+    template <typename Key, typename Value, typename Hash = std::hash<Key>, typename KeyEqual = std::equal_to<Key>>
+    using FrameHashMap = std::unordered_map<Key, Value, Hash, KeyEqual, FrameAllocator::StdAllocator<std::pair<const Key, Value>>>;
 } // namespace cube

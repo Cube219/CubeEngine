@@ -193,42 +193,6 @@ namespace cube
     {
         const Uint64 shaderHash = material->GetMaterialHash();
 
-        // Generate material shader codes
-        FrameString getMaterialShaderCode = Format<FrameString>(
-            CUBE_T("MaterialValue GetMaterialValue(MaterialShaderParameterList materialData, PSInput input)\n")
-            CUBE_T("{{\n")
-            CUBE_T("    MaterialValue value = {{}};\n")
-            CUBE_T("\n")
-            CUBE_T("    {0}")
-            CUBE_T("\n")
-            CUBE_T("    return value;\n")
-            CUBE_T("}}\n"),
-            material->mChannelMappingCode
-        );
-
-        FrameString additionalImports;
-        for (const String& additionalModule : material->mAdditionalModules)
-        {
-            additionalImports.append(Format<FrameString>(CUBE_T("\nimport {0};"), additionalModule));
-        }
-
-        FrameString materialShaderCode = Format<FrameString>(
-            CUBE_T("import MainInterface;\n")
-            CUBE_T("import Material;\n")
-            CUBE_T("{0}\n")
-            CUBE_T("\n")
-            CUBE_T("export struct Material : IMaterial\n")
-            CUBE_T("{{\n")
-            CUBE_T("\n")
-            CUBE_T("{1}\n")
-            CUBE_T("\n")
-            CUBE_T("}}\n"),
-
-            additionalImports,
-            getMaterialShaderCode
-        );
-
-        // Create shaders
         gapi::PreprocessorDefine pbrDefine = { "MATERIAL_PBR", "1" };
         ArrayView<gapi::PreprocessorDefine> shaderDefines;
         if (material->mIsPBR)
@@ -254,6 +218,40 @@ namespace cube
         SharedPtr<Shader>& pixelShader = mMaterialPixelShaders[shaderHash];
         if (!pixelShader)
         {
+            FrameString getMaterialShaderCode = Format<FrameString>(
+                CUBE_T("MaterialValue GetMaterialValue(MaterialShaderParameterList materialData, PSInput input)\n")
+                CUBE_T("{{\n")
+                CUBE_T("    MaterialValue value = {{}};\n")
+                CUBE_T("\n")
+                CUBE_T("    {0}")
+                CUBE_T("\n")
+                CUBE_T("    return value;\n")
+                CUBE_T("}}\n"),
+                material->mChannelMappingCode
+            );
+
+            FrameString additionalImports;
+            for (const String& additionalModule : material->mAdditionalModules)
+            {
+                additionalImports.append(Format<FrameString>(CUBE_T("\nimport {0};"), additionalModule));
+            }
+
+            FrameString materialShaderCode = Format<FrameString>(
+                CUBE_T("import MainInterface;\n")
+                CUBE_T("import Material;\n")
+                CUBE_T("{0}\n")
+                CUBE_T("\n")
+                CUBE_T("export struct Material : IMaterial\n")
+                CUBE_T("{{\n")
+                CUBE_T("\n")
+                CUBE_T("{1}\n")
+                CUBE_T("\n")
+                CUBE_T("}}\n"),
+
+                additionalImports,
+                getMaterialShaderCode
+            );
+
             // Currently dynamic linkage is used in pixel shader only
             platform::FilePath pixelShaderFilePath = Engine::GetShaderDirectoryPath() / CUBE_T("Main.slang");
 
