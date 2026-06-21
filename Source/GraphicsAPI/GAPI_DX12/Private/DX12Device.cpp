@@ -106,6 +106,12 @@ namespace cube
             CUBE_LOG(Info, DX12, "Device {0} supports tight alignment. (Tier: {1})", WindowsStringView(mAdapterDesc.Description), (int)mFeatureSupport.TightAlignmentSupportTier());
         }
 
+        if (!mFeatureSupport.EnhancedBarriersSupported())
+        {
+            CUBE_LOG(Info, DX12, "Device {0} does not support Enhanced Barriers, which is required.", WindowsStringView(mAdapterDesc.Description));
+            res = false;
+        }
+
         return res;
     }
 

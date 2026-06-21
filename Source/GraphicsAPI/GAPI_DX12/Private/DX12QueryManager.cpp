@@ -55,7 +55,7 @@ namespace cube
         }
         if (newNumGPUSync > 0)
         {
-            const D3D12_RESOURCE_DESC bufferDesc = {
+            const D3D12_RESOURCE_DESC1 bufferDesc = {
                 .Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
                 .Alignment = 0,
                 .Width = sizeof(Uint64) * MAX_NUM_QUERY * newNumGPUSync,
@@ -67,9 +67,10 @@ namespace cube
                     .Count = 1,
                     .Quality = 0 },
                 .Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
-                .Flags = D3D12_RESOURCE_FLAG_NONE
+                .Flags = D3D12_RESOURCE_FLAG_NONE,
+                .SamplerFeedbackMipRegion = { 0, 0, 0 },
             };
-            mQueryGPUBuffer = mDevice.GetMemoryAllocator().Allocate(D3D12_HEAP_TYPE_READBACK, bufferDesc);
+            mQueryGPUBuffer = mDevice.GetMemoryAllocator().Allocate(D3D12_HEAP_TYPE_READBACK, bufferDesc, D3D12_BARRIER_LAYOUT_UNDEFINED);
             SET_DEBUG_NAME(mQueryGPUBuffer.resource, "Timestamp GPU buffer");
         }
 

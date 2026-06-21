@@ -154,48 +154,80 @@ namespace cube
     {
         if (mImGUIContext.context)
         {
-            mImGUIRenderCommandList->Reset(mMainDevice->GetCommandListManager().GetCurrentAllocator(), nullptr);
+            ImDrawData* imDrawData = ImGui::GetDrawData();
+            if (imDrawData && imDrawData->CmdListsCount > 0)
+            {
+                mImGUIRenderCommandList->Reset(mMainDevice->GetCommandListManager().GetCurrentAllocator(), nullptr);
 
-            PIXBeginEvent(mImGUIRenderCommandList.Get(), PIX_COLOR(0xff, 0xff, 0xff), "ImGui Rendering");
+                PIXBeginEvent(mImGUIRenderCommandList.Get(), PIX_COLOR(0xff, 0xff, 0xff), "ImGui Rendering");
 
-            SharedPtr<gapi::TextureRTV> backbufferRTV = backbuffer->CreateRTV({});
-            gapi::DX12TextureRTV* dx12BackbufferRTV = dynamic_cast<gapi::DX12TextureRTV*>(backbufferRTV.get());
-            CHECK(dx12BackbufferRTV);
-            D3D12_CPU_DESCRIPTOR_HANDLE currentRTVDescriptor = dx12BackbufferRTV->GetDescriptorHandle();
-            
-            // Render Dear ImGui graphics
-            D3D12_RESOURCE_BARRIER beforeBarrier = {
-                .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
-                .Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
-                .Transition = {
+                SharedPtr<gapi::TextureRTV> backbufferRTV = backbuffer->CreateRTV({});
+                gapi::DX12TextureRTV* dx12BackbufferRTV = dynamic_cast<gapi::DX12TextureRTV*>(backbufferRTV.get());
+                CHECK(dx12BackbufferRTV);
+                D3D12_CPU_DESCRIPTOR_HANDLE currentRTVDescriptor = dx12BackbufferRTV->GetDescriptorHandle();
+
+                const D3D12_TEXTURE_BARRIER beforeBarrier = {
+                    .SyncBefore = D3D12_BARRIER_SYNC_NONE,
+                    .SyncAfter = D3D12_BARRIER_SYNC_RENDER_TARGET,
+                    .AccessBefore = D3D12_BARRIER_ACCESS_NO_ACCESS,
+                    .AccessAfter = D3D12_BARRIER_ACCESS_RENDER_TARGET,
+                    .LayoutBefore = D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_COMMON,
+                    .LayoutAfter = D3D12_BARRIER_LAYOUT_RENDER_TARGET,
                     .pResource = dx12BackbufferRTV->GetDX12Texture()->GetResource(),
-                    .StateBefore = D3D12_RESOURCE_STATE_COMMON,
-                    .StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET
-                }
-            };
-            mImGUIRenderCommandList->ResourceBarrier(1, &beforeBarrier);
-            mImGUIRenderCommandList->OMSetRenderTargets(1, &currentRTVDescriptor, FALSE, nullptr);
-            ArrayView<ID3D12DescriptorHeap*> heaps = mMainDevice->GetDescriptorManager().GetD3D12ShaderVisibleHeaps();
-            mImGUIRenderCommandList->SetDescriptorHeaps(heaps.size(), heaps.data());
-            ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), mImGUIRenderCommandList.Get());
+                    .Subresources = {
+                        .IndexOrFirstMipLevel = 0,
+                        .NumMipLevels = 0,
+                        .FirstArraySlice = 0,
+                        .NumArraySlices = 0,
+                        .FirstPlane = 0,
+                        .NumPlanes = 0,
+                    },
+                    .Flags = D3D12_TEXTURE_BARRIER_FLAG_NONE,
+                };
+                const D3D12_BARRIER_GROUP beforeBarrierGroup = {
+                    .Type = D3D12_BARRIER_TYPE_TEXTURE,
+                    .NumBarriers = 1,
+                    .pTextureBarriers = &beforeBarrier
+                };
+                mImGUIRenderCommandList->Barrier(1, &beforeBarrierGroup);
 
-            D3D12_RESOURCE_BARRIER afterBarrier = {
-                .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
-                .Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
-                .Transition = {
+                mImGUIRenderCommandList->OMSetRenderTargets(1, &currentRTVDescriptor, FALSE, nullptr);
+                ArrayView<ID3D12DescriptorHeap*> heaps = mMainDevice->GetDescriptorManager().GetD3D12ShaderVisibleHeaps();
+                mImGUIRenderCommandList->SetDescriptorHeaps(heaps.size(), heaps.data());
+                ImGui_ImplDX12_RenderDrawData(imDrawData, mImGUIRenderCommandList.Get());
+
+                const D3D12_TEXTURE_BARRIER afterBarrier = {
+                    .SyncBefore = D3D12_BARRIER_SYNC_RENDER_TARGET,
+                    .SyncAfter = D3D12_BARRIER_SYNC_NONE,
+                    .AccessBefore = D3D12_BARRIER_ACCESS_RENDER_TARGET,
+                    .AccessAfter = D3D12_BARRIER_ACCESS_NO_ACCESS,
+                    .LayoutBefore = D3D12_BARRIER_LAYOUT_RENDER_TARGET,
+                    .LayoutAfter = D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_COMMON,
                     .pResource = dx12BackbufferRTV->GetDX12Texture()->GetResource(),
-                    .StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET,
-                    .StateAfter = D3D12_RESOURCE_STATE_COMMON
-                }
-            };
-            mImGUIRenderCommandList->ResourceBarrier(1, &afterBarrier);
+                    .Subresources = {
+                        .IndexOrFirstMipLevel = 0,
+                        .NumMipLevels = 0,
+                        .FirstArraySlice = 0,
+                        .NumArraySlices = 0,
+                        .FirstPlane = 0,
+                        .NumPlanes = 0,
+                    },
+                    .Flags = D3D12_TEXTURE_BARRIER_FLAG_NONE,
+                };
+                const D3D12_BARRIER_GROUP afterBarrierGroup = {
+                    .Type = D3D12_BARRIER_TYPE_TEXTURE,
+                    .NumBarriers = 1,
+                    .pTextureBarriers = &afterBarrier
+                };
+                mImGUIRenderCommandList->Barrier(1, &afterBarrierGroup);
 
-            PIXEndEvent(mImGUIRenderCommandList.Get());
+                PIXEndEvent(mImGUIRenderCommandList.Get());
 
-            mImGUIRenderCommandList->Close();
+                mImGUIRenderCommandList->Close();
 
-            ID3D12CommandList* ppCommandLists[] = { mImGUIRenderCommandList.Get() };
-            mMainDevice->GetQueueManager().GetMainQueue()->ExecuteCommandLists(1, ppCommandLists);
+                ID3D12CommandList* ppCommandLists[] = { mImGUIRenderCommandList.Get() };
+                mMainDevice->GetQueueManager().GetMainQueue()->ExecuteCommandLists(1, ppCommandLists);
+            }
         }
     }
 

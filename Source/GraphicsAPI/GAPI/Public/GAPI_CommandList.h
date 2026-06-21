@@ -78,29 +78,27 @@ namespace cube
             float clearDepth;
         };
 
-        enum class ResourceUsageFlag
-        {
-            Read = 1 << 0,
-            Write = 1 << 1
-        };
-        using ResourceUsageFlags = Flags<ResourceUsageFlag>;
-        FLAGS_OPERATOR(ResourceUsageFlag);
-
-        struct TransitionState
+        struct ResourceBarrier
         {
             enum class ResourceType
             {
                 Buffer,
-                Texture
+                Texture,
             };
             ResourceType resourceType;
 
             SharedPtr<Buffer> buffer = nullptr;
             SharedPtr<Texture> texture = nullptr;
-            Uint32 subresourceIndex = 0;
+            // < 0 : All subresources.
+            Int32 subresourceIndex = -1;
+            bool discard = false;
 
-            ResourceStateFlags src;
-            ResourceStateFlags dst;
+            ResourceSyncFlags syncSrc;
+            ResourceSyncFlags syncDst;
+            ResourceAccessFlags accessSrc;
+            ResourceAccessFlags accessDst;
+            ResourceLayout layoutSrc;
+            ResourceLayout layoutDst;
         };
 
         struct CommandListCreateInfo
@@ -136,13 +134,14 @@ namespace cube
             virtual void DrawIndexed(Uint32 numIndices, Uint32 baseIndex, Uint32 baseVertex, Uint32 numInstances = 1, Uint32 baseInstance = 0) = 0;
 
             virtual void SetConstantBuffer(Uint32 index, SharedPtr<BufferSRV> constantBuffer) = 0;
+            // TODO: Replace to ResourceBarrier.
             virtual void UseResource(SharedPtr<BufferSRV> srv) = 0;
             virtual void UseResource(SharedPtr<BufferUAV> uav) = 0;
             virtual void UseResource(SharedPtr<TextureSRV> srv) = 0;
             virtual void UseResource(SharedPtr<TextureUAV> uav) = 0;
 
-            virtual void ResourceTransition(TransitionState state) = 0;
-            virtual void ResourceTransition(ArrayView<const TransitionState> states) = 0;
+            virtual void SetResourceBarrier(ResourceBarrier barrier) = 0;
+            virtual void SetResourceBarrier(ConstArrayView<ResourceBarrier> barriers) = 0;
 
             virtual void SetComputePipeline(SharedPtr<ComputePipeline> computePipeline) = 0;
             virtual void DispatchThreads(Uint32 numThreadsX, Uint32 numThreadsY, Uint32 numThreadsZ) = 0;

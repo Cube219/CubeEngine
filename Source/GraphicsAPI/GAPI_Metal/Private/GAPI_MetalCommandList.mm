@@ -482,13 +482,13 @@ namespace cube
             UseResourceInternal(resource, MTLResourceUsageRead | MTLResourceUsageWrite);
         }
 
-        void MetalCommandList::ResourceTransition(TransitionState state)
+        void MetalCommandList::SetResourceBarrier(ResourceBarrier barrier)
         {
             CHECK(IsWriting());
             // Metal automatically translate resource state.
         }
 
-        void MetalCommandList::ResourceTransition(ArrayView<const TransitionState> states)
+        void MetalCommandList::SetResourceBarrier(ConstArrayView<ResourceBarrier> barriers)
         {
             CHECK(IsWriting());
             // Metal automatically translate resource state.

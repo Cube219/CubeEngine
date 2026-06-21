@@ -31,7 +31,10 @@ namespace cube
         RGBufferSRVHandle CreateSRV(RGBufferHandle rgBuffer, const gapi::BufferSRVCreateInfo& createInfo = {});
         RGBufferUAVHandle CreateUAV(RGBufferHandle rgBuffer, const gapi::BufferUAVCreateInfo& createInfo = {});
 
-        RGTextureHandle RegisterTexture(SharedPtr<gapi::Texture> texture);
+        RGTextureHandle RegisterTexture(SharedPtr<gapi::Texture> texture,
+            gapi::ResourceLayout srcLayout = gapi::ResourceLayout::Common,
+            gapi::ResourceLayout dstLayout = gapi::ResourceLayout::Common
+        );
         RGTextureHandle CreateTexture(const gapi::TextureInfo& textureInfo, StringView debugName);
 
         RGTextureSRVHandle CreateSRV(RGTextureHandle rgTexture, const gapi::TextureSRVCreateInfo& createInfo = {});
@@ -173,14 +176,15 @@ namespace cube
 
         void AddDrawMeshPass(StringView name, ArrayView<DrawMeshInfo> drawMeshInfos, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists);
 
-        void UseResource(RGBufferSRVHandle rgSRV);
-        void UseResource(RGBufferUAVHandle rgUAV);
-        void UseResource(RGTextureSRVHandle rgSRV);
-        void UseResource(RGTextureUAVHandle rgUAV);
+        void UseResource(RGBufferSRVHandle rgSRV, gapi::ResourceSyncFlags syncs);
+        void UseResource(RGBufferUAVHandle rgUAV, gapi::ResourceSyncFlags syncs);
+        void UseResource(RGTextureSRVHandle rgSRV, gapi::ResourceSyncFlags syncs);
+        void UseResource(RGTextureUAVHandle rgUAV, gapi::ResourceSyncFlags syncs);
         void UseResource(RGTextureRTVHandle rgRTV);
         void UseResource(RGTextureDSVHandle rgDSV);
-        void UseResource(RGTextureHandle rgTexture, gapi::SubresourceRangeInput range, gapi::ResourceStateFlags states);
+        void UseResource(RGTextureHandle rgTexture, gapi::SubresourceRangeInput range, gapi::ResourceAccessFlags access, gapi::ResourceLayout layout, gapi::ResourceSyncFlags syncs);
 
+        // TODO: Does not submit at this function.
         void ExecuteAndSubmit(gapi::CommandList& commandList, bool waitUntilFinished = false);
 
     private:
@@ -199,16 +203,21 @@ namespace cube
             PassFunction passFunction = nullptr;
             UseResourceFunction useResourceFunction = nullptr;
 
+            bool IsGraphics() const { return graphicsPipeline != nullptr; }
+            bool IsCompute() const { return computePipeline != nullptr; }
+
             // Set while executing
             struct ResourceUseInfo
             {
                 int rgResourceIndex;
-                gapi::ResourceStateFlags state;
+                gapi::ResourceSyncFlags syncs;
+                gapi::ResourceAccessFlags accesses;
+                gapi::ResourceLayout layout;
                 gapi::SubresourceRange subresourceRange;
             };
             Vector<ResourceUseInfo> resourceUseInfos;
 
-            Vector<gapi::TransitionState> transitions;
+            Vector<gapi::ResourceBarrier> barriers;
         };
 
         void BindShaderParameterListInternal(StringView name, RGShaderParameterListBaseHandle parameterList);
@@ -221,9 +230,9 @@ namespace cube
         void ResolveShaderParameterListsAndPipeline(PassInfo& pass, gapi::CommandList& commandList);
         void MarkUseResources(PassInfo& pass, gapi::CommandList& commandList);
 
-        void UpdateResourceUsages();
+        void UpdateResourceUseInfo();
         void CreateAllResources();
-        void ResolveTransitions();
+        void ResolveBarriers();
 
         void Reset();
 
@@ -235,7 +244,13 @@ namespace cube
 
         Vector<RGResourceHandle> mResources;
         Map<gapi::Buffer*, RGBufferHandle> mRegisteredBuffers;
-        Map<gapi::Texture*, RGTextureHandle> mRegisteredTextures;
+        struct RegisteredTextureInfo
+        {
+            RGTextureHandle texture;
+            gapi::ResourceLayout srcLayout;
+            gapi::ResourceLayout dstLayout;
+        };
+        Map<gapi::Texture*, RegisteredTextureInfo> mRegisteredTextureInfos;
 
         // Caches to avoid creating duplicated views with the same parameters.
         // The view type is encoded into the cache key, so each base map can hold every view kind.

@@ -29,7 +29,7 @@ namespace cube
         IDXGIAdapter1* GetAdapter() const { return mAdapter.Get(); }
         IDXGIAdapter3* GetAdapter3() const { return mAdapter3.Get(); }
         const DXGI_ADAPTER_DESC& GetAdapterDesc() const { return mAdapterDesc; }
-        ID3D12Device* GetDevice() const { return mDevice.Get(); }
+        ID3D12Device10* GetDevice() const { return mDevice.Get(); }
 
         D3D_ROOT_SIGNATURE_VERSION GetMaxRootSignatureVersion() const { return mFeatureSupport.HighestRootSignatureVersion(); }
         bool IsNonZeroInHeapCreationSupported() const { return mIsNonZeroInHeapCreationSupported; }
@@ -54,7 +54,7 @@ namespace cube
         ComPtr<IDXGIAdapter1> mAdapter;
         ComPtr<IDXGIAdapter3> mAdapter3;
         DXGI_ADAPTER_DESC mAdapterDesc;
-        ComPtr<ID3D12Device> mDevice;
+        ComPtr<ID3D12Device10> mDevice;
 
         CD3DX12FeatureSupport mFeatureSupport;
         bool mIsNonZeroInHeapCreationSupported = false;

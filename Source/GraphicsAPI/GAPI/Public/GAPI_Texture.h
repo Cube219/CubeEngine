@@ -54,6 +54,7 @@ namespace cube
         {
             ResourceUsage usage;
             TextureInfo textureInfo;
+            ResourceLayout initialLayout = ResourceLayout::Common;
 
             StringView debugName;
         };
@@ -69,6 +70,7 @@ namespace cube
             virtual ~Texture() = default;
 
             virtual void* Map() = 0;
+            // NOTE: Unmapping a GPUOnly resource will transition its layout to Common.
             virtual void Unmap() = 0;
 
             ResourceUsage GetUsage() const { return mUsage; }

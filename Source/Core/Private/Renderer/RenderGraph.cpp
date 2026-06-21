@@ -114,6 +114,7 @@ namespace cube
             mTexture = gapi.CreateTexture({
                 .usage = gapi::ResourceUsage::Transient,
                 .textureInfo = mTextureInfo,
+                .initialLayout = gapi::ResourceLayout::Undefined,
                 .debugName = mDebugName
             });
         }
@@ -314,19 +315,29 @@ namespace cube
         return rgUAV;
     }
 
-    RGTextureHandle RGBuilder::RegisterTexture(SharedPtr<gapi::Texture> texture)
+    RGTextureHandle RGBuilder::RegisterTexture(SharedPtr<gapi::Texture> texture,
+        gapi::ResourceLayout srcLayout,
+        gapi::ResourceLayout dstLayout)
     {
         CHECK(texture);
 
-        if (auto findIt = mRegisteredTextures.find(texture.get()); findIt != mRegisteredTextures.end())
+        if (auto findIt = mRegisteredTextureInfos.find(texture.get()); findIt != mRegisteredTextureInfos.end())
         {
-            return findIt->second;
+            CHECK_FORMAT(srcLayout == findIt->second.srcLayout && dstLayout == findIt->second.dstLayout, "Try to register same texture with different layout settings!");
+            return findIt->second.texture;
         }
 
         RGTextureHandle rgTexture(new RGTexture(mResources.size(), texture));
         mResources.push_back(rgTexture);
 
-        mRegisteredTextures.insert({ texture.get(), rgTexture });
+        mRegisteredTextureInfos.insert({
+            texture.get(),
+            RegisteredTextureInfo{
+                .texture = rgTexture,
+                .srcLayout = srcLayout,
+                .dstLayout = dstLayout,
+            }
+        });
 
         return rgTexture;
     }
@@ -646,47 +657,57 @@ namespace cube
         }
     }
 
-    void RGBuilder::UseResource(RGBufferSRVHandle rgSRV)
+    void RGBuilder::UseResource(RGBufferSRVHandle rgSRV, gapi::ResourceSyncFlags syncs)
     {
         CHECK(mState == State::ResourceTracking);
 
         PassInfo& pass = mPasses[mCurrentPassIndex];
         pass.resourceUseInfos.push_back({
             .rgResourceIndex = rgSRV->mIndex,
-            .state = (!pass.graphicsPipeline) ? gapi::ResourceStateFlag::SRV_NonPixel : gapi::ResourceStateFlag::SRV_Pixel
+            .syncs = syncs,
+            .accesses = gapi::ResourceAccessFlag::SRV,
+            .layout = gapi::ResourceLayout::Undefined,
         });
     }
 
-    void RGBuilder::UseResource(RGBufferUAVHandle rgUAV)
+    void RGBuilder::UseResource(RGBufferUAVHandle rgUAV, gapi::ResourceSyncFlags syncs)
     {
         CHECK(mState == State::ResourceTracking);
 
         PassInfo& pass = mPasses[mCurrentPassIndex];
         pass.resourceUseInfos.push_back({
             .rgResourceIndex = rgUAV->mIndex,
-            .state = gapi::ResourceStateFlag::UAV
+            .syncs = syncs,
+            .accesses = gapi::ResourceAccessFlag::UAV,
+            .layout = gapi::ResourceLayout::Undefined,
         });
     }
 
-    void RGBuilder::UseResource(RGTextureSRVHandle rgSRV)
+    void RGBuilder::UseResource(RGTextureSRVHandle rgSRV, gapi::ResourceSyncFlags syncs)
     {
         CHECK(mState == State::ResourceTracking);
 
         PassInfo& pass = mPasses[mCurrentPassIndex];
         pass.resourceUseInfos.push_back({
             .rgResourceIndex = rgSRV->mIndex,
-            .state = (!pass.graphicsPipeline) ? gapi::ResourceStateFlag::SRV_NonPixel : gapi::ResourceStateFlag::SRV_Pixel
+            .syncs = syncs,
+            .accesses = gapi::ResourceAccessFlag::SRV,
+            .layout = gapi::ResourceLayout::SRV_Direct,
+            .subresourceRange = rgSRV->GetSubresourceRange(),
         });
     }
 
-    void RGBuilder::UseResource(RGTextureUAVHandle rgUAV)
+    void RGBuilder::UseResource(RGTextureUAVHandle rgUAV, gapi::ResourceSyncFlags syncs)
     {
         CHECK(mState == State::ResourceTracking);
 
         PassInfo& pass = mPasses[mCurrentPassIndex];
         pass.resourceUseInfos.push_back({
             .rgResourceIndex = rgUAV->mIndex,
-            .state = gapi::ResourceStateFlag::UAV
+            .syncs = syncs,
+            .accesses = gapi::ResourceAccessFlag::UAV,
+            .layout = gapi::ResourceLayout::UAV_Direct,
+            .subresourceRange = rgUAV->GetSubresourceRange(),
         });
     }
 
@@ -697,7 +718,10 @@ namespace cube
         PassInfo& pass = mPasses[mCurrentPassIndex];
         pass.resourceUseInfos.push_back({
             .rgResourceIndex = rgRTV->mIndex,
-            .state = gapi::ResourceStateFlag::RenderTarget
+            .syncs = gapi::ResourceSyncFlag::RenderTarget,
+            .accesses = gapi::ResourceAccessFlag::RenderTarget,
+            .layout = gapi::ResourceLayout::RenderTarget,
+            .subresourceRange = rgRTV->GetSubresourceRange(),
         });
     }
 
@@ -708,11 +732,14 @@ namespace cube
         PassInfo& pass = mPasses[mCurrentPassIndex];
         pass.resourceUseInfos.push_back({
             .rgResourceIndex = rgDSV->mIndex,
-            .state = gapi::ResourceStateFlag::DepthWrite
+            .syncs = gapi::ResourceSyncFlag::DepthStencil,
+            .accesses = gapi::ResourceAccessFlag::DepthStencilWrite,
+            .layout = gapi::ResourceLayout::DepthStencilWrite,
+            .subresourceRange = rgDSV->GetSubresourceRange(),
         });
     }
 
-    void RGBuilder::UseResource(RGTextureHandle rgTexture, gapi::SubresourceRangeInput range, gapi::ResourceStateFlags states)
+    void RGBuilder::UseResource(RGTextureHandle rgTexture, gapi::SubresourceRangeInput range, gapi::ResourceAccessFlags access, gapi::ResourceLayout layout, gapi::ResourceSyncFlags syncs)
     {
         CHECK(mState == State::ResourceTracking);
         CHECK(rgTexture.IsValid());
@@ -720,8 +747,10 @@ namespace cube
         PassInfo& pass = mPasses[mCurrentPassIndex];
         pass.resourceUseInfos.push_back({
             .rgResourceIndex = rgTexture->mIndex,
-            .state = states,
-            .subresourceRange = range.Clamp(rgTexture->GetTextureInfo())
+            .syncs = syncs,
+            .accesses = access,
+            .layout = layout,
+            .subresourceRange = range.Clamp(rgTexture->GetTextureInfo()),
         });
     }
 
@@ -732,9 +761,9 @@ namespace cube
 
         mState = State::ResourceTracking;
 
-        UpdateResourceUsages();
+        UpdateResourceUseInfo();
         CreateAllResources();
-        ResolveTransitions();
+        ResolveBarriers();
 
         mState = State::Executing;
 
@@ -760,9 +789,9 @@ namespace cube
             ResolveShaderParameterListsAndPipeline(pass, commandList);
             MarkUseResources(pass, commandList);
 
-            if (!pass.transitions.empty())
+            if (!pass.barriers.empty())
             {
-                commandList.ResourceTransition(pass.transitions);
+                commandList.SetResourceBarrier(pass.barriers);
             }
 
             if (pass.passFunction)
@@ -781,7 +810,7 @@ namespace cube
             }
         }
 
-        commandList.ResourceTransition(mLastPass.transitions);
+        commandList.SetResourceBarrier(mLastPass.barriers);
 
         commandList.EndTimestamp();
 
@@ -932,7 +961,7 @@ namespace cube
         }
     }
 
-    void RGBuilder::UpdateResourceUsages()
+    void RGBuilder::UpdateResourceUseInfo()
     {
         CHECK(mState == State::ResourceTracking);
 
@@ -943,6 +972,17 @@ namespace cube
             if (pass.useResourceFunction)
             {
                 pass.useResourceFunction(*this);
+            }
+
+            gapi::ResourceSyncFlags syncs = gapi::ResourceSyncFlag::None;
+            if (pass.IsGraphics())
+            {
+                // TODO: Narrow sync flags to only the pipeline stage each shader variables actually use.
+                syncs = gapi::ResourceSyncFlag::Vertex | gapi::ResourceSyncFlag::Pixel;
+            }
+            else if (pass.IsCompute())
+            {
+                syncs = gapi::ResourceSyncFlag::Compute;
             }
 
             for (RGShaderParameterListBaseHandle& paramList : pass.shaderParameterLists)
@@ -960,7 +1000,7 @@ namespace cube
                         RGBufferSRVHandle& srv = *reinterpret_cast<RGBufferSRVHandle*>(src);
                         CHECK_FORMAT(srv.IsValid(), "Null srv in shader parameter '{0}'.", shaderParameterInfo.name);
 
-                        UseResource(srv);
+                        UseResource(srv, syncs);
                         break;
                     }
                     case ShaderParameterCPUType::RGBufferUAV:
@@ -968,7 +1008,7 @@ namespace cube
                         RGBufferUAVHandle& uav = *reinterpret_cast<RGBufferUAVHandle*>(src);
                         CHECK_FORMAT(uav.IsValid(), "Null uav in shader parameter '{0}'.", shaderParameterInfo.name);
 
-                        UseResource(uav);
+                        UseResource(uav, syncs);
                         break;
                     }
                     case ShaderParameterCPUType::RGTextureSRV:
@@ -976,7 +1016,7 @@ namespace cube
                         RGTextureSRVHandle& srv = *reinterpret_cast<RGTextureSRVHandle*>(src);
                         CHECK_FORMAT(srv.IsValid(), "Null srv in shader parameter '{0}'.", shaderParameterInfo.name);
 
-                        UseResource(srv);
+                        UseResource(srv, syncs);
                         break;
                     }
                     case ShaderParameterCPUType::RGTextureUAV:
@@ -984,7 +1024,7 @@ namespace cube
                         RGTextureUAVHandle& uav = *reinterpret_cast<RGTextureUAVHandle*>(src);
                         CHECK_FORMAT(uav.IsValid(), "Null uav in shader parameter '{0}'.", shaderParameterInfo.name);
 
-                        UseResource(uav);
+                        UseResource(uav, syncs);
                         break;
                     }
                     default:
@@ -1066,33 +1106,108 @@ namespace cube
         }
     }
 
-    void RGBuilder::ResolveTransitions()
+    void RGBuilder::ResolveBarriers()
     {
         CHECK(mState == State::ResourceTracking);
 
-        struct SubresourceKey
-        {
-            SharedPtr<gapi::Texture> texture;
-            Uint32 subresourceIndex;
-            bool needRollback;
-            bool operator<(const SubresourceKey& rhs) const
-            {
-                return (texture == rhs.texture) ? subresourceIndex < rhs.subresourceIndex : texture < rhs.texture;
-            }
-        };
-        FrameMap<SubresourceKey, gapi::ResourceStateFlags> currentSubresourceStates;
         struct BufferKey
         {
             SharedPtr<gapi::Buffer> buffer;
-            bool needRollback;
+            bool isRegisteredBuffer;
             bool operator<(const BufferKey& rhs) const
             {
                 return buffer < rhs.buffer;
             }
         };
-        FrameMap<BufferKey, gapi::ResourceStateFlags> currentBufferStates;
+        struct BufferPendingBarrier
+        {
+            gapi::ResourceSyncFlags lastSyncs = gapi::ResourceSyncFlag::None;
+            gapi::ResourceAccessFlags lastAccesses = gapi::ResourceAccessFlag::NoAccess;
 
-        int numPasses = static_cast<int>(mPasses.size());
+            gapi::ResourceSyncFlags syncs = gapi::ResourceSyncFlag::None;
+            gapi::ResourceAccessFlags accesses = gapi::ResourceAccessFlag::NoAccess;
+
+            int firstPassIndex = -1;
+
+            gapi::ResourceBarrier EmitBarrier(SharedPtr<gapi::Buffer> buffer) const
+            {
+                return gapi::ResourceBarrier{
+                    .resourceType = gapi::ResourceBarrier::ResourceType::Buffer,
+                    .buffer = buffer,
+                    .syncSrc = lastSyncs,
+                    .syncDst = syncs,
+                    .accessSrc = lastAccesses,
+                    .accessDst = accesses,
+                    .layoutSrc = gapi::ResourceLayout::Undefined,
+                    .layoutDst = gapi::ResourceLayout::Undefined,
+                };
+            }
+            void MoveNext(int newPassIndex, gapi::ResourceAccessFlags newAccesses)
+            {
+                lastSyncs = syncs;
+                lastAccesses = accesses;
+
+                syncs = gapi::ResourceSyncFlag::None;
+                accesses = newAccesses;
+
+                firstPassIndex = newPassIndex;
+            }
+        };
+        FrameMap<BufferKey, BufferPendingBarrier> currentBufferPendingBarriers;
+
+        struct SubresourceKey
+        {
+            SharedPtr<gapi::Texture> texture;
+            Uint32 subresourceIndex;
+            bool isRegisteredTexture;
+            bool operator<(const SubresourceKey& rhs) const
+            {
+                return (texture == rhs.texture) ? subresourceIndex < rhs.subresourceIndex : texture < rhs.texture;
+            }
+        };
+        struct SubresourcePendingBarrier
+        {
+            gapi::ResourceSyncFlags lastSyncs = gapi::ResourceSyncFlag::None;
+            gapi::ResourceAccessFlags lastAccesses = gapi::ResourceAccessFlag::NoAccess;
+            gapi::ResourceLayout lastLayout = gapi::ResourceLayout::Undefined;
+
+            gapi::ResourceSyncFlags syncs = gapi::ResourceSyncFlag::None;
+            gapi::ResourceAccessFlags accesses = gapi::ResourceAccessFlag::NoAccess;
+            gapi::ResourceLayout layout = gapi::ResourceLayout::Undefined;
+
+            int firstPassIndex = -1;
+
+            gapi::ResourceBarrier EmitBarrier(SharedPtr<gapi::Texture> texture, Uint32 subresourceIndex) const
+            {
+                return gapi::ResourceBarrier{
+                    .resourceType = gapi::ResourceBarrier::ResourceType::Texture,
+                    .texture = texture,
+                    .subresourceIndex = static_cast<int>(subresourceIndex),
+                    .discard = (lastLayout == gapi::ResourceLayout::Undefined),
+                    .syncSrc = lastSyncs,
+                    .syncDst = syncs,
+                    .accessSrc = lastAccesses,
+                    .accessDst = accesses,
+                    .layoutSrc = lastLayout,
+                    .layoutDst = layout,
+                };
+            }
+            void MoveNext(int newPassIndex, gapi::ResourceAccessFlags newAccesses, gapi::ResourceLayout newLayout)
+            {
+                lastSyncs = syncs;
+                lastAccesses = accesses;
+                lastLayout = layout;
+
+                syncs = gapi::ResourceSyncFlag::None;
+                accesses = newAccesses;
+                layout = newLayout;
+
+                firstPassIndex = newPassIndex;
+            }
+        };
+        FrameMap<SubresourceKey, SubresourcePendingBarrier> currentSubresourcePendingBarriers;
+
+        const int numPasses = static_cast<int>(mPasses.size());
         for (int i = 0; i < numPasses; ++i)
         {
             PassInfo& pass = mPasses[i];
@@ -1102,106 +1217,120 @@ namespace cube
             {
                 RGResourceHandle resource = mResources[resourceUseInfo.rgResourceIndex];
 
-                auto TryTransitionBuffer = [&](RGBufferHandle rgBuffer)
+                auto TryResolveBuffer = [&](RGBufferHandle rgBuffer)
                 {
                     SharedPtr<gapi::Buffer> buffer = rgBuffer->mBuffer;
 
                     const BufferKey key = { buffer, !(rgBuffer->IsTransient()) };
-                    auto currentStateIt = currentBufferStates.find(key);
-                    if (currentStateIt == currentBufferStates.end())
+                    auto currentPendingBarrierIt = currentBufferPendingBarriers.find(key);
+                    if (currentPendingBarrierIt == currentBufferPendingBarriers.end())
                     {
-                        currentStateIt = currentBufferStates.insert({ key, gapi::ResourceStateFlag::Common }).first;
+                        currentPendingBarrierIt = currentBufferPendingBarriers.insert({ key, {} }).first;
                     }
 
-                    gapi::ResourceStateFlags currentState = currentStateIt->second;
-                    if (currentState != resourceUseInfo.state)
+                    BufferPendingBarrier& currentPendingBarrier = currentPendingBarrierIt->second;
+                    if (currentPendingBarrier.accesses != resourceUseInfo.accesses)
                     {
-                        gapi::TransitionState& transition = pass.transitions.emplace_back();
-                        transition.resourceType = gapi::TransitionState::ResourceType::Buffer;
-                        transition.buffer = buffer;
-                        transition.src = currentState;
-                        transition.dst = resourceUseInfo.state;
+                        if (currentPendingBarrier.firstPassIndex != -1)
+                        {
+                            mPasses[currentPendingBarrier.firstPassIndex].barriers.push_back(currentPendingBarrier.EmitBarrier(buffer));
+                        }
+                        currentPendingBarrier.MoveNext(mCurrentPassIndex, resourceUseInfo.accesses);
                     }
-                    currentStateIt->second = resourceUseInfo.state;
+                    currentPendingBarrier.syncs |= resourceUseInfo.syncs;
                 };
 
-                auto TryTransitionTexture = [&](RGTextureHandle rgTexture, const gapi::SubresourceRange& subresourceRange)
+                auto TryResolveTexture = [&](RGTextureHandle rgTexture, const gapi::SubresourceRange& subresourceRange)
                 {
                     SharedPtr<gapi::Texture> texture = rgTexture->mTexture;
 
+                    // TODO: Use range-based barriers.
                     for (Uint32 sliceIndex = subresourceRange.firstSliceIndex; sliceIndex < subresourceRange.firstSliceIndex + subresourceRange.sliceSize; ++sliceIndex)
                     {
                         for (Uint32 mipLevel = subresourceRange.firstMipLevel; mipLevel < subresourceRange.firstMipLevel + subresourceRange.mipLevels; ++mipLevel)
                         {
                             const Uint32 subresourceIndex = texture->GetSubresourceIndex(sliceIndex, mipLevel);
                             const SubresourceKey key = { texture, subresourceIndex, !(rgTexture->IsTransient()) };
-                            auto currentStateIt = currentSubresourceStates.find(key);
-                            if (currentStateIt == currentSubresourceStates.end())
+                            auto currentPendingBarrierIt = currentSubresourcePendingBarriers.find(key);
+                            if (currentPendingBarrierIt == currentSubresourcePendingBarriers.end())
                             {
-                                currentStateIt = currentSubresourceStates.insert({ key, gapi::ResourceStateFlag::Common }).first;
+                                currentPendingBarrierIt = currentSubresourcePendingBarriers.insert({ key, {} }).first;
+                                if (key.isRegisteredTexture)
+                                {
+                                    auto registeredTextureInfoIt = mRegisteredTextureInfos.find(rgTexture->GetGAPITexture().get());
+                                    CHECK(registeredTextureInfoIt != mRegisteredTextureInfos.end());
+
+                                    currentPendingBarrierIt->second.layout = registeredTextureInfoIt->second.srcLayout;
+                                }
                             }
 
-                            gapi::ResourceStateFlags currentState = currentStateIt->second;
-                            if (currentState != resourceUseInfo.state)
+                            SubresourcePendingBarrier& currentPendingBarrier = currentPendingBarrierIt->second;
+                            if (currentPendingBarrier.accesses != resourceUseInfo.accesses
+                                || currentPendingBarrier.layout != resourceUseInfo.layout)
                             {
-                                gapi::TransitionState& transition = pass.transitions.emplace_back();
-                                transition.resourceType = gapi::TransitionState::ResourceType::Texture;
-                                transition.texture = texture;
-                                transition.subresourceIndex = subresourceIndex;
-                                transition.src = currentState;
-                                transition.dst = resourceUseInfo.state;
+                                if (currentPendingBarrier.firstPassIndex != -1)
+                                {
+                                    mPasses[currentPendingBarrier.firstPassIndex].barriers.push_back(currentPendingBarrier.EmitBarrier(texture, subresourceIndex));
+                                }
+                                currentPendingBarrier.MoveNext(mCurrentPassIndex, resourceUseInfo.accesses, resourceUseInfo.layout);
                             }
-
-                            currentStateIt->second = resourceUseInfo.state;
+                            currentPendingBarrier.syncs |= resourceUseInfo.syncs;
                         }
                     }
                 };
 
                 if (RGBufferViewHandle bufferView = resource.Cast<RGBufferView>(); bufferView.IsValid())
                 {
-                    TryTransitionBuffer(bufferView->mRGBuffer);
+                    TryResolveBuffer(bufferView->mRGBuffer);
                 }
                 else if (RGBufferHandle buffer = resource.Cast<RGBuffer>(); buffer.IsValid())
                 {
-                    TryTransitionBuffer(buffer);
+                    TryResolveBuffer(buffer);
                 }
                 else if (RGTextureViewHandle textureView = resource.Cast<RGTextureView>(); textureView.IsValid())
                 {
-                    TryTransitionTexture(textureView->mRGTexture, textureView->GetSubresourceRange());
+                    TryResolveTexture(textureView->mRGTexture, textureView->GetSubresourceRange());
                 }
                 else if (RGTextureHandle texture = resource.Cast<RGTexture>(); texture.IsValid())
                 {
-                    TryTransitionTexture(texture, resourceUseInfo.subresourceRange);
+                    TryResolveTexture(texture, resourceUseInfo.subresourceRange);
                 }
                 else
                 {
-                    NO_ENTRY_FORMAT("Transition is not supported in this RGResource.");
+                    NO_ENTRY_FORMAT("Barrier is not supported in this RGResource.");
                 }
             }
         }
 
-        // Rollback transition at the last pass for non-transient resources.
-        for (auto& [key, state] : currentSubresourceStates)
+        // Emit all pending barriers and set the layout of registered resources at the last pass.
+        for (auto& [key, barrier] : currentBufferPendingBarriers)
         {
-            if (key.needRollback)
+            if (barrier.firstPassIndex != -1)
             {
-                gapi::TransitionState& transition = mLastPass.transitions.emplace_back();
-                transition.resourceType = gapi::TransitionState::ResourceType::Texture;
-                transition.texture = key.texture;
-                transition.subresourceIndex = key.subresourceIndex;
-                transition.src = state;
-                transition.dst = gapi::ResourceStateFlag::Common;
+                mPasses[barrier.firstPassIndex].barriers.push_back(barrier.EmitBarrier(key.buffer));
             }
+            // NOTE: It is okay not to insert a barrier at the last pass because RGBuilder will submit
+            // the command list after writing the last pass.
+            // (An implicit global barrier is inserted between submitted command lists.)
         }
-        for (auto& [key, state] : currentBufferStates)
+        for (auto& [key, barrier] : currentSubresourcePendingBarriers)
         {
-            if (key.needRollback)
+            if (barrier.firstPassIndex != -1)
             {
-                gapi::TransitionState& transition = mLastPass.transitions.emplace_back();
-                transition.resourceType = gapi::TransitionState::ResourceType::Buffer;
-                transition.buffer = key.buffer;
-                transition.src = state;
-                transition.dst = gapi::ResourceStateFlag::Common;
+                mPasses[barrier.firstPassIndex].barriers.push_back(barrier.EmitBarrier(key.texture, key.subresourceIndex));
+            }
+            if (key.isRegisteredTexture)
+            {
+                auto registeredTextureInfoIt = mRegisteredTextureInfos.find(key.texture.get());
+                CHECK(registeredTextureInfoIt != mRegisteredTextureInfos.end());
+
+                // NOTE: It is okay to set NoAccess/None at the last pass because RGBuilder will submit
+                // the command list after writing the last pass.
+                // (An implicit global barrier is inserted between submitted command lists.)
+                // The barrier itself is needed for the layout transition.
+                barrier.MoveNext(-1, gapi::ResourceAccessFlag::NoAccess, registeredTextureInfoIt->second.dstLayout);
+                barrier.syncs = gapi::ResourceSyncFlag::None;
+                mLastPass.barriers.push_back(barrier.EmitBarrier(key.texture, key.subresourceIndex));
             }
         }
 
@@ -1212,7 +1341,7 @@ namespace cube
     {
         mPasses.clear();
         mLastPass = {};
-        mRegisteredTextures.clear();
+        mRegisteredTextureInfos.clear();
         mRegisteredBuffers.clear();
         mCachedBufferViews.clear();
         mCachedTextureViews.clear();

@@ -319,63 +319,93 @@ namespace cube
             CUBE_DX12_BOUND_OBJECT(uav);
         }
 
-        void DX12CommandList::ResourceTransition(TransitionState state)
+        void DX12CommandList::SetResourceBarrier(ResourceBarrier barrier)
         {
-            ResourceTransition({ &state, 1 });
+            SetResourceBarrier({ &barrier, 1 });
         }
 
-        void DX12CommandList::ResourceTransition(ArrayView<const TransitionState> states)
+        void DX12CommandList::SetResourceBarrier(ConstArrayView<ResourceBarrier> barriers)
         {
             CHECK(IsWriting());
 
-            FrameVector<D3D12_RESOURCE_BARRIER> barriers;
-            barriers.reserve(states.size());
+            FrameVector<D3D12_BUFFER_BARRIER> bufferBarriers;
+            bufferBarriers.reserve(barriers.size());
+            FrameVector<D3D12_TEXTURE_BARRIER> textureBarriers;
+            textureBarriers.reserve(barriers.size());
 
-            for (const TransitionState& state : states)
+            for (const ResourceBarrier& barrier : barriers)
             {
-                D3D12_RESOURCE_BARRIER barrier = {
-                    .Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
-                    .Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
-                    .Transition = {
-                        .StateBefore = ConvertToDX12ResourceStates(state.src),
-                        .StateAfter = ConvertToDX12ResourceStates(state.dst) }
-                };
-                if (barrier.Transition.StateBefore == barrier.Transition.StateAfter)
+                switch (barrier.resourceType)
                 {
-                    continue;
-                }
+                case ResourceBarrier::ResourceType::Buffer:
+                {
+                    const DX12Buffer* dx12Buffer = dynamic_cast<DX12Buffer*>(barrier.buffer.get());
+                    CHECK(dx12Buffer);
 
-                switch (state.resourceType)
-                {
-                case TransitionState::ResourceType::Buffer:
-                {
-                    const DX12Buffer* dx12Buffer = dynamic_cast<DX12Buffer*>(state.buffer.get());
-                    barrier.Transition.pResource = dx12Buffer->GetResource();
-                    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-                    barriers.push_back(barrier);
+                    bufferBarriers.push_back({
+                        .SyncBefore = ConvertToDX12ResourceSyncFlags(barrier.syncSrc),
+                        .SyncAfter = ConvertToDX12ResourceSyncFlags(barrier.syncDst),
+                        .AccessBefore = ConvertToDX12ResourceAccessFlags(barrier.accessSrc),
+                        .AccessAfter = ConvertToDX12ResourceAccessFlags(barrier.accessDst),
+                        .pResource = dx12Buffer->GetResource(),
+                        .Offset = 0,
+                        .Size = UINT64_MAX,
+                    });
 
-                    CUBE_DX12_BOUND_OBJECT(state.buffer);
+                    CUBE_DX12_BOUND_OBJECT(barrier.buffer);
                     break;
                 }
-                case TransitionState::ResourceType::Texture:
+                case ResourceBarrier::ResourceType::Texture:
                 {
-                    const DX12Texture* dx12Texture = dynamic_cast<DX12Texture*>(state.texture.get());
-                    barrier.Transition.pResource = dx12Texture->GetResource();
-                    barrier.Transition.Subresource = state.subresourceIndex;
-                    barriers.push_back(barrier);
+                    const DX12Texture* dx12Texture = dynamic_cast<DX12Texture*>(barrier.texture.get());
+                    CHECK(dx12Texture);
 
-                    CUBE_DX12_BOUND_OBJECT(state.texture);
+                    CHECK_FORMAT(!barrier.discard || barrier.layoutSrc == ResourceLayout::Undefined, "Source layout must be undefined if the discard option is enabled.");
+
+                    const D3D12_BARRIER_SUBRESOURCE_RANGE subresourceRange = {
+                        .IndexOrFirstMipLevel = barrier.subresourceIndex >= 0 ? barrier.subresourceIndex : 0xffffffff,
+                        .NumMipLevels = 0,
+                        .FirstArraySlice = 0,
+                        .NumArraySlices = 0,
+                        .FirstPlane = 0,
+                        .NumPlanes = 0,
+                    };
+
+                    textureBarriers.push_back({
+                        .SyncBefore = ConvertToDX12ResourceSyncFlags(barrier.syncSrc),
+                        .SyncAfter = ConvertToDX12ResourceSyncFlags(barrier.syncDst),
+                        .AccessBefore = ConvertToDX12ResourceAccessFlags(barrier.accessSrc),
+                        .AccessAfter = ConvertToDX12ResourceAccessFlags(barrier.accessDst),
+                        .LayoutBefore = ConvertToDX12ResourceLayout(barrier.layoutSrc),
+                        .LayoutAfter = ConvertToDX12ResourceLayout(barrier.layoutDst),
+                        .pResource = dx12Texture->GetResource(),
+                        .Subresources = subresourceRange,
+                        .Flags = barrier.discard ? D3D12_TEXTURE_BARRIER_FLAG_DISCARD : D3D12_TEXTURE_BARRIER_FLAG_NONE,
+                    });
+
+                    CUBE_DX12_BOUND_OBJECT(barrier.texture);
                     break;
                 }
                 default:
                     NOT_IMPLEMENTED();
-                    break;
                 }
             }
 
-            if (!barriers.empty())
+            const D3D12_BARRIER_GROUP barrierGroups[2] = {
+                {
+                    .Type = D3D12_BARRIER_TYPE_BUFFER,
+                    .NumBarriers = static_cast<UINT32>(bufferBarriers.size()),
+                    .pBufferBarriers = bufferBarriers.data(),
+                },
+                {
+                    .Type = D3D12_BARRIER_TYPE_TEXTURE,
+                    .NumBarriers = static_cast<UINT32>(textureBarriers.size()),
+                    .pTextureBarriers = textureBarriers.data(),
+                },
+            };
+            if (!bufferBarriers.empty() || !textureBarriers.empty())
             {
-                mCommandList->ResourceBarrier(barriers.size(), barriers.data());
+                mCommandList->Barrier(2, barrierGroups);
             }
         }
 

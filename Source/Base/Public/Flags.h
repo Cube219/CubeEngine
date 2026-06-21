@@ -117,14 +117,14 @@ namespace cube
         Flags operator&(const Flags& rhs) const
         {
             Flags res(*this);
-            res |= rhs;
+            res &= rhs;
 
             return res;
         }
-        Flags& operator&(Enum bit) const
+        Flags operator&(Enum bit) const
         {
             Flags res(*this);
-            res |= static_cast<BitsType>(bit);
+            res &= static_cast<BitsType>(bit);
 
             return res;
         }

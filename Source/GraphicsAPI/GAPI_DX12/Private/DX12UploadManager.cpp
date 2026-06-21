@@ -97,7 +97,7 @@ namespace cube
         CHECK(pageIt != mPages.end());
         Page& page = pageIt->second;
 
-        ComPtr<ID3D12GraphicsCommandList> commandList;
+        ComPtr<ID3D12GraphicsCommandList7> commandList;
         CHECK_HR(mDevice.GetDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COPY, allocator.allocator.Get(), nullptr, IID_PPV_ARGS(&commandList)));
 
         if (desc.type == gapi::ResourceType::Buffer)
@@ -106,6 +106,33 @@ namespace cube
         }
         else if (desc.type == gapi::ResourceType::Texture)
         {
+            // Upload the entire texture resources, so the previous states can be discarded.
+            // Copy queue only supports common layout.
+            const D3D12_TEXTURE_BARRIER beforeCopyBarrier = {
+                .SyncBefore = D3D12_BARRIER_SYNC_NONE,
+                .SyncAfter = D3D12_BARRIER_SYNC_COPY,
+                .AccessBefore = D3D12_BARRIER_ACCESS_NO_ACCESS,
+                .AccessAfter = D3D12_BARRIER_ACCESS_COPY_DEST,
+                .LayoutBefore = D3D12_BARRIER_LAYOUT_UNDEFINED,
+                .LayoutAfter = D3D12_BARRIER_LAYOUT_COMMON,
+                .pResource = desc.dstResource,
+                .Subresources = {
+                    .IndexOrFirstMipLevel = 0xffffffff,
+                    .NumMipLevels = 0,
+                    .FirstArraySlice = 0,
+                    .NumArraySlices = 0,
+                    .FirstPlane = 0,
+                    .NumPlanes = 0,
+                },
+                .Flags = D3D12_TEXTURE_BARRIER_FLAG_DISCARD,
+            };
+            const D3D12_BARRIER_GROUP beforeCopyBarrierGroup = {
+                .Type = D3D12_BARRIER_TYPE_TEXTURE,
+                .NumBarriers = 1,
+                .pTextureBarriers = &beforeCopyBarrier,
+            };
+            commandList->Barrier(1, &beforeCopyBarrierGroup);
+
             const int numSubresources = static_cast<int>(desc.textureFootprints.size());
             for (int i = 0; i < numSubresources; ++i)
             {
@@ -182,7 +209,7 @@ namespace cube
     {
         size = std::max(size, mMinPageSize);
 
-        D3D12_RESOURCE_DESC desc = {
+        D3D12_RESOURCE_DESC1 desc = {
             .Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
             .Alignment = 0,
             .Width = size,
@@ -195,11 +222,12 @@ namespace cube
                 .Quality = 0
             },
             .Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
-            .Flags = D3D12_RESOURCE_FLAG_NONE
+            .Flags = D3D12_RESOURCE_FLAG_NONE,
+            .SamplerFeedbackMipRegion = { 0, 0, 0 },
         };
         Page newPage = {
             .refCount = 0,
-            .allocation = mDevice.GetMemoryAllocator().Allocate(D3D12_HEAP_TYPE_UPLOAD, desc),
+            .allocation = mDevice.GetMemoryAllocator().Allocate(D3D12_HEAP_TYPE_UPLOAD, desc, D3D12_BARRIER_LAYOUT_UNDEFINED),
             .size = size,
             .offset = 0
         };

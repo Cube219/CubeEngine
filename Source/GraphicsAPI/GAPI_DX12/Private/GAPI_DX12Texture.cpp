@@ -2,6 +2,7 @@
 
 #include "DX12Device.h"
 #include "DX12Types.h"
+#include "GAPI_DX12Resource.h"
 
 namespace cube
 {
@@ -88,7 +89,7 @@ namespace cube
                 flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
             }
 
-            D3D12_RESOURCE_DESC desc = {
+            D3D12_RESOURCE_DESC1 desc = {
                 .Dimension = dimension,
                 .Alignment = 0,
                 .Width = info.width,
@@ -101,14 +102,15 @@ namespace cube
                     .Quality = 0
                 },
                 .Layout = (mUsage == ResourceUsage::GPUOnly || mUsage == ResourceUsage::Transient) ? D3D12_TEXTURE_LAYOUT_UNKNOWN : D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
-                .Flags = flags
+                .Flags = flags,
+                .SamplerFeedbackMipRegion = { 0, 0, 0 },
             };
 
             const Uint32 numSlices = GetNumSlices();
             const Uint32 numSubresources = numSlices * info.mipLevels;
             mSubresourceLayouts.resize(numSubresources);
             mFootprints.resize(numSubresources);
-            device.GetDevice()->GetCopyableFootprints(&desc, 0, numSubresources, 0, mFootprints.data(), nullptr, nullptr, &mTotalSize);
+            device.GetDevice()->GetCopyableFootprints1(&desc, 0, numSubresources, 0, mFootprints.data(), nullptr, nullptr, &mTotalSize);
             for (int i = 0; i < static_cast<int>(numSubresources); ++i)
             {
                 mSubresourceLayouts[i] = {
@@ -130,7 +132,7 @@ namespace cube
                 break;
             }
             const bool isTransient = (mUsage == ResourceUsage::Transient);
-            mAllocation = device.GetMemoryAllocator().Allocate(heapType, desc, isTransient);
+            mAllocation = device.GetMemoryAllocator().Allocate(heapType, desc, ConvertToDX12ResourceLayout(createInfo.initialLayout), isTransient);
             mResource = mAllocation.resource;
             SET_DEBUG_NAME(mAllocation.resource, createInfo.debugName);
         }
@@ -444,7 +446,7 @@ namespace cube
                 dsvDesc.Texture2DArray.ArraySize = GetSliceSize() * 6;
                 break;
             case TextureType::Texture3D:
-                NO_ENTRY("Depth stencil view does not support Texture3D texture (D3D12 has no DSV_DIMENSION_TEXTURE3D).");
+                NO_ENTRY_FORMAT("Depth stencil view does not support Texture3D texture (D3D12 has no DSV_DIMENSION_TEXTURE3D).");
                 break;
             default:
                 NOT_IMPLEMENTED();

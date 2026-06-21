@@ -50,7 +50,7 @@ namespace cube
         }
     }
 
-    DX12Allocation DX12MemoryAllocator::Allocate(D3D12_HEAP_TYPE heapType, const D3D12_RESOURCE_DESC& desc, bool transient, const D3D12_CLEAR_VALUE* pOptimizedClearValue)
+    DX12Allocation DX12MemoryAllocator::Allocate(D3D12_HEAP_TYPE heapType, const D3D12_RESOURCE_DESC1& desc, D3D12_BARRIER_LAYOUT layout, bool transient, const D3D12_CLEAR_VALUE* pOptimizedClearValue)
     {
         DX12Allocation allocation;
         if (desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
@@ -64,7 +64,7 @@ namespace cube
         allocation.heapType = heapType;
         allocation.isTransient = transient;
 
-        D3D12_RESOURCE_DESC newDesc = desc;
+        D3D12_RESOURCE_DESC1 newDesc = desc;
         if (mDevice.IsTightAlignmentSupported())
         {
             newDesc.Alignment = 0;
@@ -79,23 +79,14 @@ namespace cube
                 allocation.heapType = D3D12_HEAP_TYPE_DEFAULT;
             }
 
-            AllocateFromTransient(allocation, newDesc, pOptimizedClearValue);
+            AllocateFromTransient(allocation, newDesc, layout, pOptimizedClearValue);
         }
         else
         {
             D3D12MA::ALLOCATION_DESC allocationDesc = {};
             allocationDesc.HeapType = heapType;
 
-            D3D12_RESOURCE_STATES states = D3D12_RESOURCE_STATE_COMMON;
-            if (heapType == D3D12_HEAP_TYPE_UPLOAD)
-            {
-                states = D3D12_RESOURCE_STATE_GENERIC_READ;
-            }
-            else if (heapType == D3D12_HEAP_TYPE_READBACK)
-            {
-                states = D3D12_RESOURCE_STATE_COPY_DEST;
-            }
-            CHECK_HR(mAllocator->CreateResource(&allocationDesc, &newDesc, states, pOptimizedClearValue, &allocation.allocation, IID_NULL, nullptr));
+            CHECK_HR(mAllocator->CreateResource3(&allocationDesc, &newDesc, layout, pOptimizedClearValue, 0, nullptr, &allocation.allocation, IID_NULL, nullptr));
             allocation.resource = allocation.allocation->GetResource();
         }
 
@@ -119,9 +110,9 @@ namespace cube
         allocation.resource = nullptr;
     }
 
-    void DX12MemoryAllocator::AllocateFromTransient(DX12Allocation& inOutAllocation, const D3D12_RESOURCE_DESC& desc, const D3D12_CLEAR_VALUE* pOptimizedClearValue)
+    void DX12MemoryAllocator::AllocateFromTransient(DX12Allocation& inOutAllocation, const D3D12_RESOURCE_DESC1& desc, D3D12_BARRIER_LAYOUT layout, const D3D12_CLEAR_VALUE* pOptimizedClearValue)
     {
-        const D3D12_RESOURCE_ALLOCATION_INFO allocationInfo = mDevice.GetDevice()->GetResourceAllocationInfo(0, 1, &desc);
+        const D3D12_RESOURCE_ALLOCATION_INFO allocationInfo = mDevice.GetDevice()->GetResourceAllocationInfo2(0, 1, &desc, nullptr);
 
         TransientHeap* selectedHeap = nullptr;
         Uint64 alignedOffset = 0;
@@ -139,7 +130,7 @@ namespace cube
             selectedHeap = CreateNewTransientHeap(allocationInfo.SizeInBytes);
         }
 
-        CHECK_HR(mDevice.GetDevice()->CreatePlacedResource(selectedHeap->d3d12Heap.Get(), alignedOffset, &desc, D3D12_RESOURCE_STATE_COMMON, pOptimizedClearValue, IID_PPV_ARGS(&inOutAllocation.resource)));
+        CHECK_HR(mDevice.GetDevice()->CreatePlacedResource2(selectedHeap->d3d12Heap.Get(), alignedOffset, &desc, layout, pOptimizedClearValue, 0, nullptr, IID_PPV_ARGS(&inOutAllocation.resource)));
         selectedHeap->currentOffset = alignedOffset + allocationInfo.SizeInBytes;
         selectedHeap->lastUsedGPUFrame = mCurrentGPUFrame;
     }

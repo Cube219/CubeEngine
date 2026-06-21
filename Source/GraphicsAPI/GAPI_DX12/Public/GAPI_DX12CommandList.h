@@ -55,8 +55,8 @@ namespace cube
             virtual void UseResource(SharedPtr<TextureSRV> srv) override;
             virtual void UseResource(SharedPtr<TextureUAV> uav) override;
 
-            void ResourceTransition(TransitionState state) override;
-            void ResourceTransition(ArrayView<const TransitionState> states) override;
+            virtual void SetResourceBarrier(ResourceBarrier barrier) override;
+            virtual void SetResourceBarrier(ConstArrayView<ResourceBarrier> barriers) override;
 
             void SetComputePipeline(SharedPtr<ComputePipeline> computePipeline) override;
             virtual void DispatchThreads(Uint32 numThreadsX, Uint32 numThreadsY, Uint32 numThreadsZ) override;
@@ -83,7 +83,7 @@ namespace cube
 
             DX12Device& mDevice;
 
-            ComPtr<ID3D12GraphicsCommandList> mCommandList;
+            ComPtr<ID3D12GraphicsCommandList7> mCommandList;
             State mState;
 
             Vector<SharedPtr<DX12APIObject>> mBoundObjects;

@@ -36,7 +36,7 @@ namespace cube
                 flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
             }
 
-            D3D12_RESOURCE_DESC desc = {
+            D3D12_RESOURCE_DESC1 desc = {
                 .Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
                 .Alignment = 0,
                 .Width = mInfo.size,
@@ -49,7 +49,8 @@ namespace cube
                     .Quality = 0
                 },
                 .Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
-                .Flags = flags
+                .Flags = flags,
+                .SamplerFeedbackMipRegion = { 0, 0, 0 },
             };
 
             D3D12_HEAP_TYPE heapType;
@@ -68,13 +69,13 @@ namespace cube
                 heapType = D3D12_HEAP_TYPE_UPLOAD; break;
             }
             const bool isTransient = (mUsage == ResourceUsage::Transient);
-            mAllocation = device.GetMemoryAllocator().Allocate(heapType, desc, isTransient);
+            mAllocation = device.GetMemoryAllocator().Allocate(heapType, desc, D3D12_BARRIER_LAYOUT_UNDEFINED, isTransient);
             SET_DEBUG_NAME(mAllocation.resource, info.debugName);
 
             if (mUsage == ResourceUsage::GPUtoCPU)
             {
                 desc.Flags = D3D12_RESOURCE_FLAG_NONE;
-                mReadbackAllocation = device.GetMemoryAllocator().Allocate(D3D12_HEAP_TYPE_READBACK, desc);
+                mReadbackAllocation = device.GetMemoryAllocator().Allocate(D3D12_HEAP_TYPE_READBACK, desc, D3D12_BARRIER_LAYOUT_UNDEFINED);
             }
         }
 

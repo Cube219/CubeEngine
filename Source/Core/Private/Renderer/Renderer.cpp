@@ -227,17 +227,24 @@ namespace cube
 
         mSwapChain->AcquireNextImage();
         mCurrentBackbuffer = mSwapChain->GetCurrentBackbuffer();
+        // TODO: Merge all command list and submit at one in each frame.
+        //   Check ImGUI comment list.
         mCommandList->Reset();
         {
             mCommandList->Begin();
-            
-            mCommandList->ResourceTransition({
-                .resourceType = gapi::TransitionState::ResourceType::Texture,
-                .texture = mCurrentBackbuffer,
-                .src = gapi::ResourceStateFlag::Present,
-                .dst = gapi::ResourceStateFlag::Common
-            });
 
+            mCommandList->SetResourceBarrier({
+                .resourceType = gapi::ResourceBarrier::ResourceType::Texture,
+                .texture = mCurrentBackbuffer,
+                .subresourceIndex = 0,
+                .syncSrc = gapi::ResourceSyncFlag::None,
+                .syncDst = gapi::ResourceSyncFlag::None,
+                .accessSrc = gapi::ResourceAccessFlag::NoAccess,
+                .accessDst = gapi::ResourceAccessFlag::NoAccess,
+                .layoutSrc = gapi::ResourceLayout::Present,
+                .layoutDst = gapi::ResourceLayout::Common_Direct,
+            });
+            
             mCommandList->End();
             mCommandList->Submit();
         }
@@ -258,11 +265,16 @@ namespace cube
         {
             mCommandList->Begin();
 
-            mCommandList->ResourceTransition({
-                .resourceType = gapi::TransitionState::ResourceType::Texture,
+            mCommandList->SetResourceBarrier({
+                .resourceType = gapi::ResourceBarrier::ResourceType::Texture,
                 .texture = mCurrentBackbuffer,
-                .src =  gapi::ResourceStateFlag::Common,
-                .dst = gapi::ResourceStateFlag::Present
+                .subresourceIndex = 0,
+                .syncSrc = gapi::ResourceSyncFlag::None,
+                .syncDst = gapi::ResourceSyncFlag::None,
+                .accessSrc = gapi::ResourceAccessFlag::NoAccess,
+                .accessDst = gapi::ResourceAccessFlag::NoAccess,
+                .layoutSrc = gapi::ResourceLayout::Common_Direct,
+                .layoutDst = gapi::ResourceLayout::Present,
             });
 
             mCommandList->End();
@@ -494,7 +506,7 @@ namespace cube
             RGTextureHandle tonemappedColor = builder.CreateTexture(tonemappedColorTextureInfo, CUBE_T("Tonemapped Color"));
             mTonemap.Execute(builder, color, tonemappedColor);
 
-            RGTextureHandle backbuffer = builder.RegisterTexture(mCurrentBackbuffer);
+            RGTextureHandle backbuffer = builder.RegisterTexture(mCurrentBackbuffer, gapi::ResourceLayout::Common_Direct, gapi::ResourceLayout::Common_Direct);
             mRenderUtils.CopyTexturePS(builder, tonemappedColor, backbuffer);
 
             {

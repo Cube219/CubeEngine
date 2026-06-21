@@ -430,8 +430,8 @@ namespace cube
                 commandList.CopyTexture(src->GetGAPITexture(), dst->GetGAPITexture());
             }, [src = texture, dst = copiedTexture](RGBuilder& builder)
             {
-                builder.UseResource(src, {}, gapi::ResourceStateFlag::CopySrc);
-                builder.UseResource(dst, {}, gapi::ResourceStateFlag::CopyDst);
+                builder.UseResource(src, {}, gapi::ResourceAccessFlag::CopySrc, gapi::ResourceLayout::CopySrc_Direct, gapi::ResourceSyncFlag::Copy);
+                builder.UseResource(dst, {}, gapi::ResourceAccessFlag::CopyDst, gapi::ResourceLayout::CopyDst_Direct, gapi::ResourceSyncFlag::Copy);
             },
             false, true
         );

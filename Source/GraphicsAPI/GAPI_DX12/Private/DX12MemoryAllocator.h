@@ -83,11 +83,11 @@ namespace cube
         void SetNumGPUSync(Uint32 newNumGPUSync);
         void MoveToNextIndex(Uint64 nextGPUFrame);
 
-        DX12Allocation Allocate(D3D12_HEAP_TYPE heapType, const D3D12_RESOURCE_DESC& desc, bool transient = false, const D3D12_CLEAR_VALUE* pOptimizedClearValue = nullptr);
+        DX12Allocation Allocate(D3D12_HEAP_TYPE heapType, const D3D12_RESOURCE_DESC1& desc, D3D12_BARRIER_LAYOUT layout, bool transient = false, const D3D12_CLEAR_VALUE* pOptimizedClearValue = nullptr);
         void Free(DX12Allocation& allocation);
 
     private:
-        void AllocateFromTransient(DX12Allocation& inOutAllocation, const D3D12_RESOURCE_DESC& desc, const D3D12_CLEAR_VALUE* pOptimizedClearValue = nullptr);
+        void AllocateFromTransient(DX12Allocation& inOutAllocation, const D3D12_RESOURCE_DESC1& desc, D3D12_BARRIER_LAYOUT layout, const D3D12_CLEAR_VALUE* pOptimizedClearValue = nullptr);
 
         DX12Device& mDevice;
 

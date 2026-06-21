@@ -56,7 +56,7 @@ namespace cube
         DX12Device* mMainDevice;
 
         ImGUIContext mImGUIContext;
-        ComPtr<ID3D12GraphicsCommandList> mImGUIRenderCommandList;
+        ComPtr<ID3D12GraphicsCommandList7> mImGUIRenderCommandList;
 
         Uint64 mCurrentGPUFrame;
         Uint32 mNumGPUSync;

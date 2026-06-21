@@ -42,26 +42,75 @@ namespace cube
             }
         }
 
-        enum class ResourceStateFlag
+        // TODO: Add raytracing related flags.
+        enum class ResourceSyncFlag
+        {
+            None = 0,
+            All = (1 << 0),
+            Index = (1 << 1),
+            Vertex = (1 << 2),
+            Pixel = (1 << 3),
+            DepthStencil = (1 << 4),
+            RenderTarget = (1 << 5),
+            Compute = (1 << 6),
+            Copy = (1 << 7),
+            Resolve = (1 << 8),
+            ExecuteIndirect = (1 << 9),
+            ClearUAV = (1 << 10),
+        };
+        using ResourceSyncFlags = Flags<ResourceSyncFlag>;
+        FLAGS_OPERATOR(ResourceSyncFlag);
+
+        // TODO: Add raytracing related flags.
+        enum class ResourceAccessFlag
         {
             Common = 0,
-            Vertex = (1 << 0),
-            Index = (1 << 1),
-            RenderTarget = (1 << 2),
-            SRV_Pixel = (1 << 3),
-            SRV_NonPixel = (1 << 4),
-            UAV = (1 << 5),
-            DepthRead = (1 << 6),
-            DepthWrite = (1 << 7),
-            IndirectArgs = (1 << 8),
+            NoAccess = (1 << 0),
+            ConstantBuffer = (1 << 1),
+            VertexBuffer = (1 << 2),
+            IndexBuffer = (1 << 3),
+            RenderTarget = (1 << 4),
+            SRV = (1 << 5),
+            UAV = (1 << 6),
+            DepthStencilRead = (1 << 7),
+            DepthStencilWrite = (1 << 8),
             CopySrc = (1 << 9),
             CopyDst = (1 << 10),
             ResolveSrc = (1 << 11),
             ResolveDst = (1 << 12),
-            Present = (1 << 15),
         };
-        using ResourceStateFlags = Flags<ResourceStateFlag>;
-        FLAGS_OPERATOR(ResourceStateFlag);
+        using ResourceAccessFlags = Flags<ResourceAccessFlag>;
+        FLAGS_OPERATOR(ResourceAccessFlag);
+
+        // TODO: Add raytracing related layouts.
+        enum class ResourceLayout
+        {
+            Undefined,
+            Common,
+            Common_Direct,
+            Common_Async,
+            Present,
+            GenericRead,
+            GenericRead_Direct,
+            GenericRead_Async,
+            RenderTarget,
+            SRV,
+            SRV_Direct,
+            SRV_Async,
+            UAV,
+            UAV_Direct,
+            UAV_Async,
+            DepthStencilRead,
+            DepthStencilWrite,
+            CopySrc,
+            CopySrc_Direct,
+            CopySrc_Async,
+            CopyDst,
+            CopyDst_Direct,
+            CopyDst_Async,
+            ResolveSrc,
+            ResolveDst,
+        };
 
         struct SubresourceLayout
         {
