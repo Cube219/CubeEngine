@@ -9,6 +9,8 @@
 
 namespace cube
 {
+#if CUBE_USE_CHECK
+
 #define CHECK_HR(HR) \
     { \
         HRESULT res = HR; \
@@ -21,6 +23,12 @@ namespace cube
             } \
         } \
     }
+
+#else
+
+#define CHECK_HR(HR) HR
+
+#endif // CUBE_USE_CHECK
 
 #define SET_DEBUG_NAME(object, name) \
     { \

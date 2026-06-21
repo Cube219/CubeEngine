@@ -29,15 +29,6 @@ namespace cube
     ComPtr<slang::IGlobalSession> SlangHelperPrivate::mGlobalSession;
     AnsiString SlangHelperPrivate::mShaderSearchPath;
 
-#define CUBE_SLANG_CHECK(expr) \
-    { \
-        SlangResult res = expr; \
-        if (res != SLANG_OK) \
-        { \
-            cube::Checker::ProcessFailedCheckFormatting(__FILE__, __LINE__, CUBE_T(#expr), CUBE_T("Slang check failed! ({0})"), SlangHelperPrivate::GetErrorCodeString(res)); \
-        } \
-    }
-
     const Character* SlangHelperPrivate::GetErrorCodeString(Int32 result)
     {
 #define RETURN_IF_MATCH(value) \
@@ -68,6 +59,17 @@ namespace cube
 #undef RETURN_IF_MATCH
     }
 
+#if CUBE_USE_CHECK
+
+#define CUBE_SLANG_CHECK(expr) \
+    { \
+        SlangResult res = expr; \
+        if (res != SLANG_OK) \
+        { \
+            cube::Checker::ProcessFailedCheckFormatting(__FILE__, __LINE__, CUBE_T(#expr), CUBE_T("Slang check failed! ({0})"), SlangHelperPrivate::GetErrorCodeString(res)); \
+        } \
+    }
+
 #define CUBE_SLANG_CHECK_DIAGNOSTIC(blob) \
     { \
         if (blob) \
@@ -75,6 +77,13 @@ namespace cube
             cube::Checker::ProcessFailedCheckFormatting(__FILE__, __LINE__, CUBE_T("diagnosticBlob != nullptr"), CUBE_T("Slang check failed!\n\t({0})"), (const char*)blob->getBufferPointer()); \
         } \
     }
+
+#else
+
+#define CUBE_SLANG_CHECK(expr) expr
+#define CUBE_SLANG_CHECK_DIAGNOSTIC(blob) blob
+
+#endif // CUBE_USE_CHECK
 
     void SlangHelperPrivate::Initialize()
     {

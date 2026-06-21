@@ -56,6 +56,7 @@ namespace cube
         }
     };
 
+#if CUBE_USE_CHECK
     class EngineCheckerExtension : public ICheckerExtension
     {
     public:
@@ -71,6 +72,7 @@ namespace cube
             platform::Debug::ProcessFailedCheck(fileName, lineNum, formattedMsg);
         }
     };
+#endif // CUBE_USE_CHECK
 
     EventFunction<void()> Engine::mOnClosingEventFunc;
     EventFunction<void()> Engine::mOnLoopEventFunc;
@@ -128,7 +130,9 @@ namespace cube
             GetMyThreadFrameAllocator().DiscardAllocations();
         });
 
+#if CUBE_USE_CHECK
         Checker::RegisterExtension<EngineCheckerExtension>();
+#endif // CUBE_USE_CHECK
 
         CUBE_LOG(Info, Engine, "Initialize CubeEngine.");
 
