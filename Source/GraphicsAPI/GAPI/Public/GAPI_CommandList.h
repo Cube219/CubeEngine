@@ -134,7 +134,7 @@ namespace cube
             virtual void DrawIndexed(Uint32 numIndices, Uint32 baseIndex, Uint32 baseVertex, Uint32 numInstances = 1, Uint32 baseInstance = 0) = 0;
 
             virtual void SetConstantBuffer(Uint32 index, SharedPtr<BufferSRV> constantBuffer) = 0;
-            // TODO: Replace to ResourceBarrier.
+
             virtual void UseResource(SharedPtr<BufferSRV> srv) = 0;
             virtual void UseResource(SharedPtr<BufferUAV> uav) = 0;
             virtual void UseResource(SharedPtr<TextureSRV> srv) = 0;

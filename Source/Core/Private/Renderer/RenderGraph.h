@@ -18,7 +18,7 @@ namespace cube
     class RGBuilder
     {
     public:
-        using UseResourceFunction = std::function<void(RGBuilder& /*builder*/)>;
+        using TrackResourceFunction = std::function<void(RGBuilder& /*builder*/)>;
         using PassFunction = std::function<void(gapi::CommandList& /*commandList*/)>;
 
     public:
@@ -109,15 +109,17 @@ namespace cube
         }
 
         void AddPass(StringView name,
-            PassFunction&& passFunction, UseResourceFunction&& useResourceFunction = [](RGBuilder&) {},
+            PassFunction&& passFunction, TrackResourceFunction&& trackResourceFunction = [](RGBuilder&) {},
             bool isCompute = false, bool addTimestamp = false
         )
         {
             AddPassInternal(name, nullptr, nullptr, {},
-                std::move(passFunction), std::move(useResourceFunction),
+                std::move(passFunction), std::move(trackResourceFunction),
                 addTimestamp
             );
         }
+
+        // ===== Graphics pipeline =====
 
         void AddPass(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline,
              PassFunction&& passFunction,
@@ -126,6 +128,17 @@ namespace cube
         {
             AddPassInternal(name, graphicsPipeline, nullptr, {},
                 std::move(passFunction), nullptr,
+                addTimestamp
+            );
+        }
+
+        void AddPass(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline,
+            PassFunction&& passFunction, TrackResourceFunction&& trackResourceFunction,
+            bool addTimestamp = false
+        )
+        {
+            AddPassInternal(name, graphicsPipeline, nullptr, {},
+                std::move(passFunction), std::move(trackResourceFunction),
                 addTimestamp
             );
         }
@@ -141,6 +154,17 @@ namespace cube
             );
         }
 
+        void AddPass(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, RGShaderParameterListBaseHandle parameterList,
+            PassFunction&& passFunction, TrackResourceFunction&& trackResourceFunction,
+            bool addTimestamp = false
+        )
+        {
+            AddPassInternal(name, graphicsPipeline, nullptr, { &parameterList, 1 },
+                std::move(passFunction), std::move(trackResourceFunction),
+                addTimestamp
+            );
+        }
+
         void AddPass(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists,
             PassFunction&& passFunction,
             bool addTimestamp = false
@@ -152,6 +176,19 @@ namespace cube
             );
         }
 
+        void AddPass(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists,
+            PassFunction&& passFunction, TrackResourceFunction&& trackResourceFunction,
+            bool addTimestamp = false
+        )
+        {
+            AddPassInternal(name, graphicsPipeline, nullptr, parameterLists,
+                std::move(passFunction), std::move(trackResourceFunction),
+                addTimestamp
+            );
+        }
+
+        // ===== Compute pipeline =====
+
         void AddPass(StringView name, SharedPtr<ComputePipeline> computePipeline, RGShaderParameterListBaseHandle parameterList,
             PassFunction&& passFunction,
             bool addTimestamp = false
@@ -159,6 +196,17 @@ namespace cube
         {
             AddPassInternal(name, nullptr, computePipeline, { &parameterList, 1 },
                 std::move(passFunction), nullptr,
+                addTimestamp
+            );
+        }
+
+        void AddPass(StringView name, SharedPtr<ComputePipeline> computePipeline, RGShaderParameterListBaseHandle parameterList,
+            PassFunction&& passFunction, TrackResourceFunction&& trackResourceFunction,
+            bool addTimestamp = false
+        )
+        {
+            AddPassInternal(name, nullptr, computePipeline, { &parameterList, 1 },
+                std::move(passFunction), std::move(trackResourceFunction),
                 addTimestamp
             );
         }
@@ -174,7 +222,20 @@ namespace cube
             );
         }
 
+        void AddPass(StringView name, SharedPtr<ComputePipeline> computePipeline, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists,
+            PassFunction&& passFunction, TrackResourceFunction&& trackResourceFunction,
+            bool addTimestamp = false
+        )
+        {
+            AddPassInternal(name, nullptr, computePipeline, parameterLists,
+                std::move(passFunction), std::move(trackResourceFunction),
+                addTimestamp
+            );
+        }
+
         void AddDrawMeshPass(StringView name, ArrayView<DrawMeshInfo> drawMeshInfos, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists);
+
+        // ===== Tracking resources =====
 
         void UseResource(RGBufferSRVHandle rgSRV, gapi::ResourceSyncFlags syncs);
         void UseResource(RGBufferUAVHandle rgUAV, gapi::ResourceSyncFlags syncs);
@@ -182,7 +243,10 @@ namespace cube
         void UseResource(RGTextureUAVHandle rgUAV, gapi::ResourceSyncFlags syncs);
         void UseResource(RGTextureRTVHandle rgRTV);
         void UseResource(RGTextureDSVHandle rgDSV);
-        void UseResource(RGTextureHandle rgTexture, gapi::SubresourceRangeInput range, gapi::ResourceAccessFlags access, gapi::ResourceLayout layout, gapi::ResourceSyncFlags syncs);
+        void UseResource(RGTextureHandle rgTexture, gapi::SubresourceRangeInput range, gapi::ResourceAccessFlags accesses, gapi::ResourceLayout layout, gapi::ResourceSyncFlags syncs);
+
+        void AddUAVBarrier(RGBufferUAVHandle rgUAV);
+        void AddUAVBarrier(RGTextureUAVHandle rgUAV);
 
         // TODO: Does not submit at this function.
         void ExecuteAndSubmit(gapi::CommandList& commandList, bool waitUntilFinished = false);
@@ -201,12 +265,12 @@ namespace cube
             SharedPtr<ComputePipeline> computePipeline = nullptr;
 
             PassFunction passFunction = nullptr;
-            UseResourceFunction useResourceFunction = nullptr;
+            TrackResourceFunction trackResourceFunction = nullptr;
 
             bool IsGraphics() const { return graphicsPipeline != nullptr; }
             bool IsCompute() const { return computePipeline != nullptr; }
 
-            // Set while executing
+            // Set while tracking resources
             struct ResourceUseInfo
             {
                 int rgResourceIndex;
@@ -214,6 +278,7 @@ namespace cube
                 gapi::ResourceAccessFlags accesses;
                 gapi::ResourceLayout layout;
                 gapi::SubresourceRange subresourceRange;
+                bool forceBarrier = false; // Used in UAV barrier
             };
             Vector<ResourceUseInfo> resourceUseInfos;
 
@@ -223,7 +288,7 @@ namespace cube
         void BindShaderParameterListInternal(StringView name, RGShaderParameterListBaseHandle parameterList);
 
         void AddPassInternal(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, SharedPtr<ComputePipeline> computePipeline, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists,
-            PassFunction&& passFunction, UseResourceFunction&& useResourceFunction,
+            PassFunction&& passFunction, TrackResourceFunction&& trackResourceFunction,
             bool addTimestamp
         );
 
@@ -263,7 +328,7 @@ namespace cube
         enum class State
         {
             Init,
-            ResourceTracking,
+            TrackingResources,
             Executing,
             Submitted
         };

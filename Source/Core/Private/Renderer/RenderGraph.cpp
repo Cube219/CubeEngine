@@ -659,7 +659,7 @@ namespace cube
 
     void RGBuilder::UseResource(RGBufferSRVHandle rgSRV, gapi::ResourceSyncFlags syncs)
     {
-        CHECK(mState == State::ResourceTracking);
+        CHECK(mState == State::TrackingResources);
 
         PassInfo& pass = mPasses[mCurrentPassIndex];
         pass.resourceUseInfos.push_back({
@@ -672,7 +672,7 @@ namespace cube
 
     void RGBuilder::UseResource(RGBufferUAVHandle rgUAV, gapi::ResourceSyncFlags syncs)
     {
-        CHECK(mState == State::ResourceTracking);
+        CHECK(mState == State::TrackingResources);
 
         PassInfo& pass = mPasses[mCurrentPassIndex];
         pass.resourceUseInfos.push_back({
@@ -685,7 +685,7 @@ namespace cube
 
     void RGBuilder::UseResource(RGTextureSRVHandle rgSRV, gapi::ResourceSyncFlags syncs)
     {
-        CHECK(mState == State::ResourceTracking);
+        CHECK(mState == State::TrackingResources);
 
         PassInfo& pass = mPasses[mCurrentPassIndex];
         pass.resourceUseInfos.push_back({
@@ -699,7 +699,7 @@ namespace cube
 
     void RGBuilder::UseResource(RGTextureUAVHandle rgUAV, gapi::ResourceSyncFlags syncs)
     {
-        CHECK(mState == State::ResourceTracking);
+        CHECK(mState == State::TrackingResources);
 
         PassInfo& pass = mPasses[mCurrentPassIndex];
         pass.resourceUseInfos.push_back({
@@ -713,7 +713,7 @@ namespace cube
 
     void RGBuilder::UseResource(RGTextureRTVHandle rgRTV)
     {
-        CHECK(mState == State::ResourceTracking);
+        CHECK(mState == State::TrackingResources);
 
         PassInfo& pass = mPasses[mCurrentPassIndex];
         pass.resourceUseInfos.push_back({
@@ -727,7 +727,7 @@ namespace cube
 
     void RGBuilder::UseResource(RGTextureDSVHandle rgDSV)
     {
-        CHECK(mState == State::ResourceTracking);
+        CHECK(mState == State::TrackingResources);
 
         PassInfo& pass = mPasses[mCurrentPassIndex];
         pass.resourceUseInfos.push_back({
@@ -739,19 +739,55 @@ namespace cube
         });
     }
 
-    void RGBuilder::UseResource(RGTextureHandle rgTexture, gapi::SubresourceRangeInput range, gapi::ResourceAccessFlags access, gapi::ResourceLayout layout, gapi::ResourceSyncFlags syncs)
+    void RGBuilder::UseResource(RGTextureHandle rgTexture, gapi::SubresourceRangeInput range, gapi::ResourceAccessFlags accesses, gapi::ResourceLayout layout, gapi::ResourceSyncFlags syncs)
     {
-        CHECK(mState == State::ResourceTracking);
+        CHECK(mState == State::TrackingResources);
         CHECK(rgTexture.IsValid());
 
         PassInfo& pass = mPasses[mCurrentPassIndex];
         pass.resourceUseInfos.push_back({
             .rgResourceIndex = rgTexture->mIndex,
             .syncs = syncs,
-            .accesses = access,
+            .accesses = accesses,
             .layout = layout,
             .subresourceRange = range.Clamp(rgTexture->GetTextureInfo()),
         });
+    }
+
+    void RGBuilder::AddUAVBarrier(RGBufferUAVHandle rgUAV)
+    {
+        CHECK(mState == State::TrackingResources);
+
+        PassInfo& pass = mPasses[mCurrentPassIndex];
+
+        for (PassInfo::ResourceUseInfo& useInfo : pass.resourceUseInfos)
+        {
+            if (useInfo.rgResourceIndex == rgUAV->mIndex)
+            {
+                useInfo.forceBarrier = true;
+                return;
+            }
+        }
+
+        NO_ENTRY_FORMAT("You must call UseResource first before calling AddUAVBarrier.");
+    }
+
+    void RGBuilder::AddUAVBarrier(RGTextureUAVHandle rgUAV)
+    {
+        CHECK(mState == State::TrackingResources);
+
+        PassInfo& pass = mPasses[mCurrentPassIndex];
+
+        for (PassInfo::ResourceUseInfo& useInfo : pass.resourceUseInfos)
+        {
+            if (useInfo.rgResourceIndex == rgUAV->mIndex)
+            {
+                useInfo.forceBarrier = true;
+                return;
+            }
+        }
+
+        NO_ENTRY_FORMAT("You must call UseResource first before calling AddUAVBarrier.");
     }
 
     void RGBuilder::ExecuteAndSubmit(gapi::CommandList& commandList, bool waitUntilFinished)
@@ -759,7 +795,7 @@ namespace cube
         CHECK(mState == State::Init);
         CHECK(!mIsInRenderPass);
 
-        mState = State::ResourceTracking;
+        mState = State::TrackingResources;
 
         UpdateResourceUseInfo();
         CreateAllResources();
@@ -835,7 +871,7 @@ namespace cube
     }
 
     void RGBuilder::AddPassInternal(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, SharedPtr<ComputePipeline> computePipeline, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists,
-        PassFunction&& passFunction, UseResourceFunction&& useResourceFunction,
+        PassFunction&& passFunction, TrackResourceFunction&& trackResourceFunction,
         bool addTimestamp
     )
     {
@@ -853,7 +889,7 @@ namespace cube
             .graphicsPipeline = std::move(graphicsPipeline),
             .computePipeline = std::move(computePipeline),
             .passFunction = std::move(passFunction),
-            .useResourceFunction = std::move(useResourceFunction)
+            .trackResourceFunction = std::move(trackResourceFunction)
         });
     }
 
@@ -963,15 +999,15 @@ namespace cube
 
     void RGBuilder::UpdateResourceUseInfo()
     {
-        CHECK(mState == State::ResourceTracking);
+        CHECK(mState == State::TrackingResources);
 
         mCurrentPassIndex = 0;
 
         for (PassInfo& pass : mPasses)
         {
-            if (pass.useResourceFunction)
+            if (pass.trackResourceFunction)
             {
-                pass.useResourceFunction(*this);
+                pass.trackResourceFunction(*this);
             }
 
             gapi::ResourceSyncFlags syncs = gapi::ResourceSyncFlag::None;
@@ -1077,7 +1113,7 @@ namespace cube
 
     void RGBuilder::CreateAllResources()
     {
-        CHECK(mState == State::ResourceTracking);
+        CHECK(mState == State::TrackingResources);
 
         GAPI& gapi = mRenderer.GetGAPI();
 
@@ -1108,7 +1144,7 @@ namespace cube
 
     void RGBuilder::ResolveBarriers()
     {
-        CHECK(mState == State::ResourceTracking);
+        CHECK(mState == State::TrackingResources);
 
         struct BufferKey
         {
@@ -1255,7 +1291,7 @@ namespace cube
                     }
 
                     BufferPendingBarrier& currentPendingBarrier = currentPendingBarrierIt->second;
-                    if (currentPendingBarrier.accesses != resourceUseInfo.accesses)
+                    if (resourceUseInfo.forceBarrier || currentPendingBarrier.accesses != resourceUseInfo.accesses)
                     {
                         if (currentPendingBarrier.firstPassIndex != -1)
                         {
@@ -1291,8 +1327,9 @@ namespace cube
                             }
 
                             SubresourcePendingBarrier& currentPendingBarrier = currentPendingBarrierIt->second;
-                            if (currentPendingBarrier.accesses != resourceUseInfo.accesses
-                                || currentPendingBarrier.layout != resourceUseInfo.layout)
+                            if (resourceUseInfo.forceBarrier ||
+                                (currentPendingBarrier.accesses != resourceUseInfo.accesses
+                                || currentPendingBarrier.layout != resourceUseInfo.layout))
                             {
                                 if (currentPendingBarrier.firstPassIndex != -1)
                                 {
@@ -1354,9 +1391,12 @@ namespace cube
                 // the command list after writing the last pass.
                 // (An implicit global barrier is inserted between submitted command lists.)
                 // The barrier itself is needed for the layout transition.
-                barrier.MoveNext(-1, gapi::ResourceAccessFlag::NoAccess, registeredTextureInfoIt->second.dstLayout);
-                barrier.syncs = gapi::ResourceSyncFlag::None;
-                mLastPass.barriers.push_back(barrier.EmitBarrier(key.texture, key.subresourceIndex));
+                if (barrier.layout != registeredTextureInfoIt->second.dstLayout)
+                {
+                    barrier.MoveNext(-1, gapi::ResourceAccessFlag::NoAccess, registeredTextureInfoIt->second.dstLayout);
+                    barrier.syncs = gapi::ResourceSyncFlag::None;
+                    mLastPass.barriers.push_back(barrier.EmitBarrier(key.texture, key.subresourceIndex));
+                }
             }
         }
 
