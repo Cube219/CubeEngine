@@ -49,7 +49,7 @@ public struct EnvironmentMapLight : ILight
         const float3 diffuse = diffuseIrradianceMap.Sample(GetStaticLinearWrapSampler(), float3(normal.xy, -normal.z)).xyz * materialValue.albedo;
         
         const float3 R = -view - 2.0 * dot(normal, -view) * normal;
-        const float3 prefilterColor = prefilterMap.SampleLevel(prefilterSampler, float3(R.xy, -R.z), param.roughness * prefilterMapMipLevels).xyz;
+        const float3 prefilterColor = prefilterMap.SampleLevel(prefilterSampler, float3(R.xy, -R.z), param.roughness * (prefilterMapMipLevels - 1)).xyz;
         const float2 integratedBRDF = integratedBRDFLUT.Sample(GetStaticLinearWrapSampler(), float2(max(param.VoN, 0.0), param.roughness)).xy;
         param.VoH = dot(view, normal);
         const float3 F = Fresnel_SchlickRoughness.Calculate(param);
