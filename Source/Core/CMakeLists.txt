@@ -48,6 +48,11 @@ set(PRIVATE_FILES
     Private/Scene/SceneObject.h
     Private/Systems/CameraSystem.cpp
     Private/Systems/CameraSystem.h
+    Private/Systems/ModelLoader/IModelLoader.h
+    Private/Systems/ModelLoader/GLTFModelLoader.cpp
+    Private/Systems/ModelLoader/GLTFModelLoader.h
+    Private/Systems/ModelLoader/ObjModelLoader.cpp
+    Private/Systems/ModelLoader/ObjModelLoader.h
     Private/Systems/ModelLoaderSystem.cpp
     Private/Systems/ModelLoaderSystem.h
     Private/Systems/StatsSystem.cpp
