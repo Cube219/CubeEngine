@@ -9,6 +9,7 @@ struct GenerateIrradianceMapShaderParameterList
 {
     int numSlices;
     float2 widthAndInvWidth;
+    uint3 tileOffsetAndCubeFaceIndex;
     Bindless<TextureCube> srcIBL;
     Bindless<RWTexture2DArray> dstDiffuseIrradianceMap;
 };
@@ -48,12 +49,14 @@ float3 CalculateDiffuseIrradiance(uniform TextureCube src, float3 normal, uint n
 [numthreads(8, 8, 1)]
 void GenerateIrradianceMapCS(
     uint3 threadID : SV_DispatchThreadID,
-    uint3 groupID : SV_GroupID,
     ParameterBlock<GenerateIrradianceMapShaderParameterList> params
 )
 {
-    const uint3 dstCoord = uint3(threadID.xy, groupID.z);
-    if (any(dstCoord.xy >= params.widthAndInvWidth.xx))
+    const uint3 dstCoord = uint3(
+        params.tileOffsetAndCubeFaceIndex.xy + threadID.xy,
+        params.tileOffsetAndCubeFaceIndex.z
+    );
+    if (any(dstCoord.xy >= (uint2)params.widthAndInvWidth.xx))
     {
         return;
     }
@@ -67,7 +70,8 @@ void GenerateIrradianceMapCS(
 struct GenerateIntegratedBRDFLUTShaderParameterList
 {
     uint sampleCount;
-    float width;
+    uint width;
+    uint2 tileOffset;
     Bindless<RWTexture2D> dstIntegratedBRDFLUT;
 };
 
@@ -107,7 +111,7 @@ void GenerateIntegratedBRDFLUTCS(
     ParameterBlock<GenerateIntegratedBRDFLUTShaderParameterList> params
 )
 {
-    const uint2 dstCoord = threadID.xy;
+    const uint2 dstCoord = params.tileOffset + threadID.xy;
     if (any(dstCoord >= params.width.xx))
     {
         return;
@@ -121,6 +125,7 @@ struct GeneratePrefilterMapShaderParameterList
 {
     uint numSamples;
     float2 widthAndInvWidth;
+    uint3 tileOffsetAndCubeFaceIndex;
     float roughness;
     Bindless<TextureCube> srcIBL;
     Bindless<RWTexture2DArray> dstPrefilterMap;
@@ -155,12 +160,14 @@ float3 CalculatePrefilter(uniform TextureCube src, float3 normal, float roughnes
 [numthreads(8, 8, 1)]
 void GeneratePrefilterMapCS(
     uint3 threadID : SV_DispatchThreadID,
-    uint3 groupID : SV_GroupID,
     ParameterBlock<GeneratePrefilterMapShaderParameterList> params
 )
 {
-    const uint3 dstCoord = uint3(threadID.xy, groupID.z);
-    if (any(dstCoord.xy >= params.widthAndInvWidth.xx))
+    const uint3 dstCoord = uint3(
+        params.tileOffsetAndCubeFaceIndex.xy + threadID.xy,
+        params.tileOffsetAndCubeFaceIndex.z
+    );
+    if (any(dstCoord.xy >= (uint2)params.widthAndInvWidth.xx))
     {
         return;
     }

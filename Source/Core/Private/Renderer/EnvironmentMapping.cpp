@@ -14,8 +14,9 @@ namespace cube
     class GenerateIrradianceMapShaderParameterList : public ShaderParameterList
     {
         CUBE_BEGIN_SHADER_PARAMETER_LIST(GenerateIrradianceMapShaderParameterList)
-            CUBE_SHADER_PARAMETER(int, numSlices)
-            CUBE_SHADER_PARAMETER(Vector2, widthAndInvWidth)
+            CUBE_SHADER_PARAMETER(Uint32, numSlices)
+            CUBE_SHADER_PARAMETER(Float2, widthAndInvWidth)
+            CUBE_SHADER_PARAMETER(Uint3, tileOffsetAndCubeFaceIndex)
             CUBE_SHADER_PARAMETER(RGTextureSRVHandle, srcIBL)
             CUBE_SHADER_PARAMETER(RGTextureUAVHandle, dstDiffuseIrradianceMap)
         CUBE_END_SHADER_PARAMETER_LIST
@@ -26,7 +27,8 @@ namespace cube
     {
         CUBE_BEGIN_SHADER_PARAMETER_LIST(GenerateIntegratedBRDFLUTShaderParameterList)
             CUBE_SHADER_PARAMETER(Uint32, sampleCount)
-            CUBE_SHADER_PARAMETER(float, width)
+            CUBE_SHADER_PARAMETER(Uint32, width)
+            CUBE_SHADER_PARAMETER(Uint2, tileOffset)
             CUBE_SHADER_PARAMETER(RGTextureUAVHandle, dstIntegratedBRDFLUT)
         CUBE_END_SHADER_PARAMETER_LIST
     };
@@ -36,7 +38,8 @@ namespace cube
     {
         CUBE_BEGIN_SHADER_PARAMETER_LIST(GeneratePrefilterMapShaderParameterList)
             CUBE_SHADER_PARAMETER(Uint32, numSamples)
-            CUBE_SHADER_PARAMETER(Vector2, widthAndInvWidth)
+            CUBE_SHADER_PARAMETER(Float2, widthAndInvWidth)
+            CUBE_SHADER_PARAMETER(Uint3, tileOffsetAndCubeFaceIndex)
             CUBE_SHADER_PARAMETER(float, roughness)
             CUBE_SHADER_PARAMETER(RGTextureSRVHandle, srcIBL)
             CUBE_SHADER_PARAMETER(RGTextureUAVHandle, dstPrefilterMap)
@@ -143,7 +146,7 @@ namespace cube
                 .debugName = CUBE_T("GeneratePrefilterMap CS")
             });
             CHECK(mGeneratePrefilterMapShader);
-            
+
             mGeneratePrefilterMapPipelineInfo = {
                 .shader = mGeneratePrefilterMapShader
             };
@@ -499,10 +502,12 @@ namespace cube
     {
         CHECK(mIBLTexture);
 
-        // TODO: Split work to avoid GPU hang.
         const gapi::ElementFormat format = gapi::ElementFormat::RGBA16_Float;
-        const Uint32 width = 256;
-        const Uint32 height = 256;
+        const Uint32 widthAndHeight = 256;
+
+        const Uint32 numSlices = 128;
+        // Split work into tile to avoid TDR.
+        const Uint32 tileSize = 32;
 
         mDiffuseIrradianceMap = mRenderer.GetGAPI().CreateTexture({
             .usage = gapi::ResourceUsage::GPUOnly,
@@ -510,8 +515,8 @@ namespace cube
                 .format = format,
                 .type = gapi::TextureType::TextureCube,
                 .flags = gapi::TextureFlag::UAV,
-                .width = width,
-                .height = height,
+                .width = widthAndHeight,
+                .height = widthAndHeight,
             },
             .debugName = CUBE_T("Irradiance Map")
         });
@@ -523,32 +528,52 @@ namespace cube
             RGTextureHandle dstDiffuseEnvMap = builder.RegisterTexture(mDiffuseIrradianceMap);
             RGTextureUAVHandle dstDiffuseEnvMapUAV = builder.CreateUAV(dstDiffuseEnvMap);
 
-            RGShaderParameterListHandle<GenerateIrradianceMapShaderParameterList> params = builder.CreateShaderParameterList<GenerateIrradianceMapShaderParameterList>();
-            params->Get()->numSlices = 128;
-            params->Get()->widthAndInvWidth = Vector2(static_cast<float>(width), 1.0f / static_cast<float>(width));
-            params->Get()->srcIBL = srcIBLSRV;
-            params->Get()->dstDiffuseIrradianceMap = dstDiffuseEnvMapUAV;
-
             SharedPtr<ComputePipeline> generateIrradianceMapPipeline = mRenderer.GetPipelineManager().GetOrCreateComputePipeline({
                 .pipelineInfo = mGenerateIrradianceMapPipelineInfo,
                 .debugName = CUBE_T("GenerateIrradianceMap Pipeline")
             });
 
-            builder.AddPass(CUBE_T("GenerateIrradianceMap"),
-                generateIrradianceMapPipeline,
-                params,
-                [width, height](gapi::CommandList& commandList)
+            for (Uint32 cubeFaceIndex = 0; cubeFaceIndex < 6; ++cubeFaceIndex)
             {
-                commandList.DispatchThreads(width, height, 6);
-            });
+                for (Uint32 offsetX = 0; offsetX < widthAndHeight; offsetX += tileSize)
+                {
+                    for (Uint32 offsetY = 0; offsetY < widthAndHeight; offsetY += tileSize)
+                    {
+                        auto params = builder.CreateShaderParameterList<GenerateIrradianceMapShaderParameterList>();
+                        params->Get()->numSlices = numSlices;
+                        params->Get()->widthAndInvWidth = Float2(static_cast<float>(widthAndHeight), 1.0f / static_cast<float>(widthAndHeight));
+                        params->Get()->tileOffsetAndCubeFaceIndex = Uint3(offsetX, offsetY, cubeFaceIndex);
+                        params->Get()->srcIBL = srcIBLSRV;
+                        params->Get()->dstDiffuseIrradianceMap = dstDiffuseEnvMapUAV;
+
+                        const Uint2 dispatchTileSize = Uint2(
+                            std::min(tileSize, widthAndHeight - offsetX),
+                            std::min(tileSize, widthAndHeight - offsetY)
+                        );
+
+                        builder.AddPass(Format<FrameString>(CUBE_T("Generate IrradianceMap [({0},{1}), ({2},{3}), face: {4}]"),
+                                            offsetX, offsetY, offsetX + dispatchTileSize.x, offsetY + dispatchTileSize.y, cubeFaceIndex),
+                            generateIrradianceMapPipeline,
+                            params,
+                            [dispatchTileSize](gapi::CommandList& commandList)
+                            {
+                                commandList.DispatchThreads(dispatchTileSize.x, dispatchTileSize.y, 1);
+                            }
+                        );
+                    }
+                }
+            }
         }
-        builder.ExecuteAndSubmit(*mCommandList, true);
+        builder.ExecuteAndSubmit(*mCommandList);
     }
 
     void EnvironmentMapping::GenerateIntegratedBRDFLUT()
     {
         const gapi::ElementFormat format = gapi::ElementFormat::RG16_Float;
-        const Uint32 width = 512;
+        const Uint32 widthAndHeight = 512;
+
+        // Split work into tile to avoid TDR.
+        const Uint32 tileSize = 32;
 
         mIntegratedBRDFLUT = mRenderer.GetGAPI().CreateTexture({
             .usage = gapi::ResourceUsage::GPUOnly,
@@ -556,8 +581,8 @@ namespace cube
                 .format = format,
                 .type = gapi::TextureType::Texture2D,
                 .flags = gapi::TextureFlag::UAV,
-                .width = width,
-                .height = width,
+                .width = widthAndHeight,
+                .height = widthAndHeight,
             },
             .debugName = CUBE_T("IntegratedBRDF LUT")
         });
@@ -567,35 +592,51 @@ namespace cube
             RGTextureHandle dstIntegratedBRDFLUT = builder.RegisterTexture(mIntegratedBRDFLUT);
             RGTextureUAVHandle dstIntegratedBRDFLUTUAV = builder.CreateUAV(dstIntegratedBRDFLUT);
 
-            auto params = builder.CreateShaderParameterList<GenerateIntegratedBRDFLUTShaderParameterList>();
-            params->Get()->sampleCount = 1024;
-            params->Get()->width = width;
-            params->Get()->dstIntegratedBRDFLUT = dstIntegratedBRDFLUTUAV;
-
             SharedPtr<ComputePipeline> generateIntegratedBRDFLUTPipeline = mRenderer.GetPipelineManager().GetOrCreateComputePipeline({
                 .pipelineInfo = mGenerateIntegratedBRDFLUTPipelineInfo,
                 .debugName = CUBE_T("GenerateIntegratedBRDFLUT Pipeline")
             });
-            builder.AddPass(CUBE_T("Generate IntegratedBRDFLUT"),
-                generateIntegratedBRDFLUTPipeline,
-                params,
-                [width](gapi::CommandList& commandList)
+
+            for (Uint32 offsetX = 0; offsetX < widthAndHeight; offsetX += tileSize)
             {
-                commandList.DispatchThreads(width, width, 1);
-            });
+                for (Uint32 offsetY = 0; offsetY < widthAndHeight; offsetY += tileSize)
+                {
+                    auto params = builder.CreateShaderParameterList<GenerateIntegratedBRDFLUTShaderParameterList>();
+                    params->Get()->sampleCount = 1024;
+                    params->Get()->width = widthAndHeight;
+                    params->Get()->tileOffset = Uint2(offsetX, offsetY);
+                    params->Get()->dstIntegratedBRDFLUT = dstIntegratedBRDFLUTUAV;
+
+                    const Uint2 dispatchTileSize = Uint2(
+                        std::min(tileSize, widthAndHeight - offsetX),
+                        std::min(tileSize, widthAndHeight - offsetY)
+                    );
+
+                    builder.AddPass(Format<FrameString>(CUBE_T("Generate IntegratedBRDFLUT [({0},{1}), ({2},{3})]"),
+                                        offsetX, offsetY, offsetX + dispatchTileSize.x, offsetY + dispatchTileSize.y),
+                        generateIntegratedBRDFLUTPipeline,
+                        params,
+                        [dispatchTileSize](gapi::CommandList& commandList)
+                        {
+                            commandList.DispatchThreads(dispatchTileSize.x, dispatchTileSize.y, 1);
+                        }
+                    );
+                }
+            }
         }
-        builder.ExecuteAndSubmit(*mCommandList, true);
+        builder.ExecuteAndSubmit(*mCommandList);
     }
 
     void EnvironmentMapping::GeneratePrefilterMap()
     {
         CHECK(mIBLTexture);
 
-        // TODO: Split work to avoid GPU hang.
-
         const gapi::ElementFormat format = gapi::ElementFormat::RGBA16_Float;
-        const Uint32 width = 256;
+        const Uint32 widthAndHeight = 256;
         const Uint32 mipLevels = 5;
+
+        // Split work into tile to avoid TDR.
+        const Uint32 tileSize = 32;
 
         mPrefilterMap = mRenderer.GetGAPI().CreateTexture({
             .usage = gapi::ResourceUsage::GPUOnly,
@@ -603,8 +644,8 @@ namespace cube
                 .format = format,
                 .type = gapi::TextureType::TextureCube,
                 .flags = gapi::TextureFlag::UAV,
-                .width = width,
-                .height = width,
+                .width = widthAndHeight,
+                .height = widthAndHeight,
                 .mipLevels = mipLevels
             },
             .debugName = CUBE_T("Prefilter Map")
@@ -624,27 +665,43 @@ namespace cube
             for (Uint32 mipLevel = 0; mipLevel < mipLevels; ++mipLevel)
             {
                 const float roughness = static_cast<float>(mipLevel) / (mipLevels - 1);
-                const Uint32 mipWidth = (width >> mipLevel);
+                const Uint32 mipWidthAndHeight = (widthAndHeight >> mipLevel);
 
                 RGTextureUAVHandle dstPrefilterMapUAV = builder.CreateUAV(dstPrefilterMap, { .subresourceRange = { .firstMipLevel = mipLevel } });
 
-                auto params = builder.CreateShaderParameterList<GeneratePrefilterMapShaderParameterList>();
-                params->Get()->numSamples = 256;
-                params->Get()->widthAndInvWidth = Vector2(static_cast<float>(mipWidth), 1.0f / static_cast<float>(mipWidth));
-                params->Get()->roughness = roughness;
-                params->Get()->srcIBL = srcIBLSRV;
-                params->Get()->dstPrefilterMap = dstPrefilterMapUAV;
-
-                builder.AddPass(Format<FrameString>(CUBE_T("GeneratePrefilterMap [{0}]"), mipLevel),
-                    generatePrefilterMapPipeline,
-                    params,
-                    [mipWidth](gapi::CommandList& commandList)
+                for (Uint32 cubeFaceIndex = 0; cubeFaceIndex < 6; ++cubeFaceIndex)
+                {
+                    for (Uint32 offsetX = 0; offsetX < mipWidthAndHeight; offsetX += tileSize)
                     {
-                        commandList.DispatchThreads(mipWidth, mipWidth, 6);
+                        for (Uint32 offsetY = 0; offsetY < mipWidthAndHeight; offsetY += tileSize)
+                        {
+                            auto params = builder.CreateShaderParameterList<GeneratePrefilterMapShaderParameterList>();
+                            params->Get()->numSamples = 256;
+                            params->Get()->widthAndInvWidth = Float2(static_cast<float>(mipWidthAndHeight), 1.0f / static_cast<float>(mipWidthAndHeight));
+                            params->Get()->tileOffsetAndCubeFaceIndex = Uint3(offsetX, offsetY, cubeFaceIndex);
+                            params->Get()->roughness = roughness;
+                            params->Get()->srcIBL = srcIBLSRV;
+                            params->Get()->dstPrefilterMap = dstPrefilterMapUAV;
+
+                            const Uint2 dispatchTileSize = Uint2(
+                                std::min(tileSize, mipWidthAndHeight - offsetX),
+                                std::min(tileSize, mipWidthAndHeight - offsetY)
+                            );
+
+                            builder.AddPass(Format<FrameString>(CUBE_T("Generate PrefilterMap [({0},{1}), ({2},{3}), face: {4}, mipLevel: {5}]"),
+                                                offsetX, offsetY, offsetX + dispatchTileSize.x, offsetY + dispatchTileSize.y, cubeFaceIndex, mipLevel),
+                                generatePrefilterMapPipeline,
+                                params,
+                                [dispatchTileSize](gapi::CommandList& commandList)
+                                {
+                                    commandList.DispatchThreads(dispatchTileSize.x, dispatchTileSize.y, 1);
+                                }
+                            );
+                        }
                     }
-                );
+                }
             }
         }
-        builder.ExecuteAndSubmit(*mCommandList, true);
+        builder.ExecuteAndSubmit(*mCommandList);
     }
 } // namespace cube
