@@ -19,7 +19,7 @@ namespace cube
         static SharedPtr<MeshData> GeneratePlaneMeshData();
 
         static void SetNormalVector(ArrayView<Vertex> inOutVertices, ArrayView<Index> inOutIndices);
-        static void SetApproxTangentVector(ArrayView<Vertex> inOutVertices);
+        static void CalculateTangentVectors(ArrayView<Vertex> inOutVertices, ConstArrayView<Index> indices);
 
     private:
         static void SubDivide(ArrayView<Vertex> inOutVertices, ArrayView<Index> inOutIndices);

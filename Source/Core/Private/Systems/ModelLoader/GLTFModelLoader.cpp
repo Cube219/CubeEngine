@@ -404,11 +404,6 @@ namespace cube
                         }
                     );
                 }
-                else
-                {
-                    CUBE_LOG(Info, GLTFModelLoader, "No tangent data found in the model. Calculate approximate tangent from normal.");
-                    MeshHelper::SetApproxTangentVector(ArrayView(vertices.begin() + vertexOffset, numVertices));
-                }
                 // TEXCOORD
                 if (texCoordAccessor != NONE)
                 {
@@ -536,6 +531,13 @@ namespace cube
                             indices[indexOffset + index] = v;
                         }
                     );
+                }
+
+                // Generate tangent vectors if missing.
+                if (tangentAccessor == NONE)
+                {
+                    CUBE_LOG(Info, GLTFModelLoader, "No tangent data found in the model. Calculating tangents.");
+                    MeshHelper::CalculateTangentVectors(ArrayView(vertices.begin() + vertexOffset, numVertices), ArrayView(indices.begin() + indexOffset, numIndices));
                 }
             }
 

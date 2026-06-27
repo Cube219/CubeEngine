@@ -384,7 +384,7 @@ namespace cube
                         CUBE_LOG(Info, ObjModelLoader, "No normal data found in obj shape '{0}'. Calculating normals.", objShape.name);
                         MeshHelper::SetNormalVector(ArrayView(vertices.begin() + vertexOffset, submeshVertexCount), ArrayView(indices.begin() + indexOffset, numIndices));
                     }
-                    MeshHelper::SetApproxTangentVector(ArrayView(vertices.begin() + vertexOffset, submeshVertexCount));
+                    MeshHelper::CalculateTangentVectors(ArrayView(vertices.begin() + vertexOffset, submeshVertexCount), ArrayView(indices.begin() + indexOffset, numIndices));
                 }
             }
 

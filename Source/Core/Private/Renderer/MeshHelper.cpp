@@ -46,7 +46,7 @@ namespace cube
         };
 
         SetNormalVector(vertices, indices);
-        SetApproxTangentVector(vertices);
+        CalculateTangentVectors(vertices, indices);
 
         SubMesh subMeshes[] = {
             {
@@ -137,7 +137,7 @@ namespace cube
         indices.push_back((sliceCount - 1) * 2 + 1);
 
         SetNormalVector(vertices, indices);
-        SetApproxTangentVector(vertices);
+        CalculateTangentVectors(vertices, indices);
 
         SubMesh subMeshes[] = {
             {
@@ -307,7 +307,7 @@ namespace cube
             }
         }
 
-        SetApproxTangentVector(vertices);
+        CalculateTangentVectors(vertices, indices);
 
         SubMesh subMeshes[] = {
             {
@@ -387,7 +387,7 @@ namespace cube
             vertex.normal.Normalize();
         }
 
-        SetApproxTangentVector(vertices);
+        CalculateTangentVectors(vertices, indices);
 
         SubMesh subMeshes[] = {
             {
@@ -422,7 +422,7 @@ namespace cube
         };
 
         SetNormalVector(vertices, indices);
-        SetApproxTangentVector(vertices);
+        CalculateTangentVectors(vertices, indices);
 
         SubMesh subMeshes[] = {
             {
@@ -471,22 +471,76 @@ namespace cube
         }
     }
 
-    void MeshHelper::SetApproxTangentVector(ArrayView<Vertex> inOutVertices)
+    void MeshHelper::CalculateTangentVectors(ArrayView<Vertex> inOutVertices, ConstArrayView<Index> indices)
     {
-        for (Vertex& vertex : inOutVertices)
-        {
-            Vector3 c1 = Vector3::Cross(vertex.normal, Vector3(0.0f, 0.0f, 1.0f));
-            Vector3 c2 = Vector3::Cross(vertex.normal, Vector3(0.0f, 1.0f, 0.0f));
+        // Calculate the tangents from UV derivatives per triangle and average them.
+        FrameVector<Vector3> tangents(inOutVertices.size(), Vector3::Zero());
+        FrameVector<int> signs(inOutVertices.size(), 0);
 
-            if (c1.SquareLength() > c2.SquareLength())
+        const int numTriangles = (int)indices.size() / 3;
+        for (int i = 0; i < numTriangles; ++i)
+        {
+            int i0 = indices[i * 3];
+            int i1 = indices[i * 3 + 1];
+            int i2 = indices[i * 3 + 2];
+
+            Vertex v0 = inOutVertices[i0];
+            Vertex v1 = inOutVertices[i1];
+            Vertex v2 = inOutVertices[i2];
+
+            Vector3 edge1 = v1.position - v0.position;
+            Vector3 edge2 = v2.position - v0.position;
+
+            Float2 dUV1 = (v1.uv - v0.uv).GetFloat2();
+            Float2 dUV2 = (v2.uv - v0.uv).GetFloat2();
+
+            float det = dUV1.x * dUV2.y - dUV2.x * dUV1.y;
+            if (std::abs(det) < std::numeric_limits<float>::epsilon() / 2.0f)
             {
-                vertex.tangent = Vector4(c1.Normalized());
+                continue;
+            }
+            float invDet = 1.0f / det;
+
+            Vector3 tangent = (dUV2.y * edge1 - dUV1.y * edge2) * invDet;
+            int sign = det > 0 ? 1 : -1;
+
+            tangents[i0] += tangent;
+            tangents[i1] += tangent;
+            tangents[i2] += tangent;
+            signs[i0] += sign;
+            signs[i1] += sign;
+            signs[i2] += sign;
+        }
+
+        for (int i = 0; i < (int)inOutVertices.size(); ++i)
+        {
+            Vertex& v = inOutVertices[i];
+
+            if (tangents[i] == Vector3::Zero())
+            {
+                // Use the approximate method.
+                Vector3 c1 = Vector3::Cross(v.normal, Vector3(0.0f, 0.0f, 1.0f));
+                Vector3 c2 = Vector3::Cross(v.normal, Vector3(0.0f, 1.0f, 0.0f));
+
+                if (c1.SquareLength() > c2.SquareLength())
+                {
+                    v.tangent = Vector4(c1.Normalized());
+                }
+                else
+                {
+                    v.tangent = Vector4(c2.Normalized());
+                }
+                v.tangent += Vector4(0.0f, 0.0f, 0.0f, 1.0f);
             }
             else
             {
-                vertex.tangent = Vector4(c2.Normalized());
+                Vector3 t = tangents[i].Normalized();
+                // Use Gram-Schmidt to make the tangent orthogonal to the normal.
+                t = (t - v.normal * Vector3::DotV(v.normal, t)).Normalized();
+
+                v.tangent = Vector4(t);
+                v.tangent += signs[i] >= 0 ? Vector4(0.0f, 0.0f, 0.0f, 1.0f) : Vector4(0.0f, 0.0f, 0.0f, -1.0f);
             }
-            vertex.tangent += Vector4(0.0f, 0.0f, 0.0f, 1.0f);
         }
     }
 
