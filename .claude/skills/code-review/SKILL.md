@@ -9,6 +9,7 @@ Review the commit $ARGUMENTS.
 # Check list
 * Logic errors. (wrong logics, memory leaks...)
 * Human errors. (typos, debug log and codes...)
+* Check the coding format style based on existed codes and clang-format.
 
 # Additional notes
 * Show as many suggestions as you can.
