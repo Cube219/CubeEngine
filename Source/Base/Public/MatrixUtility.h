@@ -25,6 +25,8 @@ namespace cube
         static Matrix GetLookAt(const Vector3& eyePos, const Vector3& targetPos, const Vector3& upDir);
         static Matrix GetPerspectiveFov(float fovAngleY, float aspectRatio, float nearZ, float farZ);
         static Matrix GetPerspectiveFovWithReverseY(float fovAngleY, float aspectRatio, float nearZ, float farZ);
+
+        static void DecomposeTransformation(const Matrix& matrix, Vector3& outTranslation, Vector3& outRotation, Vector3& outScale);
     };
 } // namespace cube
 

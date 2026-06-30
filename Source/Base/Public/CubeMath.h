@@ -24,7 +24,7 @@ namespace cube
             return PrecisionSin(rad);
         }
         static float Cos(float rad)
-         {
+        {
             return PrecisionCos(rad);
         }
         static float Tan(float rad)
@@ -43,6 +43,19 @@ namespace cube
         static float PrecisionTan(float rad)
         {
             return std::tanf(rad);
+        }
+
+        static float Sqrt(float v)
+        {
+            return std::sqrtf(v);
+        }
+        static float Asin(float v)
+        {
+            return std::asinf(v);
+        }
+        static float Atan2(float y, float x)
+        {
+            return std::atan2f(y, x);
         }
 
         static float Log(float v)

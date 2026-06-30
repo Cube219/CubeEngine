@@ -617,8 +617,7 @@ TEST(MatrixUtilityTest, RotationPreservesLength)
     Matrix r = MatrixUtility::GetRotationXYZ(
         Math::Deg2Rad(30.0f),
         Math::Deg2Rad(45.0f),
-        Math::Deg2Rad(60.0f)
-    );
+        Math::Deg2Rad(60.0f));
 
     Vector4 p(1.0f, 2.0f, 3.0f, 0.0f);
     Vector4 rotated = p * r;
@@ -641,8 +640,7 @@ TEST(MatrixUtilityTest, RotationIsOrthogonal)
     Matrix r = MatrixUtility::GetRotationXYZ(
         Math::Deg2Rad(30.0f),
         Math::Deg2Rad(45.0f),
-        Math::Deg2Rad(60.0f)
-    );
+        Math::Deg2Rad(60.0f));
 
     // R * R^T should be Identity for rotation matrices
     Matrix rt = r.Transposed();
@@ -652,8 +650,7 @@ TEST(MatrixUtilityTest, RotationIsOrthogonal)
     Matrix r2 = MatrixUtility::GetRotationXYZ(
         Math::Deg2Rad(-73.0f),
         Math::Deg2Rad(158.0f),
-        Math::Deg2Rad(-41.0f)
-    );
+        Math::Deg2Rad(-41.0f));
     Matrix product2 = r2 * r2.Transposed();
     ExpectMatrixNear(product2, Matrix::Identity(), 1e-4f);
 }
@@ -688,10 +685,10 @@ TEST(MatrixUtilityTest, RotationXYZ_HandVerifiedResult)
     Matrix r = MatrixUtility::GetRotationXYZ(Math::Deg2Rad(90.0f), 0.0f, 0.0f);
 
     float expected[4][4] = {
-        {1.0f,  0.0f,  0.0f, 0.0f},
-        {0.0f,  0.0f, -1.0f, 0.0f},
-        {0.0f,  1.0f,  0.0f, 0.0f},
-        {0.0f,  0.0f,  0.0f, 1.0f}
+        { 1.0f, 0.0f, 0.0f, 0.0f },
+        { 0.0f, 0.0f, -1.0f, 0.0f },
+        { 0.0f, 1.0f, 0.0f, 0.0f },
+        { 0.0f, 0.0f, 0.0f, 1.0f }
     };
     ExpectMatrixNear(r, expected);
 }
@@ -845,4 +842,110 @@ TEST(MatrixUtilityTest, SRT_InverseReconstruction)
     EXPECT_NEAR(fr.y, fp.y, kEps);
     EXPECT_NEAR(fr.z, fp.z, kEps);
     EXPECT_NEAR(fr.w, fp.w, kEps);
+}
+
+// ===== DecomposeTransformation =====
+
+// Build a model matrix the same way SceneObject::GetModelMatrix does.
+static Matrix BuildModel(const Vector3& scale, const Vector3& rotation, const Vector3& position)
+{
+    return MatrixUtility::GetScale(scale) * MatrixUtility::GetRotationXYZ(rotation) + MatrixUtility::GetTranslation_Add(position);
+}
+
+static void ExpectVector3Near(const Vector3& v, float x, float y, float z, float eps = kEps)
+{
+    Float3 f = const_cast<Vector3&>(v).GetFloat3();
+    EXPECT_NEAR(f.x, x, eps);
+    EXPECT_NEAR(f.y, y, eps);
+    EXPECT_NEAR(f.z, z, eps);
+}
+
+TEST(MatrixUtilityTest, DecomposeTransformation_RoundTrip)
+{
+    // Keep the Y rotation inside (-90, 90) so the XYZ Euler decomposition is unique.
+    Vector3 scale(2.0f, 3.0f, 4.0f);
+    Vector3 rotation(Math::Deg2Rad(20.0f), Math::Deg2Rad(-35.0f), Math::Deg2Rad(58.0f));
+    Vector3 position(5.0f, -2.0f, 8.0f);
+
+    Matrix model = BuildModel(scale, rotation, position);
+
+    Vector3 outTranslation, outRotation, outScale;
+    MatrixUtility::DecomposeTransformation(model, outTranslation, outRotation, outScale);
+
+    ExpectVector3Near(outTranslation, 5.0f, -2.0f, 8.0f);
+    ExpectVector3Near(outRotation, Math::Deg2Rad(20.0f), Math::Deg2Rad(-35.0f), Math::Deg2Rad(58.0f));
+    ExpectVector3Near(outScale, 2.0f, 3.0f, 4.0f);
+}
+
+TEST(MatrixUtilityTest, DecomposeTransformation_Identity)
+{
+    Vector3 outTranslation, outRotation, outScale;
+    MatrixUtility::DecomposeTransformation(Matrix::Identity(), outTranslation, outRotation, outScale);
+
+    ExpectVector3Near(outTranslation, 0.0f, 0.0f, 0.0f);
+    ExpectVector3Near(outRotation, 0.0f, 0.0f, 0.0f);
+    ExpectVector3Near(outScale, 1.0f, 1.0f, 1.0f);
+}
+
+TEST(MatrixUtilityTest, DecomposeTransformation_TranslationOnly)
+{
+    Vector3 position(-10.0f, 20.0f, -30.0f);
+    Matrix model = BuildModel(Vector3(1.0f, 1.0f, 1.0f), Vector3::Zero(), position);
+
+    Vector3 outTranslation, outRotation, outScale;
+    MatrixUtility::DecomposeTransformation(model, outTranslation, outRotation, outScale);
+
+    ExpectVector3Near(outTranslation, -10.0f, 20.0f, -30.0f);
+    ExpectVector3Near(outRotation, 0.0f, 0.0f, 0.0f);
+    ExpectVector3Near(outScale, 1.0f, 1.0f, 1.0f);
+}
+
+TEST(MatrixUtilityTest, DecomposeTransformation_ScaleOnly)
+{
+    Vector3 scale(0.5f, 4.0f, 2.5f);
+    Matrix model = BuildModel(scale, Vector3::Zero(), Vector3::Zero());
+
+    Vector3 outTranslation, outRotation, outScale;
+    MatrixUtility::DecomposeTransformation(model, outTranslation, outRotation, outScale);
+
+    ExpectVector3Near(outTranslation, 0.0f, 0.0f, 0.0f);
+    ExpectVector3Near(outRotation, 0.0f, 0.0f, 0.0f);
+    ExpectVector3Near(outScale, 0.5f, 4.0f, 2.5f);
+}
+
+TEST(MatrixUtilityTest, DecomposeTransformation_ReconstructsMatrix)
+{
+    // Even when the Euler representation is not unique, recomposing from the
+    // decomposed components must reproduce the original matrix.
+    Vector3 scale(1.5f, 2.0f, 0.75f);
+    Vector3 rotation(Math::Deg2Rad(73.0f), Math::Deg2Rad(-41.0f), Math::Deg2Rad(158.0f));
+    Vector3 position(3.0f, -6.0f, 1.0f);
+
+    Matrix model = BuildModel(scale, rotation, position);
+
+    Vector3 outTranslation, outRotation, outScale;
+    MatrixUtility::DecomposeTransformation(model, outTranslation, outRotation, outScale);
+
+    Matrix reconstructed = BuildModel(outScale, outRotation, outTranslation);
+    ExpectMatrixNear(reconstructed, model);
+}
+
+TEST(MatrixUtilityTest, DecomposeTransformation_GimbalLock)
+{
+    // Y rotation at +90 degrees collapses cosY to 0 (gimbal lock). Recomposing
+    // from the decomposed components must still reproduce the original matrix.
+    Vector3 scale(2.0f, 2.0f, 2.0f);
+    Vector3 rotation(Math::Deg2Rad(30.0f), Math::Deg2Rad(90.0f), Math::Deg2Rad(0.0f));
+    Vector3 position(1.0f, 2.0f, 3.0f);
+
+    Matrix model = BuildModel(scale, rotation, position);
+
+    Vector3 outTranslation, outRotation, outScale;
+    MatrixUtility::DecomposeTransformation(model, outTranslation, outRotation, outScale);
+
+    ExpectVector3Near(outTranslation, 1.0f, 2.0f, 3.0f);
+    ExpectVector3Near(outScale, 2.0f, 2.0f, 2.0f);
+
+    Matrix reconstructed = BuildModel(outScale, outRotation, outTranslation);
+    ExpectMatrixNear(reconstructed, model);
 }

@@ -318,4 +318,51 @@ namespace cube
             Vector4(0.0f, 0.0f, nearZ * t, 0.0f)
         };
     }
+
+    inline void MatrixUtility::DecomposeTransformation(const Matrix& matrix, Vector3& outTranslation, Vector3& outRotation, Vector3& outScale)
+    {
+        // Model matrix is built as Scale * RotationXYZ with translation in the last row.
+        // (See SceneObject::GetModelMatrix)
+        Vector4 row0 = matrix.GetRow(0);
+        Vector4 row1 = matrix.GetRow(1);
+        Vector4 row2 = matrix.GetRow(2);
+
+        // Translation is stored in the last row.
+        outTranslation = Vector3(matrix.GetRow(3));
+
+        // Scale is the length of each basis (upper-left 3x3 row) vector.
+        Vector3 basisX(row0);
+        Vector3 basisY(row1);
+        Vector3 basisZ(row2);
+
+        float scaleX = basisX.Length();
+        float scaleY = basisY.Length();
+        float scaleZ = basisZ.Length();
+        outScale = Vector3(scaleX, scaleY, scaleZ);
+
+        // Normalize each basis vector to recover the pure rotation matrix.
+        Float3 r0 = (scaleX > 0.0f ? basisX / scaleX : basisX).GetFloat3();
+        Float3 r1 = (scaleY > 0.0f ? basisY / scaleY : basisY).GetFloat3();
+        Float3 r2 = (scaleZ > 0.0f ? basisZ / scaleZ : basisZ).GetFloat3();
+
+        // Extract XYZ Euler angles. (Inverse of GetRotationXYZ)
+        float sinY = Math::Min(Math::Max(r0.z, -1.0f), 1.0f);
+        float angleX = 0.0f;
+        float angleY = Math::Asin(sinY);
+        float angleZ = 0.0f;
+
+        // cosY approaches 0 near +-90 degrees (gimbal lock).
+        if (1.0f - sinY * sinY > 1e-6f)
+        {
+            angleX = Math::Atan2(-r1.z, r2.z);
+            angleZ = Math::Atan2(-r0.y, r0.x);
+        }
+        else
+        {
+            // Gimbal lock: fix Z to 0 and fold the remaining rotation into X.
+            angleX = (sinY > 0.0f) ? Math::Atan2(r1.x, r1.y) : -Math::Atan2(r1.x, r1.y);
+        }
+
+        outRotation = Vector3(angleX, angleY, angleZ);
+    }
 } // namespace cube
