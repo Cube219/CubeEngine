@@ -25,6 +25,15 @@ namespace cube
         return mModel;
     }
 
+    void SceneObject::SetModelMatrix(const Matrix& model)
+    {
+        mModel = model;
+        // Keep position/rotation/scale derived from the matrix so they stay consistent.
+        MatrixUtility::DecomposeTransformation(mModel, mPosition, mRotation, mScale);
+
+        mIsModelMatrixDirty = false;
+    }
+
     void SceneObject::SetPosition(Vector3 position)
     {
         mPosition = position;

@@ -548,35 +548,85 @@ namespace cube
         // Make scene and scene objects.
         SharedPtr<Scene> scene = std::make_shared<Scene>();
 
+        // Build a node's local transform in the engine's row-vector convention.
+        auto BuildLocalMatrix = [](const tinygltf::Node& node) -> Matrix
+        {
+            // glTF stores a node matrix in column-major order. The engine uses row-vector
+            // matrices (the transpose of the column-vector form), so the column-major array
+            // maps directly to the engine's row-major storage.
+            if (node.matrix.size() == 16)
+            {
+                const std::vector<double>& m = node.matrix;
+                return Matrix(
+                    (float)m[0], (float)m[1], (float)m[2], (float)m[3],
+                    (float)m[4], (float)m[5], (float)m[6], (float)m[7],
+                    (float)m[8], (float)m[9], (float)m[10], (float)m[11],
+                    (float)m[12], (float)m[13], (float)m[14], (float)m[15]);
+            }
+
+            // Otherwise compose from translation / rotation (quaternion) / scale.
+            Matrix scale = Matrix::Identity();
+            if (node.scale.size() == 3)
+            {
+                scale = MatrixUtility::GetScale({ (float)node.scale[0], (float)node.scale[1], (float)node.scale[2] });
+            }
+
+            Matrix rotation = Matrix::Identity();
+            if (node.rotation.size() == 4)
+            {
+                float x = (float)node.rotation[0];
+                float y = (float)node.rotation[1];
+                float z = (float)node.rotation[2];
+                float w = (float)node.rotation[3];
+                // Row-vector rotation matrix from a quaternion (transpose of the column-vector form).
+                rotation = Matrix(
+                    1.0f - 2.0f * (y * y + z * z), 2.0f * (x * y + w * z), 2.0f * (x * z - w * y), 0.0f,
+                    2.0f * (x * y - w * z), 1.0f - 2.0f * (x * x + z * z), 2.0f * (y * z + w * x), 0.0f,
+                    2.0f * (x * z + w * y), 2.0f * (y * z - w * x), 1.0f - 2.0f * (x * x + y * y), 0.0f,
+                    0.0f, 0.0f, 0.0f, 1.0f);
+            }
+
+            Matrix translation = Matrix::Identity();
+            if (node.translation.size() == 3)
+            {
+                translation = MatrixUtility::GetTranslation({ (float)node.translation[0], (float)node.translation[1], (float)node.translation[2] });
+            }
+
+            return scale * rotation * translation;
+        };
+
+        // Traverse the node hierarchy, accumulating each node's global-space transform.
+        std::function<void(int, const Matrix&)> ProcessNode = [&](int nodeIndex, const Matrix& parentGlobalMatrix)
+        {
+            const tinygltf::Node& node = model.nodes[nodeIndex];
+
+            // Row-vector convention: a child's global transform is its local transform applied
+            // before the parent's global transform.
+            Matrix globalMatrix = BuildLocalMatrix(node) * parentGlobalMatrix;
+
+            if (node.mesh != -1)
+            {
+                UniquePtr<SceneObject> obj = std::make_unique<SceneObject>(
+                    String_Convert<FrameString>(node.name),
+                    meshes[node.mesh]);
+                obj->SetMaterials(materialsPerMeshes[node.mesh]);
+                obj->SetModelMatrix(globalMatrix);
+
+                scene->AddSceneObject(std::move(obj));
+            }
+
+            for (int childIndex : node.children)
+            {
+                ProcessNode(childIndex, globalMatrix);
+            }
+        };
+
         if (model.defaultScene != -1)
         {
             tinygltf::Scene& gltfScene = model.scenes[model.defaultScene];
             for (int nodeIndex : gltfScene.nodes)
             {
-                tinygltf::Node& node = model.nodes[nodeIndex];
-
-                UniquePtr<SceneObject> obj = std::make_unique<SceneObject>(
-                    String_Convert<FrameString>(node.name),
-                    node.mesh != -1 ? meshes[node.mesh] : nullptr);
-                if (node.mesh != -1)
-                {
-                    obj->SetMaterials(materialsPerMeshes[node.mesh]);
-                }
-
-                if (!node.translation.empty())
-                {
-                    obj->SetPosition({ (float)node.translation[0], (float)node.translation[1], (float)node.translation[2] });
-                }
-                if (!node.rotation.empty())
-                {
-                    // TODO: Quat to euler?
-                }
-                if (!node.scale.empty())
-                {
-                    obj->SetScale({ (float)node.scale[0], (float)node.scale[1], (float)node.scale[2] });
-                }
-
-                scene->AddSceneObject(std::move(obj));
+                ProcessNode(nodeIndex, Matrix::Identity());
             }
 
             for (SharedPtr<Material>& material : materials)
