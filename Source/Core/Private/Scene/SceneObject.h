@@ -19,9 +19,6 @@ namespace cube
         const Vector<WeakPtr<Material>>& GetMaterials() const { return mMaterials; }
 
         Matrix GetModelMatrix();
-
-        // Override the model(transformation) matrix directly.
-        // Decomposes the matrix to keep position/rotation/scale in sync.
         void SetModelMatrix(const Matrix& model);
 
         void SetPosition(Vector3 position);

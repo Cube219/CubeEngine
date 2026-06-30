@@ -37,26 +37,20 @@ namespace cube
         static const ModelLoadInfo gltfLoadModelInfos[] = {
             {
                 .name = CUBE_T("DamagedHelmet"),
-                .rotation = Vector3(0.0f, -90.0f, 90.0f),
                 .scale = Vector3(2.5f)
             },
             {
                 .name = CUBE_T("FlightHelmet"),
-                .rotation = Vector3(0, -90.0f, 0.0f),
                 .scale = Vector3(7.0f)
             },
             {
                 .name = CUBE_T("MetalRoughSpheres"),
-                .position = Vector3(-1.5f, 0.0f, 0.0f),
-                .rotation = Vector3(0, 90.0f, 90.0f),
-                .scale = Vector3(0.5f)
             },
             {
                 .name = CUBE_T("Sponza"),
             },
             {
                 .name = CUBE_T("Suzanne"),
-                .rotation = Vector3(0, -90.0f),
                 .scale = Vector3(2.0f)
             },
             {
@@ -64,6 +58,7 @@ namespace cube
             },
             {
                 .name = CUBE_T("CompareAmbientOcclusion"),
+                .scale = Vector3(8.0f)
             },
         };
         Vector<String> gltfList = platform::FileSystem::GetList(resourceBasePath);
@@ -548,7 +543,6 @@ namespace cube
         // Make scene and scene objects.
         SharedPtr<Scene> scene = std::make_shared<Scene>();
 
-        // Build a node's local transform in the engine's row-vector convention.
         auto BuildLocalMatrix = [](const tinygltf::Node& node) -> Matrix
         {
             // glTF stores a node matrix in column-major order. The engine uses row-vector
@@ -564,14 +558,12 @@ namespace cube
                     (float)m[12], (float)m[13], (float)m[14], (float)m[15]);
             }
 
-            // Otherwise compose from translation / rotation (quaternion) / scale.
-            Matrix scale = Matrix::Identity();
+            Matrix res = Matrix::Identity();
             if (node.scale.size() == 3)
             {
-                scale = MatrixUtility::GetScale({ (float)node.scale[0], (float)node.scale[1], (float)node.scale[2] });
+                res = MatrixUtility::GetScale((float)node.scale[0], (float)node.scale[1], (float)node.scale[2]);
             }
 
-            Matrix rotation = Matrix::Identity();
             if (node.rotation.size() == 4)
             {
                 float x = (float)node.rotation[0];
@@ -579,29 +571,25 @@ namespace cube
                 float z = (float)node.rotation[2];
                 float w = (float)node.rotation[3];
                 // Row-vector rotation matrix from a quaternion (transpose of the column-vector form).
-                rotation = Matrix(
+                res *= Matrix(
                     1.0f - 2.0f * (y * y + z * z), 2.0f * (x * y + w * z), 2.0f * (x * z - w * y), 0.0f,
                     2.0f * (x * y - w * z), 1.0f - 2.0f * (x * x + z * z), 2.0f * (y * z + w * x), 0.0f,
                     2.0f * (x * z + w * y), 2.0f * (y * z - w * x), 1.0f - 2.0f * (x * x + y * y), 0.0f,
                     0.0f, 0.0f, 0.0f, 1.0f);
             }
 
-            Matrix translation = Matrix::Identity();
             if (node.translation.size() == 3)
             {
-                translation = MatrixUtility::GetTranslation({ (float)node.translation[0], (float)node.translation[1], (float)node.translation[2] });
+                res += MatrixUtility::GetTranslation_Add((float)node.translation[0], (float)node.translation[1], (float)node.translation[2]);
             }
 
-            return scale * rotation * translation;
+            return res;
         };
 
-        // Traverse the node hierarchy, accumulating each node's global-space transform.
         std::function<void(int, const Matrix&)> ProcessNode = [&](int nodeIndex, const Matrix& parentGlobalMatrix)
         {
             const tinygltf::Node& node = model.nodes[nodeIndex];
 
-            // Row-vector convention: a child's global transform is its local transform applied
-            // before the parent's global transform.
             Matrix globalMatrix = BuildLocalMatrix(node) * parentGlobalMatrix;
 
             if (node.mesh != -1)
