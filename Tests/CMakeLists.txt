@@ -4,6 +4,7 @@ set(TEST_FILES
     VectorTest.cpp
     MatrixTest.cpp
     MatrixUtilityTest.cpp
+    QuaternionTest.cpp
 )
 
 add_executable(CE-Tests ${TEST_FILES})

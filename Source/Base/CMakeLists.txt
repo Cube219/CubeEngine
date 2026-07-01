@@ -7,6 +7,10 @@ set(PUBLIC_FILES
     Public/MatrixImpl/MatrixUtilityArray.inl
     Public/MatrixImpl/MatrixUtilityAVX2.inl
     Public/MatrixImpl/MatrixUtilitySSE.inl
+    Public/QuaternionImpl/QuaternionArray.inl
+    Public/QuaternionImpl/QuaternionAVX2.inl
+    Public/QuaternionImpl/QuaternionNEON.inl
+    Public/QuaternionImpl/QuaternionSSE.inl
     Public/VectorImpl/VectorArray.inl
     Public/VectorImpl/VectorAVX2.inl
     Public/VectorImpl/VectorSSE.inl
@@ -23,6 +27,7 @@ set(PUBLIC_FILES
     Public/Matrix.h
     Public/MatrixUtility.h
     Public/Mouse.h
+    Public/Quaternion.h
     Public/Types.h
     Public/Vector.h
 )
@@ -46,6 +51,7 @@ set(PRECOMPILE_HEADER_FILES
     Public/Matrix.h
     Public/MatrixUtility.h
     Public/Mouse.h
+    Public/Quaternion.h
     Public/Types.h
     Public/Vector.h
 )
