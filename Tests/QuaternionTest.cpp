@@ -156,14 +156,14 @@ TEST(QuaternionTest, Dot)
 TEST(QuaternionTest, Conjugate)
 {
     Quaternion q(1.0f, -2.0f, 3.0f, 4.0f);
-    ExpectQuatNear(q.Conjugate(), Quaternion(-1.0f, 2.0f, -3.0f, 4.0f));
+    ExpectQuatNear(q.Conjugated(), Quaternion(-1.0f, 2.0f, -3.0f, 4.0f));
 }
 
 TEST(QuaternionTest, InverseRoundTrip)
 {
     Quaternion q = Quaternion::FromAxisAngle(Vector3(1.0f, 2.0f, 3.0f), 1.1f);
-    ExpectQuatNear(q * q.Inverse(), Quaternion::Identity());
-    ExpectQuatNear(q.Inverse() * q, Quaternion::Identity());
+    ExpectQuatNear(q * q.Inversed(), Quaternion::Identity());
+    ExpectQuatNear(q.Inversed() * q, Quaternion::Identity());
 }
 
 TEST(QuaternionTest, FromAxisAngleIsUnit)

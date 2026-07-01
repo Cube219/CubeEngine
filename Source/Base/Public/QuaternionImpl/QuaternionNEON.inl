@@ -38,9 +38,9 @@ namespace cube
         Quaternion qy = FromAxisAngle(Vector3(0.0f, 1.0f, 0.0f), yAngle);
         Quaternion qz = FromAxisAngle(Vector3(0.0f, 0.0f, 1.0f), zAngle);
 
-        // Matches MatrixUtility::GetRotationXYZ, which equals (Mz*My*Mx)^T in the
-        // row-vector convention, i.e. the conjugate of (qx * qy * qz).
-        return (qx * qy * qz).Conjugated();
+        // Matches MatrixUtility::GetRotationXYZ, which equals Mx*My*Mz in the
+        // row-vector convention (GetRotationX() * GetRotationY() * GetRotationZ()).
+        return qz * qy * qx;
     }
 
     inline Quaternion Quaternion::FromEulerXYZ(const Vector3& angles)

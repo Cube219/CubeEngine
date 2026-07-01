@@ -462,7 +462,7 @@ namespace cube
     }
 
     template <int N>
-    inline VectorBase<N> VectorBase<N>::Normalized()
+    inline VectorBase<N> VectorBase<N>::Normalized() const
     {
         return *this / Length();
     }

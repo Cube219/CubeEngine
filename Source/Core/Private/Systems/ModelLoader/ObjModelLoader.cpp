@@ -36,7 +36,6 @@ namespace cube
         static const ModelLoadInfo objLoadModels[] = {
             {
                 .name = CUBE_T("CornellBox"),
-                .rotation = Vector3(0.0f, -90.0f, 0.0f),
                 .scale = Vector3(2.0f)
             },
             {

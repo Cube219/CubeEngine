@@ -682,15 +682,31 @@ TEST(MatrixUtilityTest, RotationXYZ_HandVerifiedResult)
 {
     // Verify GetRotationXYZ against a hand-computed result.
     // For x=90, y=0, z=0: cosX=0, sinX=1, cosY=1, sinY=0, cosZ=1, sinZ=0
+    // With y=z=0 the result must equal GetRotationX(90).
     Matrix r = MatrixUtility::GetRotationXYZ(Math::Deg2Rad(90.0f), 0.0f, 0.0f);
 
     float expected[4][4] = {
         { 1.0f, 0.0f, 0.0f, 0.0f },
-        { 0.0f, 0.0f, -1.0f, 0.0f },
-        { 0.0f, 1.0f, 0.0f, 0.0f },
+        { 0.0f, 0.0f, 1.0f, 0.0f },
+        { 0.0f, -1.0f, 0.0f, 0.0f },
         { 0.0f, 0.0f, 0.0f, 1.0f }
     };
     ExpectMatrixNear(r, expected);
+}
+
+TEST(MatrixUtilityTest, RotationXYZ_EqualsRotationXTimesYTimesZ)
+{
+    // GetRotationXYZ must equal GetRotationX() * GetRotationY() * GetRotationZ().
+    float xAngle = Math::Deg2Rad(30.0f);
+    float yAngle = Math::Deg2Rad(45.0f);
+    float zAngle = Math::Deg2Rad(60.0f);
+
+    Matrix combined = MatrixUtility::GetRotationXYZ(xAngle, yAngle, zAngle);
+    Matrix product = MatrixUtility::GetRotationX(xAngle) *
+                     MatrixUtility::GetRotationY(yAngle) *
+                     MatrixUtility::GetRotationZ(zAngle);
+
+    ExpectMatrixNear(combined, product);
 }
 
 TEST(MatrixUtilityTest, RotationXYZ_InverseIsNegatedAngles)

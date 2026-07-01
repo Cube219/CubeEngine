@@ -121,9 +121,10 @@ namespace cube
     inline Matrix MatrixUtility::GetRotationXYZ(float xAngle, float yAngle, float zAngle)
     {
         /*
-                        cosYcosZ                -cosYsinZ        sinY      0
-           sinXsinYcosZ+cosXsinZ   -sinXsinYsinZ+cosXcosZ   -sinXcosY      0
-          -cosXsinYcosZ+sinXsinZ    cosXsinYsinZ+sinXcosZ    cosXcosY      0
+          GetRotationX() * GetRotationY() * GetRotationZ() (row-vector convention):
+                        cosYcosZ                 cosYsinZ       -sinY      0
+           sinXsinYcosZ-cosXsinZ    sinXsinYsinZ+cosXcosZ    sinXcosY      0
+           cosXsinYcosZ+sinXsinZ    cosXsinYsinZ-sinXcosZ    cosXcosY      0
                                0                        0           0      1
         */
         float sinX = Math::Sin(xAngle);
@@ -134,9 +135,9 @@ namespace cube
         float cosZ = Math::Cos(zAngle);
 
         return Matrix{
-            cosY * cosZ, -cosY * sinZ, sinY, 0.0f,
-            sinX * sinY * cosZ + cosX * sinZ, -sinX * sinY * sinZ + cosX * cosZ, -sinX * cosY, 0.0f,
-            -cosX * sinY * cosZ + sinX * sinZ, cosX * sinY * sinZ + sinX * cosZ, cosX * cosY, 0.0f,
+            cosY * cosZ, cosY * sinZ, -sinY, 0.0f,
+            sinX * sinY * cosZ - cosX * sinZ, sinX * sinY * sinZ + cosX * cosZ, sinX * cosY, 0.0f,
+            cosX * sinY * cosZ + sinX * sinZ, cosX * sinY * sinZ - sinX * cosZ, cosX * cosY, 0.0f,
             0.0f, 0.0f, 0.0f, 1.0f
         };
     }
@@ -330,7 +331,7 @@ namespace cube
         Float3 r2 = (scaleZ > 0.0f ? basisZ / scaleZ : basisZ).GetFloat3();
 
         // Extract XYZ Euler angles. (Inverse of GetRotationXYZ)
-        float sinY = Math::Min(Math::Max(r0.z, -1.0f), 1.0f);
+        float sinY = Math::Min(Math::Max(-r0.z, -1.0f), 1.0f);
         float angleX = 0.0f;
         float angleY = Math::Asin(sinY);
         float angleZ = 0.0f;
@@ -338,8 +339,8 @@ namespace cube
         // cosY approaches 0 near +-90 degrees (gimbal lock).
         if (1.0f - sinY * sinY > 1e-6f)
         {
-            angleX = Math::Atan2(-r1.z, r2.z);
-            angleZ = Math::Atan2(-r0.y, r0.x);
+            angleX = Math::Atan2(r1.z, r2.z);
+            angleZ = Math::Atan2(r0.y, r0.x);
         }
         else
         {

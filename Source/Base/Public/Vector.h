@@ -209,7 +209,7 @@ namespace cube
         VectorBase SquareLengthV() const;
 
         void Normalize();
-        VectorBase Normalized();
+        VectorBase Normalized() const;
 
         float Dot(const VectorBase& rhs) const;
         static float Dot(const VectorBase& lhs, const VectorBase& rhs);

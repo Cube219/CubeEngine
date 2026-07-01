@@ -18,13 +18,11 @@ namespace cube
 
     inline Quaternion Quaternion::FromAxisAngle(const Vector3& axis, float angle)
     {
-        Vector3 a = axis;
-        a.Normalize();
-        Float3 af = a.GetFloat3();
+        Float3 af = axis.Normalized().GetFloat3();
 
-        float half = angle * 0.5f;
-        float s = Math::Sin(half);
-        float c = Math::Cos(half);
+        float halfAngle = angle * 0.5f;
+        float s = Math::Sin(halfAngle);
+        float c = Math::Cos(halfAngle);
 
         return Quaternion(af.x * s, af.y * s, af.z * s, c);
     }
@@ -35,9 +33,9 @@ namespace cube
         Quaternion qy = FromAxisAngle(Vector3(0.0f, 1.0f, 0.0f), yAngle);
         Quaternion qz = FromAxisAngle(Vector3(0.0f, 0.0f, 1.0f), zAngle);
 
-        // Matches MatrixUtility::GetRotationXYZ, which equals (Mz*My*Mx)^T in the
-        // row-vector convention, i.e. the conjugate of (qx * qy * qz).
-        return (qx * qy * qz).Conjugated();
+        // Matches MatrixUtility::GetRotationXYZ, which equals Mx*My*Mz in the
+        // row-vector convention (GetRotationX() * GetRotationY() * GetRotationZ()).
+        return qz * qy * qx;
     }
 
     inline Quaternion Quaternion::FromEulerXYZ(const Vector3& angles)
@@ -269,7 +267,6 @@ namespace cube
 
     inline void Quaternion::Conjugate()
     {
-        // Negate the vector part (x, y, z), keep the scalar part (w).
         mData[0] = -mData[0];
         mData[1] = -mData[1];
         mData[2] = -mData[2];
@@ -326,7 +323,7 @@ namespace cube
 
     inline Quaternion Quaternion::Lerp(const Quaternion& a, const Quaternion& b, float t)
     {
-        return a + (b - a) * t;
+        return (a + (b - a) * t).Normalized();
     }
 
     inline Quaternion Quaternion::Slerp(const Quaternion& a, const Quaternion& b, float t)
