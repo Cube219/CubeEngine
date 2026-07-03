@@ -33,8 +33,7 @@ namespace cube
         Quaternion qy = FromAxisAngle(Vector3(0.0f, 1.0f, 0.0f), yAngle);
         Quaternion qz = FromAxisAngle(Vector3(0.0f, 0.0f, 1.0f), zAngle);
 
-        // Matches MatrixUtility::GetRotationXYZ, which equals Mx*My*Mz in the
-        // row-vector convention (GetRotationX() * GetRotationY() * GetRotationZ()).
+        // Same as MatrixUtility::GetRotationXYZ(). (X -> Y -> Z)
         return qz * qy * qx;
     }
 
@@ -46,8 +45,6 @@ namespace cube
 
     inline Quaternion Quaternion::FromRotationMatrix(const Matrix& matrix)
     {
-        // matrix uses the row-vector convention (M = R^T of the textbook column-vector
-        // rotation matrix), so R[i][j] = m[j][i]. (See ToRotationMatrix)
         Float4 r0 = matrix.GetRow(0).GetFloat4();
         Float4 r1 = matrix.GetRow(1).GetFloat4();
         Float4 r2 = matrix.GetRow(2).GetFloat4();
@@ -56,6 +53,7 @@ namespace cube
         float m10 = r1.x, m11 = r1.y, m12 = r1.z;
         float m20 = r2.x, m21 = r2.y, m22 = r2.z;
 
+        // Derived quaternion components from ToRotationMatrix().
         float trace = m00 + m11 + m22;
         float x, y, z, w;
 
@@ -163,15 +161,10 @@ namespace cube
 
     inline Quaternion Quaternion::operator*(const Quaternion& rhs) const
     {
-        float x1 = mData[0], y1 = mData[1], z1 = mData[2], w1 = mData[3];
-        float x2 = rhs.mData[0], y2 = rhs.mData[1], z2 = rhs.mData[2], w2 = rhs.mData[3];
+        Quaternion res(*this);
+        res *= rhs;
 
-        // Hamilton product.
-        return Quaternion(
-            w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2,
-            w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2,
-            w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2,
-            w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2);
+        return res;
     }
 
     inline const Quaternion& Quaternion::operator+() const
@@ -216,7 +209,14 @@ namespace cube
 
     inline Quaternion& Quaternion::operator*=(const Quaternion& rhs)
     {
-        *this = *this * rhs;
+        float x1 = mData[0], y1 = mData[1], z1 = mData[2], w1 = mData[3];
+        float x2 = rhs.mData[0], y2 = rhs.mData[1], z2 = rhs.mData[2], w2 = rhs.mData[3];
+
+        // Hamilton product.
+        mData[0] = w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2;
+        mData[1] = w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2;
+        mData[2] = w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2;
+        mData[3] = w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2;
 
         return *this;
     }
@@ -323,7 +323,11 @@ namespace cube
 
     inline Quaternion Quaternion::Lerp(const Quaternion& a, const Quaternion& b, float t)
     {
-        return (a + (b - a) * t).Normalized();
+        // Take the shortest path.
+        Quaternion bb = (a.Dot(b) < 0.0f) ? -b : b;
+
+        Quaternion res = a * (1.0f - t) + bb * t;
+        return res.Normalized();
     }
 
     inline Quaternion Quaternion::Slerp(const Quaternion& a, const Quaternion& b, float t)

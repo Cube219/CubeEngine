@@ -21,15 +21,17 @@ namespace cube
 
     inline Quaternion Quaternion::FromAxisAngle(const Vector3& axis, float angle)
     {
-        Vector3 a = axis;
-        a.Normalize();
-        Float3 af = a.GetFloat3();
+        Vector3 a = axis.Normalized();
 
         float half = angle * 0.5f;
         float s = Math::Sin(half);
         float c = Math::Cos(half);
 
-        return Quaternion(af.x * s, af.y * s, af.z * s, c);
+        Quaternion res;
+        res.mData = vmulq_n_f32(a.mData, s);
+        res.mData = vsetq_lane_f32(c, res.mData, 3);
+
+        return res;
     }
 
     inline Quaternion Quaternion::FromEulerXYZ(float xAngle, float yAngle, float zAngle)
@@ -38,8 +40,7 @@ namespace cube
         Quaternion qy = FromAxisAngle(Vector3(0.0f, 1.0f, 0.0f), yAngle);
         Quaternion qz = FromAxisAngle(Vector3(0.0f, 0.0f, 1.0f), zAngle);
 
-        // Matches MatrixUtility::GetRotationXYZ, which equals Mx*My*Mz in the
-        // row-vector convention (GetRotationX() * GetRotationY() * GetRotationZ()).
+        // Same as MatrixUtility::GetRotationXYZ(). (X -> Y -> Z)
         return qz * qy * qx;
     }
 
@@ -51,8 +52,6 @@ namespace cube
 
     inline Quaternion Quaternion::FromRotationMatrix(const Matrix& matrix)
     {
-        // matrix uses the row-vector convention (M = R^T of the textbook column-vector
-        // rotation matrix), so R[i][j] = m[j][i]. (See ToRotationMatrix)
         Float4 r0 = matrix.GetRow(0).GetFloat4();
         Float4 r1 = matrix.GetRow(1).GetFloat4();
         Float4 r2 = matrix.GetRow(2).GetFloat4();
@@ -61,6 +60,7 @@ namespace cube
         float m10 = r1.x, m11 = r1.y, m12 = r1.z;
         float m20 = r2.x, m21 = r2.y, m22 = r2.z;
 
+        // Derive quaternion components from ToRotationMatrix().
         float trace = m00 + m11 + m22;
         float x, y, z, w;
 
@@ -155,40 +155,10 @@ namespace cube
 
     inline Quaternion Quaternion::operator*(const Quaternion& rhs) const
     {
-        // Hamilton product. result = w1*q2 + x1*(w2,-z2,y2,-x2) + y1*(z2,w2,-x2,-y2) + z1*(-y2,x2,w2,-z2)
-        alignas(16) float a[4];
-        alignas(16) float b[4];
-        vst1q_f32(a, mData);     // (x1, y1, z1, w1)
-        vst1q_f32(b, rhs.mData); // (x2, y2, z2, w2)
+        Quaternion res(*this);
+        res *= rhs;
 
-        float32x4_t x1 = vdupq_n_f32(a[0]);
-        float32x4_t y1 = vdupq_n_f32(a[1]);
-        float32x4_t z1 = vdupq_n_f32(a[2]);
-        float32x4_t w1 = vdupq_n_f32(a[3]);
-
-        alignas(16) float t1[4] = {b[3], b[2], b[1], b[0]}; // (w2, z2, y2, x2)
-        alignas(16) float t2[4] = {b[2], b[3], b[0], b[1]}; // (z2, w2, x2, y2)
-        alignas(16) float t3[4] = {b[1], b[0], b[3], b[2]}; // (y2, x2, w2, z2)
-        float32x4_t q2_1 = vld1q_f32(t1);
-        float32x4_t q2_2 = vld1q_f32(t2);
-        float32x4_t q2_3 = vld1q_f32(t3);
-
-        alignas(16) float s1[4] = {1.0f, -1.0f, 1.0f, -1.0f};  // (x,y,z,w) = (+,-,+,-)
-        alignas(16) float s2[4] = {1.0f, 1.0f, -1.0f, -1.0f};  // (+,+,-,-)
-        alignas(16) float s3[4] = {-1.0f, 1.0f, 1.0f, -1.0f};  // (-,+,+,-)
-        float32x4_t sign1 = vld1q_f32(s1);
-        float32x4_t sign2 = vld1q_f32(s2);
-        float32x4_t sign3 = vld1q_f32(s3);
-
-        float32x4_t res = vmulq_f32(w1, rhs.mData);
-        res = vfmaq_f32(res, x1, vmulq_f32(q2_1, sign1));
-        res = vfmaq_f32(res, y1, vmulq_f32(q2_2, sign2));
-        res = vfmaq_f32(res, z1, vmulq_f32(q2_3, sign3));
-
-        Quaternion q;
-        q.mData = res;
-
-        return q;
+        return res;
     }
 
     inline const Quaternion& Quaternion::operator+() const
@@ -227,7 +197,30 @@ namespace cube
 
     inline Quaternion& Quaternion::operator*=(const Quaternion& rhs)
     {
-        *this = *this * rhs;
+        // Hamilton product. result = w1*q2 + x1*(w2,-z2,y2,-x2) + y1*(z2,w2,-x2,-y2) + z1*(-y2,x2,w2,-z2)
+
+        float32x4_t x1 = vdupq_laneq_f32(mData, 0);
+        float32x4_t y1 = vdupq_laneq_f32(mData, 1);
+        float32x4_t z1 = vdupq_laneq_f32(mData, 2);
+        float32x4_t w1 = vdupq_laneq_f32(mData, 3);
+
+        float32x4_t q2_2 = vextq_f32(rhs.mData, rhs.mData, 2); // (z2, w2, x2, y2)
+        float32x4_t q2_1 = vrev64q_f32(q2_2);                  // (w2, z2, y2, x2)
+        float32x4_t q2_3 = vrev64q_f32(rhs.mData);             // (y2, x2, w2, z2)
+
+        const float32x2_t pp = vdup_n_f32(1.0f);
+        const float32x2_t nn = vneg_f32(pp);
+        const float32x4_t ppnn = vcombine_f32(pp, nn);
+        const float32x4_t nppn = vextq_f32(ppnn, ppnn, 3);
+        const float32x2_t pn = vget_high_f32(nppn);
+        const float32x4_t pnpn = vcombine_f32(pn, pn);
+
+        float32x4_t res = vmulq_f32(w1, rhs.mData);
+        res = vfmaq_f32(res, x1, vmulq_f32(q2_1, pnpn));
+        res = vfmaq_f32(res, y1, vmulq_f32(q2_2, ppnn));
+        res = vfmaq_f32(res, z1, vmulq_f32(q2_3, nppn));
+
+        mData = res;
 
         return *this;
     }
@@ -282,10 +275,8 @@ namespace cube
 
     inline void Quaternion::Conjugate()
     {
-        alignas(16) float s[4] = {-1.0f, -1.0f, -1.0f, 1.0f};
-
-        // Negate the vector part (x, y, z), keep the scalar part (w).
-        mData = vmulq_f32(mData, vld1q_f32(s));
+        float32x4_t nnnp = vsetq_lane_f32(1.0f, vdupq_n_f32(-1.0f), 3);
+        mData = vmulq_f32(mData, nnnp);
     }
 
     inline Quaternion Quaternion::Conjugated() const
@@ -324,24 +315,57 @@ namespace cube
     inline Matrix Quaternion::ToRotationMatrix() const
     {
         // Row-vector convention (v' = v * M), matching MatrixUtility::GetRotationAxis().
-        Float4 f = GetFloat4();
-        float x = f.x, y = f.y, z = f.z, w = f.w;
 
-        float xx = x * x, yy = y * y, zz = z * z;
-        float xy = x * y, xz = x * z, yz = y * z;
-        float wx = w * x, wy = w * y, wz = w * z;
-
-        return Matrix{
+        /*
             1.0f - 2.0f * (yy + zz), 2.0f * (xy + wz), 2.0f * (xz - wy), 0.0f,
             2.0f * (xy - wz), 1.0f - 2.0f * (xx + zz), 2.0f * (yz + wx), 0.0f,
             2.0f * (xz + wy), 2.0f * (yz - wx), 1.0f - 2.0f * (xx + yy), 0.0f,
             0.0f, 0.0f, 0.0f, 1.0f
-        };
+        */
+
+        float32x4_t xxxx = vdupq_laneq_f32(mData, 0);
+        float32x4_t yyyy = vdupq_laneq_f32(mData, 1);
+        float32x4_t zzzz = vdupq_laneq_f32(mData, 2);
+
+        float32x4_t yxwz = vrev64q_f32(mData);
+        float32x4_t wzyx = vextq_f32(yxwz, yxwz, 2);
+        float32x4_t zwxy = vrev64q_f32(wzyx);
+
+        // Sign + 2x multiplier.
+        const float32x2_t pp = vdup_n_f32(2.0f);
+        const float32x2_t nn = vneg_f32(pp);
+        const float32x4_t ppnn = vcombine_f32(pp, nn);
+        const float32x4_t nnpp = vnegq_f32(ppnn);
+        const float32x4_t nppn = vextq_f32(ppnn, ppnn, 3);
+        const float32x4_t pnnp = vrev64q_f32(nppn);
+        const float32x4_t pnpn = vextq_f32(nppn, pnnp, 2);
+        const float32x4_t npnp = vrev64q_f32(pnpn);
+
+        // (-yy-zz, yx+zw, -yw+zx, yz-zy(->0))
+        Vector4 row0;
+        row0.mData = vfmaq_f32(vmulq_f32(yyyy, vmulq_f32(npnp, yxwz)), zzzz, vmulq_f32(nppn, zwxy));
+        // (xy-zw, -xx-zz, xw+zy, -xz+zx(->0))
+        Vector4 row1;
+        row1.mData = vfmaq_f32(vmulq_f32(xxxx, vmulq_f32(pnpn, yxwz)), zzzz, vmulq_f32(nnpp, wzyx));
+        // (xz+yw, -xw+yz, -xx-yy, xy-yx(->0))
+        Vector4 row2;
+        row2.mData = vfmaq_f32(vmulq_f32(xxxx, vmulq_f32(pnnp, zwxy)), yyyy, vmulq_f32(ppnn, wzyx));
+
+        Matrix res = Matrix::Identity();
+        res.mRows[0] += row0;
+        res.mRows[1] += row1;
+        res.mRows[2] += row2;
+
+        return res;
     }
 
     inline Quaternion Quaternion::Lerp(const Quaternion& a, const Quaternion& b, float t)
     {
-        return a + (b - a) * t;
+        // Take the shortest path.
+        Quaternion bb = (a.Dot(b) < 0.0f) ? -b : b;
+
+        Quaternion res = a * (1.0f - t) + bb * t;
+        return res.Normalized();
     }
 
     inline Quaternion Quaternion::Slerp(const Quaternion& a, const Quaternion& b, float t)

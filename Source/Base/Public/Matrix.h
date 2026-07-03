@@ -54,6 +54,8 @@ namespace cube
         Matrix AffineInversed() const;
 
     private:
+        friend class Quaternion;
+
         Vector4 mRows[4];
 
         friend Matrix operator* (float lhs, const Matrix& rhs);

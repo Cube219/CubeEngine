@@ -224,7 +224,8 @@ namespace cube
         friend class VectorBase;
         friend class Matrix;
         friend class MatrixUtility;
-    
+        friend class Quaternion;
+
         VectorData<N> mData;
     
         template <int M>

@@ -87,7 +87,7 @@ namespace cube
     inline Matrix MatrixUtility::GetRotationXYZ(float xAngle, float yAngle, float zAngle)
     {
         /*
-          GetRotationX() * GetRotationY() * GetRotationZ() (row-vector convention):
+          X -> Y -> Z with row-vector convention:
                         cosYcosZ                 cosYsinZ       -sinY      0
            sinXsinYcosZ-cosXsinZ    sinXsinYsinZ+cosXcosZ    sinXcosY      0
            cosXsinYcosZ+sinXsinZ    cosXsinYsinZ-sinXcosZ    cosXcosY      0
