@@ -67,7 +67,23 @@ Transfer this command line parameter in each run if you want to check the progra
 
 `--test --model=default_1`
 
-### Testing process (Windows)
+### Testing process (Windows, PowerShell)
+
+```powershell
+# Run from the Binaries directory, wait 60s for rendering, then close via taskkill
+Set-Location Binaries/Debug/Debug
+$p = Start-Process .\CE-Main.exe -ArgumentList "<parameter>" -PassThru -NoNewWindow
+Start-Sleep 60
+taskkill /PID $p.Id
+```
+
+- Must run from the `Binaries/Debug/Debug` directory (running from the project root has a path resolution issue).
+- `Start-Process -PassThru` returns the Windows PID directly (unlike Git Bash, no `ps | grep` needed).
+- `-NoNewWindow` keeps CE-Main attached to the current console so engine logs stream live during the run.
+- Use `taskkill /PID <PID>` to send WM_CLOSE (graceful shutdown).
+- Exit code 0 means clean shutdown. Check logs for errors.
+
+### Testing process (Windows, Git Bash)
 
 ```bash
 # Run the app from the Binaries directory, wait 60s for rendering, then close via taskkill
