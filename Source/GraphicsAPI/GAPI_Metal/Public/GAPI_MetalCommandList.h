@@ -41,6 +41,7 @@ namespace cube
             void SetPrimitiveTopology(PrimitiveTopology newPrimitiveTopology);
 
             void SetConstantBuffer(SharedPtr<BufferSRV> srv, Uint32 index);
+            void UnsetConstantBuffer(Uint32 index);
             void ApplyConstantBuffers(id<MTLRenderCommandEncoder> encoder, bool forceAll = false);
             void ApplyConstantBuffers(id<MTLComputeCommandEncoder> computeEncoder, bool forceAll = false);
 
@@ -76,6 +77,8 @@ namespace cube
             virtual void DrawIndexed(Uint32 numIndices, Uint32 baseIndex, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance) override;
 
             virtual void SetConstantBuffer(Uint32 index, SharedPtr<BufferSRV> constantBuffer) override;
+            virtual void UnsetConstantBuffer(Uint32 index) override;
+
             virtual void UseResource(SharedPtr<BufferSRV> srv) override;
             virtual void UseResource(SharedPtr<BufferUAV> uav) override;
             virtual void UseResource(SharedPtr<TextureSRV> srv) override;
@@ -132,6 +135,8 @@ namespace cube
             id<MTLRenderCommandEncoder> mRenderEncoder;
             id<MTLComputeCommandEncoder> mComputeEncoder;
             id<MTLBlitCommandEncoder> mBlitEncoder;
+
+            Map<id<MTLResource>, MTLResourceUsage> mCachedUseResources;
 
             id<MTLBuffer> mIndexBuffer;
             NSUInteger mIndexBufferOffset;

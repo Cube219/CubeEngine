@@ -400,7 +400,7 @@ namespace cube
                 globalShaderParameterList->Get()->isDirectionalLightEnabled = mIsDirectionalLightEnabled;
                 globalShaderParameterList->Get()->directionalLightDirection = mDirectionalLightDirection;
                 globalShaderParameterList->Get()->directionalLightIntensity = mDirectionalLightIntensity;
-                builder.BindShaderParameterList(globalShaderParameterList);
+                builder.BindGlobalShaderParameterList(globalShaderParameterList);
 
                 auto envMapShaderParameterList = builder.CreateShaderParameterList<EnvironmentMapLightShaderParameterList>();
                 envMapShaderParameterList->Get()->diffuseIrradianceMap = mEnvironmentMapping.GetDiffuseIrradianceMap(builder);
@@ -408,6 +408,7 @@ namespace cube
                 envMapShaderParameterList->Get()->prefilterMap = mEnvironmentMapping.GetPrefilterMap(builder);
                 envMapShaderParameterList->Get()->prefilterSampler = mEnvironmentMapping.GetPrefilterMapSampler();
                 envMapShaderParameterList->Get()->prefilterMapMipLevels = mEnvironmentMapping.GetPrefilterMapMipLevels();
+                builder.BindGlobalShaderParameterList(envMapShaderParameterList);
 
                 RGBuilder::RenderPassInfo renderPassInfo;
                 renderPassInfo.colors.push_back({
@@ -458,7 +459,7 @@ namespace cube
                         }
                     }
 
-                    builder.AddDrawMeshPass(CUBE_T("Draw Scene"), drawMeshInfos, RGBuilder::MakeParameterListArray(envMapShaderParameterList));
+                    builder.AddDrawMeshPass(CUBE_T("Draw Scene"), drawMeshInfos, {});
                 }
 
                 if (mShowAxis)
@@ -488,8 +489,10 @@ namespace cube
                         .materials = { &zAxisMaterial, 1 },
                         .model = mZAxisModelMatrix
                     });
-                    builder.AddDrawMeshPass(CUBE_T("Draw Axis"), drawAxisMeshInfos, RGBuilder::MakeParameterListArray(envMapShaderParameterList));
+                    builder.AddDrawMeshPass(CUBE_T("Draw Axis"), drawAxisMeshInfos, {});
                 }
+
+                builder.UnbindGlobalShaderParameterList<EnvironmentMapLightShaderParameterList>();
 
                 mEnvironmentMapping.DrawSkybox(builder);
 

@@ -287,6 +287,13 @@ namespace cube
             CUBE_DX12_BOUND_OBJECT(constantBuffer);
         }
 
+        void DX12CommandList::UnsetConstantBuffer(Uint32 index)
+        {
+            CHECK(IsWriting());
+
+            // Do nothing. Maybe setting a null GPU address in the root constant buffer view provide no performance benefit.
+        }
+
         void DX12CommandList::UseResource(SharedPtr<BufferSRV> srv)
         {
             CHECK(IsWriting());

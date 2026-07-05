@@ -858,14 +858,35 @@ namespace cube
         Reset();
     }
 
-    void RGBuilder::BindShaderParameterListInternal(StringView name, RGShaderParameterListBaseHandle parameterList)
+    void RGBuilder::BindGlobalShaderParameterListInternal(StringView name, RGShaderParameterListBaseHandle parameterList)
     {
         CHECK(mState == State::Init);
 
-        // Add pass that just store parameter list. Resources in the parameter list will be tracked automatically.
-        AddPassInternal(Format<String>(CUBE_T("##BindShaderParameterList: {0}"), parameterList->mParameterListInfo.name),
+        // Add a pass that stores the parameter list. The parameter constant buffer will be bound automatically.
+        AddPassInternal(Format<String>(CUBE_T("##BindGlobalShaderParameterList: {0}"), parameterList->mParameterListInfo.name),
             nullptr, nullptr, { &parameterList, 1 },
-            nullptr, nullptr,
+            nullptr,
+            [nameStr = String(name), parameterList](RGBuilder& builder)
+            {
+                // Override the parameter list even if it existed.
+                builder.mCurrentBoundGlobalShaderParameterLists[nameStr] = parameterList;
+            },
+            false
+        );
+    }
+
+    void RGBuilder::UnbindGlobalShaderParameterListInternal(StringView name)
+    {
+        CHECK(mState == State::Init);
+
+        // NOTE: It cannot unbind the parameter constant buffer while executing. It will be fixed after refactoring RGBuilder structure.
+        AddPassInternal(Format<String>(CUBE_T("##UnbindGlobalShaderParameterList: {0}"), name),
+            nullptr, nullptr, {},
+            nullptr,
+            [nameStr = String(name)](RGBuilder& builder)
+            {
+                builder.mCurrentBoundGlobalShaderParameterLists.erase(nameStr);
+            },
             false
         );
     }
@@ -1021,7 +1042,7 @@ namespace cube
                 syncs = gapi::ResourceSyncFlag::Compute;
             }
 
-            for (RGShaderParameterListBaseHandle& paramList : pass.shaderParameterLists)
+            auto TryUseResource = [this, syncs](RGShaderParameterListBaseHandle& paramList)
             {
                 ShaderParameterList* shaderParameterList = paramList->mParameterList.get();
                 const Vector<ShaderParameterInfo>& shaderParameterInfos = paramList->mParameterListInfo.parameterInfos;
@@ -1067,6 +1088,16 @@ namespace cube
                         break;
                     }
                 }
+            };
+
+            for (auto& [_, globalParamList] : mCurrentBoundGlobalShaderParameterLists)
+            {
+                TryUseResource(globalParamList);
+            }
+
+            for (RGShaderParameterListBaseHandle& paramList : pass.shaderParameterLists)
+            {
+                TryUseResource(paramList);
             }
 
             // Check if the resources will be used currently attached to render pass.
@@ -1405,6 +1436,11 @@ namespace cube
 
     void RGBuilder::Reset()
     {
+        mCurrentBoundGlobalShaderParameterLists.clear();
+        mCurrentBoundComputePipeline = nullptr;
+        mCurrentBoundGraphicsPipeline = nullptr;
+        mShaderParameterListBindInfos.clear();
+
         mPasses.clear();
         mLastPass = {};
         mRegisteredTextureInfos.clear();

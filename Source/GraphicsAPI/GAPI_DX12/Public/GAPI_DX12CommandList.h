@@ -50,6 +50,8 @@ namespace cube
             void DrawIndexed(Uint32 numIndices, Uint32 baseIndex, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance) override;
 
             virtual void SetConstantBuffer(Uint32 index, SharedPtr<BufferSRV> constantBuffer) override;
+            virtual void UnsetConstantBuffer(Uint32 index) override;
+
             virtual void UseResource(SharedPtr<BufferSRV> srv) override;
             virtual void UseResource(SharedPtr<BufferUAV> uav) override;
             virtual void UseResource(SharedPtr<TextureSRV> srv) override;

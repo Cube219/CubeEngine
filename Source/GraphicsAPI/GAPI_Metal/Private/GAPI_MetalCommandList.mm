@@ -134,6 +134,16 @@ namespace cube
             constantBuffer.isSet = false;
         }
 
+        void MetalEncoderState::UnsetConstantBuffer(Uint32 index)
+        {
+            // Just remove it from the encoder state without calling setBuffer.
+            // That constant buffer will not be bound after the next encoders.
+            if (auto findIt = constantBuffers.find(index); findIt != constantBuffers.end())
+            {
+                constantBuffers.erase(findIt);
+            }
+        }
+
         void MetalEncoderState::ApplyConstantBuffers(id<MTLRenderCommandEncoder> encoder, bool forceAll)
         {
             for (auto& [index, constantBuffer] : constantBuffers)
@@ -422,6 +432,13 @@ namespace cube
             }
         }
 
+        void MetalCommandList::UnsetConstantBuffer(Uint32 index)
+        {
+            CHECK(IsWriting());
+
+            mCurrentEncoderState.UnsetConstantBuffer(index);
+        }
+
         void MetalCommandList::UseResource(SharedPtr<BufferSRV> srv)
         {
             CHECK(IsWriting());
@@ -595,6 +612,11 @@ namespace cube
 
         void MetalCommandList::UseResourceInternal(id<MTLResource> resource, MTLResourceUsage usage)
         {
+            if (auto findIt = mCachedUseResources.find(resource); findIt != mCachedUseResources.end() && findIt->second == usage)
+            {
+                return;
+            }
+
             if (IsInRenderPass())
             {
                 [mRenderEncoder
@@ -614,6 +636,8 @@ namespace cube
             {
                 NO_ENTRY_FORMAT("You must set render pass or compute pipeline before UseResource.");
             }
+
+            mCachedUseResources[resource] = usage;
         }
 
         void MetalCommandList::AllocateNewCommandBuffer()
@@ -650,6 +674,8 @@ namespace cube
             EndComputeEncoder();
             EndBlitEncoder();
 
+            mCachedUseResources.clear();
+
             if (HasTimestamps())
             {
                 NSUInteger beginIndex;
@@ -674,6 +700,8 @@ namespace cube
 
             if (!mComputeEncoder)
             {
+                mCachedUseResources.clear();
+
                 MTLComputePassDescriptor* desc = [[MTLComputePassDescriptor alloc] init];
 
                 if (HasTimestamps())
@@ -699,6 +727,8 @@ namespace cube
 
             if (!mBlitEncoder)
             {
+                mCachedUseResources.clear();
+
                 MTLBlitPassDescriptor* desc = [[MTLBlitPassDescriptor alloc] init];
 
                 if (HasTimestamps())

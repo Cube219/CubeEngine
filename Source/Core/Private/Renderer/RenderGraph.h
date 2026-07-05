@@ -96,9 +96,16 @@ namespace cube
 
         template <typename ShaderParameterListType>
             requires std::derived_from<ShaderParameterListType, ShaderParameterList>
-        void BindShaderParameterList(RGShaderParameterListHandle<ShaderParameterListType> parameterList)
+        void BindGlobalShaderParameterList(RGShaderParameterListHandle<ShaderParameterListType> parameterList)
         {
-            BindShaderParameterListInternal(ShaderParameterListType::GetName(), parameterList);
+            BindGlobalShaderParameterListInternal(ShaderParameterListType::GetName(), parameterList);
+        }
+
+        template <typename ShaderParameterListType>
+            requires std::derived_from<ShaderParameterListType, ShaderParameterList>
+        void UnbindGlobalShaderParameterList()
+        {
+            UnbindGlobalShaderParameterListInternal(ShaderParameterListType::GetName());
         }
 
         template <typename... T>
@@ -285,7 +292,8 @@ namespace cube
             Vector<gapi::ResourceBarrier> barriers;
         };
 
-        void BindShaderParameterListInternal(StringView name, RGShaderParameterListBaseHandle parameterList);
+        void BindGlobalShaderParameterListInternal(StringView name, RGShaderParameterListBaseHandle parameterList);
+        void UnbindGlobalShaderParameterListInternal(StringView name);
 
         void AddPassInternal(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, SharedPtr<ComputePipeline> computePipeline, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists,
             PassFunction&& passFunction, TrackResourceFunction&& trackResourceFunction,
@@ -351,6 +359,7 @@ namespace cube
 
         SharedPtr<GraphicsPipeline> mCurrentBoundGraphicsPipeline;
         SharedPtr<ComputePipeline> mCurrentBoundComputePipeline;
+        Map<String, RGShaderParameterListBaseHandle> mCurrentBoundGlobalShaderParameterLists;
     };
 
     // ===== Utility =====
