@@ -4,6 +4,7 @@ import MainInterface;
 import Material;
 
 ParameterBlock<GlobalShaderParameterList> globalParams;
+ParameterBlock<LightShaderParameterList> lightParams;
 ParameterBlock<ObjectShaderParameterList> perObjectParams;
 ParameterBlock<SubMeshShaderParameterList> subMeshObjectParams;
 ParameterBlock<MaterialShaderParameterList> materialParams;
@@ -58,9 +59,9 @@ PSOutput PSMain(PSInput input) : SV_TARGET
     float3 view = normalize(globalParams.viewPosition - input.worldPosition.xyz);
 
     float3 color = 0;
-    if (globalParams.isDirectionalLightEnabled)
+    if (lightParams.isDirectionalLightEnabled)
     {
-        DirectionalLight directionalLight = DirectionalLight(normalize(globalParams.directionalLightDirection), globalParams.directionalLightIntensity);
+        DirectionalLight directionalLight = DirectionalLight(normalize(lightParams.directionalLightDirection), lightParams.directionalLightIntensity);
         color += directionalLight.CalculateLight(view, normal, materialValue);
     }
 

@@ -6,11 +6,12 @@
 #include "EnvironmentMapping.h"
 #include "GAPI.h"
 #include "GAPI_Texture.h"
+#include "LightManager.h"
 #include "Matrix.h"
 #include "Pipeline.h"
+#include "RenderUtils.h"
 #include "Renderer/Mesh.h"
 #include "Renderer/ShaderParameter.h"
-#include "RenderUtils.h"
 #include "SamplerManager.h"
 #include "Shader.h"
 #include "Texture.h"
@@ -32,9 +33,6 @@ namespace cube
         CUBE_BEGIN_SHADER_PARAMETER_LIST(GlobalShaderParameterList)
             CUBE_SHADER_PARAMETER(Vector3, viewPosition)
             CUBE_SHADER_PARAMETER(Matrix, viewProjection)
-            CUBE_SHADER_PARAMETER(bool, isDirectionalLightEnabled)
-            CUBE_SHADER_PARAMETER(Vector3, directionalLightDirection)
-            CUBE_SHADER_PARAMETER(Vector3, directionalLightIntensity)
         CUBE_END_SHADER_PARAMETER_LIST
     };
 
@@ -91,6 +89,8 @@ namespace cube
         gapi::ElementFormat GetBackbufferFormat() const { return mBackbufferFormat; }
         gapi::ElementFormat GetDepthStencilFormat() const { return mDepthStencilFormat; }
 
+        const Matrix& GetViewMatrix() const { return mViewMatrix; }
+
         void SetObjectModelMatrix(const Vector3& position, const Vector3& rotation, const Vector3& scale);
         void SetViewMatrix(const Vector3& eye, const Vector3& target, const Vector3& upDir);
         void SetPerspectiveMatrix(float fovAngleY, float aspectRatio, float nearZ, float farZ);
@@ -118,8 +118,8 @@ namespace cube
         TextureManager mTextureManager;
         SamplerManager mSamplerManager;
         PipelineManager mPipelineManager;
+        LightManager mLightManager;
 
-        EnvironmentMapping mEnvironmentMapping;
         Tonemap mTonemap;
         RenderUtils mRenderUtils;
 
@@ -142,10 +142,6 @@ namespace cube
         gapi::ElementFormat mBackbufferFormat;
         gapi::ElementFormat mColorFormat;
         gapi::ElementFormat mDepthStencilFormat;
-
-        bool mIsDirectionalLightEnabled;
-        Vector3 mDirectionalLightDirection;
-        Vector3 mDirectionalLightIntensity;
 
         Matrix mModelMatrix;
         SharedPtr<Material> mDefaultMaterial;

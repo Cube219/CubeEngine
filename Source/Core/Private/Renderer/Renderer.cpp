@@ -30,7 +30,7 @@ namespace cube
         : mShaderManager(*this)
         , mTextureManager(*this)
         , mPipelineManager(*this)
-        , mEnvironmentMapping(*this)
+        , mLightManager(*this)
         , mTonemap(*this)
         , mRenderUtils(*this)
         , mTextureViewer(*this)
@@ -83,6 +83,7 @@ namespace cube
         mTextureManager.Initialize(mGAPI.get(), mNumGPUSync);
         mSamplerManager.Initialize(mGAPI.get());
         mPipelineManager.Initialize();
+        mLightManager.Initialize();
 
         mRenderImGUI = (imGUIContext.context != nullptr);
 
@@ -103,11 +104,6 @@ namespace cube
             .debugName = CUBE_T("MainSwapChain")
         });
 
-        mIsDirectionalLightEnabled = true;
-        mDirectionalLightDirection = Vector3(1.0f, 1.0f, 1.0f).Normalized();
-        mDirectionalLightIntensity = Vector3(1.0f, 1.0f, 1.0f);
-
-        mEnvironmentMapping.Initialize(true);
         mTonemap.Initialize();
         mRenderUtils.Initialize();
 
@@ -128,13 +124,13 @@ namespace cube
 
         mRenderUtils.Shutdown();
         mTonemap.Shutdown();
-        mEnvironmentMapping.Shutdown();
 
         mCurrentBackbuffer = nullptr;
         mSwapChain = nullptr;
 
         mCommandList = nullptr;
 
+        mLightManager.Shutdown();
         mPipelineManager.Shutdown();
         mSamplerManager.Shutdown();
         mTextureManager.Shutdown();
@@ -150,34 +146,7 @@ namespace cube
     {
         if (ImGui::CollapsingHeader("Lighting", ImGuiTreeNodeFlags_DefaultOpen))
         {
-            ImGui::SeparatorText("Directional Light");
-            ImGui::Checkbox("Enable##Directional Light", &mIsDirectionalLightEnabled);
-            ImGui::BeginDisabled(!mIsDirectionalLightEnabled);
-            {
-                vec3 directionVec3 = { mDirectionalLightDirection.GetFloat3().x, mDirectionalLightDirection.GetFloat3().y, mDirectionalLightDirection.GetFloat3().z };
-                ImGui::Text("Direction: %.3f %.3f %.3f", directionVec3.x, directionVec3.y, directionVec3.z);
-
-                Vector4 directionInView = Vector4(mDirectionalLightDirection) * mViewMatrix;
-                vec3 directionInViewVec3 = { directionInView.GetFloat3().x, directionInView.GetFloat3().y, directionInView.GetFloat3().z };
-
-                imguiGizmo::resizeAxesOf({ 0.7f, 0.8f, 0.8f });
-                ImGui::gizmo3D("##Directional Light - Direction", directionInViewVec3);
-                imguiGizmo::restoreAxesSize();
-
-                directionInView = Vector4(directionInViewVec3.x, directionInViewVec3.y, directionInViewVec3.z, 0);
-                Vector4 afterDirection = directionInView * mViewMatrix.Inversed();
-
-                mDirectionalLightDirection = Vector3(afterDirection);
-            }
-            {
-                Float3 intensityFloat3 = mDirectionalLightIntensity.GetFloat3();
-                ImGui::DragFloat3("Intensity", &intensityFloat3.x, 0.1f);
-
-                mDirectionalLightIntensity = Vector3(intensityFloat3.x, intensityFloat3.y, intensityFloat3.z);
-            }
-            ImGui::EndDisabled();
-
-            mEnvironmentMapping.OnLoopImGUI();
+            mLightManager.OnLoopImGUIContent();
         }
 
         if (ImGui::CollapsingHeader("PostProcess", ImGuiTreeNodeFlags_DefaultOpen))
@@ -397,18 +366,7 @@ namespace cube
                 RGShaderParameterListHandle<GlobalShaderParameterList> globalShaderParameterList = builder.CreateShaderParameterList<GlobalShaderParameterList>();
                 globalShaderParameterList->Get()->viewPosition = mViewPosition;
                 globalShaderParameterList->Get()->viewProjection = mViewPerspectiveMatirx;
-                globalShaderParameterList->Get()->isDirectionalLightEnabled = mIsDirectionalLightEnabled;
-                globalShaderParameterList->Get()->directionalLightDirection = mDirectionalLightDirection;
-                globalShaderParameterList->Get()->directionalLightIntensity = mDirectionalLightIntensity;
                 builder.BindGlobalShaderParameterList(globalShaderParameterList);
-
-                auto envMapShaderParameterList = builder.CreateShaderParameterList<EnvironmentMapLightShaderParameterList>();
-                envMapShaderParameterList->Get()->diffuseIrradianceMap = mEnvironmentMapping.GetDiffuseIrradianceMap(builder);
-                envMapShaderParameterList->Get()->integratedBRDFLUT = mEnvironmentMapping.GetIntegratedBRDFLUT(builder);
-                envMapShaderParameterList->Get()->prefilterMap = mEnvironmentMapping.GetPrefilterMap(builder);
-                envMapShaderParameterList->Get()->prefilterSampler = mEnvironmentMapping.GetPrefilterMapSampler();
-                envMapShaderParameterList->Get()->prefilterMapMipLevels = mEnvironmentMapping.GetPrefilterMapMipLevels();
-                builder.BindGlobalShaderParameterList(envMapShaderParameterList);
 
                 RGBuilder::RenderPassInfo renderPassInfo;
                 renderPassInfo.colors.push_back({
@@ -441,6 +399,8 @@ namespace cube
                     .enableDepth = true,
                     .depthFunction = gapi::CompareFunction::Greater
                 };
+
+                mLightManager.BindLightShaderParameterList(builder);
 
                 if (mScene)
                 {
@@ -492,9 +452,9 @@ namespace cube
                     builder.AddDrawMeshPass(CUBE_T("Draw Axis"), drawAxisMeshInfos, {});
                 }
 
-                builder.UnbindGlobalShaderParameterList<EnvironmentMapLightShaderParameterList>();
+                mLightManager.UnbindLightShaderParameterList(builder);
 
-                mEnvironmentMapping.DrawSkybox(builder);
+                mLightManager.GetEnvironmentMapping().DrawSkybox(builder);
 
                 builder.EndRenderPass();
             }
@@ -568,12 +528,12 @@ namespace cube
             mZAxisMaterial->SetBaseColor({ 0.0f, 0.0f, 1.0f, 1.0f });
         }
 
-        mEnvironmentMapping.LoadResources();
+        mLightManager.LoadResources();
     }
 
     void Renderer::ClearResources()
     {
-        mEnvironmentMapping.ClearResources();
+        mLightManager.ClearResources();
 
         mZAxisMaterial = nullptr;
         mYAxisMaterial = nullptr;
