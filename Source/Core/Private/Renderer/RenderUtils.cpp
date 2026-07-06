@@ -83,7 +83,7 @@ namespace cube
 
         builder.BeginRenderPass(renderPassInfo);
 
-        builder.SetRenderTargetFormatsFromCurrentRenderPass(mCopyTexturePSPipelineInfo);
+        builder.ApplyRenderTargetFormatsFromCurrentRenderPass(mCopyTexturePSPipelineInfo);
         SharedPtr<GraphicsPipeline> copyTexturePSPipeline = mRenderer.GetPipelineManager().GetOrCreateGraphicsPipeline({
             .pipelineInfo = mCopyTexturePSPipelineInfo,
             .debugName = CUBE_T("CopyTexturePS Pipeline")

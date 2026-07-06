@@ -458,22 +458,22 @@ namespace cube
 
     void RGBuilder::BeginRenderPass(const RenderPassInfo& info)
     {
-        CHECK(mState == State::Init);
-        CHECK(!mIsInRenderPass);
+        CHECK(mPhase == Phase::Init);
+        CHECK(!mInitState.isInRenderPass);
 
         CHECK(info.colors.size() <= gapi::MAX_NUM_RENDER_TARGETS);
-        mRenderPassRenderTargetFormats.resize(info.colors.size());
-        for (Uint32 i = 0; i < static_cast<Uint32>(mRenderPassRenderTargetFormats.size()); ++i)
+        mInitState.renderPassRenderTargetFormats.resize(info.colors.size());
+        for (Uint32 i = 0; i < static_cast<Uint32>(mInitState.renderPassRenderTargetFormats.size()); ++i)
         {
-            mRenderPassRenderTargetFormats[i] = info.colors[i].color->GetParent()->GetTextureInfo().format;
+            mInitState.renderPassRenderTargetFormats[i] = info.colors[i].color->GetParent()->GetTextureInfo().format;
         }
         if (info.depthStencil.dsv.IsValid())
         {
-            mRenderPassDepthStencilFormat = info.depthStencil.dsv->GetParent()->GetTextureInfo().format;
+            mInitState.renderPassDepthStencilFormat = info.depthStencil.dsv->GetParent()->GetTextureInfo().format;
         }
         else
         {
-            mRenderPassDepthStencilFormat = gapi::ElementFormat::Unknown;
+            mInitState.renderPassDepthStencilFormat = gapi::ElementFormat::Unknown;
         }
 
         AddPass(CUBE_T("##BeginRenderPass"), [info](gapi::CommandList& commandList)
@@ -509,26 +509,25 @@ namespace cube
                 builder.UseResource(info.depthStencil.dsv);
             }
 
-            builder.mAttachedRTVsInRenderPass.reserve(info.colors.size());
+            builder.mTrackingResourcesState.attachedRTVsInRenderPass.reserve(info.colors.size());
             for (const RenderPassInfo::ColorAttachment& colorAttachment : info.colors)
             {
-                builder.mAttachedRTVsInRenderPass.push_back(colorAttachment.color);
+                builder.mTrackingResourcesState.attachedRTVsInRenderPass.push_back(colorAttachment.color);
             }
-            builder.mAttachedDSVInRenderPass = info.depthStencil.dsv;
-            builder.mRenderPassIndex = builder.mCurrentPassIndex;
-            builder.mIsInRenderPass = true;
+            builder.mTrackingResourcesState.attachedDSVInRenderPass = info.depthStencil.dsv;
+            builder.mTrackingResourcesState.renderPassIndex = builder.mTrackingResourcesState.passIndex;
         });
 
-        mIsInRenderPass = true;
+        mInitState.isInRenderPass = true;
     }
 
     void RGBuilder::EndRenderPass()
     {
-        CHECK(mState == State::Init);
-        CHECK(mIsInRenderPass);
+        CHECK(mPhase == Phase::Init);
+        CHECK(mInitState.isInRenderPass);
 
-        mRenderPassRenderTargetFormats.clear();
-        mRenderPassDepthStencilFormat = gapi::ElementFormat::Unknown;
+        mInitState.renderPassRenderTargetFormats.clear();
+        mInitState.renderPassDepthStencilFormat = gapi::ElementFormat::Unknown;
 
         AddPass(CUBE_T("##EndRenderPass"), [](gapi::CommandList& commandList)
         {
@@ -536,58 +535,57 @@ namespace cube
         },
         [](RGBuilder& builder)
         {
-            // Just mark use in RG resource to prevent duplicated transition.
-            for (const RGTextureRTVHandle attachedRTV : builder.mAttachedRTVsInRenderPass)
+            // Just mark the resource as used to prevent duplicate transitions.
+            for (const RGTextureRTVHandle attachedRTV : builder.mTrackingResourcesState.attachedRTVsInRenderPass)
             {
-                attachedRTV->UpdateUsePassIndex(builder.mCurrentPassIndex);
+                attachedRTV->UpdateUsePassIndex(builder.mTrackingResourcesState.passIndex);
             }
-            if (builder.mAttachedDSVInRenderPass.IsValid())
+            if (builder.mTrackingResourcesState.attachedDSVInRenderPass.IsValid())
             {
-                builder.mAttachedDSVInRenderPass->UpdateUsePassIndex(builder.mCurrentPassIndex);
+                builder.mTrackingResourcesState.attachedDSVInRenderPass->UpdateUsePassIndex(builder.mTrackingResourcesState.passIndex);
             }
 
-            builder.mAttachedDSVInRenderPass = {};
-            builder.mAttachedRTVsInRenderPass.clear();
-            builder.mRenderPassIndex = -1;
-            builder.mIsInRenderPass = false;
+            builder.mTrackingResourcesState.attachedDSVInRenderPass = {};
+            builder.mTrackingResourcesState.attachedRTVsInRenderPass.clear();
+            builder.mTrackingResourcesState.renderPassIndex = -1;
         });
 
-        mIsInRenderPass = false;
+        mInitState.isInRenderPass = false;
     }
 
-    void RGBuilder::SetRenderTargetFormatsFromCurrentRenderPass(GraphicsPipelineInfo& inOutGraphicsPipelineInfo) const
+    void RGBuilder::ApplyRenderTargetFormatsFromCurrentRenderPass(GraphicsPipelineInfo& inOutGraphicsPipelineInfo) const
     {
-        CHECK(mState == State::Init);
-        CHECK(mIsInRenderPass);
+        CHECK(mPhase == Phase::Init);
+        CHECK(mInitState.isInRenderPass);
 
-        inOutGraphicsPipelineInfo.numRenderTargets = static_cast<Uint32>(mRenderPassRenderTargetFormats.size());
-        for (Uint32 i = 0; i < static_cast<Uint32>(mRenderPassRenderTargetFormats.size()); ++i)
+        inOutGraphicsPipelineInfo.numRenderTargets = static_cast<Uint32>(mInitState.renderPassRenderTargetFormats.size());
+        for (Uint32 i = 0; i < static_cast<Uint32>(mInitState.renderPassRenderTargetFormats.size()); ++i)
         {
-            inOutGraphicsPipelineInfo.renderTargetFormats[i] = mRenderPassRenderTargetFormats[i];
+            inOutGraphicsPipelineInfo.renderTargetFormats[i] = mInitState.renderPassRenderTargetFormats[i];
         }
-        inOutGraphicsPipelineInfo.depthStencilFormat = mRenderPassDepthStencilFormat;
+        inOutGraphicsPipelineInfo.depthStencilFormat = mInitState.renderPassDepthStencilFormat;
     }
 
-    void RGBuilder::SetRenderTargetFormatsFromCurrentRenderPass(MaterialPipelineStateInfo& inOutMaterialPipelineInfo) const
+    void RGBuilder::ApplyRenderTargetFormatsFromCurrentRenderPass(MaterialPipelineStateInfo& inOutMaterialPipelineInfo) const
     {
-        CHECK(mState == State::Init);
-        CHECK(mIsInRenderPass);
+        CHECK(mPhase == Phase::Init);
+        CHECK(mInitState.isInRenderPass);
 
-        inOutMaterialPipelineInfo.numRenderTargets = static_cast<Uint32>(mRenderPassRenderTargetFormats.size());
-        for (Uint32 i = 0; i < static_cast<Uint32>(mRenderPassRenderTargetFormats.size()); ++i)
+        inOutMaterialPipelineInfo.numRenderTargets = static_cast<Uint32>(mInitState.renderPassRenderTargetFormats.size());
+        for (Uint32 i = 0; i < static_cast<Uint32>(mInitState.renderPassRenderTargetFormats.size()); ++i)
         {
-            inOutMaterialPipelineInfo.renderTargetFormats[i] = mRenderPassRenderTargetFormats[i];
+            inOutMaterialPipelineInfo.renderTargetFormats[i] = mInitState.renderPassRenderTargetFormats[i];
         }
-        inOutMaterialPipelineInfo.depthStencilFormat = mRenderPassDepthStencilFormat;
+        inOutMaterialPipelineInfo.depthStencilFormat = mInitState.renderPassDepthStencilFormat;
     }
 
     void RGBuilder::AddDrawMeshPass(StringView name, ArrayView<DrawMeshInfo> drawMeshInfos, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists)
     {
-        CHECK(mState == State::Init);
-        CHECK(mIsInRenderPass);
+        CHECK(mPhase == Phase::Init);
+        CHECK(mInitState.isInRenderPass);
 
         MaterialPipelineStateInfo materialStateInfo = {};
-        SetRenderTargetFormatsFromCurrentRenderPass(materialStateInfo);
+        ApplyRenderTargetFormatsFromCurrentRenderPass(materialStateInfo);
 
         FrameVector<RGShaderParameterListBaseHandle> paramListArray(3);
         paramListArray.insert(paramListArray.end(), parameterLists.begin(), parameterLists.end());
@@ -636,7 +634,7 @@ namespace cube
 
                 // HLSL does not apply baseVertex in SV_VertexID and later added SV_BaseVertexLocation in SM 6.8.
                 // So transfer it via shader parameter and set 0 in DrawIndexed.
-                // Metal apply it in vertex_id.
+                // Metal applies it in vertex_id.
                 // (See https://github.com/microsoft/DirectXShaderCompiler/pull/5770)
                 auto subMeshShaderParameterList = CreateShaderParameterList<SubMeshShaderParameterList>();
                 subMeshShaderParameterList->Get()->vertexBufferOffset = subMesh.vertexOffset;
@@ -659,9 +657,9 @@ namespace cube
 
     void RGBuilder::UseResource(RGBufferSRVHandle rgSRV, gapi::ResourceSyncFlags syncs)
     {
-        CHECK(mState == State::TrackingResources);
+        CHECK(mPhase == Phase::TrackingResources);
 
-        PassInfo& pass = mPasses[mCurrentPassIndex];
+        RGPass& pass = mPasses[mTrackingResourcesState.passIndex];
         pass.resourceUseInfos.push_back({
             .rgResourceIndex = rgSRV->mIndex,
             .syncs = syncs,
@@ -672,9 +670,9 @@ namespace cube
 
     void RGBuilder::UseResource(RGBufferUAVHandle rgUAV, gapi::ResourceSyncFlags syncs)
     {
-        CHECK(mState == State::TrackingResources);
+        CHECK(mPhase == Phase::TrackingResources);
 
-        PassInfo& pass = mPasses[mCurrentPassIndex];
+        RGPass& pass = mPasses[mTrackingResourcesState.passIndex];
         pass.resourceUseInfos.push_back({
             .rgResourceIndex = rgUAV->mIndex,
             .syncs = syncs,
@@ -685,9 +683,9 @@ namespace cube
 
     void RGBuilder::UseResource(RGTextureSRVHandle rgSRV, gapi::ResourceSyncFlags syncs)
     {
-        CHECK(mState == State::TrackingResources);
+        CHECK(mPhase == Phase::TrackingResources);
 
-        PassInfo& pass = mPasses[mCurrentPassIndex];
+        RGPass& pass = mPasses[mTrackingResourcesState.passIndex];
         pass.resourceUseInfos.push_back({
             .rgResourceIndex = rgSRV->mIndex,
             .syncs = syncs,
@@ -699,9 +697,9 @@ namespace cube
 
     void RGBuilder::UseResource(RGTextureUAVHandle rgUAV, gapi::ResourceSyncFlags syncs)
     {
-        CHECK(mState == State::TrackingResources);
+        CHECK(mPhase == Phase::TrackingResources);
 
-        PassInfo& pass = mPasses[mCurrentPassIndex];
+        RGPass& pass = mPasses[mTrackingResourcesState.passIndex];
         pass.resourceUseInfos.push_back({
             .rgResourceIndex = rgUAV->mIndex,
             .syncs = syncs,
@@ -713,9 +711,9 @@ namespace cube
 
     void RGBuilder::UseResource(RGTextureRTVHandle rgRTV)
     {
-        CHECK(mState == State::TrackingResources);
+        CHECK(mPhase == Phase::TrackingResources);
 
-        PassInfo& pass = mPasses[mCurrentPassIndex];
+        RGPass& pass = mPasses[mTrackingResourcesState.passIndex];
         pass.resourceUseInfos.push_back({
             .rgResourceIndex = rgRTV->mIndex,
             .syncs = gapi::ResourceSyncFlag::RenderTarget,
@@ -727,9 +725,9 @@ namespace cube
 
     void RGBuilder::UseResource(RGTextureDSVHandle rgDSV)
     {
-        CHECK(mState == State::TrackingResources);
+        CHECK(mPhase == Phase::TrackingResources);
 
-        PassInfo& pass = mPasses[mCurrentPassIndex];
+        RGPass& pass = mPasses[mTrackingResourcesState.passIndex];
         pass.resourceUseInfos.push_back({
             .rgResourceIndex = rgDSV->mIndex,
             .syncs = gapi::ResourceSyncFlag::DepthStencil,
@@ -741,10 +739,10 @@ namespace cube
 
     void RGBuilder::UseResource(RGTextureHandle rgTexture, gapi::SubresourceRangeInput range, gapi::ResourceAccessFlags accesses, gapi::ResourceLayout layout, gapi::ResourceSyncFlags syncs)
     {
-        CHECK(mState == State::TrackingResources);
+        CHECK(mPhase == Phase::TrackingResources);
         CHECK(rgTexture.IsValid());
 
-        PassInfo& pass = mPasses[mCurrentPassIndex];
+        RGPass& pass = mPasses[mTrackingResourcesState.passIndex];
         pass.resourceUseInfos.push_back({
             .rgResourceIndex = rgTexture->mIndex,
             .syncs = syncs,
@@ -756,11 +754,11 @@ namespace cube
 
     void RGBuilder::AddUAVBarrier(RGBufferUAVHandle rgUAV)
     {
-        CHECK(mState == State::TrackingResources);
+        CHECK(mPhase == Phase::TrackingResources);
 
-        PassInfo& pass = mPasses[mCurrentPassIndex];
+        RGPass& pass = mPasses[mTrackingResourcesState.passIndex];
 
-        for (PassInfo::ResourceUseInfo& useInfo : pass.resourceUseInfos)
+        for (RGPass::ResourceUsage& useInfo : pass.resourceUseInfos)
         {
             if (useInfo.rgResourceIndex == rgUAV->mIndex)
             {
@@ -774,11 +772,11 @@ namespace cube
 
     void RGBuilder::AddUAVBarrier(RGTextureUAVHandle rgUAV)
     {
-        CHECK(mState == State::TrackingResources);
+        CHECK(mPhase == Phase::TrackingResources);
 
-        PassInfo& pass = mPasses[mCurrentPassIndex];
+        RGPass& pass = mPasses[mTrackingResourcesState.passIndex];
 
-        for (PassInfo::ResourceUseInfo& useInfo : pass.resourceUseInfos)
+        for (RGPass::ResourceUsage& useInfo : pass.resourceUseInfos)
         {
             if (useInfo.rgResourceIndex == rgUAV->mIndex)
             {
@@ -792,23 +790,23 @@ namespace cube
 
     void RGBuilder::ExecuteAndSubmit(gapi::CommandList& commandList, bool waitUntilFinished)
     {
-        CHECK(mState == State::Init);
-        CHECK(!mIsInRenderPass);
+        CHECK(mPhase == Phase::Init);
+        CHECK(!mInitState.isInRenderPass);
 
-        mState = State::TrackingResources;
+        mPhase = Phase::TrackingResources;
 
-        UpdateResourceUseInfo();
+        UpdateResourceUsages();
         CreateAllResources();
         ResolveBarriers();
 
-        mState = State::Executing;
+        mPhase = Phase::Executing;
 
         commandList.Reset();
         commandList.Begin();
 
         commandList.BeginTimestamp(CUBE_T("RGBuilder"));
 
-        for (PassInfo& pass : mPasses)
+        for (RGPass& pass : mPasses)
         {
             const bool addGPUEvent = !pass.name.starts_with(CUBE_T("##"));
 
@@ -853,14 +851,14 @@ namespace cube
         commandList.End();
         commandList.Submit(waitUntilFinished);
 
-        mState = State::Submitted;
+        mPhase = Phase::Submitted;
 
         Reset();
     }
 
     void RGBuilder::BindGlobalShaderParameterListInternal(StringView name, RGShaderParameterListBaseHandle parameterList)
     {
-        CHECK(mState == State::Init);
+        CHECK(mPhase == Phase::Init);
 
         // Add a pass that stores the parameter list. The parameter constant buffer will be bound automatically.
         AddPassInternal(Format<String>(CUBE_T("##BindGlobalShaderParameterList: {0}"), parameterList->mParameterListInfo.name),
@@ -868,8 +866,8 @@ namespace cube
             nullptr,
             [nameStr = String(name), parameterList](RGBuilder& builder)
             {
-                // Override the parameter list even if it existed.
-                builder.mCurrentBoundGlobalShaderParameterLists[nameStr] = parameterList;
+                // Override the parameter list even if it already existed.
+                builder.mExecuteState.boundGlobalShaderParameterLists[nameStr] = parameterList;
             },
             false
         );
@@ -877,35 +875,33 @@ namespace cube
 
     void RGBuilder::UnbindGlobalShaderParameterListInternal(StringView name)
     {
-        CHECK(mState == State::Init);
+        CHECK(mPhase == Phase::Init);
 
-        // NOTE: It cannot unbind the parameter constant buffer while executing. It will be fixed after refactoring RGBuilder structure.
+        // NOTE: The parameter constant buffer cannot be unbound while executing. It will be fixed after refactoring RGBuilder structure.
         AddPassInternal(Format<String>(CUBE_T("##UnbindGlobalShaderParameterList: {0}"), name),
             nullptr, nullptr, {},
             nullptr,
             [nameStr = String(name)](RGBuilder& builder)
             {
-                builder.mCurrentBoundGlobalShaderParameterLists.erase(nameStr);
+                builder.mExecuteState.boundGlobalShaderParameterLists.erase(nameStr);
             },
             false
         );
     }
 
     void RGBuilder::AddPassInternal(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, SharedPtr<ComputePipeline> computePipeline, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists,
-        PassFunction&& passFunction, TrackResourceFunction&& trackResourceFunction,
+        RGPass::PassFunction&& passFunction, RGPass::TrackResourceFunction&& trackResourceFunction,
         bool addTimestamp
     )
     {
-        CHECK(mState == State::Init);
+        CHECK(mPhase == Phase::Init);
 
         CHECK(!graphicsPipeline || !computePipeline);
-        CHECK_FORMAT(!computePipeline || !mIsInRenderPass, "Cannot add compute pass in render pass.");
+        CHECK_FORMAT(!computePipeline || !mInitState.isInRenderPass, "Cannot add compute pass in render pass.");
 
-        int index = static_cast<int>(mPasses.size());
         mPasses.push_back({
             .name = String(name),
             .addTimestamp = addTimestamp,
-            .index = index,
             .shaderParameterLists = { parameterLists.begin(), parameterLists.end() },
             .graphicsPipeline = std::move(graphicsPipeline),
             .computePipeline = std::move(computePipeline),
@@ -914,18 +910,18 @@ namespace cube
         });
     }
 
-    void RGBuilder::ResolveShaderParameterListsAndPipeline(PassInfo& pass, gapi::CommandList& commandList)
+    void RGBuilder::ResolveShaderParameterListsAndPipeline(RGPass& pass, gapi::CommandList& commandList)
     {
-        CHECK(mState == State::Executing);
+        CHECK(mPhase == Phase::Executing);
 
         // Register shader parameter lists in the pass.
         for (RGShaderParameterListBaseHandle& params : pass.shaderParameterLists)
         {
             const Character* name = params->mParameterListInfo.name;
-            auto findIt = mShaderParameterListBindInfos.find(name);
-            if (findIt == mShaderParameterListBindInfos.end())
+            auto findIt = mExecuteState.shaderParameterListBindInfos.find(name);
+            if (findIt == mExecuteState.shaderParameterListBindInfos.end())
             {
-                findIt = mShaderParameterListBindInfos.insert({ name, {} }).first;
+                findIt = mExecuteState.shaderParameterListBindInfos.insert({ name, {} }).first;
             }
 
             SharedPtr<ShaderParameterList> parameterList = params->mParameterList;
@@ -950,7 +946,7 @@ namespace cube
         {
             for (const gapi::ShaderParameterBlockReflection& block : pReflection->blocks)
             {
-                if (auto findIt = mShaderParameterListBindInfos.find(block.typeName); findIt != mShaderParameterListBindInfos.end())
+                if (auto findIt = mExecuteState.shaderParameterListBindInfos.find(block.typeName); findIt != mExecuteState.shaderParameterListBindInfos.end())
                 {
                     if (findIt->second.bindIndex != block.index)
                     {
@@ -969,33 +965,33 @@ namespace cube
         // Bind pipeline.
         if (pass.graphicsPipeline)
         {
-            if (mCurrentBoundGraphicsPipeline != pass.graphicsPipeline)
+            if (mExecuteState.boundGraphicsPipeline != pass.graphicsPipeline)
             {
-                mCurrentBoundGraphicsPipeline = pass.graphicsPipeline;
-                mCurrentBoundComputePipeline = nullptr;
+                mExecuteState.boundGraphicsPipeline = pass.graphicsPipeline;
+                mExecuteState.boundComputePipeline = nullptr;
 
-                commandList.SetGraphicsPipeline(mCurrentBoundGraphicsPipeline->GetGAPIGraphicsPipeline());
+                commandList.SetGraphicsPipeline(mExecuteState.boundGraphicsPipeline->GetGAPIGraphicsPipeline());
             }
         }
         else if (pass.computePipeline)
         {
-            if (mCurrentBoundComputePipeline != pass.computePipeline)
+            if (mExecuteState.boundComputePipeline != pass.computePipeline)
             {
-                mCurrentBoundGraphicsPipeline = nullptr;
-                mCurrentBoundComputePipeline = pass.computePipeline;
+                mExecuteState.boundGraphicsPipeline = nullptr;
+                mExecuteState.boundComputePipeline = pass.computePipeline;
 
-                commandList.SetComputePipeline(mCurrentBoundComputePipeline->GetGAPIComputePipeline());
+                commandList.SetComputePipeline(mExecuteState.boundComputePipeline->GetGAPIComputePipeline());
             }
         }
     }
 
-    void RGBuilder::MarkUseResources(PassInfo& pass, gapi::CommandList& commandList)
+    void RGBuilder::MarkUseResources(RGPass& pass, gapi::CommandList& commandList)
     {
-        CHECK(mState == State::Executing);
+        CHECK(mPhase == Phase::Executing);
 
         if (pass.graphicsPipeline || pass.computePipeline)
         {
-            for (const PassInfo::ResourceUseInfo& resourceUseInfo : pass.resourceUseInfos)
+            for (const RGPass::ResourceUsage& resourceUseInfo : pass.resourceUseInfos)
             {
                 RGResourceHandle rgResource = mResources[resourceUseInfo.rgResourceIndex];
                 if (RGTextureSRVHandle rgSRV = rgResource.Cast<RGTextureSRV>(); rgSRV.IsValid())
@@ -1018,13 +1014,13 @@ namespace cube
         }
     }
 
-    void RGBuilder::UpdateResourceUseInfo()
+    void RGBuilder::UpdateResourceUsages()
     {
-        CHECK(mState == State::TrackingResources);
+        CHECK(mPhase == Phase::TrackingResources);
 
-        mCurrentPassIndex = 0;
+        mTrackingResourcesState.passIndex = 0;
 
-        for (PassInfo& pass : mPasses)
+        for (RGPass& pass : mPasses)
         {
             if (pass.trackResourceFunction)
             {
@@ -1090,7 +1086,7 @@ namespace cube
                 }
             };
 
-            for (auto& [_, globalParamList] : mCurrentBoundGlobalShaderParameterLists)
+            for (auto& [_, globalParamList] : mExecuteState.boundGlobalShaderParameterLists)
             {
                 TryUseResource(globalParamList);
             }
@@ -1100,68 +1096,68 @@ namespace cube
                 TryUseResource(paramList);
             }
 
-            // Check if the resources will be used currently attached to render pass.
+            // Check if the resources currently attached to the render pass are being used.
 #if CUBE_USE_CHECK
-            if (mRenderPassIndex != mCurrentPassIndex)
+            if (mTrackingResourcesState.renderPassIndex != mTrackingResourcesState.passIndex)
             {
-                for (const PassInfo::ResourceUseInfo& resourceUseInfo : pass.resourceUseInfos)
+                for (const RGPass::ResourceUsage& resourceUseInfo : pass.resourceUseInfos)
                 {
                     RGResourceHandle resource = mResources[resourceUseInfo.rgResourceIndex];
 
                     if (RGTextureHandle rgTexture = resource.Cast<RGTexture>(); rgTexture.IsValid())
                     {
-                        for (RGTextureRTVHandle attachedRTV : mAttachedRTVsInRenderPass)
+                        for (RGTextureRTVHandle attachedRTV : mTrackingResourcesState.attachedRTVsInRenderPass)
                         {
                             CHECK_FORMAT(rgTexture != attachedRTV->mRGTexture || !resourceUseInfo.subresourceRange.IsOverlap(attachedRTV->mSubresourceRange),
                                 "Cannot use subresource currently attached to render pass.");
                         }
-                        if (mAttachedDSVInRenderPass.IsValid())
+                        if (mTrackingResourcesState.attachedDSVInRenderPass.IsValid())
                         {
-                            CHECK_FORMAT(rgTexture != mAttachedDSVInRenderPass->mRGTexture || !resourceUseInfo.subresourceRange.IsOverlap(mAttachedDSVInRenderPass->mSubresourceRange),
+                            CHECK_FORMAT(rgTexture != mTrackingResourcesState.attachedDSVInRenderPass->mRGTexture || !resourceUseInfo.subresourceRange.IsOverlap(mTrackingResourcesState.attachedDSVInRenderPass->mSubresourceRange),
                                 "Cannot use subresource currently attached to render pass.");
                         }
                     }
                     else if (RGTextureViewHandle rgTextureView = resource.Cast<RGTextureView>(); rgTextureView.IsValid())
                     {
-                        for (RGTextureRTVHandle attachedRTV : mAttachedRTVsInRenderPass)
+                        for (RGTextureRTVHandle attachedRTV : mTrackingResourcesState.attachedRTVsInRenderPass)
                         {
                             CHECK_FORMAT(!(attachedRTV->IsOverlap(*rgTextureView)), "Cannot use subresource currently attached to render pass.");
                         }
-                        if (mAttachedDSVInRenderPass.IsValid())
+                        if (mTrackingResourcesState.attachedDSVInRenderPass.IsValid())
                         {
-                            CHECK_FORMAT(!(mAttachedDSVInRenderPass->IsOverlap(*rgTextureView)), "Cannot use subresource currently attached to render pass.");
+                            CHECK_FORMAT(!(mTrackingResourcesState.attachedDSVInRenderPass->IsOverlap(*rgTextureView)), "Cannot use subresource currently attached to render pass.");
                         }
                     }
                 }
             }
 #endif
 
-            mCurrentPassIndex++;
+            mTrackingResourcesState.passIndex++;
         }
 
-        mCurrentPassIndex = -1;
+        mTrackingResourcesState.passIndex = -1;
     }
 
     void RGBuilder::CreateAllResources()
     {
-        CHECK(mState == State::TrackingResources);
+        CHECK(mPhase == Phase::TrackingResources);
 
         GAPI& gapi = mRenderer.GetGAPI();
 
         const int numPasses = static_cast<int>(mPasses.size());
         for (int i = 0; i < numPasses; ++i)
         {
-            PassInfo& pass = mPasses[i];
-            mCurrentPassIndex = i;
+            RGPass& pass = mPasses[i];
+            mTrackingResourcesState.passIndex = i;
 
-            for (const PassInfo::ResourceUseInfo& resourceUseInfo : pass.resourceUseInfos)
+            for (const RGPass::ResourceUsage& resourceUseInfo : pass.resourceUseInfos)
             {
                 RGResourceHandle resource = mResources[resourceUseInfo.rgResourceIndex];
                 resource->CreateResource(gapi);
                 resource->UpdateUsePassIndex(i);
             }
         }
-        mCurrentPassIndex = -1;
+        mTrackingResourcesState.passIndex = -1;
 
         // All RG resources were created, so write shader parameter lists at this time.
         for (RGResourceHandle resource : mResources)
@@ -1175,7 +1171,7 @@ namespace cube
 
     void RGBuilder::ResolveBarriers()
     {
-        CHECK(mState == State::TrackingResources);
+        CHECK(mPhase == Phase::TrackingResources);
 
         struct BufferKey
         {
@@ -1303,10 +1299,10 @@ namespace cube
         const int numPasses = static_cast<int>(mPasses.size());
         for (int i = 0; i < numPasses; ++i)
         {
-            PassInfo& pass = mPasses[i];
-            mCurrentPassIndex = i;
+            RGPass& pass = mPasses[i];
+            mTrackingResourcesState.passIndex = i;
 
-            for (const PassInfo::ResourceUseInfo& resourceUseInfo : pass.resourceUseInfos)
+            for (const RGPass::ResourceUsage& resourceUseInfo : pass.resourceUseInfos)
             {
                 RGResourceHandle resource = mResources[resourceUseInfo.rgResourceIndex];
 
@@ -1328,7 +1324,7 @@ namespace cube
                         {
                             mPasses[currentPendingBarrier.firstPassIndex].barriers.push_back(currentPendingBarrier.EmitBarrier(buffer));
                         }
-                        currentPendingBarrier.MoveNext(mCurrentPassIndex, resourceUseInfo.accesses);
+                        currentPendingBarrier.MoveNext(mTrackingResourcesState.passIndex, resourceUseInfo.accesses);
                     }
                     currentPendingBarrier.syncs |= resourceUseInfo.syncs;
                 };
@@ -1366,7 +1362,7 @@ namespace cube
                                 {
                                     mPasses[currentPendingBarrier.firstPassIndex].barriers.push_back(currentPendingBarrier.EmitBarrier(texture, subresourceIndex));
                                 }
-                                currentPendingBarrier.MoveNext(mCurrentPassIndex, resourceUseInfo.accesses, resourceUseInfo.layout);
+                                currentPendingBarrier.MoveNext(mTrackingResourcesState.passIndex, resourceUseInfo.accesses, resourceUseInfo.layout);
                             }
                             currentPendingBarrier.syncs |= resourceUseInfo.syncs;
                         }
@@ -1431,15 +1427,14 @@ namespace cube
             }
         }
 
-        mCurrentPassIndex = -1;
+        mTrackingResourcesState.passIndex = -1;
     }
 
     void RGBuilder::Reset()
     {
-        mCurrentBoundGlobalShaderParameterLists.clear();
-        mCurrentBoundComputePipeline = nullptr;
-        mCurrentBoundGraphicsPipeline = nullptr;
-        mShaderParameterListBindInfos.clear();
+        mExecuteState.Reset();
+        mTrackingResourcesState.Reset();
+        mInitState.Reset();
 
         mPasses.clear();
         mLastPass = {};
@@ -1453,11 +1448,6 @@ namespace cube
         }
         mResources.clear();
 
-        mRenderPassIndex = -1;
-        mAttachedDSVInRenderPass = {};
-        mAttachedRTVsInRenderPass.clear();
-        mIsInRenderPass = false;
-
-        mState = State::Init;
+        mPhase = Phase::Init;
     }
 } // namespace cube

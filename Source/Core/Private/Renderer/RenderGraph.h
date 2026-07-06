@@ -13,17 +13,50 @@ namespace cube
 {
     class RGBuilder;
 
+    struct RGPass
+    {
+        using PassFunction = std::function<void(gapi::CommandList& /*commandList*/)>;
+        using TrackResourceFunction = std::function<void(RGBuilder& /*builder*/)>;
+
+        // Set in AddPass
+        String name;
+        bool addTimestamp = false;
+
+        Vector<RGShaderParameterListBaseHandle> shaderParameterLists;
+
+        SharedPtr<GraphicsPipeline> graphicsPipeline = nullptr;
+        SharedPtr<ComputePipeline> computePipeline = nullptr;
+
+        PassFunction passFunction = nullptr;
+        TrackResourceFunction trackResourceFunction = nullptr;
+
+        bool IsGraphics() const { return graphicsPipeline != nullptr; }
+        bool IsCompute() const { return computePipeline != nullptr; }
+
+        // Set while tracking resources
+        struct ResourceUsage
+        {
+            int rgResourceIndex;
+            gapi::ResourceSyncFlags syncs;
+            gapi::ResourceAccessFlags accesses;
+            gapi::ResourceLayout layout;
+            gapi::SubresourceRange subresourceRange;
+            bool forceBarrier = false; // Used for UAV barrier
+        };
+        Vector<ResourceUsage> resourceUseInfos;
+
+        Vector<gapi::ResourceBarrier> barriers;
+    };
+
     // ===== Builder =====
 
     class RGBuilder
     {
     public:
-        using TrackResourceFunction = std::function<void(RGBuilder& /*builder*/)>;
-        using PassFunction = std::function<void(gapi::CommandList& /*commandList*/)>;
-
-    public:
         RGBuilder(Renderer& renderer);
         ~RGBuilder();
+
+        // ===== Register / create resources =====
 
         RGBufferHandle RegisterBuffer(SharedPtr<gapi::Buffer> buffer);
         RGBufferHandle CreateBuffer(const gapi::BufferInfo& bufferInfo, StringView debugName);
@@ -60,6 +93,161 @@ namespace cube
             return rgParameterList;
         }
 
+    private:
+        Vector<RGResourceHandle> mResources;
+        Map<gapi::Buffer*, RGBufferHandle> mRegisteredBuffers;
+        struct RegisteredTextureInfo
+        {
+            RGTextureHandle texture;
+            gapi::ResourceLayout srcLayout;
+            gapi::ResourceLayout dstLayout;
+        };
+        Map<gapi::Texture*, RegisteredTextureInfo> mRegisteredTextureInfos;
+
+        // Caches to avoid creating duplicate views with the same parameters.
+        // The view type is encoded into the cache key, so each base map can hold every view kind.
+        HashMap<Uint64, RGBufferViewHandle> mCachedBufferViews;
+        HashMap<Uint64, RGTextureViewHandle> mCachedTextureViews;
+        RGTextureSRVHandle mDummyBlackTexture2D;
+        RGTextureSRVHandle mDummyBlackTextureCube;
+        RGTextureSRVHandle mDummyWhiteTexture2D;
+
+        // ===== Pass functions =====
+    public:
+        template <typename... T>
+            requires (std::derived_from<T, ShaderParameterList>, ...)
+        static Array<RGShaderParameterListBaseHandle, sizeof...(T)> MakeParameterListArray(RGShaderParameterListHandle<T>... params)
+        {
+            return { params... };
+        }
+
+        void AddPass(StringView name,
+            RGPass::PassFunction&& passFunction, RGPass::TrackResourceFunction&& trackResourceFunction = [](RGBuilder&) {},
+            bool isCompute = false, bool addTimestamp = false
+        )
+        {
+            AddPassInternal(name, nullptr, nullptr, {},
+                std::move(passFunction), std::move(trackResourceFunction),
+                addTimestamp
+            );
+        }
+
+        // Graphics
+
+        void AddPass(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline,
+             RGPass::PassFunction&& passFunction,
+             bool addTimestamp = false
+        )
+        {
+            AddPassInternal(name, graphicsPipeline, nullptr, {},
+                std::move(passFunction), nullptr,
+                addTimestamp
+            );
+        }
+
+        void AddPass(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline,
+            RGPass::PassFunction&& passFunction, RGPass::TrackResourceFunction&& trackResourceFunction,
+            bool addTimestamp = false
+        )
+        {
+            AddPassInternal(name, graphicsPipeline, nullptr, {},
+                std::move(passFunction), std::move(trackResourceFunction),
+                addTimestamp
+            );
+        }
+
+        void AddPass(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, RGShaderParameterListBaseHandle parameterList,
+            RGPass::PassFunction&& passFunction,
+            bool addTimestamp = false
+        )
+        {
+            AddPassInternal(name, graphicsPipeline, nullptr, { &parameterList, 1 },
+                std::move(passFunction), nullptr,
+                addTimestamp
+            );
+        }
+
+        void AddPass(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, RGShaderParameterListBaseHandle parameterList,
+            RGPass::PassFunction&& passFunction, RGPass::TrackResourceFunction&& trackResourceFunction,
+            bool addTimestamp = false
+        )
+        {
+            AddPassInternal(name, graphicsPipeline, nullptr, { &parameterList, 1 },
+                std::move(passFunction), std::move(trackResourceFunction),
+                addTimestamp
+            );
+        }
+
+        void AddPass(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists,
+            RGPass::PassFunction&& passFunction,
+            bool addTimestamp = false
+        )
+        {
+            AddPassInternal(name, graphicsPipeline, nullptr, parameterLists,
+                std::move(passFunction), nullptr,
+                addTimestamp
+            );
+        }
+
+        void AddPass(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists,
+            RGPass::PassFunction&& passFunction, RGPass::TrackResourceFunction&& trackResourceFunction,
+            bool addTimestamp = false
+        )
+        {
+            AddPassInternal(name, graphicsPipeline, nullptr, parameterLists,
+                std::move(passFunction), std::move(trackResourceFunction),
+                addTimestamp
+            );
+        }
+
+        // Compute
+
+        void AddPass(StringView name, SharedPtr<ComputePipeline> computePipeline, RGShaderParameterListBaseHandle parameterList,
+            RGPass::PassFunction&& passFunction,
+            bool addTimestamp = false
+        )
+        {
+            AddPassInternal(name, nullptr, computePipeline, { &parameterList, 1 },
+                std::move(passFunction), nullptr,
+                addTimestamp
+            );
+        }
+
+        void AddPass(StringView name, SharedPtr<ComputePipeline> computePipeline, RGShaderParameterListBaseHandle parameterList,
+            RGPass::PassFunction&& passFunction, RGPass::TrackResourceFunction&& trackResourceFunction,
+            bool addTimestamp = false
+        )
+        {
+            AddPassInternal(name, nullptr, computePipeline, { &parameterList, 1 },
+                std::move(passFunction), std::move(trackResourceFunction),
+                addTimestamp
+            );
+        }
+
+        void AddPass(StringView name, SharedPtr<ComputePipeline> computePipeline, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists,
+            RGPass::PassFunction&& passFunction,
+            bool addTimestamp = false
+        )
+        {
+            AddPassInternal(name, nullptr, computePipeline, parameterLists,
+                std::move(passFunction), nullptr,
+                addTimestamp
+            );
+        }
+
+        void AddPass(StringView name, SharedPtr<ComputePipeline> computePipeline, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists,
+            RGPass::PassFunction&& passFunction, RGPass::TrackResourceFunction&& trackResourceFunction,
+            bool addTimestamp = false
+        )
+        {
+            AddPassInternal(name, nullptr, computePipeline, parameterLists,
+                std::move(passFunction), std::move(trackResourceFunction),
+                addTimestamp
+            );
+        }
+
+        // Render pass
+
         struct RenderPassInfo
         {
             struct ColorAttachment
@@ -82,8 +270,10 @@ namespace cube
         void BeginRenderPass(const RenderPassInfo& info);
         void EndRenderPass();
 
-        void SetRenderTargetFormatsFromCurrentRenderPass(GraphicsPipelineInfo& inOutGraphicsPipelineInfo) const;
-        void SetRenderTargetFormatsFromCurrentRenderPass(MaterialPipelineStateInfo& inOutMaterialPipelineInfo) const;
+        void ApplyRenderTargetFormatsFromCurrentRenderPass(GraphicsPipelineInfo& inOutGraphicsPipelineInfo) const;
+        void ApplyRenderTargetFormatsFromCurrentRenderPass(MaterialPipelineStateInfo& inOutMaterialPipelineInfo) const;
+
+        // Mesh pass
 
         struct DrawMeshInfo
         {
@@ -93,6 +283,9 @@ namespace cube
             ConstArrayView<WeakPtr<Material>> materials;
             Matrix model;
         };
+        void AddDrawMeshPass(StringView name, ArrayView<DrawMeshInfo> drawMeshInfos, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists);
+
+        // Global shader parameter
 
         template <typename ShaderParameterListType>
             requires std::derived_from<ShaderParameterListType, ShaderParameterList>
@@ -108,142 +301,34 @@ namespace cube
             UnbindGlobalShaderParameterListInternal(ShaderParameterListType::GetName());
         }
 
-        template <typename... T>
-            requires (std::derived_from<T, ShaderParameterList>, ...)
-        static Array<RGShaderParameterListBaseHandle, sizeof...(T)> MakeParameterListArray(RGShaderParameterListHandle<T>... params)
+    private:
+        void AddPassInternal(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, SharedPtr<ComputePipeline> computePipeline, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists,
+            RGPass::PassFunction&& passFunction, RGPass::TrackResourceFunction&& trackResourceFunction,
+            bool addTimestamp
+        );
+
+        void BindGlobalShaderParameterListInternal(StringView name, RGShaderParameterListBaseHandle parameterList);
+        void UnbindGlobalShaderParameterListInternal(StringView name);
+
+        Vector<RGPass> mPasses;
+        RGPass mLastPass;
+
+        struct
         {
-            return { params... };
-        }
+            bool isInRenderPass = false;
+            Vector<gapi::ElementFormat> renderPassRenderTargetFormats;
+            gapi::ElementFormat renderPassDepthStencilFormat = gapi::ElementFormat::Unknown;
 
-        void AddPass(StringView name,
-            PassFunction&& passFunction, TrackResourceFunction&& trackResourceFunction = [](RGBuilder&) {},
-            bool isCompute = false, bool addTimestamp = false
-        )
-        {
-            AddPassInternal(name, nullptr, nullptr, {},
-                std::move(passFunction), std::move(trackResourceFunction),
-                addTimestamp
-            );
-        }
-
-        // ===== Graphics pipeline =====
-
-        void AddPass(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline,
-             PassFunction&& passFunction,
-             bool addTimestamp = false
-        )
-        {
-            AddPassInternal(name, graphicsPipeline, nullptr, {},
-                std::move(passFunction), nullptr,
-                addTimestamp
-            );
-        }
-
-        void AddPass(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline,
-            PassFunction&& passFunction, TrackResourceFunction&& trackResourceFunction,
-            bool addTimestamp = false
-        )
-        {
-            AddPassInternal(name, graphicsPipeline, nullptr, {},
-                std::move(passFunction), std::move(trackResourceFunction),
-                addTimestamp
-            );
-        }
-
-        void AddPass(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, RGShaderParameterListBaseHandle parameterList,
-            PassFunction&& passFunction,
-            bool addTimestamp = false
-        )
-        {
-            AddPassInternal(name, graphicsPipeline, nullptr, { &parameterList, 1 },
-                std::move(passFunction), nullptr,
-                addTimestamp
-            );
-        }
-
-        void AddPass(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, RGShaderParameterListBaseHandle parameterList,
-            PassFunction&& passFunction, TrackResourceFunction&& trackResourceFunction,
-            bool addTimestamp = false
-        )
-        {
-            AddPassInternal(name, graphicsPipeline, nullptr, { &parameterList, 1 },
-                std::move(passFunction), std::move(trackResourceFunction),
-                addTimestamp
-            );
-        }
-
-        void AddPass(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists,
-            PassFunction&& passFunction,
-            bool addTimestamp = false
-        )
-        {
-            AddPassInternal(name, graphicsPipeline, nullptr, parameterLists,
-                std::move(passFunction), nullptr,
-                addTimestamp
-            );
-        }
-
-        void AddPass(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists,
-            PassFunction&& passFunction, TrackResourceFunction&& trackResourceFunction,
-            bool addTimestamp = false
-        )
-        {
-            AddPassInternal(name, graphicsPipeline, nullptr, parameterLists,
-                std::move(passFunction), std::move(trackResourceFunction),
-                addTimestamp
-            );
-        }
-
-        // ===== Compute pipeline =====
-
-        void AddPass(StringView name, SharedPtr<ComputePipeline> computePipeline, RGShaderParameterListBaseHandle parameterList,
-            PassFunction&& passFunction,
-            bool addTimestamp = false
-        )
-        {
-            AddPassInternal(name, nullptr, computePipeline, { &parameterList, 1 },
-                std::move(passFunction), nullptr,
-                addTimestamp
-            );
-        }
-
-        void AddPass(StringView name, SharedPtr<ComputePipeline> computePipeline, RGShaderParameterListBaseHandle parameterList,
-            PassFunction&& passFunction, TrackResourceFunction&& trackResourceFunction,
-            bool addTimestamp = false
-        )
-        {
-            AddPassInternal(name, nullptr, computePipeline, { &parameterList, 1 },
-                std::move(passFunction), std::move(trackResourceFunction),
-                addTimestamp
-            );
-        }
-
-        void AddPass(StringView name, SharedPtr<ComputePipeline> computePipeline, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists,
-            PassFunction&& passFunction,
-            bool addTimestamp = false
-        )
-        {
-            AddPassInternal(name, nullptr, computePipeline, parameterLists,
-                std::move(passFunction), nullptr,
-                addTimestamp
-            );
-        }
-
-        void AddPass(StringView name, SharedPtr<ComputePipeline> computePipeline, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists,
-            PassFunction&& passFunction, TrackResourceFunction&& trackResourceFunction,
-            bool addTimestamp = false
-        )
-        {
-            AddPassInternal(name, nullptr, computePipeline, parameterLists,
-                std::move(passFunction), std::move(trackResourceFunction),
-                addTimestamp
-            );
-        }
-
-        void AddDrawMeshPass(StringView name, ArrayView<DrawMeshInfo> drawMeshInfos, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists);
+            void Reset()
+            {
+                isInRenderPass = false;
+                renderPassRenderTargetFormats.clear();
+                renderPassDepthStencilFormat = gapi::ElementFormat::Unknown;
+            }
+        } mInitState;
 
         // ===== Tracking resources =====
-
+    public:
         void UseResource(RGBufferSRVHandle rgSRV, gapi::ResourceSyncFlags syncs);
         void UseResource(RGBufferUAVHandle rgUAV, gapi::ResourceSyncFlags syncs);
         void UseResource(RGTextureSRVHandle rgSRV, gapi::ResourceSyncFlags syncs);
@@ -255,99 +340,36 @@ namespace cube
         void AddUAVBarrier(RGBufferUAVHandle rgUAV);
         void AddUAVBarrier(RGTextureUAVHandle rgUAV);
 
-        // TODO: Does not submit at this function.
-        void ExecuteAndSubmit(gapi::CommandList& commandList, bool waitUntilFinished = false);
-
     private:
-        struct PassInfo
-        {
-            // Set in AddPass
-            String name;
-            bool addTimestamp = false;
-            int index = -1;
-
-            Vector<RGShaderParameterListBaseHandle> shaderParameterLists;
-
-            SharedPtr<GraphicsPipeline> graphicsPipeline = nullptr;
-            SharedPtr<ComputePipeline> computePipeline = nullptr;
-
-            PassFunction passFunction = nullptr;
-            TrackResourceFunction trackResourceFunction = nullptr;
-
-            bool IsGraphics() const { return graphicsPipeline != nullptr; }
-            bool IsCompute() const { return computePipeline != nullptr; }
-
-            // Set while tracking resources
-            struct ResourceUseInfo
-            {
-                int rgResourceIndex;
-                gapi::ResourceSyncFlags syncs;
-                gapi::ResourceAccessFlags accesses;
-                gapi::ResourceLayout layout;
-                gapi::SubresourceRange subresourceRange;
-                bool forceBarrier = false; // Used in UAV barrier
-            };
-            Vector<ResourceUseInfo> resourceUseInfos;
-
-            Vector<gapi::ResourceBarrier> barriers;
-        };
-
-        void BindGlobalShaderParameterListInternal(StringView name, RGShaderParameterListBaseHandle parameterList);
-        void UnbindGlobalShaderParameterListInternal(StringView name);
-
-        void AddPassInternal(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline, SharedPtr<ComputePipeline> computePipeline, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists,
-            PassFunction&& passFunction, TrackResourceFunction&& trackResourceFunction,
-            bool addTimestamp
-        );
-
-        void ResolveShaderParameterListsAndPipeline(PassInfo& pass, gapi::CommandList& commandList);
-        void MarkUseResources(PassInfo& pass, gapi::CommandList& commandList);
-
-        void UpdateResourceUseInfo();
+        void UpdateResourceUsages();
         void CreateAllResources();
         void ResolveBarriers();
 
-        void Reset();
-
-        Renderer& mRenderer;
-
-        Vector<PassInfo> mPasses;
-        int mCurrentPassIndex = -1;
-        PassInfo mLastPass;
-
-        Vector<RGResourceHandle> mResources;
-        Map<gapi::Buffer*, RGBufferHandle> mRegisteredBuffers;
-        struct RegisteredTextureInfo
+        struct
         {
-            RGTextureHandle texture;
-            gapi::ResourceLayout srcLayout;
-            gapi::ResourceLayout dstLayout;
-        };
-        Map<gapi::Texture*, RegisteredTextureInfo> mRegisteredTextureInfos;
+            int passIndex = -1;
 
-        // Caches to avoid creating duplicated views with the same parameters.
-        // The view type is encoded into the cache key, so each base map can hold every view kind.
-        HashMap<Uint64, RGBufferViewHandle> mCachedBufferViews;
-        HashMap<Uint64, RGTextureViewHandle> mCachedTextureViews;
-        RGTextureSRVHandle mDummyBlackTexture2D;
-        RGTextureSRVHandle mDummyBlackTextureCube;
-        RGTextureSRVHandle mDummyWhiteTexture2D;
+            int renderPassIndex = -1;
+            Vector<RGTextureRTVHandle> attachedRTVsInRenderPass;
+            RGTextureDSVHandle attachedDSVInRenderPass;
 
-        enum class State
-        {
-            Init,
-            TrackingResources,
-            Executing,
-            Submitted
-        };
-        State mState = State::Init;
-        bool mIsInRenderPass = false;
-        Vector<gapi::ElementFormat> mRenderPassRenderTargetFormats;
-        gapi::ElementFormat mRenderPassDepthStencilFormat = gapi::ElementFormat::Unknown;
-        // TODO: Group variables in each used states.
-        int mRenderPassIndex = -1;
-        Vector<RGTextureRTVHandle> mAttachedRTVsInRenderPass;
-        RGTextureDSVHandle mAttachedDSVInRenderPass;
+            void Reset()
+            {
+                passIndex = -1;
+                renderPassIndex = -1;
+                attachedRTVsInRenderPass.clear();
+                attachedDSVInRenderPass = nullptr;
+            }
+        } mTrackingResourcesState;
+
+        // ===== Executing =====
+    public:
+        // TODO: Rename to Execute and make not submitting at this function.
+        void ExecuteAndSubmit(gapi::CommandList& commandList, bool waitUntilFinished = false);
+
+    private:
+        void ResolveShaderParameterListsAndPipeline(RGPass& pass, gapi::CommandList& commandList);
+        void MarkUseResources(RGPass& pass, gapi::CommandList& commandList);
 
         struct ShaderParameterListBindInfo
         {
@@ -355,11 +377,38 @@ namespace cube
             SharedPtr<gapi::BufferSRV> srv = nullptr;
             int bindIndex = -1;
         };
-        Map<String, ShaderParameterListBindInfo> mShaderParameterListBindInfos;
+        struct
+        {
+            SharedPtr<GraphicsPipeline> boundGraphicsPipeline;
+            SharedPtr<ComputePipeline> boundComputePipeline;
 
-        SharedPtr<GraphicsPipeline> mCurrentBoundGraphicsPipeline;
-        SharedPtr<ComputePipeline> mCurrentBoundComputePipeline;
-        Map<String, RGShaderParameterListBaseHandle> mCurrentBoundGlobalShaderParameterLists;
+            Map<String, ShaderParameterListBindInfo> shaderParameterListBindInfos;
+            Map<String, RGShaderParameterListBaseHandle> boundGlobalShaderParameterLists;
+
+            void Reset()
+            {
+                boundGraphicsPipeline = nullptr;
+                boundComputePipeline = nullptr;
+
+                shaderParameterListBindInfos.clear();
+                boundGlobalShaderParameterLists.clear();
+            }
+        } mExecuteState;
+
+        // ===== Others =====
+    private:
+        void Reset();
+
+        Renderer& mRenderer;
+
+        enum class Phase
+        {
+            Init,
+            TrackingResources,
+            Executing,
+            Submitted
+        };
+        Phase mPhase = Phase::Init;
     };
 
     // ===== Utility =====

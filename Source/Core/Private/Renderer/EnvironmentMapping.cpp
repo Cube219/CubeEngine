@@ -352,7 +352,7 @@ namespace cube
         mSkyboxPipelineInfo.rasterizerState.fillMode = mRenderer.IsDrawInWireframe()
             ? gapi::RasterizerState::FillMode::Line
             : gapi::RasterizerState::FillMode::Solid;
-        builder.SetRenderTargetFormatsFromCurrentRenderPass(mSkyboxPipelineInfo);
+        builder.ApplyRenderTargetFormatsFromCurrentRenderPass(mSkyboxPipelineInfo);
 
         SharedPtr<GraphicsPipeline> skyboxPipeline = mRenderer.GetPipelineManager().GetOrCreateGraphicsPipeline({
             .pipelineInfo = mSkyboxPipelineInfo,
