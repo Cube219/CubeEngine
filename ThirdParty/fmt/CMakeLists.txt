@@ -7,6 +7,6 @@ message(STATUS "CubeEngine: Fetching fmt...")
 FetchContent_Declare(
     fmt
     GIT_REPOSITORY https://github.com/fmtlib/fmt
-    GIT_TAG        0c9fce2ffefecfdce794e1859584e25877b7b592 # 11.0.2
+    GIT_TAG        123913715afeb8a437e6388b4473fcc4753e1c9a # 11.1.4
 )
 FetchContent_MakeAvailable(fmt)
