@@ -107,6 +107,8 @@ namespace cube
     class RGBuffer : public RGResource
     {
     public:
+        SharedPtr<gapi::Buffer> GetGAPIBuffer() const { return mBuffer; }
+
         virtual void CreateResource(GAPI& gapi) override;
         virtual bool IsResourceCreated() const override { return mBuffer != nullptr; }
 

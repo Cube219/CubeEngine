@@ -660,7 +660,7 @@ namespace cube
         CHECK(mPhase == Phase::TrackingResources);
 
         RGPass& pass = mPasses[mTrackingResourcesState.passIndex];
-        pass.resourceUseInfos.push_back({
+        pass.resourceUsages.push_back({
             .rgResourceIndex = rgSRV->mIndex,
             .syncs = syncs,
             .accesses = gapi::ResourceAccessFlag::SRV,
@@ -673,7 +673,7 @@ namespace cube
         CHECK(mPhase == Phase::TrackingResources);
 
         RGPass& pass = mPasses[mTrackingResourcesState.passIndex];
-        pass.resourceUseInfos.push_back({
+        pass.resourceUsages.push_back({
             .rgResourceIndex = rgUAV->mIndex,
             .syncs = syncs,
             .accesses = gapi::ResourceAccessFlag::UAV,
@@ -686,7 +686,7 @@ namespace cube
         CHECK(mPhase == Phase::TrackingResources);
 
         RGPass& pass = mPasses[mTrackingResourcesState.passIndex];
-        pass.resourceUseInfos.push_back({
+        pass.resourceUsages.push_back({
             .rgResourceIndex = rgSRV->mIndex,
             .syncs = syncs,
             .accesses = gapi::ResourceAccessFlag::SRV,
@@ -700,7 +700,7 @@ namespace cube
         CHECK(mPhase == Phase::TrackingResources);
 
         RGPass& pass = mPasses[mTrackingResourcesState.passIndex];
-        pass.resourceUseInfos.push_back({
+        pass.resourceUsages.push_back({
             .rgResourceIndex = rgUAV->mIndex,
             .syncs = syncs,
             .accesses = gapi::ResourceAccessFlag::UAV,
@@ -714,7 +714,7 @@ namespace cube
         CHECK(mPhase == Phase::TrackingResources);
 
         RGPass& pass = mPasses[mTrackingResourcesState.passIndex];
-        pass.resourceUseInfos.push_back({
+        pass.resourceUsages.push_back({
             .rgResourceIndex = rgRTV->mIndex,
             .syncs = gapi::ResourceSyncFlag::RenderTarget,
             .accesses = gapi::ResourceAccessFlag::RenderTarget,
@@ -728,7 +728,7 @@ namespace cube
         CHECK(mPhase == Phase::TrackingResources);
 
         RGPass& pass = mPasses[mTrackingResourcesState.passIndex];
-        pass.resourceUseInfos.push_back({
+        pass.resourceUsages.push_back({
             .rgResourceIndex = rgDSV->mIndex,
             .syncs = gapi::ResourceSyncFlag::DepthStencil,
             .accesses = gapi::ResourceAccessFlag::DepthStencilWrite,
@@ -743,7 +743,7 @@ namespace cube
         CHECK(rgTexture.IsValid());
 
         RGPass& pass = mPasses[mTrackingResourcesState.passIndex];
-        pass.resourceUseInfos.push_back({
+        pass.resourceUsages.push_back({
             .rgResourceIndex = rgTexture->mIndex,
             .syncs = syncs,
             .accesses = accesses,
@@ -758,11 +758,11 @@ namespace cube
 
         RGPass& pass = mPasses[mTrackingResourcesState.passIndex];
 
-        for (RGPass::ResourceUsage& useInfo : pass.resourceUseInfos)
+        for (RGPass::ResourceUsage& usage : pass.resourceUsages)
         {
-            if (useInfo.rgResourceIndex == rgUAV->mIndex)
+            if (usage.rgResourceIndex == rgUAV->mIndex)
             {
-                useInfo.forceBarrier = true;
+                usage.forceBarrier = true;
                 return;
             }
         }
@@ -776,11 +776,11 @@ namespace cube
 
         RGPass& pass = mPasses[mTrackingResourcesState.passIndex];
 
-        for (RGPass::ResourceUsage& useInfo : pass.resourceUseInfos)
+        for (RGPass::ResourceUsage& usage : pass.resourceUsages)
         {
-            if (useInfo.rgResourceIndex == rgUAV->mIndex)
+            if (usage.rgResourceIndex == rgUAV->mIndex)
             {
-                useInfo.forceBarrier = true;
+                usage.forceBarrier = true;
                 return;
             }
         }
@@ -991,9 +991,9 @@ namespace cube
 
         if (pass.graphicsPipeline || pass.computePipeline)
         {
-            for (const RGPass::ResourceUsage& resourceUseInfo : pass.resourceUseInfos)
+            for (const RGPass::ResourceUsage& resourceUsage : pass.resourceUsages)
             {
-                RGResourceHandle rgResource = mResources[resourceUseInfo.rgResourceIndex];
+                RGResourceHandle rgResource = mResources[resourceUsage.rgResourceIndex];
                 if (RGTextureSRVHandle rgSRV = rgResource.Cast<RGTextureSRV>(); rgSRV.IsValid())
                 {
                     commandList.UseResource(rgSRV->GetSRV());
@@ -1100,20 +1100,20 @@ namespace cube
 #if CUBE_USE_CHECK
             if (mTrackingResourcesState.renderPassIndex != mTrackingResourcesState.passIndex)
             {
-                for (const RGPass::ResourceUsage& resourceUseInfo : pass.resourceUseInfos)
+                for (const RGPass::ResourceUsage& resourceUsage : pass.resourceUsages)
                 {
-                    RGResourceHandle resource = mResources[resourceUseInfo.rgResourceIndex];
+                    RGResourceHandle resource = mResources[resourceUsage.rgResourceIndex];
 
                     if (RGTextureHandle rgTexture = resource.Cast<RGTexture>(); rgTexture.IsValid())
                     {
                         for (RGTextureRTVHandle attachedRTV : mTrackingResourcesState.attachedRTVsInRenderPass)
                         {
-                            CHECK_FORMAT(rgTexture != attachedRTV->mRGTexture || !resourceUseInfo.subresourceRange.IsOverlap(attachedRTV->mSubresourceRange),
+                            CHECK_FORMAT(rgTexture != attachedRTV->mRGTexture || !resourceUsage.subresourceRange.IsOverlap(attachedRTV->mSubresourceRange),
                                 "Cannot use subresource currently attached to render pass.");
                         }
                         if (mTrackingResourcesState.attachedDSVInRenderPass.IsValid())
                         {
-                            CHECK_FORMAT(rgTexture != mTrackingResourcesState.attachedDSVInRenderPass->mRGTexture || !resourceUseInfo.subresourceRange.IsOverlap(mTrackingResourcesState.attachedDSVInRenderPass->mSubresourceRange),
+                            CHECK_FORMAT(rgTexture != mTrackingResourcesState.attachedDSVInRenderPass->mRGTexture || !resourceUsage.subresourceRange.IsOverlap(mTrackingResourcesState.attachedDSVInRenderPass->mSubresourceRange),
                                 "Cannot use subresource currently attached to render pass.");
                         }
                     }
@@ -1150,9 +1150,9 @@ namespace cube
             RGPass& pass = mPasses[i];
             mTrackingResourcesState.passIndex = i;
 
-            for (const RGPass::ResourceUsage& resourceUseInfo : pass.resourceUseInfos)
+            for (const RGPass::ResourceUsage& resourceUsage : pass.resourceUsages)
             {
-                RGResourceHandle resource = mResources[resourceUseInfo.rgResourceIndex];
+                RGResourceHandle resource = mResources[resourceUsage.rgResourceIndex];
                 resource->CreateResource(gapi);
                 resource->UpdateUsePassIndex(i);
             }
@@ -1173,35 +1173,38 @@ namespace cube
     {
         CHECK(mPhase == Phase::TrackingResources);
 
-        struct BufferKey
+        // Suspend emitting a barrier until a new barrier appears.
+        // The syncDst cannot be determined until then.
+
+        // Example logic:
+        // (pending) PassA(Pixel-SRV) PassB(Compute-SRV)
+        //   -> PassB uses the resource as SRV, which is the same as the previous pass.
+        //      Don't need to insert a new barrier.
+        // (pending) PassA(Pixel-SRV) PassB(Compute-SRV) PassC(Compute-UAV)
+        //   -> PassC uses the resource as UAV, which is not the same as the previous pass.
+        //      Need to insert a new barrier.
+        // (barrier) PassA(Pixel-SRV) PassB(Compute-SRV) (pending) PassC(Compute-UAV)
+        //   -> Emit the pending barrier because the syncDst is now determined.
+        //      And add the next pending barrier before PassC.
+
+        struct SubresourcePendingBarrier
         {
-            SharedPtr<gapi::Buffer> buffer;
-            bool isRegisteredBuffer;
-            
-            bool operator==(const BufferKey& rhs) const
-            {
-                return buffer == rhs.buffer;
-            }
-        };
-        struct BufferKeyHash
-        {
-            size_t operator()(const BufferKey& key) const
-            {
-                return (size_t)key.buffer.get();
-            }
-        };
-        struct BufferPendingBarrier
-        {
+            gapi::ResourceType resourceType;
+
             gapi::ResourceSyncFlags lastSyncs = gapi::ResourceSyncFlag::None;
             gapi::ResourceAccessFlags lastAccesses = gapi::ResourceAccessFlag::NoAccess;
+            gapi::ResourceLayout lastLayout = gapi::ResourceLayout::Undefined;
 
             gapi::ResourceSyncFlags syncs = gapi::ResourceSyncFlag::None;
             gapi::ResourceAccessFlags accesses = gapi::ResourceAccessFlag::NoAccess;
+            gapi::ResourceLayout layout = gapi::ResourceLayout::Undefined;
 
             int firstPassIndex = -1;
 
-            gapi::ResourceBarrier EmitBarrier(SharedPtr<gapi::Buffer> buffer) const
+            gapi::ResourceBarrier EmitBufferBarrier(SharedPtr<gapi::Buffer> buffer) const
             {
+                CHECK(resourceType == gapi::ResourceType::Buffer);
+
                 return gapi::ResourceBarrier{
                     .resourceType = gapi::ResourceBarrier::ResourceType::Buffer,
                     .buffer = buffer,
@@ -1213,61 +1216,10 @@ namespace cube
                     .layoutDst = gapi::ResourceLayout::Undefined,
                 };
             }
-            void MoveNext(int newPassIndex, gapi::ResourceAccessFlags newAccesses)
+            gapi::ResourceBarrier EmitTextureBarrier(SharedPtr<gapi::Texture> texture, Uint32 subresourceIndex) const
             {
-                lastSyncs = syncs;
-                lastAccesses = accesses;
+                CHECK(resourceType == gapi::ResourceType::Texture);
 
-                syncs = gapi::ResourceSyncFlag::None;
-                accesses = newAccesses;
-
-                firstPassIndex = newPassIndex;
-            }
-        };
-        FrameHashMap<BufferKey, BufferPendingBarrier, BufferKeyHash> currentBufferPendingBarriers;
-
-        struct SubresourceKey
-        {
-            SharedPtr<gapi::Texture> texture;
-            Uint32 subresourceIndex;
-            bool isRegisteredTexture;
-
-            Uint64 hash;
-
-            SubresourceKey(SharedPtr<gapi::Texture> inTexture, Uint32 inSubresourceIndex, bool inIsRegisteredTexture)
-                : texture(inTexture)
-                , subresourceIndex(inSubresourceIndex)
-                , isRegisteredTexture(inIsRegisteredTexture)
-            {
-                hash = HashCombine((Uint64)texture.get(), subresourceIndex, inIsRegisteredTexture);
-            }
-
-            bool operator==(const SubresourceKey& rhs) const
-            {
-                return hash == rhs.hash;
-            }
-        };
-        struct SubresourceKeyHash
-        {
-            size_t operator()(const SubresourceKey& key) const
-            {
-                return key.hash;
-            }
-        };
-        struct SubresourcePendingBarrier
-        {
-            gapi::ResourceSyncFlags lastSyncs = gapi::ResourceSyncFlag::None;
-            gapi::ResourceAccessFlags lastAccesses = gapi::ResourceAccessFlag::NoAccess;
-            gapi::ResourceLayout lastLayout = gapi::ResourceLayout::Undefined;
-
-            gapi::ResourceSyncFlags syncs = gapi::ResourceSyncFlag::None;
-            gapi::ResourceAccessFlags accesses = gapi::ResourceAccessFlag::NoAccess;
-            gapi::ResourceLayout layout = gapi::ResourceLayout::Undefined;
-
-            int firstPassIndex = -1;
-
-            gapi::ResourceBarrier EmitBarrier(SharedPtr<gapi::Texture> texture, Uint32 subresourceIndex) const
-            {
                 return gapi::ResourceBarrier{
                     .resourceType = gapi::ResourceBarrier::ResourceType::Texture,
                     .texture = texture,
@@ -1294,77 +1246,81 @@ namespace cube
                 firstPassIndex = newPassIndex;
             }
         };
-        FrameHashMap<SubresourceKey, SubresourcePendingBarrier, SubresourceKeyHash> currentSubresourcePendingBarriers;
+        FrameVector<FrameVector<SubresourcePendingBarrier>> pendingBarriersByResource(mResources.size());
 
         const int numPasses = static_cast<int>(mPasses.size());
-        for (int i = 0; i < numPasses; ++i)
+        for (int passIndex = 0; passIndex < numPasses; ++passIndex)
         {
-            RGPass& pass = mPasses[i];
-            mTrackingResourcesState.passIndex = i;
+            RGPass& pass = mPasses[passIndex];
+            mTrackingResourcesState.passIndex = passIndex;
 
-            for (const RGPass::ResourceUsage& resourceUseInfo : pass.resourceUseInfos)
+            for (const RGPass::ResourceUsage& resourceUsage : pass.resourceUsages)
             {
-                RGResourceHandle resource = mResources[resourceUseInfo.rgResourceIndex];
+                RGResourceHandle resource = mResources[resourceUsage.rgResourceIndex];
 
                 auto TryResolveBuffer = [&](RGBufferHandle rgBuffer)
                 {
-                    SharedPtr<gapi::Buffer> buffer = rgBuffer->mBuffer;
+                    SharedPtr<gapi::Buffer> buffer = rgBuffer->GetGAPIBuffer();
 
-                    const BufferKey key = { buffer, !(rgBuffer->IsTransient()) };
-                    auto currentPendingBarrierIt = currentBufferPendingBarriers.find(key);
-                    if (currentPendingBarrierIt == currentBufferPendingBarriers.end())
+                    FrameVector<SubresourcePendingBarrier>& pendingSubresourceBarriers = pendingBarriersByResource[rgBuffer->mIndex];
+                    if (pendingSubresourceBarriers.empty())
                     {
-                        currentPendingBarrierIt = currentBufferPendingBarriers.insert({ key, {} }).first;
+                        pendingSubresourceBarriers.push_back({
+                            .resourceType = gapi::ResourceType::Buffer,
+                        });
                     }
 
-                    BufferPendingBarrier& currentPendingBarrier = currentPendingBarrierIt->second;
-                    if (resourceUseInfo.forceBarrier || currentPendingBarrier.accesses != resourceUseInfo.accesses)
+                    SubresourcePendingBarrier& pendingBarrier = pendingSubresourceBarriers[0];
+                    if (resourceUsage.forceBarrier || pendingBarrier.accesses != resourceUsage.accesses)
                     {
-                        if (currentPendingBarrier.firstPassIndex != -1)
+                        if (pendingBarrier.firstPassIndex != -1)
                         {
-                            mPasses[currentPendingBarrier.firstPassIndex].barriers.push_back(currentPendingBarrier.EmitBarrier(buffer));
+                            mPasses[pendingBarrier.firstPassIndex].barriers.push_back(pendingBarrier.EmitBufferBarrier(buffer));
                         }
-                        currentPendingBarrier.MoveNext(mTrackingResourcesState.passIndex, resourceUseInfo.accesses);
+                        pendingBarrier.MoveNext(mTrackingResourcesState.passIndex, resourceUsage.accesses, gapi::ResourceLayout::Undefined);
                     }
-                    currentPendingBarrier.syncs |= resourceUseInfo.syncs;
+                    pendingBarrier.syncs |= resourceUsage.syncs;
                 };
 
                 auto TryResolveTexture = [&](RGTextureHandle rgTexture, const gapi::SubresourceRange& subresourceRange)
                 {
                     SharedPtr<gapi::Texture> texture = rgTexture->mTexture;
 
-                    // TODO: Use range-based barriers.
                     for (Uint32 sliceIndex = subresourceRange.firstSliceIndex; sliceIndex < subresourceRange.firstSliceIndex + subresourceRange.sliceSize; ++sliceIndex)
                     {
                         for (Uint32 mipLevel = subresourceRange.firstMipLevel; mipLevel < subresourceRange.firstMipLevel + subresourceRange.mipLevels; ++mipLevel)
                         {
-                            const Uint32 subresourceIndex = texture->GetSubresourceIndex(sliceIndex, mipLevel);
-                            const SubresourceKey key = { texture, subresourceIndex, !(rgTexture->IsTransient()) };
-                            auto currentPendingBarrierIt = currentSubresourcePendingBarriers.find(key);
-                            if (currentPendingBarrierIt == currentSubresourcePendingBarriers.end())
+                            FrameVector<SubresourcePendingBarrier>& pendingSubresourceBarriers = pendingBarriersByResource[rgTexture->mIndex];
+                            if (pendingSubresourceBarriers.empty())
                             {
-                                currentPendingBarrierIt = currentSubresourcePendingBarriers.insert({ key, {} }).first;
-                                if (key.isRegisteredTexture)
+                                SubresourcePendingBarrier initBarrier = {
+                                    .resourceType = gapi::ResourceType::Texture,
+                                };
+                                if (!(rgTexture->IsTransient()))
                                 {
                                     auto registeredTextureInfoIt = mRegisteredTextureInfos.find(rgTexture->GetGAPITexture().get());
                                     CHECK(registeredTextureInfoIt != mRegisteredTextureInfos.end());
 
-                                    currentPendingBarrierIt->second.layout = registeredTextureInfoIt->second.srcLayout;
+                                    initBarrier.lastLayout = registeredTextureInfoIt->second.srcLayout;
                                 }
+                                pendingSubresourceBarriers.resize(texture->GetNumSubresources(), initBarrier);
+                                CHECK_FORMAT(!pendingSubresourceBarriers.empty(), "Empty number of subresource in the texture. The texture is not initialized properly.");
                             }
 
-                            SubresourcePendingBarrier& currentPendingBarrier = currentPendingBarrierIt->second;
-                            if (resourceUseInfo.forceBarrier ||
-                                (currentPendingBarrier.accesses != resourceUseInfo.accesses
-                                || currentPendingBarrier.layout != resourceUseInfo.layout))
+                            const Uint32 subresourceIndex = texture->GetSubresourceIndex(sliceIndex, mipLevel);
+                            SubresourcePendingBarrier& pendingBarrier = pendingSubresourceBarriers[subresourceIndex];
+
+                            if (resourceUsage.forceBarrier ||
+                                (pendingBarrier.accesses != resourceUsage.accesses
+                                || pendingBarrier.layout != resourceUsage.layout))
                             {
-                                if (currentPendingBarrier.firstPassIndex != -1)
+                                if (pendingBarrier.firstPassIndex != -1)
                                 {
-                                    mPasses[currentPendingBarrier.firstPassIndex].barriers.push_back(currentPendingBarrier.EmitBarrier(texture, subresourceIndex));
+                                    mPasses[pendingBarrier.firstPassIndex].barriers.push_back(pendingBarrier.EmitTextureBarrier(texture, subresourceIndex));
                                 }
-                                currentPendingBarrier.MoveNext(mTrackingResourcesState.passIndex, resourceUseInfo.accesses, resourceUseInfo.layout);
+                                pendingBarrier.MoveNext(mTrackingResourcesState.passIndex, resourceUsage.accesses, resourceUsage.layout);
                             }
-                            currentPendingBarrier.syncs |= resourceUseInfo.syncs;
+                            pendingBarrier.syncs |= resourceUsage.syncs;
                         }
                     }
                 };
@@ -1383,7 +1339,7 @@ namespace cube
                 }
                 else if (RGTextureHandle texture = resource.Cast<RGTexture>(); texture.IsValid())
                 {
-                    TryResolveTexture(texture, resourceUseInfo.subresourceRange);
+                    TryResolveTexture(texture, resourceUsage.subresourceRange);
                 }
                 else
                 {
@@ -1393,36 +1349,60 @@ namespace cube
         }
 
         // Emit all pending barriers and set the layout of registered resources at the last pass.
-        for (auto& [key, barrier] : currentBufferPendingBarriers)
+        for (Uint32 index = 0; index < pendingBarriersByResource.size(); ++index)
         {
-            if (barrier.firstPassIndex != -1)
+            RGResourceHandle rgResource = mResources[index];
+            FrameVector<SubresourcePendingBarrier>& pendingBarriersEachSubresources = pendingBarriersByResource[index];
+
+            RGBufferHandle rgBuffer = rgResource.Cast<RGBuffer>();
+            RGTextureHandle rgTexture = rgResource.Cast<RGTexture>();
+            gapi::ResourceLayout dstLayout = gapi::ResourceLayout::Undefined;
+            if (rgTexture.IsValid() && !(rgTexture->IsTransient()))
             {
-                mPasses[barrier.firstPassIndex].barriers.push_back(barrier.EmitBarrier(key.buffer));
-            }
-            // NOTE: It is okay not to insert a barrier at the last pass because RGBuilder will submit
-            // the command list after writing the last pass.
-            // (An implicit global barrier is inserted between submitted command lists.)
-        }
-        for (auto& [key, barrier] : currentSubresourcePendingBarriers)
-        {
-            if (barrier.firstPassIndex != -1)
-            {
-                mPasses[barrier.firstPassIndex].barriers.push_back(barrier.EmitBarrier(key.texture, key.subresourceIndex));
-            }
-            if (key.isRegisteredTexture)
-            {
-                auto registeredTextureInfoIt = mRegisteredTextureInfos.find(key.texture.get());
+                auto registeredTextureInfoIt = mRegisteredTextureInfos.find(rgTexture->mTexture.get());
                 CHECK(registeredTextureInfoIt != mRegisteredTextureInfos.end());
 
-                // NOTE: It is okay to set NoAccess/None at the last pass because RGBuilder will submit
-                // the command list after writing the last pass.
-                // (An implicit global barrier is inserted between submitted command lists.)
-                // The barrier itself is needed for the layout transition.
-                if (barrier.layout != registeredTextureInfoIt->second.dstLayout)
+                dstLayout = registeredTextureInfoIt->second.dstLayout;
+            }
+
+            for (Uint32 subresourceIndex = 0; subresourceIndex < pendingBarriersEachSubresources.size(); ++subresourceIndex)
+            {
+                SubresourcePendingBarrier& pendingBarrier = pendingBarriersEachSubresources[subresourceIndex];
+
+                if (rgBuffer.IsValid())
                 {
-                    barrier.MoveNext(-1, gapi::ResourceAccessFlag::NoAccess, registeredTextureInfoIt->second.dstLayout);
-                    barrier.syncs = gapi::ResourceSyncFlag::None;
-                    mLastPass.barriers.push_back(barrier.EmitBarrier(key.texture, key.subresourceIndex));
+                    if (pendingBarrier.firstPassIndex != -1)
+                    {
+                        mPasses[pendingBarrier.firstPassIndex].barriers.push_back(pendingBarrier.EmitBufferBarrier(rgBuffer->GetGAPIBuffer()));
+                    }
+                    // NOTE: It is okay not to insert a barrier after the last pass because RGBuilder will submit
+                    // the command list after writing the last pass.
+                    // (An implicit global barrier is inserted between submitted command lists.)
+                }
+                else if (rgTexture.IsValid())
+                {
+                    if (pendingBarrier.firstPassIndex != -1)
+                    {
+                        mPasses[pendingBarrier.firstPassIndex].barriers.push_back(pendingBarrier.EmitTextureBarrier(rgTexture->GetGAPITexture(), subresourceIndex));
+                    }
+
+                    if (!(rgTexture->IsTransient()))
+                    {
+                        // NOTE: It is okay to set NoAccess/None after the last pass because RGBuilder will submit
+                        // the command list after writing the last pass.
+                        // (An implicit global barrier is inserted between submitted command lists.)
+                        // A barrier is still needed for the layout transition.
+                        if (pendingBarrier.layout != dstLayout)
+                        {
+                            pendingBarrier.MoveNext(-1, gapi::ResourceAccessFlag::NoAccess, dstLayout);
+                            pendingBarrier.syncs = gapi::ResourceSyncFlag::None;
+                            mLastPass.barriers.push_back(pendingBarrier.EmitTextureBarrier(rgTexture->mTexture, subresourceIndex));
+                        }
+                    }
+                }
+                else
+                {
+                    NO_ENTRY();
                 }
             }
         }

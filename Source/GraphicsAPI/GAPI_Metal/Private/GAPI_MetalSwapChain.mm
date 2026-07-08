@@ -30,6 +30,8 @@ namespace cube
             , mViewReferenceCount(0)
         {
             mFromExisted = true;
+            // Backbuffer has a one subresource.
+            mSubresourceLayouts.push_back({ 0, 0 });
         }
 
         MetalBackbufferTexture::~MetalBackbufferTexture()

@@ -15,6 +15,8 @@ namespace cube
             : DX12Texture(createInfo, resource.Get(), device)
             , mResourceComPtr(resource)
         {
+            // Backbuffer has a one subresource.
+            mSubresourceLayouts.push_back({ 0, 0 });
         }
 
         DX12BackbufferTexture::~DX12BackbufferTexture()

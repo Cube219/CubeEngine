@@ -43,7 +43,7 @@ namespace cube
             gapi::SubresourceRange subresourceRange;
             bool forceBarrier = false; // Used for UAV barrier
         };
-        Vector<ResourceUsage> resourceUseInfos;
+        Vector<ResourceUsage> resourceUsages;
 
         Vector<gapi::ResourceBarrier> barriers;
     };
