@@ -867,7 +867,7 @@ namespace cube
             [nameStr = String(name), parameterList](RGBuilder& builder)
             {
                 // Override the parameter list even if it already existed.
-                builder.mExecuteState.boundGlobalShaderParameterLists[nameStr] = parameterList;
+                builder.mTrackingResourcesState.boundGlobalShaderParameterLists[nameStr] = parameterList;
             },
             false
         );
@@ -883,7 +883,7 @@ namespace cube
             nullptr,
             [nameStr = String(name)](RGBuilder& builder)
             {
-                builder.mExecuteState.boundGlobalShaderParameterLists.erase(nameStr);
+                builder.mTrackingResourcesState.boundGlobalShaderParameterLists.erase(nameStr);
             },
             false
         );
@@ -1086,7 +1086,7 @@ namespace cube
                 }
             };
 
-            for (auto& [_, globalParamList] : mExecuteState.boundGlobalShaderParameterLists)
+            for (auto& [_, globalParamList] : mTrackingResourcesState.boundGlobalShaderParameterLists)
             {
                 TryUseResource(globalParamList);
             }

@@ -352,6 +352,7 @@ namespace cube
             int renderPassIndex = -1;
             Vector<RGTextureRTVHandle> attachedRTVsInRenderPass;
             RGTextureDSVHandle attachedDSVInRenderPass;
+            Map<String, RGShaderParameterListBaseHandle> boundGlobalShaderParameterLists;
 
             void Reset()
             {
@@ -359,6 +360,7 @@ namespace cube
                 renderPassIndex = -1;
                 attachedRTVsInRenderPass.clear();
                 attachedDSVInRenderPass = nullptr;
+                boundGlobalShaderParameterLists.clear();
             }
         } mTrackingResourcesState;
 
@@ -383,7 +385,6 @@ namespace cube
             SharedPtr<ComputePipeline> boundComputePipeline;
 
             Map<String, ShaderParameterListBindInfo> shaderParameterListBindInfos;
-            Map<String, RGShaderParameterListBaseHandle> boundGlobalShaderParameterLists;
 
             void Reset()
             {
@@ -391,7 +392,6 @@ namespace cube
                 boundComputePipeline = nullptr;
 
                 shaderParameterListBindInfos.clear();
-                boundGlobalShaderParameterLists.clear();
             }
         } mExecuteState;
 
