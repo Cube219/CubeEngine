@@ -13,7 +13,7 @@ public struct DirectionalLight : ILight
         intensity = inIntensity;
     }
 
-    public float3 CalculateLight(float3 view, float3 normal, MaterialValue materialValue)
+    public float3 CalculateLight(float3 view, float3 normal, float3 worldPosition, MaterialValue materialValue)
     {
 #ifdef MATERIAL_PBR
         BRDFParam param = BRDFParam(

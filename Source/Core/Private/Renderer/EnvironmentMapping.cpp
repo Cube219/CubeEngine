@@ -179,99 +179,87 @@ namespace cube
 
     void EnvironmentMapping::OnLoopImGUI()
     {
-        ImGui::SeparatorText("Environment Mapping");
-        {
-            ImGui::BeginDisabled(!IsSupported());
+        ImGui::BeginDisabled(!IsSupported() || !IsEnabled());
 
-            bool isEnabled = IsEnabled();
-            if (ImGui::Checkbox("Enable", &isEnabled))
+        ImGui::SetNextItemWidth(160);
+        if (ImGui::BeginCombo("IBL Texture", mCurrentSelectedIBLTextureName.c_str()))
+        {
+            if (!mIBLDropdownExpandedLastFrame)
             {
-                SetEnable(isEnabled);
+                LoadIBLTextureList();
+            }
+            mIBLDropdownExpandedLastFrame = true;
+
+            for (const AnsiString& IBLTextureName : mIBLTextureList)
+            {
+                const bool selected = mCurrentSelectedIBLTextureName == IBLTextureName;
+                if (ImGui::Selectable(IBLTextureName.c_str(), selected))
+                {
+                    mCurrentSelectedIBLTextureName = IBLTextureName;
+                    LoadCurrentIBLTexture();
+                }
+
+                if (selected)
+                {
+                    ImGui::SetItemDefaultFocus();
+                }
             }
 
-            ImGui::BeginDisabled(!isEnabled);
+            ImGui::EndCombo();
+        }
+        else
+        {
+            mIBLDropdownExpandedLastFrame = false;
+        }
 
-            ImGui::SetNextItemWidth(160);
-            if (ImGui::BeginCombo("IBL Texture", mCurrentSelectedIBLTextureName.c_str()))
+        {
+            FrameAnsiString prefilterMapStr = Format<FrameAnsiString>("PrefilterMap {0}", mCurrentSkyboxMipLevel);
+            auto GetSkyboxTypeStr = [this, &prefilterMapStr]() -> const char*
             {
-                if (!mIBLDropdownExpandedLastFrame)
+                switch (mCurrentSkyboxType)
                 {
-                    LoadIBLTextureList();
+                case SkyboxType::None: return "None";
+                case SkyboxType::IBL: return "IBL";
+                case SkyboxType::DiffuseIrradianceMap: return "DiffuseIrradianceMap";
+                case SkyboxType::PrefilterMap: return prefilterMapStr.c_str();
+                case SkyboxType::Num: return "Num";
                 }
-                mIBLDropdownExpandedLastFrame = true;
-
-                for (const AnsiString& IBLTextureName : mIBLTextureList)
+                return "";
+            };
+            ImGui::SetNextItemWidth(160);
+            if (ImGui::BeginCombo("Skybox", GetSkyboxTypeStr()))
+            {
+                if (ImGui::Selectable("None", mCurrentSkyboxType == SkyboxType::None))
                 {
-                    const bool selected = mCurrentSelectedIBLTextureName == IBLTextureName;
-                    if (ImGui::Selectable(IBLTextureName.c_str(), selected))
+                    mCurrentSkyboxType = SkyboxType::None;
+                }
+                if (mIBLTexture && ImGui::Selectable("IBL", mCurrentSkyboxType == SkyboxType::IBL))
+                {
+                    mCurrentSkyboxType = SkyboxType::IBL;
+                }
+                if (mDiffuseIrradianceMap && ImGui::Selectable("DiffuseIrradianceMap", mCurrentSkyboxType == SkyboxType::DiffuseIrradianceMap))
+                {
+                    mCurrentSkyboxType = SkyboxType::DiffuseIrradianceMap;
+                }
+                if (mPrefilterMap)
+                {
+                    const int mipLevels = mPrefilterMap->GetMipLevels();
+                    for (int i = 0; i < mipLevels; ++i)
                     {
-                        mCurrentSelectedIBLTextureName = IBLTextureName;
-                        LoadCurrentIBLTexture();
-                    }
-
-                    if (selected)
-                    {
-                        ImGui::SetItemDefaultFocus();
+                        FrameAnsiString label = Format<FrameAnsiString>("PrefilterMap {0}", i);
+                        if (ImGui::Selectable(label.c_str(), mCurrentSkyboxType == SkyboxType::PrefilterMap && mCurrentSkyboxMipLevel == i))
+                        {
+                            mCurrentSkyboxType = SkyboxType::PrefilterMap;
+                            mCurrentSkyboxMipLevel = i;
+                        }
                     }
                 }
 
                 ImGui::EndCombo();
             }
-            else
-            {
-                mIBLDropdownExpandedLastFrame = false;
-            }
-
-            {
-                FrameAnsiString prefilterMapStr = Format<FrameAnsiString>("PrefilterMap {0}", mCurrentSkyboxMipLevel);
-                auto GetSkyboxTypeStr = [this, &prefilterMapStr]() -> const char*
-                {
-                    switch (mCurrentSkyboxType)
-                    {
-                    case SkyboxType::None: return "None";
-                    case SkyboxType::IBL: return "IBL";
-                    case SkyboxType::DiffuseIrradianceMap: return "DiffuseIrradianceMap";
-                    case SkyboxType::PrefilterMap: return prefilterMapStr.c_str();
-                    case SkyboxType::Num: return "Num";
-                    }
-                    return "";
-                };
-                ImGui::SetNextItemWidth(160);
-                if (ImGui::BeginCombo("Skybox", GetSkyboxTypeStr()))
-                {
-                    if (ImGui::Selectable("None", mCurrentSkyboxType == SkyboxType::None))
-                    {
-                        mCurrentSkyboxType = SkyboxType::None;
-                    }
-                    if (mIBLTexture && ImGui::Selectable("IBL", mCurrentSkyboxType == SkyboxType::IBL))
-                    {
-                        mCurrentSkyboxType = SkyboxType::IBL;
-                    }
-                    if (mDiffuseIrradianceMap && ImGui::Selectable("DiffuseIrradianceMap", mCurrentSkyboxType == SkyboxType::DiffuseIrradianceMap))
-                    {
-                        mCurrentSkyboxType = SkyboxType::DiffuseIrradianceMap;
-                    }
-                    if (mPrefilterMap)
-                    {
-                        const int mipLevels = mPrefilterMap->GetMipLevels();
-                        for (int i = 0; i < mipLevels; ++i)
-                        {
-                            FrameAnsiString label = Format<FrameAnsiString>("PrefilterMap {0}", i);
-                            if (ImGui::Selectable(label.c_str(), mCurrentSkyboxType == SkyboxType::PrefilterMap && mCurrentSkyboxMipLevel == i))
-                            {
-                                mCurrentSkyboxType = SkyboxType::PrefilterMap;
-                                mCurrentSkyboxMipLevel = i;
-                            }
-                        }
-                    }
-                    
-                    ImGui::EndCombo();
-                }
-            }
-            ImGui::EndDisabled();
-
-            ImGui::EndDisabled();
         }
+
+        ImGui::EndDisabled();
     }
 
     void EnvironmentMapping::LoadResources()

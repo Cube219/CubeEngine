@@ -5,6 +5,7 @@
 #include "Checker.h"
 #include "GAPI_CommandList.h"
 #include "Pipeline.h"
+#include "RenderCore/Mesh.h"
 #include "RenderCore/RenderGraphTypes.h"
 #include "Texture.h"
 
@@ -745,6 +746,20 @@ namespace cube
         });
     }
 
+    void RGBuilder::UseResource(RGBufferHandle rgBuffer, gapi::ResourceAccessFlags accesses, gapi::ResourceSyncFlags syncs)
+    {
+        CHECK(mPhase == Phase::TrackingResources);
+        CHECK(rgBuffer.IsValid());
+
+        RGPass& pass = mPasses[mTrackingResourcesState.passIndex];
+        pass.resourceUsages.push_back({
+            .rgResourceIndex = rgBuffer->mIndex,
+            .syncs = syncs,
+            .accesses = accesses,
+            .layout = gapi::ResourceLayout::Undefined,
+        });
+    }
+
     void RGBuilder::UseResource(RGTextureHandle rgTexture, gapi::SubresourceRangeInput range, gapi::ResourceAccessFlags accesses, gapi::ResourceLayout layout, gapi::ResourceSyncFlags syncs)
     {
         CHECK(mPhase == Phase::TrackingResources);
@@ -919,7 +934,7 @@ namespace cube
             .graphicsPipeline = std::move(graphicsPipeline),
             .computePipeline = std::move(computePipeline),
             .passFunction = std::move(passFunction),
-            .trackResourceFunction = std::move(trackResourceFunction)
+            .trackResourceFunction = std::move(trackResourceFunction),
         });
     }
 
@@ -1099,14 +1114,19 @@ namespace cube
                 }
             };
 
-            for (auto& [_, globalParamList] : mTrackingResourcesState.boundGlobalShaderParameterLists)
+            // Do not track the resources in the parameter list if sync are not set.
+            // It is possible in bind global shader parameter pass. (It has the parameter list without graphics/compute pipeline.)
+            if (syncs != gapi::ResourceSyncFlag::None)
             {
-                TryUseResource(globalParamList);
-            }
+                for (auto& [_, globalParamList] : mTrackingResourcesState.boundGlobalShaderParameterLists)
+                {
+                    TryUseResource(globalParamList);
+                }
 
-            for (RGShaderParameterListBaseHandle& paramList : pass.shaderParameterLists)
-            {
-                TryUseResource(paramList);
+                for (RGShaderParameterListBaseHandle& paramList : pass.shaderParameterLists)
+                {
+                    TryUseResource(paramList);
+                }
             }
 
             // Check if the resources currently attached to the render pass are being used.

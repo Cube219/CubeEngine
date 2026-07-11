@@ -56,13 +56,22 @@ PSOutput PSMain(PSInput input) : SV_TARGET
     float3x3 TBN = float3x3(tangent, bitangent, normal);
     normal = normalize(mul(materialValue.normal, TBN));
 
-    float3 view = normalize(globalParams.viewPosition - input.worldPosition.xyz);
+    float3 worldPosition = input.worldPosition.xyz / input.worldPosition.w;
+
+    float3 view = normalize(globalParams.viewPosition - worldPosition);
 
     float3 color = 0;
     if (lightParams.isDirectionalLightEnabled)
     {
         DirectionalLight directionalLight = DirectionalLight(normalize(lightParams.directionalLightDirection), lightParams.directionalLightIntensity);
-        color += directionalLight.CalculateLight(view, normal, materialValue);
+        color += directionalLight.CalculateLight(view, normal, worldPosition, materialValue);
+    }
+
+    for (uint i = 0; i < lightParams.numPointLights; ++i)
+    {
+        PointLightInfo pointLightInfo = lightParams.pointLightInfos[i];
+        PointLight pointLight = PointLight(pointLightInfo.position.xyz, pointLightInfo.intensity.xyz);
+        color += pointLight.CalculateLight(view, normal, worldPosition, materialValue);
     }
 
     EnvironmentMapLight envMapLight = EnvironmentMapLight(
@@ -72,7 +81,7 @@ PSOutput PSMain(PSInput input) : SV_TARGET
         envMapParams.prefilterSampler,
         envMapParams.prefilterMapMipLevels
     );
-    color += envMapLight.CalculateLight(view, normal, materialValue);
+    color += envMapLight.CalculateLight(view, normal, worldPosition, materialValue);
 
     color += materialValue.emissive;
 

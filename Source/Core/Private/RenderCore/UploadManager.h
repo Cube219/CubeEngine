@@ -11,6 +11,8 @@
 
 namespace cube
 {
+    class RGBuilder;
+
     struct UploadAllocationInfo
     {
         Uint64 offset = 0;
@@ -52,7 +54,7 @@ namespace cube
         UploadDesc Allocate(SharedPtr<gapi::Texture> dstTexture, const UploadAllocationInfo& info);
 
         Uint64 SubmitToCopyQueue(UploadDesc& desc);
-        Uint64 Submit(UploadDesc& desc, SharedPtr<gapi::CommandList> commandList);
+        Uint64 Submit(UploadDesc& desc, gapi::CommandList* commandList);
         void Discard(UploadDesc& desc);
 
         SharedPtr<gapi::Fence> GetFinishFence() const { return mFinishFence; }

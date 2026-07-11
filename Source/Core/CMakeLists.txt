@@ -11,10 +11,6 @@ set(PUBLIC_FILES
 )
 set(PRIVATE_FILES
     Private/Allocator/FrameAllocator.cpp
-    Private/RenderCore/Light.cpp
-    Private/RenderCore/Light.h
-    Private/RenderCore/LightManager.cpp
-    Private/RenderCore/LightManager.h
     Private/RenderCore/Material.cpp
     Private/RenderCore/Material.h
     Private/RenderCore/Mesh.cpp
@@ -46,6 +42,10 @@ set(PRIVATE_FILES
     Private/RenderCore/UploadManager.h
     Private/Renderer/EnvironmentMapping.cpp
     Private/Renderer/EnvironmentMapping.h
+    Private/Renderer/Light.cpp
+    Private/Renderer/Light.h
+    Private/Renderer/LightManager.cpp
+    Private/Renderer/LightManager.h
     Private/Renderer/Renderer.cpp
     Private/Renderer/Renderer.h
     Private/Renderer/RenderUtils.cpp

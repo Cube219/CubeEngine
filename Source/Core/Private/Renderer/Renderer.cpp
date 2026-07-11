@@ -376,6 +376,9 @@ namespace cube
                 globalShaderParameterList->viewProjection = mViewPerspectiveMatrix;
                 builder.BindGlobalShaderParameterList(globalShaderParameterList);
 
+                mLightManager.UpdateLightInfoBuffers(builder);
+                mLightManager.BindLightShaderParameterList(builder);
+
                 RGBuilder::RenderPassInfo renderPassInfo;
                 renderPassInfo.colors.push_back({
                     .color = colorRTV,
@@ -407,8 +410,6 @@ namespace cube
                     .enableDepth = true,
                     .depthFunction = gapi::CompareFunction::Greater
                 };
-
-                mLightManager.BindLightShaderParameterList(builder);
 
                 if (mScene)
                 {

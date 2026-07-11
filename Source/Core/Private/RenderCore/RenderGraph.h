@@ -338,6 +338,8 @@ namespace cube
         void UseResource(RGTextureUAVHandle rgUAV, gapi::ResourceSyncFlags syncs);
         void UseResource(RGTextureRTVHandle rgRTV);
         void UseResource(RGTextureDSVHandle rgDSV);
+
+        void UseResource(RGBufferHandle rgBuffer, gapi::ResourceAccessFlags accesses, gapi::ResourceSyncFlags syncs);
         void UseResource(RGTextureHandle rgTexture, gapi::SubresourceRangeInput range, gapi::ResourceAccessFlags accesses, gapi::ResourceLayout layout, gapi::ResourceSyncFlags syncs);
 
         void SkipUAVBarrier(RGBufferUAVHandle rgUAV);

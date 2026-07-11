@@ -6,9 +6,8 @@
 #include "EnvironmentMapping.h"
 #include "GAPI.h"
 #include "GAPI_Texture.h"
+#include "LightManager.h"
 #include "Matrix.h"
-#include "RenderCore/LightManager.h"
-#include "RenderCore/Mesh.h"
 #include "RenderCore/Pipeline.h"
 #include "RenderCore/ResourceManager.h"
 #include "RenderCore/SamplerManager.h"
@@ -26,6 +25,7 @@ namespace cube
 {
     class GraphicsPipeline;
     class Material;
+    class Mesh;
     class MeshData;
     class RGBuilder;
     class Scene;

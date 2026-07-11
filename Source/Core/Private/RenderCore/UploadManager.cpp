@@ -5,6 +5,7 @@
 #include "Checker.h"
 #include "GAPI_Buffer.h"
 #include "GAPI_Texture.h"
+#include "RenderCore/RenderGraph.h"
 
 namespace cube
 {
@@ -132,16 +133,30 @@ namespace cube
             mCopyCommandList->Reset();
             mCopyCommandList->Begin();
 
-            Uint64 finishSignalValue = Submit(desc, mCopyCommandList);
+            if (!desc.IsDirectWrite() && desc.dstTexture)
+            {
+                // Upload the entire texture resource, so the previous contents can be discarded.
+                gapi::ResourceBarrier barrier = {
+                    .resourceType = gapi::ResourceBarrier::ResourceType::Texture,
+                    .texture = desc.dstTexture,
+                    .subresourceIndex = -1,
+                    .discard = true,
+                    .syncSrc = gapi::ResourceSyncFlag::None,
+                    .syncDst = gapi::ResourceSyncFlag::Copy,
+                    .accessSrc = gapi::ResourceAccessFlag::NoAccess,
+                    .accessDst = gapi::ResourceAccessFlag::CopyDst,
+                    .layoutSrc = gapi::ResourceLayout::Undefined,
+                    .layoutDst = gapi::ResourceLayout::Common,
+                };
+                mCopyCommandList->SetResourceBarrier(barrier);
+            }
+
+            Uint64 finishSignalValue = Submit(desc, mCopyCommandList.get());
             CHECK(finishSignalValue > 0);
 
             mCopyCommandList->End();
 
             mCopyCommandList->Submit();
-            if (!desc.IsDirectWrite())
-            {
-                mFenceValueAndPageIdPairQueue.push({ finishSignalValue, desc.pageId });
-            }
 
             return finishSignalValue;
         }
@@ -153,7 +168,7 @@ namespace cube
         }
     }
 
-    Uint64 UploadManager::Submit(UploadDesc& desc, SharedPtr<gapi::CommandList> commandList)
+    Uint64 UploadManager::Submit(UploadDesc& desc, gapi::CommandList* commandList)
     {
         UpdateStates();
 
@@ -169,11 +184,14 @@ namespace cube
             {
                 desc.dstTexture->Unmap();
 
-                commandList->OptimizeTextureContentsForGPUAccess(desc.dstTexture);
+                if (mGAPI->IsNeededToOptimizeTextureContentsUsingCommandList())
+                {
+                    commandList->OptimizeTextureContentsForGPUAccess(desc.dstTexture);
 
-                mLastFinishFenceValue++;
-                finishFenceValue = mLastFinishFenceValue;
-                commandList->SignalToFence(mFinishFence, finishFenceValue);
+                    mLastFinishFenceValue++;
+                    finishFenceValue = mLastFinishFenceValue;
+                    commandList->SignalToFence(mFinishFence, finishFenceValue);
+                }
             }
 
             desc.pData = nullptr;
@@ -193,23 +211,7 @@ namespace cube
         }
         else
         {
-            // Upload the entire texture resource, so the previous contents can be discarded.
-            gapi::ResourceBarrier barrier = {
-                .resourceType = gapi::ResourceBarrier::ResourceType::Texture,
-                .texture = desc.dstTexture,
-                .subresourceIndex = -1,
-                .discard = true,
-                .syncSrc = gapi::ResourceSyncFlag::None,
-                .syncDst = gapi::ResourceSyncFlag::Copy,
-                .accessSrc = gapi::ResourceAccessFlag::NoAccess,
-                .accessDst = gapi::ResourceAccessFlag::CopyDst,
-                .layoutSrc = gapi::ResourceLayout::Undefined,
-                .layoutDst = gapi::ResourceLayout::Common,
-            };
-            commandList->SetResourceBarrier(barrier);
-
             commandList->CopyBufferToTexture(page.stagingBuffer, desc.offsetInPage, desc.dstTexture);
-
             commandList->OptimizeTextureContentsForGPUAccess(desc.dstTexture);
         }
 
@@ -219,6 +221,8 @@ namespace cube
 
         mLastFinishFenceValue++;
         commandList->SignalToFence(mFinishFence, mLastFinishFenceValue);
+
+        mFenceValueAndPageIdPairQueue.push({ mLastFinishFenceValue, desc.pageId });
 
         return mLastFinishFenceValue;
     }
