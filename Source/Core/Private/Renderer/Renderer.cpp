@@ -278,6 +278,8 @@ namespace cube
     {
         mViewPosition = eye;
         mViewMatrix = MatrixUtility::GetLookAt(eye, target, upDir);
+        CHECK(mViewMatrix.IsAffine());
+        mInverseViewMatrix = mViewMatrix.AffineInversed();
         mIsViewPerspectiveMatrixDirty = true;
     }
 
@@ -312,7 +314,7 @@ namespace cube
     {
         if (mIsViewPerspectiveMatrixDirty)
         {
-            mViewPerspectiveMatirx = mViewMatrix * mPerspectiveMatrix;
+            mViewPerspectiveMatrix = mViewMatrix * mPerspectiveMatrix;
             mIsViewPerspectiveMatrixDirty = false;
         }
     }
@@ -365,7 +367,7 @@ namespace cube
 
                 RGShaderParameterListHandle<GlobalShaderParameterList> globalShaderParameterList = builder.CreateShaderParameterList<GlobalShaderParameterList>();
                 globalShaderParameterList->Get()->viewPosition = mViewPosition;
-                globalShaderParameterList->Get()->viewProjection = mViewPerspectiveMatirx;
+                globalShaderParameterList->Get()->viewProjection = mViewPerspectiveMatrix;
                 builder.BindGlobalShaderParameterList(globalShaderParameterList);
 
                 RGBuilder::RenderPassInfo renderPassInfo;

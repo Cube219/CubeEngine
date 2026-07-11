@@ -12,8 +12,8 @@ namespace cube
     {
         CUBE_BEGIN_SHADER_PARAMETER_LIST(LightShaderParameterList)
             CUBE_SHADER_PARAMETER(bool, isDirectionalLightEnabled)
-            CUBE_SHADER_PARAMETER(Vector3, directionalLightDirection)
-            CUBE_SHADER_PARAMETER(Vector3, directionalLightIntensity)
+            CUBE_SHADER_PARAMETER(Float3, directionalLightDirection)
+            CUBE_SHADER_PARAMETER(Float3, directionalLightIntensity)
         CUBE_END_SHADER_PARAMETER_LIST
     };
     CUBE_REGISTER_SHADER_PARAMETER_LIST(LightShaderParameterList);
@@ -27,8 +27,8 @@ namespace cube
     void LightManager::Initialize()
     {
         mIsDirectionalLightEnabled = true;
-        mDirectionalLightDirection = Vector3(1.0f, 1.0f, 1.0f).Normalized();
-        mDirectionalLightIntensity = Vector3(1.0f, 1.0f, 1.0f);
+        mDirectionalLight.SetDirection({ 1.0f, 1.0f, 1.0f });
+        mDirectionalLight.SetIntensity({ 1.0f, 1.0f, 1.0f });
 
         mEnvironmentMapping.Initialize(true);
     }
@@ -54,10 +54,10 @@ namespace cube
         ImGui::Checkbox("Enable##Directional Light", &mIsDirectionalLightEnabled);
         ImGui::BeginDisabled(!mIsDirectionalLightEnabled);
         {
-            vec3 directionVec3 = { mDirectionalLightDirection.GetFloat3().x, mDirectionalLightDirection.GetFloat3().y, mDirectionalLightDirection.GetFloat3().z };
-            ImGui::Text("Direction: %.3f %.3f %.3f", directionVec3.x, directionVec3.y, directionVec3.z);
+            Float3 direction = mDirectionalLight.GetDirection();
+            ImGui::Text("Direction: %.3f %.3f %.3f", direction.x, direction.y, direction.z);
 
-            Vector4 directionInView = Vector4(mDirectionalLightDirection) * mRenderer.GetViewMatrix();
+            Vector4 directionInView = Vector4(direction.x, direction.y, direction.z) * mRenderer.GetViewMatrix();
             vec3 directionInViewVec3 = { directionInView.GetFloat3().x, directionInView.GetFloat3().y, directionInView.GetFloat3().z };
 
             imguiGizmo::resizeAxesOf({ 0.7f, 0.8f, 0.8f });
@@ -65,15 +65,15 @@ namespace cube
             imguiGizmo::restoreAxesSize();
 
             directionInView = Vector4(directionInViewVec3.x, directionInViewVec3.y, directionInViewVec3.z, 0);
-            Vector4 afterDirection = directionInView * mRenderer.GetViewMatrix().Inversed();
+            Vector3 afterDirection = Vector3(directionInView * mRenderer.GetInverseViewMatrix());
 
-            mDirectionalLightDirection = Vector3(afterDirection);
+            mDirectionalLight.SetDirection(afterDirection.GetFloat3());
         }
         {
-            Float3 intensityFloat3 = mDirectionalLightIntensity.GetFloat3();
-            ImGui::DragFloat3("Intensity", &intensityFloat3.x, 0.1f);
+            Float3 intensity = mDirectionalLight.GetIntensity();
+            ImGui::DragFloat3("Intensity", &intensity.x, 0.1f);
 
-            mDirectionalLightIntensity = Vector3(intensityFloat3.x, intensityFloat3.y, intensityFloat3.z);
+            mDirectionalLight.SetIntensity(intensity);
         }
         ImGui::EndDisabled();
 
@@ -84,8 +84,8 @@ namespace cube
     {
         auto lightShaderParameterList = builder.CreateShaderParameterList<LightShaderParameterList>();
         lightShaderParameterList->Get()->isDirectionalLightEnabled = mIsDirectionalLightEnabled;
-        lightShaderParameterList->Get()->directionalLightDirection = mDirectionalLightDirection;
-        lightShaderParameterList->Get()->directionalLightIntensity = mDirectionalLightIntensity;
+        lightShaderParameterList->Get()->directionalLightDirection = mDirectionalLight.GetDirection();
+        lightShaderParameterList->Get()->directionalLightIntensity = mDirectionalLight.GetIntensity();
         builder.BindGlobalShaderParameterList(lightShaderParameterList);
 
         auto envMapShaderParameterList = builder.CreateShaderParameterList<EnvironmentMapLightShaderParameterList>();

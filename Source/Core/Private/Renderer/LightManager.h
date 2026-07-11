@@ -3,6 +3,7 @@
 #include "CoreHeader.h"
 
 #include "EnvironmentMapping.h"
+#include "Light.h"
 
 namespace cube
 {
@@ -33,8 +34,7 @@ namespace cube
         Renderer& mRenderer;
 
         bool mIsDirectionalLightEnabled;
-        Vector3 mDirectionalLightDirection;
-        Vector3 mDirectionalLightIntensity;
+        DirectionalLight mDirectionalLight;
 
         EnvironmentMapping mEnvironmentMapping;
     };

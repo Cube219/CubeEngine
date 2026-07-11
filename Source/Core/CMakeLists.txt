@@ -13,6 +13,8 @@ set(PRIVATE_FILES
     Private/Allocator/FrameAllocator.cpp
     Private/Renderer/EnvironmentMapping.cpp
     Private/Renderer/EnvironmentMapping.h
+    Private/Renderer/Light.cpp
+    Private/Renderer/Light.h
     Private/Renderer/LightManager.cpp
     Private/Renderer/LightManager.h
     Private/Renderer/Material.cpp

@@ -90,6 +90,7 @@ namespace cube
         gapi::ElementFormat GetDepthStencilFormat() const { return mDepthStencilFormat; }
 
         const Matrix& GetViewMatrix() const { return mViewMatrix; }
+        const Matrix& GetInverseViewMatrix() const { return mInverseViewMatrix; }
 
         void SetObjectModelMatrix(const Vector3& position, const Vector3& rotation, const Vector3& scale);
         void SetViewMatrix(const Vector3& eye, const Vector3& target, const Vector3& upDir);
@@ -129,8 +130,9 @@ namespace cube
 
         Vector3 mViewPosition;
         Matrix mViewMatrix;
+        Matrix mInverseViewMatrix;
         Matrix mPerspectiveMatrix;
-        Matrix mViewPerspectiveMatirx;
+        Matrix mViewPerspectiveMatrix;
         bool mIsViewPerspectiveMatrixDirty;
 
         SharedPtr<gapi::CommandList> mCommandList;
