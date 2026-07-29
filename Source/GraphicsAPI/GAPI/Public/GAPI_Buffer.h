@@ -59,6 +59,8 @@ namespace cube
             virtual SharedPtr<BufferSRV> CreateSRV(const BufferSRVCreateInfo& createInfo) = 0;
             virtual SharedPtr<BufferUAV> CreateUAV(const BufferUAVCreateInfo& createInfo) = 0;
 
+            // NOTE: Mapping a GPUOnly buffer is allowed only when direct map is supported
+            // (GAPI::IsDirectMapSupported). Otherwise, use the UploadManager in Core instead.
             virtual void* Map() = 0;
             virtual void Unmap() = 0;
 

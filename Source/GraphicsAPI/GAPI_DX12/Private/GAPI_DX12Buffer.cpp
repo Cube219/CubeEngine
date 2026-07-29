@@ -109,12 +109,8 @@ namespace cube
                     mAllocation.Map();
                     return mAllocation.pMapPtr;
                 }
-                else
-                {
-                    // TODO: Use alignment?
-                    mUploadDesc = mDevice.GetUploadManager().Allocate(ResourceType::Buffer, mInfo.size);
-                    return mUploadDesc.pData;
-                }
+                NO_ENTRY_FORMAT("Cannot map GPUOnly buffer on this platform directly. Use UploadManager.");
+                return nullptr;
             case ResourceUsage::CPUtoGPU:
                 mAllocation.Map();
                 return mAllocation.pMapPtr;
@@ -141,11 +137,7 @@ namespace cube
                 }
                 else
                 {
-                    mUploadDesc.type = ResourceType::Buffer;
-                    mUploadDesc.dstResource = mAllocation.resource;
-                    mUploadDesc.dstAPIObject = this;
-
-                    mDevice.GetUploadManager().Submit(mUploadDesc, true);
+                    NO_ENTRY_FORMAT("Cannot unmap GPUOnly buffer on this platform directly. Use UploadManager.");
                 }
                 break;
             case ResourceUsage::CPUtoGPU:

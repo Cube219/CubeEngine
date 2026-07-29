@@ -167,6 +167,12 @@ namespace cube
         return *mShaderParameterHelper.get();
     }
 
+    bool GAPI_Metal::IsDirectMapSupported(gapi::ResourceType type) const
+    {
+        // All non-transient Metal resources use MTLStorageModeShared (mappable).
+        return true;
+    }
+
     SharedPtr<gapi::Buffer> GAPI_Metal::CreateBuffer(const gapi::BufferCreateInfo& info)
     {
         return std::make_shared<gapi::MetalBuffer>(info, *mMainDevice);
@@ -179,7 +185,7 @@ namespace cube
 
     SharedPtr<gapi::Fence> GAPI_Metal::CreateFence(const gapi::FenceCreateInfo& info)
     {
-        return std::make_shared<gapi::MetalFence_old>(info);
+        return std::make_shared<gapi::MetalFence>(info, *mMainDevice);
     }
 
     SharedPtr<gapi::GraphicsPipeline> GAPI_Metal::CreateGraphicsPipeline(const gapi::GraphicsPipelineCreateInfo& info)

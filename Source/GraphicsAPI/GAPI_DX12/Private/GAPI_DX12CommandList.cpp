@@ -5,6 +5,7 @@
 #include "Allocator/FrameAllocator.h"
 #include "DX12Device.h"
 #include "GAPI_DX12Buffer.h"
+#include "GAPI_DX12Fence.h"
 #include "GAPI_DX12Pipeline.h"
 #include "GAPI_DX12Resource.h"
 #include "GAPI_DX12Texture.h"
@@ -38,9 +39,19 @@ namespace cube
 
         DX12CommandList::DX12CommandList(DX12Device& device, const CommandListCreateInfo& info)
             : mDevice(device)
+            , mType(info.type)
             , mState(State::Closed)
         {
-            device.GetDevice()->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, mDevice.GetCommandListManager().GetCurrentAllocator(), nullptr, IID_PPV_ARGS(&mCommandList));
+            D3D12_COMMAND_LIST_TYPE commandListType = D3D12_COMMAND_LIST_TYPE_DIRECT;
+            if (mType == CommandListType::Copy)
+            {
+                commandListType = D3D12_COMMAND_LIST_TYPE_COPY;
+
+                CHECK_HR(device.GetDevice()->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(&mCopyAllocator)));
+                SET_DEBUG_NAME_FORMAT(mCopyAllocator, "Copy CommandList Allocator ({0})", info.debugName);
+            }
+
+            device.GetDevice()->CreateCommandList(0, commandListType, GetCurrentAllocator(), nullptr, IID_PPV_ARGS(&mCommandList));
             SET_DEBUG_NAME(mCommandList, info.debugName);
             CHECK_HR(mCommandList->Close());
         }
@@ -54,11 +65,14 @@ namespace cube
         {
             CHECK(mState == State::Initial);
 
-            ArrayView<ID3D12DescriptorHeap*> heaps = mDevice.GetDescriptorManager().GetD3D12ShaderVisibleHeaps();
-            mCommandList->SetDescriptorHeaps(heaps.size(), heaps.data());
+            if (mType == CommandListType::Direct)
+            {
+                ArrayView<ID3D12DescriptorHeap*> heaps = mDevice.GetDescriptorManager().GetD3D12ShaderVisibleHeaps();
+                mCommandList->SetDescriptorHeaps(heaps.size(), heaps.data());
 
-            mCommandList->SetGraphicsRootSignature(mDevice.GetShaderParameterHelper().GetRootSignature());
-            mCommandList->SetComputeRootSignature(mDevice.GetShaderParameterHelper().GetRootSignature());
+                mCommandList->SetGraphicsRootSignature(mDevice.GetShaderParameterHelper().GetRootSignature());
+                mCommandList->SetComputeRootSignature(mDevice.GetShaderParameterHelper().GetRootSignature());
+            }
 
             mHasQuery = false;
             mTimestampStack.clear();
@@ -93,7 +107,7 @@ namespace cube
 
             CHECK(mState == State::Closed);
 
-            CHECK_HR(mCommandList->Reset(mDevice.GetCommandListManager().GetCurrentAllocator(), nullptr));
+            CHECK_HR(mCommandList->Reset(GetCurrentAllocator(), nullptr));
             mHasQuery = false;
             mState = State::Initial;
         }
@@ -176,6 +190,7 @@ namespace cube
         {
             CHECK(IsWriting());
             CHECK(!IsInRenderPass());
+            CHECK(mType == CommandListType::Direct);
 
             FrameVector<D3D12_CPU_DESCRIPTOR_HANDLE> rtvHandles(colors.size());
             for (int i = 0; i < colors.size(); ++i)
@@ -256,6 +271,7 @@ namespace cube
         {
             CHECK(IsWriting());
             CHECK(IsInRenderPass());
+            CHECK(mType == CommandListType::Direct);
 
             mCommandList->DrawInstanced(numVertices, numInstances, baseVertex, baseInstance);
         }
@@ -264,6 +280,7 @@ namespace cube
         {
             CHECK(IsWriting());
             CHECK(IsInRenderPass());
+            CHECK(mType == CommandListType::Direct);
 
             mCommandList->DrawIndexedInstanced(numIndices, numInstances, baseIndex, baseVertex, baseInstance);
         }
@@ -435,6 +452,7 @@ namespace cube
         void DX12CommandList::DispatchThreads(Uint32 numThreadsX, Uint32 numThreadsY, Uint32 numThreadsZ)
         {
             CHECK(IsWriting());
+            CHECK(mType == CommandListType::Direct);
 
             Uint32 threadGroupX = (numThreadsX + mComputeThreadGroupSizeX - 1) / mComputeThreadGroupSizeX;
             Uint32 threadGroupY = (numThreadsY + mComputeThreadGroupSizeY - 1) / mComputeThreadGroupSizeY;
@@ -459,9 +477,63 @@ namespace cube
             CUBE_DX12_BOUND_OBJECT(dstTexture);
         }
 
+        void DX12CommandList::CopyBuffer(SharedPtr<Buffer> srcBuffer, Uint64 srcOffset, SharedPtr<Buffer> dstBuffer, Uint64 dstOffset, Uint64 size)
+        {
+            CHECK(IsWriting());
+
+            DX12Buffer* dx12SrcBuffer = dynamic_cast<DX12Buffer*>(srcBuffer.get());
+            DX12Buffer* dx12DstBuffer = dynamic_cast<DX12Buffer*>(dstBuffer.get());
+            CHECK(dx12SrcBuffer);
+            CHECK(dx12DstBuffer);
+
+            mCommandList->CopyBufferRegion(dx12DstBuffer->GetResource(), dstOffset, dx12SrcBuffer->GetResource(), srcOffset, size);
+
+            CUBE_DX12_BOUND_OBJECT(srcBuffer);
+            CUBE_DX12_BOUND_OBJECT(dstBuffer);
+        }
+
+        void DX12CommandList::CopyBufferToTexture(SharedPtr<Buffer> srcBuffer, Uint64 srcOffset, SharedPtr<Texture> dstTexture)
+        {
+            CHECK(IsWriting());
+
+            DX12Buffer* dx12SrcBuffer = dynamic_cast<DX12Buffer*>(srcBuffer.get());
+            DX12Texture* dx12DstTexture = dynamic_cast<DX12Texture*>(dstTexture.get());
+            CHECK(dx12SrcBuffer);
+            CHECK(dx12DstTexture);
+
+            ConstArrayView<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> footprints = dx12DstTexture->GetFootprints();
+            const int numSubresources = static_cast<int>(footprints.size());
+            for (int i = 0; i < numSubresources; ++i)
+            {
+                D3D12_PLACED_SUBRESOURCE_FOOTPRINT srcFootprint = footprints[i];
+                srcFootprint.Offset += srcOffset;
+
+                D3D12_TEXTURE_COPY_LOCATION srcLocation = {
+                    .pResource = dx12SrcBuffer->GetResource(),
+                    .Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
+                    .PlacedFootprint = srcFootprint
+                };
+                D3D12_TEXTURE_COPY_LOCATION dstLocation = {
+                    .pResource = dx12DstTexture->GetResource(),
+                    .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+                    .SubresourceIndex = (UINT)i
+                };
+                mCommandList->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, nullptr);
+            }
+
+            CUBE_DX12_BOUND_OBJECT(srcBuffer);
+            CUBE_DX12_BOUND_OBJECT(dstTexture);
+        }
+
+        void DX12CommandList::OptimizeTextureContentsForGPUAccess(SharedPtr<Texture> texture)
+        {
+            // No-op on DX12.
+        }
+
         void DX12CommandList::BeginTimestamp(StringView name)
         {
             CHECK(IsWriting());
+            CHECK(mType == CommandListType::Direct);
 
             DX12QueryManager& queryManager = mDevice.GetQueryManager();
             
@@ -479,6 +551,7 @@ namespace cube
         void DX12CommandList::EndTimestamp()
         {
             CHECK(IsWriting());
+            CHECK(mType == CommandListType::Direct);
             CHECK(!mTimestampStack.empty());
 
             DX12QueryManager& queryManager = mDevice.GetQueryManager();
@@ -493,26 +566,46 @@ namespace cube
             mHasQuery = true;
         }
 
-        void DX12CommandList::Submit(bool waitUntilFinished)
+        void DX12CommandList::Submit(bool waitUntilFinished, Fence* signalFence, Uint64 fenceValue)
         {
             CHECK(mState == State::Closed);
 
+            ID3D12CommandQueue* queue = (mType == CommandListType::Copy)
+                ? mDevice.GetQueueManager().GetCopyQueue()
+                : mDevice.GetQueueManager().GetMainQueue();
+
             ID3D12CommandList* cmdLists[] = { mCommandList.Get() };
-            mDevice.GetQueueManager().GetMainQueue()->ExecuteCommandLists(1, cmdLists);
+            queue->ExecuteCommandLists(1, cmdLists);
+
+            if (signalFence != nullptr)
+            {
+                DX12Fence* dx12Fence = dynamic_cast<DX12Fence*>(signalFence);
+                CHECK(dx12Fence);
+                dx12Fence->Signal(queue, fenceValue);
+            }
 
             mDevice.GetCommandListManager().AddBoundObjects(mBoundObjects);
             mBoundObjects.clear();
 
             if (waitUntilFinished)
             {
-                DX12Fence waitFence(mDevice);
+                cube::DX12Fence waitFence(mDevice);
                 waitFence.Initialize(CUBE_T("Wait Submit CommandList Fence"));
 
-                waitFence.Signal(mDevice.GetQueueManager().GetMainQueue(), 1);
+                waitFence.Signal(queue, 1);
                 waitFence.Wait(1);
 
                 waitFence.Shutdown();
             }
+        }
+
+        ID3D12CommandAllocator* DX12CommandList::GetCurrentAllocator() const
+        {
+            if (mType == CommandListType::Copy)
+            {
+                return mCopyAllocator.Get();
+            }
+            return mDevice.GetCommandListManager().GetCurrentAllocator();
         }
 
         void DX12CommandList::ProcessBeforeEnd()

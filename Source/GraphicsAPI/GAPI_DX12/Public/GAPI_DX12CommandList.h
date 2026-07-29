@@ -64,17 +64,23 @@ namespace cube
             virtual void DispatchThreads(Uint32 numThreadsX, Uint32 numThreadsY, Uint32 numThreadsZ) override;
 
             virtual void CopyTexture(SharedPtr<Texture> srcTexture, SharedPtr<Texture> dstTexture) override;
+            virtual void CopyBuffer(SharedPtr<Buffer> srcBuffer, Uint64 srcOffset, SharedPtr<Buffer> dstBuffer, Uint64 dstOffset, Uint64 size) override;
+            virtual void CopyBufferToTexture(SharedPtr<Buffer> srcBuffer, Uint64 srcOffset, SharedPtr<Texture> dstTexture) override;
+
+            virtual void OptimizeTextureContentsForGPUAccess(SharedPtr<Texture> texture) override;
 
             virtual void BeginTimestamp(StringView name) override;
             virtual void EndTimestamp() override;
 
-            void Submit(bool waitUntilFinished) override;
+            virtual void Submit(bool waitUntilFinished = false, Fence* signalFence = nullptr, Uint64 fenceValue = 0) override;
 
             bool IsWriting() const { return mState == State::Writing; }
             bool IsInRenderPass() const { return mIsInRenderPass; }
 
         private:
             void ProcessBeforeEnd();
+
+            ID3D12CommandAllocator* GetCurrentAllocator() const;
 
             enum class State
             {
@@ -84,6 +90,11 @@ namespace cube
             };
 
             DX12Device& mDevice;
+
+            CommandListType mType;
+            // Copy-type command lists own their allocator to reset it independently
+            // from the per-frame allocators in the command list manager.
+            ComPtr<ID3D12CommandAllocator> mCopyAllocator;
 
             ComPtr<ID3D12GraphicsCommandList7> mCommandList;
             State mState;

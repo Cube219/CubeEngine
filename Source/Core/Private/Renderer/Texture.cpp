@@ -7,6 +7,7 @@
 #include "Engine.h"
 #include "GAPI_Texture.h"
 #include "Renderer.h"
+#include "UploadManager.h"
 
 namespace cube
 {
@@ -57,8 +58,10 @@ namespace cube
         const Byte* pSrc = (const Byte*)createInfo.data.GetData();
         const Uint64 srcRowSize = info.width * createInfo.bytesPerElement;
         const Uint64 srcSubSize = info.width * info.height * createInfo.bytesPerElement;
-            
-        Byte* pDst = (Byte*)mGAPITexture->Map();
+
+        UploadManager& uploadManager = Engine::GetRenderer()->GetUploadManager();
+        UploadDesc uploadDesc = uploadManager.Allocate(mGAPITexture);
+        Byte* pDst = (Byte*)uploadDesc.pData;
         // Only set miplevel 0.
         for (int i = 0; i < numSlices; ++i)
         {
@@ -74,7 +77,7 @@ namespace cube
                 memcpy(pDstSub + (y * layout.rowPitch), pSrcSub + (y * srcRowSize), srcRowSize);
             }
         }
-        mGAPITexture->Unmap();
+        uploadManager.Submit(uploadDesc, true);
 
         if (createInfo.generateMipMaps)
         {

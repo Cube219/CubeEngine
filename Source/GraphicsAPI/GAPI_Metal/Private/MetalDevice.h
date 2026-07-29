@@ -4,7 +4,6 @@
 
 #include "MetalTimestampManager.h"
 #include "MetalTransientHeapManager.h"
-#include "MetalUploadManager.h"
 
 namespace cube
 {
@@ -26,7 +25,6 @@ namespace cube
 
         MetalTimestampManager& GetTimestampManager() { return mTimestampManager; }
         MetalTransientHeapManager& GetTransientHeapManager() { return mTransientHeapManager; }
-        MetalUploadManager& GetUploadManager() { return mUploadManager; }
 
         id<MTLDevice> GetMTLDevice() const { return mDevice; }
 
@@ -46,7 +44,6 @@ namespace cube
 
         MetalTimestampManager mTimestampManager;
         MetalTransientHeapManager mTransientHeapManager;
-        MetalUploadManager mUploadManager;
 
         Uint32 mNumGPUSync;
         id<MTLSharedEvent> mGPUSyncEvent;

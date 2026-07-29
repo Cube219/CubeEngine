@@ -8,7 +8,6 @@ namespace cube
     DX12Device::DX12Device() :
         mMemoryAllocator(*this),
         mQueueManager(*this),
-        mUploadManager(*this),
         mDescriptorManager(*this),
         mCommandListManager(*this),
         mQueryManager(*this),
@@ -34,7 +33,6 @@ namespace cube
 
         mMemoryAllocator.Initialize(numGPUSync);
         mQueueManager.Initialize();
-        mUploadManager.Initialize();
         mDescriptorManager.Initialize();
         mCommandListManager.Initialize(numGPUSync);
         mQueryManager.Initialize(numGPUSync);
@@ -55,7 +53,6 @@ namespace cube
         mQueryManager.Shutdown();
         mCommandListManager.Shutdown();
         mDescriptorManager.Shutdown();
-        mUploadManager.Shutdown();
         mQueueManager.Shutdown();
         mMemoryAllocator.Shutdown();
 

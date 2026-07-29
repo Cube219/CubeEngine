@@ -69,6 +69,8 @@ namespace cube
             {}
             virtual ~Texture() = default;
 
+            // NOTE: Mapping a GPUOnly texture is allowed only when direct map is supported
+            // (GAPI::IsDirectMapSupported). Otherwise, use the UploadManager in Core instead.
             virtual void* Map() = 0;
             // NOTE: Unmapping a GPUOnly resource will transition its layout to Common.
             virtual void Unmap() = 0;
@@ -96,6 +98,8 @@ namespace cube
             Uint32 GetNumSubresources() const { return mSubresourceLayouts.size(); }
             Uint32 GetSubresourceIndex(Uint32 sliceIndex, Uint32 mipLevel) const { return sliceIndex * mInfo.mipLevels + mipLevel; }
             const SubresourceLayout& GetSubresourceLayout(Uint32 subresourceIndex) const { return mSubresourceLayouts[subresourceIndex]; }
+            // Total data size of all subresources, used when uploading the texture data.
+            Uint64 GetTotalDataSize() const { return mTotalSize; }
 
             virtual SharedPtr<TextureSRV> CreateSRV(const TextureSRVCreateInfo& createInfo) = 0;
             virtual SharedPtr<TextureUAV> CreateUAV(const TextureUAVCreateInfo& createInfo) = 0;
@@ -109,6 +113,7 @@ namespace cube
             TextureInfo mInfo;
 
             Vector<SubresourceLayout> mSubresourceLayouts; // Set in child class
+            Uint64 mTotalSize = 0; // Set in child class
 
             String mDebugName;
         };

@@ -261,6 +261,15 @@ namespace cube
         return mMainDevice->GetShaderParameterHelper();
     }
 
+    bool GAPI_DX12::IsDirectMapSupported(gapi::ResourceType type) const
+    {
+        if (type == gapi::ResourceType::Buffer)
+        {
+            return mMainDevice->IsGPUUploadHeapSupported();
+        }
+        return false;
+    }
+
     SharedPtr<gapi::Buffer> GAPI_DX12::CreateBuffer(const gapi::BufferCreateInfo& info)
     {
         return std::make_shared<gapi::DX12Buffer>(info, *mMainDevice);
@@ -273,9 +282,7 @@ namespace cube
 
     SharedPtr<gapi::Fence> GAPI_DX12::CreateFence(const gapi::FenceCreateInfo& info)
     {
-        NOT_IMPLEMENTED();
-        return nullptr;
-        // return std::make_shared<gapi::DX12Fence_old>(info);
+        return std::make_shared<gapi::DX12Fence>(info, *mMainDevice);
     }
 
     SharedPtr<gapi::GraphicsPipeline> GAPI_DX12::CreateGraphicsPipeline(const gapi::GraphicsPipelineCreateInfo& info)

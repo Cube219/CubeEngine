@@ -7,7 +7,6 @@
 #include "DX12APIObject.h"
 #include "DX12DescriptorManager.h"
 #include "DX12MemoryAllocator.h"
-#include "DX12UploadManager.h"
 
 namespace cube
 {
@@ -30,6 +29,7 @@ namespace cube
             virtual SharedPtr<TextureDSV> CreateDSV(const TextureDSVCreateInfo& createInfo) override;
 
             ID3D12Resource* GetResource() const { return mResource; }
+            ConstArrayView<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> GetFootprints() const { return mFootprints; }
 
         protected:
             // From existing resource (ex: swapchain backbuffer)
@@ -39,10 +39,8 @@ namespace cube
 
             DX12Allocation mAllocation;
             ID3D12Resource* mResource;
-            DX12UploadDesc mUploadDesc;
 
             Vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> mFootprints;
-            Uint64 mTotalSize;
         };
 
         class DX12TextureSRV : public TextureSRV, public DX12APIObject

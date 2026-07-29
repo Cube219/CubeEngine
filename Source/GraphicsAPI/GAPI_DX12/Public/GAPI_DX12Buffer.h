@@ -7,7 +7,6 @@
 #include "DX12APIObject.h"
 #include "DX12DescriptorManager.h"
 #include "DX12MemoryAllocator.h"
-#include "DX12UploadManager.h"
 
 namespace cube
 {
@@ -37,8 +36,6 @@ namespace cube
             DX12Device& mDevice;
 
             DX12Allocation mAllocation;
-            DX12UploadDesc mUploadDesc;
-
             DX12Allocation mReadbackAllocation;
         };
 

@@ -3,6 +3,7 @@
 #include "Allocator/FrameAllocator.h"
 #include "Checker.h"
 #include "GAPI_MetalBuffer.h"
+#include "GAPI_MetalFence.h"
 #include "GAPI_MetalPipeline.h"
 #include "GAPI_MetalSampler.h"
 #include "GAPI_MetalTexture.h"
@@ -184,6 +185,7 @@ namespace cube
         MetalCommandList::MetalCommandList(const CommandListCreateInfo& info, MetalDevice& device)
             : mTimestampManager(device.GetTimestampManager())
             , mIsWriting(false)
+            , mType(info.type)
             , mRenderEncoder(nil)
             , mComputeEncoder(nil)
             , mBlitEncoder(nil)
@@ -329,6 +331,7 @@ namespace cube
         {
             CHECK(IsWriting());
             CHECK(!IsInRenderPass());
+            CHECK(mType == CommandListType::Direct);
 
             MTLRenderPassDescriptor* renderPassDescriptor = [[MTLRenderPassDescriptor alloc] init];
 
@@ -390,6 +393,7 @@ namespace cube
         {
             CHECK(IsWriting());
             CHECK(IsInRenderPass());
+            CHECK(mType == CommandListType::Direct);
 
             [mRenderEncoder
                 drawPrimitives:mCurrentEncoderState.primitiveType
@@ -404,6 +408,7 @@ namespace cube
         {
             CHECK(IsWriting());
             CHECK(IsInRenderPass());
+            CHECK(mType == CommandListType::Direct);
 
             [mRenderEncoder
                 drawIndexedPrimitives:mCurrentEncoderState.primitiveType
@@ -528,6 +533,7 @@ namespace cube
         void MetalCommandList::DispatchThreads(Uint32 numThreadsX, Uint32 numThreadsY, Uint32 numThreadsZ)
         {
             CHECK(IsWriting());
+            CHECK(mType == CommandListType::Direct);
             CHECK(mComputeEncoder);
 
             [mComputeEncoder
@@ -554,9 +560,91 @@ namespace cube
             ];
         }
 
+        void MetalCommandList::CopyBuffer(SharedPtr<Buffer> srcBuffer, Uint64 srcOffset, SharedPtr<Buffer> dstBuffer, Uint64 dstOffset, Uint64 size)
+        {
+            CHECK(IsWriting());
+            CHECK(!IsInRenderPass());
+
+            UseBlitEncoder();
+
+            MetalBuffer* metalSrcBuffer = dynamic_cast<MetalBuffer*>(srcBuffer.get());
+            MetalBuffer* metalDstBuffer = dynamic_cast<MetalBuffer*>(dstBuffer.get());
+            CHECK(metalSrcBuffer);
+            CHECK(metalDstBuffer);
+
+            [mBlitEncoder
+                copyFromBuffer:metalSrcBuffer->GetMTLBuffer()
+                sourceOffset:srcOffset
+                toBuffer:metalDstBuffer->GetMTLBuffer()
+                destinationOffset:dstOffset
+                size:size
+            ];
+        }
+
+        void MetalCommandList::CopyBufferToTexture(SharedPtr<Buffer> srcBuffer, Uint64 srcOffset, SharedPtr<Texture> dstTexture)
+        {
+            CHECK(IsWriting());
+            CHECK(!IsInRenderPass());
+
+            UseBlitEncoder();
+
+            MetalBuffer* metalSrcBuffer = dynamic_cast<MetalBuffer*>(srcBuffer.get());
+            MetalTexture* metalDstTexture = dynamic_cast<MetalTexture*>(dstTexture.get());
+            CHECK(metalSrcBuffer);
+            CHECK(metalDstTexture);
+
+            const Uint32 numSlices = metalDstTexture->GetNumSlices();
+            const bool is1D = (metalDstTexture->GetMTLTextureType() == MTLTextureType1D || metalDstTexture->GetMTLTextureType() == MTLTextureType1DArray);
+            const bool is3D = (metalDstTexture->GetMTLTextureType() == MTLTextureType3D);
+
+            Uint32 subresourceIndex = 0;
+            for (Uint32 sliceIndex = 0; sliceIndex < numSlices; ++sliceIndex)
+            {
+                Uint32 width = metalDstTexture->GetWidth();
+                Uint32 height = is1D ? 1 : metalDstTexture->GetHeight();
+                Uint32 depth = is3D ? metalDstTexture->GetDepth() : 1;
+                for (Uint32 mipLevel = 0; mipLevel < metalDstTexture->GetMipLevels(); ++mipLevel)
+                {
+                    const SubresourceLayout& layout = metalDstTexture->GetSubresourceLayout(subresourceIndex);
+                    const NSUInteger bytesPerImage = is3D ? static_cast<NSUInteger>(layout.rowPitch) * height : 0;
+
+                    [mBlitEncoder
+                        copyFromBuffer:metalSrcBuffer->GetMTLBuffer()
+                        sourceOffset:srcOffset + layout.offset
+                        sourceBytesPerRow:is1D ? 0 : layout.rowPitch
+                        sourceBytesPerImage:bytesPerImage
+                        sourceSize:MTLSizeMake(width, height, depth)
+                        toTexture:metalDstTexture->GetMTLTexture()
+                        destinationSlice:sliceIndex
+                        destinationLevel:mipLevel
+                        destinationOrigin:MTLOriginMake(0, 0, 0)
+                    ];
+
+                    width = std::max(1u, width >> 1);
+                    height = std::max(1u, height >> 1);
+                    depth = std::max(1u, depth >> 1);
+                    subresourceIndex++;
+                }
+            }
+        }
+
+        void MetalCommandList::OptimizeTextureContentsForGPUAccess(SharedPtr<Texture> texture)
+        {
+            CHECK(IsWriting());
+            CHECK(!IsInRenderPass());
+
+            UseBlitEncoder();
+
+            MetalTexture* metalTexture = dynamic_cast<MetalTexture*>(texture.get());
+            CHECK(metalTexture);
+
+            [mBlitEncoder optimizeContentsForGPUAccess:metalTexture->GetMTLTexture()];
+        }
+
         void MetalCommandList::BeginTimestamp(StringView name)
         {
             CHECK(IsWriting());
+            CHECK(mType == CommandListType::Direct);
             CHECK(!IsInRenderPass());
 
             if (mTimestampManager.IsSupported())
@@ -575,6 +663,7 @@ namespace cube
         void MetalCommandList::EndTimestamp()
         {
             CHECK(IsWriting());
+            CHECK(mType == CommandListType::Direct);
             CHECK(!IsInRenderPass());
 
             if (mTimestampManager.IsSupported())
@@ -598,9 +687,16 @@ namespace cube
             }
         }
 
-        void MetalCommandList::Submit(bool waitUntilFinished)
+        void MetalCommandList::Submit(bool waitUntilFinished, Fence* signalFence, Uint64 fenceValue)
         {
             CHECK(!IsWriting());
+
+            if (signalFence != nullptr)
+            {
+                MetalFence* metalFence = dynamic_cast<MetalFence*>(signalFence);
+                CHECK(metalFence);
+                [mCommandBuffer encodeSignalEvent:metalFence->GetSharedEvent() value:fenceValue];
+            }
 
             [mCommandBuffer commit];
             if (waitUntilFinished)

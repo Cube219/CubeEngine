@@ -78,6 +78,8 @@ namespace cube
         mColorFormat = gapi::ElementFormat::RG11B10_Float;
         mDepthStencilFormat = gapi::ElementFormat::D32_Float;
 
+        mUploadManager.Initialize(mGAPI.get());
+
         mShaderParameterListManager.Initialize(mGAPI.get(), mNumGPUSync);
         mShaderManager.Initialize(false);
         mTextureManager.Initialize(mGAPI.get(), mNumGPUSync);
@@ -136,6 +138,8 @@ namespace cube
         mTextureManager.Shutdown();
         mShaderManager.Shutdown();
         mShaderParameterListManager.Shutdown();
+
+        mUploadManager.Shutdown();
 
         mGAPI->Shutdown(imGUIContext);
         mGAPI = nullptr;

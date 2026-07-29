@@ -9,7 +9,6 @@ namespace cube
     MetalDevice::MetalDevice()
         : mTimestampManager(*this)
         , mTransientHeapManager(*this)
-        , mUploadManager(*this)
     {
     }
 
@@ -33,14 +32,12 @@ namespace cube
 
         mTimestampManager.Initialize(mNumGPUSync);
         mTransientHeapManager.Initialize(mNumGPUSync);
-        mUploadManager.Initialize();
     }
 
     void MetalDevice::Shutdown()
     {
         WaitAllGPUSync();
 
-        mUploadManager.Shutdown();
         mTransientHeapManager.Shutdown();
         mTimestampManager.Shutdown();
 

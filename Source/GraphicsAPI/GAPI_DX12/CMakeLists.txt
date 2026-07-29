@@ -41,8 +41,6 @@ set(PRIVATE_FILES
     Private/DX12ShaderCompiler.h
     Private/DX12Types.cpp
     Private/DX12Types.h
-    Private/DX12UploadManager.cpp
-    Private/DX12UploadManager.h
     Private/DX12Utility.h
     Private/GAPI_DX12.cpp
     Private/GAPI_DX12Buffer.cpp

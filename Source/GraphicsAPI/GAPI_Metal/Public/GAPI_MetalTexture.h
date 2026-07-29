@@ -37,7 +37,6 @@ namespace cube
             MTLTextureType mMTLTextureType;
             MTLTextureUsage mMTLTextureUsage;
 
-            Uint64 mTotalSize;
             void* mMappedPtr;
 
             bool mFromExisted;

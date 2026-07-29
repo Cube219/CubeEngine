@@ -17,6 +17,7 @@ set(PRIVATE_FILES
     Private/GAPI_Metal.mm
     Private/GAPI_MetalBuffer.mm
     Private/GAPI_MetalCommandList.mm
+    Private/GAPI_MetalFence.mm
     Private/GAPI_MetalPipeline.mm
     Private/GAPI_MetalSampler.mm
     Private/GAPI_MetalShader.mm
@@ -33,8 +34,6 @@ set(PRIVATE_FILES
     Private/MetalTransientHeapManager.mm
     Private/MetalTypes.h
     Private/MetalTypes.mm
-    Private/MetalUploadManager.h
-    Private/MetalUploadManager.mm
     Private/MetalUtility.h
 )
 # Collect Objective-C++ source files (.mm) for ARC and PCH exclusion

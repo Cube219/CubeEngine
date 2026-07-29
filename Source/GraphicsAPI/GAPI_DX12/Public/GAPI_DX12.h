@@ -33,6 +33,8 @@ namespace cube
 
         virtual const gapi::ShaderParameterHelper& GetShaderParameterHelper() const override;
 
+        virtual bool IsDirectMapSupported(gapi::ResourceType type) const override;
+
         virtual SharedPtr<gapi::Buffer> CreateBuffer(const gapi::BufferCreateInfo& info) override;
         virtual SharedPtr<gapi::CommandList> CreateCommandList(const gapi::CommandListCreateInfo& info) override;
         virtual SharedPtr<gapi::Fence> CreateFence(const gapi::FenceCreateInfo& info) override;

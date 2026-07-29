@@ -91,11 +91,15 @@ namespace cube
             virtual void DispatchThreads(Uint32 numThreadsX, Uint32 numThreadsY, Uint32 numThreadsZ) override;
 
             virtual void CopyTexture(SharedPtr<Texture> srcTexture, SharedPtr<Texture> dstTexture) override;
+            virtual void CopyBuffer(SharedPtr<Buffer> srcBuffer, Uint64 srcOffset, SharedPtr<Buffer> dstBuffer, Uint64 dstOffset, Uint64 size) override;
+            virtual void CopyBufferToTexture(SharedPtr<Buffer> srcBuffer, Uint64 srcOffset, SharedPtr<Texture> dstTexture) override;
+
+            virtual void OptimizeTextureContentsForGPUAccess(SharedPtr<Texture> texture) override;
 
             virtual void BeginTimestamp(StringView name) override;
             virtual void EndTimestamp() override;
 
-            virtual void Submit(bool waitUntilFinished) override;
+            virtual void Submit(bool waitUntilFinished, Fence* signalFence = nullptr, Uint64 fenceValue = 0) override;
 
         private:
             void UseResourceInternal(id<MTLResource> resource, MTLResourceUsage usage);
@@ -130,6 +134,7 @@ namespace cube
             id<MTLCommandQueue> mCommandQueueRef;
             id<MTLCommandBuffer> mCommandBuffer;
             bool mIsWriting;
+            CommandListType mType;
 
             MetalEncoderState mCurrentEncoderState;
             id<MTLRenderCommandEncoder> mRenderEncoder;

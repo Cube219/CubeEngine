@@ -14,6 +14,7 @@ namespace cube
         class BufferSRV;
         class BufferUAV;
         class ComputePipeline;
+        class Fence;
         class GraphicsPipeline;
         class Sampler;
         class Texture;
@@ -101,8 +102,16 @@ namespace cube
             ResourceLayout layoutDst;
         };
 
+        enum class CommandListType
+        {
+            Direct,
+            Copy
+        };
+
         struct CommandListCreateInfo
         {
+            CommandListType type = CommandListType::Direct;
+
             StringView debugName;
         };
 
@@ -148,11 +157,17 @@ namespace cube
             virtual void DispatchThreads(Uint32 numThreadsX, Uint32 numThreadsY, Uint32 numThreadsZ) = 0;
 
             virtual void CopyTexture(SharedPtr<Texture> srcTexture, SharedPtr<Texture> dstTexture) = 0;
+            virtual void CopyBuffer(SharedPtr<Buffer> srcBuffer, Uint64 srcOffset, SharedPtr<Buffer> dstBuffer, Uint64 dstOffset, Uint64 size) = 0;
+            // The source data must be laid out according to dstTexture->GetSubresourceLayout(), relative to srcOffset.
+            virtual void CopyBufferToTexture(SharedPtr<Buffer> srcBuffer, Uint64 srcOffset, SharedPtr<Texture> dstTexture) = 0;
+
+            // Required on Metal after copying to a GPUOnly texture. No-op on DX12.
+            virtual void OptimizeTextureContentsForGPUAccess(SharedPtr<Texture> texture) = 0;
 
             virtual void BeginTimestamp(StringView name) = 0;
             virtual void EndTimestamp() = 0;
 
-            virtual void Submit(bool waitUntilFinished = false) = 0;
+            virtual void Submit(bool waitUntilFinished = false, Fence* signalFence = nullptr, Uint64 fenceValue = 0) = 0;
         };
     } // namespace gapi
 } // namespace cube

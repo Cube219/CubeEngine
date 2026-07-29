@@ -139,10 +139,6 @@ namespace cube
 
         DX12Texture::~DX12Texture()
         {
-            if (mUploadDesc.IsValid())
-            {
-                mDevice.GetUploadManager().Discard(mUploadDesc);
-            }
             if (mAllocation.IsValid())
             {
                 mDevice.GetMemoryAllocator().Free(mAllocation);
@@ -154,8 +150,8 @@ namespace cube
             switch (mUsage)
             {
             case ResourceUsage::GPUOnly:
-                mUploadDesc = mDevice.GetUploadManager().Allocate(ResourceType::Texture, mTotalSize, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
-                return mUploadDesc.pData;
+                NO_ENTRY_FORMAT("Cannot map GPUOnly texture directly. Use UploadManager.");
+                return nullptr;
             case ResourceUsage::CPUtoGPU:
                 mAllocation.Map();
                 return mAllocation.pMapPtr;
@@ -174,12 +170,7 @@ namespace cube
             switch (mUsage)
             {
             case ResourceUsage::GPUOnly:
-                mUploadDesc.type = ResourceType::Texture;
-                mUploadDesc.dstResource = mAllocation.resource;
-                mUploadDesc.dstAPIObject = this;
-                mUploadDesc.textureFootprints = mFootprints;
-
-                mDevice.GetUploadManager().Submit(mUploadDesc, true);
+                NO_ENTRY_FORMAT("Cannot unmap GPUOnly texture directly. Use UploadManager.");
                 break;
             case ResourceUsage::CPUtoGPU:
                 mAllocation.Unmap();

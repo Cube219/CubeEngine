@@ -18,6 +18,7 @@
 #include "TextureManager.h"
 #include "TextureViewer.h"
 #include "Tonemap.h"
+#include "UploadManager.h"
 #include "Vector.h"
 
 namespace cube
@@ -74,6 +75,7 @@ namespace cube
         TextureManager& GetTextureManager() { return mTextureManager; }
         SamplerManager& GetSamplerManager() { return mSamplerManager; }
         PipelineManager& GetPipelineManager() { return mPipelineManager; }
+        UploadManager& GetUploadManager() { return mUploadManager; }
 
         TextureViewer& GetTextureViewer() { return mTextureViewer; }
         RenderUtils& GetRenderUtils() { return mRenderUtils; }
@@ -114,6 +116,7 @@ namespace cube
         Uint32 mNumGPUSync;
         Uint64 mCurrentRenderingFrame;
 
+        UploadManager mUploadManager;
         ShaderParameterListManager mShaderParameterListManager;
         ShaderManager mShaderManager;
         TextureManager mTextureManager;

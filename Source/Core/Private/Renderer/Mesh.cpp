@@ -68,7 +68,10 @@ namespace cube
             };
             mIndexBuffer = gAPI.CreateBuffer(indexBufferCreateInfo);
 
-            void* pVertexBufferData = mVertexBuffer->Map();
+            UploadManager& uploadManager = Engine::GetRenderer()->GetUploadManager();
+
+            UploadDesc vbUploadDesc = uploadManager.Allocate(mVertexBuffer);
+            void* pVertexBufferData = vbUploadDesc.pData;
             if (mMeta.useFloat16)
             {
                 BlobView vertexData = meshData->GetVertexData();
@@ -89,12 +92,13 @@ namespace cube
                     fp32Vertices[i] = ConvertVertexToFP32(vertices[i]);
                 }
             }
-            mVertexBuffer->Unmap();
+            uploadManager.Submit(vbUploadDesc, true);
 
-            void* pIndexBufferData = mIndexBuffer->Map();
+            UploadDesc ibUploadDesc = uploadManager.Allocate(mIndexBuffer);
+            void* pIndexBufferData = ibUploadDesc.pData;
             BlobView indexData = meshData->GetIndexData();
             memcpy(pIndexBufferData, indexData.GetData(), indexData.GetSize());
-            mIndexBuffer->Unmap();
+            uploadManager.Submit(ibUploadDesc, true);
         }
     }
 

@@ -7,7 +7,6 @@
 #include "DX12MemoryAllocator.h"
 #include "DX12QueryManager.h"
 #include "DX12QueueManager.h"
-#include "DX12UploadManager.h"
 #include "GAPI_DX12ShaderParameter.h"
 
 namespace cube
@@ -38,7 +37,6 @@ namespace cube
 
         DX12MemoryAllocator& GetMemoryAllocator() { return mMemoryAllocator; }
         DX12QueueManager& GetQueueManager() { return mQueueManager; }
-        DX12UploadManager& GetUploadManager() { return mUploadManager; }
         DX12DescriptorManager& GetDescriptorManager() { return mDescriptorManager; }
         DX12CommandListManager& GetCommandListManager() { return mCommandListManager; }
         DX12QueryManager& GetQueryManager() { return mQueryManager; }
@@ -61,7 +59,6 @@ namespace cube
 
         DX12MemoryAllocator mMemoryAllocator;
         DX12QueueManager mQueueManager;
-        DX12UploadManager mUploadManager;
         DX12DescriptorManager mDescriptorManager;
         DX12CommandListManager mCommandListManager;
         DX12QueryManager mQueryManager;
