@@ -14,6 +14,7 @@ namespace cube
             if (mInfo.type == BufferType::Raw)
             {
                 mInfo.stride = 4;
+                mInfo.size = (mInfo.size + 3) / 4 * 4;
             }
 
             CHECK(mInfo.size % mInfo.stride == 0);
