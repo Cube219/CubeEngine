@@ -98,7 +98,7 @@ namespace cube
                 CUBE_LOG(Warning, DX12, "Cannot cast IDXGISwapChain3. Frame buffering cannot be used. (HR: {0})", res);
             }
 
-            mFence.Initialize(CUBE_T("SwapChainFence"));
+            mFence.Initialize(CUBE_T("SwapChainFence"), true);
 
             GetBackbuffers();
         }
@@ -130,7 +130,7 @@ namespace cube
         {
             mSwapChain->Present(mVsync ? 1 : 0, 0);
 
-            mFence.Signal(mDevice.GetQueueManager().GetMainQueue(), mFenceValues[mCurrentIndex]);
+            mFence.SignalToQueue(mDevice.GetQueueManager().GetMainQueue(), mFenceValues[mCurrentIndex]);
         }
 
         void DX12SwapChain::Resize(Uint32 width, Uint32 height)

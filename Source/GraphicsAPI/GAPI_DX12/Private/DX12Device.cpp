@@ -38,7 +38,7 @@ namespace cube
         mQueryManager.Initialize(numGPUSync);
         mShaderParameterHelper.Initialize();
 
-        mGPUSyncFence.Initialize(CUBE_T("GPUSyncFence"));
+        mGPUSyncFence.Initialize(CUBE_T("GPUSyncFence"), true);
         mNumGPUSync = numGPUSync;
     }
 
@@ -138,15 +138,15 @@ namespace cube
 
     void DX12Device::EndGPUFrame(Uint64 gpuFrame)
     {
-        mGPUSyncFence.Signal(GetQueueManager().GetMainQueue(), gpuFrame);
+        mGPUSyncFence.SignalToQueue(GetQueueManager().GetMainQueue(), gpuFrame);
     }
 
     void DX12Device::WaitAllGPUSync()
     {
-        DX12Fence waitFence(*this);
-        waitFence.Initialize(CUBE_T("WaitAllGPUSyncFence"));
+        DX12FenceWrapper waitFence(*this);
+        waitFence.Initialize(CUBE_T("WaitAllGPUSyncFence"), true);
 
-        waitFence.Signal(GetQueueManager().GetMainQueue(), 1);
+        waitFence.SignalToQueue(GetQueueManager().GetMainQueue(), 1);
         waitFence.Wait(1);
 
         waitFence.Shutdown();

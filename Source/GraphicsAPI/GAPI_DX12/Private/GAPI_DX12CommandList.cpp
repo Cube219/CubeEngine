@@ -40,7 +40,7 @@ namespace cube
         DX12CommandList::DX12CommandList(DX12Device& device, const CommandListCreateInfo& info)
             : mDevice(device)
             , mType(info.type)
-            , mState(State::Closed)
+            , mPhase(Phase::Closed)
         {
             D3D12_COMMAND_LIST_TYPE commandListType = D3D12_COMMAND_LIST_TYPE_DIRECT;
             if (mType == CommandListType::Copy)
@@ -63,21 +63,14 @@ namespace cube
 
         void DX12CommandList::Begin()
         {
-            CHECK(mState == State::Initial);
-
-            if (mType == CommandListType::Direct)
-            {
-                ArrayView<ID3D12DescriptorHeap*> heaps = mDevice.GetDescriptorManager().GetD3D12ShaderVisibleHeaps();
-                mCommandList->SetDescriptorHeaps(heaps.size(), heaps.data());
-
-                mCommandList->SetGraphicsRootSignature(mDevice.GetShaderParameterHelper().GetRootSignature());
-                mCommandList->SetComputeRootSignature(mDevice.GetShaderParameterHelper().GetRootSignature());
-            }
+            CHECK(mPhase == Phase::Initial);
 
             mHasQuery = false;
             mTimestampStack.clear();
+            mCommandListState.Clear();
+            mSubmitActions.clear();
 
-            mState = State::Writing;
+            InitCommandList(false);
         }
 
         void DX12CommandList::End()
@@ -95,21 +88,23 @@ namespace cube
             }
 
             CHECK_HR(mCommandList->Close());
-            mState = State::Closed;
+            mPhase = Phase::Closed;
         }
 
         void DX12CommandList::Reset()
         {
-            if (mState == State::Initial)
+            if (mPhase == Phase::Initial)
             {
                 return;
             }
 
-            CHECK(mState == State::Closed);
+            CHECK(mPhase == Phase::Closed);
 
             CHECK_HR(mCommandList->Reset(GetCurrentAllocator(), nullptr));
             mHasQuery = false;
-            mState = State::Initial;
+            mCommandListState.Clear();
+            mSubmitActions.clear();
+            mPhase = Phase::Initial;
         }
 
         void DX12CommandList::BeginEvent(StringView name)
@@ -150,6 +145,7 @@ namespace cube
             }
 
             mCommandList->RSSetViewports(d3d12Viewports.size(), d3d12Viewports.data());
+            mCommandListState.viewports.assign(d3d12Viewports.begin(), d3d12Viewports.end());
         }
 
         void DX12CommandList::SetScissors(ConstArrayView<ScissorRect> scissors)
@@ -167,6 +163,7 @@ namespace cube
                 };
             }
             mCommandList->RSSetScissorRects(d3d12Rects.size(), d3d12Rects.data());
+            mCommandListState.scissors.assign(d3d12Rects.begin(), d3d12Rects.end());
         }
 
         void DX12CommandList::SetPrimitiveTopology(PrimitiveTopology primitiveTopology)
@@ -174,6 +171,7 @@ namespace cube
             CHECK(IsWriting());
 
             mCommandList->IASetPrimitiveTopology(ConvertToDX12PrimitiveTopology(primitiveTopology));
+            mCommandListState.primitiveTopology = ConvertToDX12PrimitiveTopology(primitiveTopology);
         }
 
         void DX12CommandList::SetGraphicsPipeline(SharedPtr<GraphicsPipeline> graphicsPipeline)
@@ -301,12 +299,19 @@ namespace cube
             mCommandList->SetGraphicsRootConstantBufferView(index * shaderParameterHelper.GetMaxNumRegister(), gpuAddress);
             mCommandList->SetComputeRootConstantBufferView(index * shaderParameterHelper.GetMaxNumRegister(), gpuAddress);
 
+            mCommandListState.constantBuffers[index] = {
+                .buffer = constantBuffer,
+                .isSet = true
+            };
+
             CUBE_DX12_BOUND_OBJECT(constantBuffer);
         }
 
         void DX12CommandList::UnsetConstantBuffer(Uint32 index)
         {
             CHECK(IsWriting());
+
+            mCommandListState.constantBuffers.erase(index);
 
             // Do nothing. Maybe setting a null GPU address in the root constant buffer view provide no performance benefit.
         }
@@ -566,33 +571,108 @@ namespace cube
             mHasQuery = true;
         }
 
+        void DX12CommandList::WaitForFence(SharedPtr<Fence> fence, Uint64 fenceValue)
+        {
+            CHECK(IsWriting());
+            CHECK(!mIsInRenderPass);
+
+            DX12Fence* dx12Fence = dynamic_cast<DX12Fence*>(fence.get());
+            CHECK(dx12Fence);
+
+            CHECK_HR(mCommandList->Close());
+            
+            mSubmitActions.push_back({
+                .type = SubmitAction::Type::Execute,
+                .commandList = mCommandList
+            });
+            mSubmitActions.push_back({
+                .type = SubmitAction::Type::Wait,
+                .fence = dx12Fence,
+                .fenceValue = fenceValue
+            });
+
+            InitCommandList(true);
+
+            CUBE_DX12_BOUND_OBJECT(fence);
+        }
+
+        void DX12CommandList::SignalToFence(SharedPtr<Fence> fence, Uint64 fenceValue)
+        {
+            CHECK(IsWriting());
+            CHECK(!mIsInRenderPass);
+            
+            DX12Fence* dx12Fence = dynamic_cast<DX12Fence*>(fence.get());
+            CHECK(dx12Fence);
+
+            CHECK_HR(mCommandList->Close());
+            
+            mSubmitActions.push_back({
+                .type = SubmitAction::Type::Execute,
+                .commandList = mCommandList
+            });
+            mSubmitActions.push_back({
+                .type = SubmitAction::Type::Signal,
+                .fence = dx12Fence,
+                .fenceValue = fenceValue
+            });
+
+            InitCommandList(true);
+
+            CUBE_DX12_BOUND_OBJECT(fence);
+        }
+
         void DX12CommandList::Submit(bool waitUntilFinished, Fence* signalFence, Uint64 fenceValue)
         {
-            CHECK(mState == State::Closed);
+            CHECK(mPhase == Phase::Closed);
 
             ID3D12CommandQueue* queue = (mType == CommandListType::Copy)
                 ? mDevice.GetQueueManager().GetCopyQueue()
                 : mDevice.GetQueueManager().GetMainQueue();
 
-            ID3D12CommandList* cmdLists[] = { mCommandList.Get() };
-            queue->ExecuteCommandLists(1, cmdLists);
+            mSubmitActions.push_back({ .type = SubmitAction::Type::Execute, .commandList = mCommandList });
+
+            for (const SubmitAction& action : mSubmitActions)
+            {
+                switch (action.type)
+                {
+                case SubmitAction::Type::Execute:
+                {
+                    ID3D12CommandList* commandLists[] = { action.commandList.Get() };
+                    queue->ExecuteCommandLists(1, commandLists);
+                    break;
+                }
+                case SubmitAction::Type::Wait:
+                {
+                    action.fence->WaitOnQueue(queue, action.fenceValue);
+                    break;
+                }
+                case SubmitAction::Type::Signal:
+                {
+                    action.fence->SignalToQueue(queue, action.fenceValue);
+                    break;
+                }
+                default:
+                    NOT_IMPLEMENTED();
+                }
+            }
 
             if (signalFence != nullptr)
             {
                 DX12Fence* dx12Fence = dynamic_cast<DX12Fence*>(signalFence);
                 CHECK(dx12Fence);
-                dx12Fence->Signal(queue, fenceValue);
+                dx12Fence->SignalToQueue(queue, fenceValue);
             }
 
             mDevice.GetCommandListManager().AddBoundObjects(mBoundObjects);
             mBoundObjects.clear();
+            mSubmitActions.clear();
 
             if (waitUntilFinished)
             {
-                cube::DX12Fence waitFence(mDevice);
-                waitFence.Initialize(CUBE_T("Wait Submit CommandList Fence"));
+                cube::DX12FenceWrapper waitFence(mDevice);
+                waitFence.Initialize(CUBE_T("Wait Submit CommandList Fence"), true);
 
-                waitFence.Signal(queue, 1);
+                waitFence.SignalToQueue(queue, 1);
                 waitFence.Wait(1);
 
                 waitFence.Shutdown();
@@ -606,6 +686,63 @@ namespace cube
                 return mCopyAllocator.Get();
             }
             return mDevice.GetCommandListManager().GetCurrentAllocator();
+        }
+
+        void DX12CommandList::InitCommandList(bool createCommandList)
+        {
+            if (createCommandList)
+            {
+                D3D12_COMMAND_LIST_TYPE commandListType = mType == CommandListType::Copy
+                    ? D3D12_COMMAND_LIST_TYPE_COPY
+                    : D3D12_COMMAND_LIST_TYPE_DIRECT;
+
+                ComPtr<ID3D12GraphicsCommandList7> commandList;
+                CHECK_HR(mDevice.GetDevice()->CreateCommandList(0, commandListType, GetCurrentAllocator(), nullptr, IID_PPV_ARGS(&commandList)));
+
+                mCommandList = commandList;
+            }
+
+            CHECK(mCommandList);
+
+            if (mType == CommandListType::Direct)
+            {
+                ArrayView<ID3D12DescriptorHeap*> heaps = mDevice.GetDescriptorManager().GetD3D12ShaderVisibleHeaps();
+                mCommandList->SetDescriptorHeaps(heaps.size(), heaps.data());
+                mCommandList->SetGraphicsRootSignature(mDevice.GetShaderParameterHelper().GetRootSignature());
+                mCommandList->SetComputeRootSignature(mDevice.GetShaderParameterHelper().GetRootSignature());
+            }
+
+            mPhase = Phase::Writing;
+            ApplyCommandListState();
+        }
+
+        void DX12CommandList::ApplyCommandListState()
+        {
+            if (!mCommandListState.viewports.empty())
+            {
+                mCommandList->RSSetViewports(mCommandListState.viewports.size(), mCommandListState.viewports.data());
+            }
+            if (!mCommandListState.scissors.empty())
+            {
+                mCommandList->RSSetScissorRects(mCommandListState.scissors.size(), mCommandListState.scissors.data());
+            }
+            if (mCommandListState.primitiveTopology != D3D_PRIMITIVE_TOPOLOGY_UNDEFINED)
+            {
+                mCommandList->IASetPrimitiveTopology(mCommandListState.primitiveTopology);
+            }
+
+            DX12ShaderParameterHelper& shaderParameterHelper = mDevice.GetShaderParameterHelper();
+            for (auto& [index, constantBuffer] : mCommandListState.constantBuffers)
+            {
+                const DX12BufferSRV* dx12SRV = dynamic_cast<DX12BufferSRV*>(constantBuffer.buffer.get());
+                CHECK(dx12SRV);
+                D3D12_GPU_VIRTUAL_ADDRESS gpuAddress = dx12SRV->GetGPUAddress();
+
+                mCommandList->SetGraphicsRootConstantBufferView(index * shaderParameterHelper.GetMaxNumRegister(), gpuAddress);
+                mCommandList->SetComputeRootConstantBufferView(index * shaderParameterHelper.GetMaxNumRegister(), gpuAddress);
+
+                constantBuffer.isSet = true;
+            }
         }
 
         void DX12CommandList::ProcessBeforeEnd()

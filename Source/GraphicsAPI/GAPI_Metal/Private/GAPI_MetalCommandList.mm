@@ -687,6 +687,26 @@ namespace cube
             }
         }
 
+        void MetalCommandList::WaitForFence(SharedPtr<Fence> fence, Uint64 fenceValue)
+        {
+            CHECK(IsWriting());
+            EndAllEncoders();
+
+            MetalFence* metalFence = dynamic_cast<MetalFence*>(fence.get());
+            CHECK(metalFence);
+            [mCommandBuffer encodeWaitForEvent:metalFence->GetEvent() value:fenceValue];
+        }
+
+        void MetalCommandList::SignalToFence(SharedPtr<Fence> fence, Uint64 fenceValue)
+        {
+            CHECK(IsWriting());
+            EndAllEncoders();
+
+            MetalFence* metalFence = dynamic_cast<MetalFence*>(fence.get());
+            CHECK(metalFence);
+            [mCommandBuffer encodeSignalEvent:metalFence->GetEvent() value:fenceValue];
+        }
+
         void MetalCommandList::Submit(bool waitUntilFinished, Fence* signalFence, Uint64 fenceValue)
         {
             CHECK(!IsWriting());
@@ -695,7 +715,7 @@ namespace cube
             {
                 MetalFence* metalFence = dynamic_cast<MetalFence*>(signalFence);
                 CHECK(metalFence);
-                [mCommandBuffer encodeSignalEvent:metalFence->GetSharedEvent() value:fenceValue];
+                [mCommandBuffer encodeSignalEvent:metalFence->GetEvent() value:fenceValue];
             }
 
             [mCommandBuffer commit];

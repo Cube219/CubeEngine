@@ -6,7 +6,7 @@
 
 #include "DX12APIObject.h"
 #include "DX12DescriptorManager.h"
-#include "DX12Fence.h"
+#include "DX12FenceWrapper.h"
 #include "DX12MemoryAllocator.h"
 #include "GAPI_DX12Texture.h"
 
@@ -76,7 +76,7 @@ namespace cube
 
             Uint32 mCurrentIndex;
             Array<Uint64, MAX_BACKBUFFER_SIZE> mFenceValues;
-            DX12Fence mFence;
+            DX12FenceWrapper mFence;
         };
     } // namespace gapi
 } // namespace cube

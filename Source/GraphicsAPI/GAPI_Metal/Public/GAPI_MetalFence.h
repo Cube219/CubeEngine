@@ -17,12 +17,13 @@ namespace cube
             virtual ~MetalFence();
 
             virtual void Wait(Uint64 fenceValue) override;
+            virtual void Signal(Uint64 fenceValue) override;
             virtual Uint64 GetCompletedValue() override;
 
-            id<MTLSharedEvent> GetSharedEvent() const { return mSharedEvent; }
+            id<MTLEvent> GetEvent() const { return mEvent; }
 
         private:
-            id<MTLSharedEvent> mSharedEvent;
+            id<MTLEvent> mEvent;
         };
     } // namespace gapi
 } // namespace cube

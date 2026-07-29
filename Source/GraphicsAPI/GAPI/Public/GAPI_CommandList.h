@@ -167,6 +167,11 @@ namespace cube
             virtual void BeginTimestamp(StringView name) = 0;
             virtual void EndTimestamp() = 0;
 
+            // NOTE: It split the command list internally, so bounded pipeline will be cleared.
+            virtual void WaitForFence(SharedPtr<Fence> fence, Uint64 fenceValue) = 0;
+            // NOTE: It split the command list internally, so bounded pipeline will be cleared.
+            virtual void SignalToFence(SharedPtr<Fence> fence, Uint64 fenceValue) = 0;
+
             virtual void Submit(bool waitUntilFinished = false, Fence* signalFence = nullptr, Uint64 fenceValue = 0) = 0;
         };
     } // namespace gapi

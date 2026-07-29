@@ -16,7 +16,8 @@ namespace cube
         mLastFenceValue = 0;
 
         mFence = mGAPI->CreateFence({
-            .debugName = CUBE_T("UploadManagerFence")
+            .allowCPUAccess = true,
+            .debugName = CUBE_T("UploadManagerFence"),
         });
 
         int index = 0;

@@ -17,6 +17,7 @@ namespace cube
     {
         class Buffer;
         class ComputePipeline;
+        class DX12Fence;
         class DX12ShaderParameterHelper;
         class GraphicsPipeline;
         class Sampler;
@@ -72,21 +73,63 @@ namespace cube
             virtual void BeginTimestamp(StringView name) override;
             virtual void EndTimestamp() override;
 
+            virtual void WaitForFence(SharedPtr<Fence> fence, Uint64 fenceValue) override;
+            virtual void SignalToFence(SharedPtr<Fence> fence, Uint64 fenceValue) override;
+
             virtual void Submit(bool waitUntilFinished = false, Fence* signalFence = nullptr, Uint64 fenceValue = 0) override;
 
-            bool IsWriting() const { return mState == State::Writing; }
+            bool IsWriting() const { return mPhase == Phase::Writing; }
             bool IsInRenderPass() const { return mIsInRenderPass; }
 
         private:
             void ProcessBeforeEnd();
+            void InitCommandList(bool createCommandList);
+            void ApplyCommandListState();
 
             ID3D12CommandAllocator* GetCurrentAllocator() const;
 
-            enum class State
+            enum class Phase
             {
                 Initial,
                 Writing,
                 Closed
+            };
+
+            struct State
+            {
+                Vector<D3D12_VIEWPORT> viewports;
+                Vector<D3D12_RECT> scissors;
+                D3D12_PRIMITIVE_TOPOLOGY primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+
+                struct ConstantBuffer
+                {
+                    SharedPtr<BufferSRV> buffer;
+                    bool isSet = false;
+                };
+                Map<Uint32, ConstantBuffer> constantBuffers;
+
+                void Clear()
+                {
+                    viewports.clear();
+                    scissors.clear();
+                    primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+                    constantBuffers.clear();
+                }
+            };
+
+            struct SubmitAction
+            {
+                enum class Type
+                {
+                    Execute,
+                    Wait,
+                    Signal,
+                };
+
+                Type type;
+                ComPtr<ID3D12GraphicsCommandList7> commandList;
+                gapi::DX12Fence* fence;
+                Uint64 fenceValue = 0;
             };
 
             DX12Device& mDevice;
@@ -96,8 +139,10 @@ namespace cube
             // from the per-frame allocators in the command list manager.
             ComPtr<ID3D12CommandAllocator> mCopyAllocator;
 
+            Phase mPhase;
             ComPtr<ID3D12GraphicsCommandList7> mCommandList;
-            State mState;
+            State mCommandListState;
+            Vector<SubmitAction> mSubmitActions;
 
             Vector<SharedPtr<DX12APIObject>> mBoundObjects;
 

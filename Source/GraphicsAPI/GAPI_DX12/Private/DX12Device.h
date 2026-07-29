@@ -4,6 +4,7 @@
 
 #include "DX12CommandListManager.h"
 #include "DX12DescriptorManager.h"
+#include "DX12FenceWrapper.h"
 #include "DX12MemoryAllocator.h"
 #include "DX12QueryManager.h"
 #include "DX12QueueManager.h"
@@ -66,6 +67,6 @@ namespace cube
         gapi::DX12ShaderParameterHelper mShaderParameterHelper;
 
         Uint32 mNumGPUSync;
-        DX12Fence mGPUSyncFence;
+        DX12FenceWrapper mGPUSyncFence;
     };
 } // namespace cube

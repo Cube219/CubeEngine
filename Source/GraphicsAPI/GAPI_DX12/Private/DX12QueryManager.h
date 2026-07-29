@@ -2,7 +2,6 @@
 
 #include "DX12Header.h"
 
-#include "DX12Fence.h"
 #include "DX12MemoryAllocator.h"
 #include "GAPI_Timestamp.h"
 

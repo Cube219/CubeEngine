@@ -29,8 +29,8 @@ set(PRIVATE_FILES
     Private/DX12DescriptorManager.h
     Private/DX12Device.cpp
     Private/DX12Device.h
-    Private/DX12Fence.cpp
-    Private/DX12Fence.h
+    Private/DX12FenceWrapper.cpp
+    Private/DX12FenceWrapper.h
     Private/DX12MemoryAllocator.cpp
     Private/DX12MemoryAllocator.h
     Private/DX12QueryManager.cpp

@@ -2,8 +2,6 @@
 
 #include "DX12Header.h"
 
-#include "DX12Fence.h"
-
 namespace cube
 {
     class DX12APIObject;

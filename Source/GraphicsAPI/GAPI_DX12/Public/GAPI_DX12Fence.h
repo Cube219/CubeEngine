@@ -4,7 +4,8 @@
 
 #include "GAPI_Fence.h"
 
-#include "DX12Fence.h"
+#include "DX12APIObject.h"
+#include "DX12FenceWrapper.h"
 
 namespace cube
 {
@@ -12,19 +13,22 @@ namespace cube
 
     namespace gapi
     {
-        class DX12Fence : public Fence
+        class DX12Fence : public Fence, public DX12APIObject
         {
         public:
-            DX12Fence(const FenceCreateInfo& info, DX12Device& device);
+            DX12Fence(const FenceCreateInfo& createInfo, DX12Device& device);
             virtual ~DX12Fence();
 
             virtual void Wait(Uint64 fenceValue) override;
+            virtual void Signal(Uint64 fenceValue) override;
+
             virtual Uint64 GetCompletedValue() override;
 
-            void Signal(ID3D12CommandQueue* queue, Uint64 fenceValue);
+            void SignalToQueue(ID3D12CommandQueue* queue, Uint64 fenceValue);
+            void WaitOnQueue(ID3D12CommandQueue* queue, Uint64 fenceValue);
 
         private:
-            cube::DX12Fence mFence;
+            DX12FenceWrapper mFence;
         };
     } // namespace gapi
 } // namespace cube
