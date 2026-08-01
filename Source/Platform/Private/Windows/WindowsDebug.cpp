@@ -6,6 +6,8 @@
 #include <Windows.h>
 #include <corecrt_io.h>
 #include <csignal>
+#include <cstdlib>
+#include <exception>
 #include <fcntl.h>
 #include <iostream>
 #include <DbgHelp.h> // Must be included after Windows.h
@@ -232,6 +234,210 @@ namespace cube
             case IDIGNORE:
                 break;
             }
+        }
+
+        namespace
+        {
+            StringView GetExceptionCodeString(DWORD exceptionCode)
+            {
+                switch (exceptionCode)
+                {
+                case EXCEPTION_ACCESS_VIOLATION:
+                    return CUBE_T("Access Violation");
+                case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:
+                    return CUBE_T("Array Bounds Exceeded");
+                case EXCEPTION_BREAKPOINT:
+                    return CUBE_T("Breakpoint");
+                case EXCEPTION_DATATYPE_MISALIGNMENT:
+                    return CUBE_T("Datatype Misalignment");
+                case EXCEPTION_FLT_DENORMAL_OPERAND:
+                    return CUBE_T("Float Denormal Operand");
+                case EXCEPTION_FLT_DIVIDE_BY_ZERO:
+                    return CUBE_T("Float Divide By Zero");
+                case EXCEPTION_FLT_INEXACT_RESULT:
+                    return CUBE_T("Float Inexact Result");
+                case EXCEPTION_FLT_INVALID_OPERATION:
+                    return CUBE_T("Float Invalid Operation");
+                case EXCEPTION_FLT_OVERFLOW:
+                    return CUBE_T("Float Overflow");
+                case EXCEPTION_FLT_STACK_CHECK:
+                    return CUBE_T("Float Stack Check");
+                case EXCEPTION_FLT_UNDERFLOW:
+                    return CUBE_T("Float Underflow");
+                case EXCEPTION_ILLEGAL_INSTRUCTION:
+                    return CUBE_T("Illegal Instruction");
+                case EXCEPTION_IN_PAGE_ERROR:
+                    return CUBE_T("In Page Error");
+                case EXCEPTION_INT_DIVIDE_BY_ZERO:
+                    return CUBE_T("Integer Divide By Zero");
+                case EXCEPTION_INT_OVERFLOW:
+                    return CUBE_T("Integer Overflow");
+                case EXCEPTION_INVALID_DISPOSITION:
+                    return CUBE_T("Invalid Disposition");
+                case EXCEPTION_NONCONTINUABLE_EXCEPTION:
+                    return CUBE_T("Noncontinuable Exception");
+                case EXCEPTION_PRIV_INSTRUCTION:
+                    return CUBE_T("Privileged Instruction");
+                case EXCEPTION_SINGLE_STEP:
+                    return CUBE_T("Single Step");
+                case EXCEPTION_STACK_OVERFLOW:
+                    return CUBE_T("Stack Overflow");
+                default:
+                    return CUBE_T("Unknown Exception");
+                }
+            }
+
+            void LogExceptionMessage(StringView msg)
+            {
+                if (Logger::IsInitialized())
+                {
+                    CUBE_LOG(Error, WindowsDebug, "{0}", msg);
+                }
+                else
+                {
+                    WindowsDebug::PrintToDebugConsole(msg, PrintColorCategory::Error);
+                }
+            }
+
+            void HandleFatalException(StringView exceptionTypeName, StringView details)
+            {
+                String msg = Format<String>(CUBE_T("Unhandled exception: {0}\n{1}"), exceptionTypeName, details);
+
+                LogExceptionMessage(msg);
+
+                String stackTrace = WindowsDebug::DumpStackTrace();
+                if (!stackTrace.empty())
+                {
+                    String stackMsg = Format<String>(CUBE_T("Stack trace:\n{0}"), stackTrace);
+                    LogExceptionMessage(stackMsg);
+                }
+
+                String fullMsg = Format<String>(CUBE_T("{0}\n\n{1}"), msg, stackTrace);
+                WindowsDebug::ProcessFatalError(fullMsg);
+            }
+
+            LONG WINAPI UnhandledExceptionFilter(EXCEPTION_POINTERS* ep)
+            {
+                DWORD exceptionCode = ep->ExceptionRecord->ExceptionCode;
+                StringView exceptionName = GetExceptionCodeString(exceptionCode);
+
+                String details = Format<String>(CUBE_T("Code: 0x{0:x}"), exceptionCode);
+
+                if (exceptionCode == EXCEPTION_ACCESS_VIOLATION)
+                {
+                    StringView accessType = (ep->ExceptionRecord->ExceptionInformation[0] == 0) ? CUBE_T("Read") : CUBE_T("Write");
+                    details = Format<String>(
+                        CUBE_T("Code: 0x{0:x}\n{1} at address 0x{2:x}"),
+                        exceptionCode,
+                        accessType,
+                        ep->ExceptionRecord->ExceptionInformation[1]
+                    );
+                }
+
+                HandleFatalException(exceptionName, details);
+
+                if (WindowsDebug::IsTestMode())
+                {
+                    exit(3);
+                }
+
+                return EXCEPTION_EXECUTE_HANDLER;
+            }
+
+            void SignalHandler(int signal)
+            {
+                StringView signalName;
+                switch (signal)
+                {
+                case SIGABRT:
+                    signalName = CUBE_T("SIGABRT");
+                    break;
+                case SIGSEGV:
+                    signalName = CUBE_T("SIGSEGV");
+                    break;
+                case SIGILL:
+                    signalName = CUBE_T("SIGILL");
+                    break;
+                case SIGFPE:
+                    signalName = CUBE_T("SIGFPE");
+                    break;
+                default:
+                    signalName = CUBE_T("Unknown Signal");
+                    break;
+                }
+
+                String details = Format<String>(CUBE_T("Signal: {0} ({1})"), signalName, signal);
+                HandleFatalException(signalName, details);
+
+                if (WindowsDebug::IsTestMode())
+                {
+                    exit(3);
+                }
+            }
+
+            void TerminateHandler()
+            {
+                StringView exceptionName = CUBE_T("std::terminate");
+
+                String details = String(CUBE_T("Uncaught C++ exception"));
+                try
+                {
+                    std::rethrow_exception(std::current_exception());
+                }
+                catch (const std::exception& e)
+                {
+                    String whatStr = String_Convert<String>(e.what());
+                    details = Format<String>(CUBE_T("Uncaught C++ exception: {0}"), whatStr);
+                }
+                catch (...)
+                {
+                }
+
+                HandleFatalException(exceptionName, details);
+
+                if (WindowsDebug::IsTestMode())
+                {
+                    exit(3);
+                }
+            }
+
+            void InvalidParameterHandler(const wchar_t* expression, const wchar_t* function, const wchar_t* file, unsigned int line, uintptr_t pReserved)
+            {
+                WindowsString winMsg = Format<WindowsString>(
+                    WINDOWS_T("Invalid parameter\nExpression: {0}\nFunction: {1}\nFile: {2}:{3}"),
+                    expression ? expression : WINDOWS_T("(null)"),
+                    function ? function : WINDOWS_T("(null)"),
+                    file ? file : WINDOWS_T("(null)"),
+                    line
+                );
+
+                WindowsDebug::PrintToDebugConsole(String_Convert<String>(winMsg), PrintColorCategory::Error);
+
+                String stackTrace = WindowsDebug::DumpStackTrace();
+                if (!stackTrace.empty())
+                {
+                    String stackMsg = Format<String>(CUBE_T("Stack trace:\n{0}"), stackTrace);
+                    LogExceptionMessage(stackMsg);
+                }
+
+                if (WindowsDebug::IsTestMode())
+                {
+                    exit(3);
+                }
+            }
+        } // namespace
+
+        void WindowsDebug::InstallCrashHandlers()
+        {
+            SetUnhandledExceptionFilter(&UnhandledExceptionFilter);
+
+            signal(SIGABRT, &SignalHandler);
+            signal(SIGILL, &SignalHandler);
+            signal(SIGFPE, &SignalHandler);
+
+            _set_invalid_parameter_handler(&InvalidParameterHandler);
+
+            std::set_terminate(&TerminateHandler);
         }
     } // namespace platform
 } // namespace cube

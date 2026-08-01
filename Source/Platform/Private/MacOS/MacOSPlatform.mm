@@ -352,6 +352,8 @@ namespace cube
                 return;
             }
 
+            MacOSDebug::InstallCrashHandlers();
+
             // If this process was launched as the logger subprocess, branch into the logger entry
             // point instead of initializing the engine. RunLoggerSubprocess never returns.
 #if CUBE_MACOS_USE_LOGGER_WINDOW

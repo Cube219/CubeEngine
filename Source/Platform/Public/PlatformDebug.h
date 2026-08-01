@@ -28,6 +28,8 @@ namespace cube
 
             static bool IsDebuggerAttached() { NOT_IMPLEMENTED() return false; }
 
+            static void InstallCrashHandlers() { NOT_IMPLEMENTED() }
+
             static void SetTestMode(bool enable) { NOT_IMPLEMENTED(); }
             static bool IsTestMode() { NOT_IMPLEMENTED(); return false; }
         };

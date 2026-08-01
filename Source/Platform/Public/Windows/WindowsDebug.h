@@ -24,6 +24,8 @@ namespace cube
 
             static bool IsDebuggerAttached();
 
+            static void InstallCrashHandlers();
+
             static void SetTestMode(bool enable);
             static bool IsTestMode();
             // === Base member functions ===

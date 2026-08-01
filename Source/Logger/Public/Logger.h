@@ -54,6 +54,7 @@ namespace cube
         Logger& operator=(const Logger& other) = delete;
 
         CUBE_LOGGER_EXPORT static void Init(IAllocator* loggerAllocator);
+        CUBE_LOGGER_EXPORT static bool IsInitialized() { return mAllocator != nullptr; }
 
         template <typename LoggerExtension>
         static void RegisterExtension()

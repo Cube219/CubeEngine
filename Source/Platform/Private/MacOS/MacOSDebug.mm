@@ -2,6 +2,8 @@
 
 #include "MacOS/MacOSDebug.h"
 
+#include <cxxabi.h>
+#include <exception>
 #include <execinfo.h>
 #include <iostream>
 #include <signal.h>
@@ -307,6 +309,120 @@ namespace cube
                     break;
                 }
             }
+        }
+
+        namespace
+        {
+            void LogExceptionMessage(StringView msg)
+            {
+                if (Logger::IsInitialized())
+                {
+                    CUBE_LOG(Error, MacOSDebug, "{0}", msg);
+                }
+                else
+                {
+                    MacOSDebug::PrintToDebugConsole(msg, PrintColorCategory::Error);
+                }
+            }
+
+            void HandleFatalException(StringView exceptionTypeName, StringView details)
+            {
+                String msg = Format<String>(CUBE_T("Unhandled exception: {0}\n{1}"), exceptionTypeName, details);
+
+                LogExceptionMessage(msg);
+
+                String stackTrace = MacOSDebug::DumpStackTrace();
+                if (!stackTrace.empty())
+                {
+                    String stackMsg = Format<String>(CUBE_T("Stack trace:\n{0}"), stackTrace);
+                    LogExceptionMessage(stackMsg);
+                }
+
+                String fullMsg = Format<String>(CUBE_T("{0}\n\n{1}"), msg, stackTrace);
+                MacOSDebug::ProcessFatalError(fullMsg);
+            }
+
+            StringView GetSignalName(int sig)
+            {
+                switch (sig)
+                {
+                case SIGSEGV:
+                    return CUBE_T("SIGSEGV");
+                case SIGBUS:
+                    return CUBE_T("SIGBUS");
+                case SIGILL:
+                    return CUBE_T("SIGILL");
+                case SIGFPE:
+                    return CUBE_T("SIGFPE");
+                case SIGABRT:
+                    return CUBE_T("SIGABRT");
+                case SIGTRAP:
+                    return CUBE_T("SIGTRAP");
+                default:
+                    return CUBE_T("Unknown Signal");
+                }
+            }
+
+            void CrashSignalHandler(int sig)
+            {
+                StringView signalName = GetSignalName(sig);
+                String details = Format<String>(CUBE_T("Signal: {0} ({1})"), signalName, sig);
+
+                HandleFatalException(signalName, details);
+
+                if (MacOSDebug::IsTestMode())
+                {
+                    platform::MacOSPlatform::ForceTerminateMainLoopThread();
+                    _exit(3);
+                }
+
+                signal(sig, SIG_DFL);
+                raise(sig);
+            }
+
+            void TerminateHandler()
+            {
+                StringView exceptionName = CUBE_T("std::terminate");
+
+                String details = CUBE_T("Uncaught C++ exception");
+                std::type_info* t = abi::__cxa_current_exception_type();
+                if (t != nullptr)
+                {
+                    details = Format<String>(CUBE_T("Uncaught C++ exception of type: {0}"), t->name());
+
+                    try
+                    {
+                        std::rethrow_exception(std::current_exception());
+                    }
+                    catch (const std::exception& e)
+                    {
+                        details = Format<String>(CUBE_T("Uncaught C++ exception: {0}"), e.what());
+                    }
+                    catch (...)
+                    {
+                    }
+                }
+
+                HandleFatalException(exceptionName, details);
+
+                if (MacOSDebug::IsTestMode())
+                {
+                    platform::MacOSPlatform::ForceTerminateMainLoopThread();
+                    _exit(3);
+                }
+            }
+        } // namespace
+
+        void MacOSDebug::InstallCrashHandlers()
+        {
+            signal(SIGSEGV, &CrashSignalHandler);
+            signal(SIGBUS, &CrashSignalHandler);
+            signal(SIGILL, &CrashSignalHandler);
+            signal(SIGFPE, &CrashSignalHandler);
+            signal(SIGABRT, &CrashSignalHandler);
+            signal(SIGTRAP, &CrashSignalHandler);
+
+            std::set_terminate(&TerminateHandler);
         }
     } // namespace platform
 } // namespace cube

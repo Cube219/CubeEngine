@@ -40,6 +40,8 @@ namespace cube
 
         void WindowsPlatform::Initialize()
         {
+            WindowsDebug::InstallCrashHandlers();
+
             // Show logger window in debug mode
 #ifdef CUBE_DEBUG
             if (!WindowsDebug::IsTestMode())
