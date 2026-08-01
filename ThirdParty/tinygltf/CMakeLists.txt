@@ -9,7 +9,7 @@ set(TINYGLTF_BUILD_LOADER_EXAMPLE OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(
     tinygltf
     GIT_REPOSITORY https://github.com/syoyo/tinygltf
-    GIT_TAG        a5e653e46cca64bbc0ecee7ede007347a94c39b0 # v2.9.5
+    GIT_TAG        b956fa3e9deeb7ee7f0f22c08bda9b3a684a98dc # v2.9.5
 )
 FetchContent_MakeAvailable(tinygltf)
 
