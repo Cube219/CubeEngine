@@ -3,7 +3,7 @@
 #include "CoreHeader.h"
 
 #include "GAPI_Sampler.h"
-#include "Renderer/RenderTypes.h"
+#include "RenderCore/RenderTypes.h"
 
 namespace cube
 {

@@ -1,11 +1,11 @@
-#include "Renderer/RenderGraph.h"
+#include "RenderGraph.h"
 
 #include "Allocator/FrameAllocator.h"
 #include "Checker.h"
 #include "GAPI_CommandList.h"
 #include "Pipeline.h"
 #include "Texture.h"
-#include "Renderer/RenderGraphTypes.h"
+#include "RenderCore/RenderGraphTypes.h"
 
 
 namespace cube

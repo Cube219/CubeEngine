@@ -3,9 +3,9 @@
 #include "CoreHeader.h"
 
 #include "GAPI_Buffer.h"
-#include "Renderer/RenderGraphTypes.h"
-#include "Renderer/RenderTypes.h"
-#include "Renderer/ShaderParameter.h"
+#include "RenderCore/RenderGraphTypes.h"
+#include "RenderCore/RenderTypes.h"
+#include "RenderCore/ShaderParameter.h"
 #include "Pipeline.h"
 
 namespace cube

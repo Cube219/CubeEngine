@@ -2,8 +2,8 @@
 
 #include "CoreHeader.h"
 
-#include "Pipeline.h"
-#include "Renderer/RenderGraphTypes.h"
+#include "RenderCore/Pipeline.h"
+#include "RenderCore/RenderGraphTypes.h"
 
 namespace cube
 {

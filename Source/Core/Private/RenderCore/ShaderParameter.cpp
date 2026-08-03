@@ -1,4 +1,4 @@
-#include "Renderer/ShaderParameter.h"
+#include "RenderCore/ShaderParameter.h"
 
 #include "Allocator/FrameAllocator.h"
 #include "GAPI.h"

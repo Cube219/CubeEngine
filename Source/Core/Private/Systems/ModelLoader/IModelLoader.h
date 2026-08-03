@@ -5,7 +5,7 @@
 #include "CubeString.h"
 #include "FileSystem.h"
 #include "Vector.h"
-#include "Renderer/Mesh.h"
+#include "RenderCore/Mesh.h"
 
 namespace cube
 {

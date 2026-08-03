@@ -10,7 +10,7 @@
 #include "MacOS/MacOSString.h"
 #include "MetalDevice.h"
 #include "MetalUtility.h"
-#include "Renderer/RenderTypes.h"
+#include "RenderCore/RenderTypes.h"
 
 namespace cube
 {

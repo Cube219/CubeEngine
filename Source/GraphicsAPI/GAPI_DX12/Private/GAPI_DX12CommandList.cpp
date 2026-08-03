@@ -11,7 +11,7 @@
 #include "GAPI_DX12Texture.h"
 #include "GAPI_Sampler.h"
 #include "GAPI_Texture.h"
-#include "Renderer/RenderTypes.h"
+#include "RenderCore/RenderTypes.h"
 
 namespace cube
 {

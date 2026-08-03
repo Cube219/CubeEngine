@@ -8,9 +8,9 @@
 #include "GAPI_CommandList.h"
 #include "GAPI_Pipeline.h"
 #include "Pipeline.h"
-#include "Renderer/RenderGraph.h"
-#include "Renderer/RenderGraphTypes.h"
-#include "Renderer.h"
+#include "RenderCore/RenderGraph.h"
+#include "RenderCore/RenderGraphTypes.h"
+#include "Renderer/Renderer.h"
 #include "Shader.h"
 #include "Texture.h"
 

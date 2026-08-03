@@ -1,11 +1,11 @@
-#include "Renderer/Mesh.h"
+#include "Mesh.h"
 
 
 #include "Allocator/FrameAllocator.h"
 #include "Engine.h"
 #include "GAPI_Buffer.h"
 #include "Platform.h"
-#include "Renderer.h"
+#include "Renderer/Renderer.h"
 
 namespace cube
 {

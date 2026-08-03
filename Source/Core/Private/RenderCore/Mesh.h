@@ -3,7 +3,7 @@
 #include "CoreHeader.h"
 
 #include "Blob.h"
-#include "Renderer/RenderTypes.h"
+#include "RenderCore/RenderTypes.h"
 #include "Vector.h"
 
 namespace cube

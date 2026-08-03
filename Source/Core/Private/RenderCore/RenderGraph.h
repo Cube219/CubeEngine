@@ -5,9 +5,9 @@
 #include "Checker.h"
 #include "Engine.h"
 #include "GAPI_CommandList.h"
-#include "Renderer/RenderGraphTypes.h"
+#include "RenderCore/RenderGraphTypes.h"
 #include "Renderer/Renderer.h"
-#include "Renderer/ShaderParameter.h"
+#include "RenderCore/ShaderParameter.h"
 
 namespace cube
 {

@@ -2,7 +2,7 @@
 
 #include "CoreHeader.h"
 
-#include "Pipeline.h"
+#include "RenderCore/Pipeline.h"
 
 namespace cube
 {

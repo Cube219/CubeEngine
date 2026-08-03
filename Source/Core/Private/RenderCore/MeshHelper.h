@@ -3,7 +3,7 @@
 #include "CoreHeader.h"
 
 #include "Allocator/FrameAllocator.h"
-#include "Renderer/Mesh.h"
+#include "Mesh.h"
 
 namespace cube
 {

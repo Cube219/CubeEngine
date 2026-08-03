@@ -336,7 +336,7 @@ Models are loaded via:
 | GAPI interface | `Source/GraphicsAPI/GAPI/Public/GAPI.h` |
 | Platform interface | `Source/Platform/Public/Platform.h` |
 | Math types | `Source/Base/Public/Math/` |
-| Shader parameters DSL | `Source/Core/Public/Renderer/ShaderParameter.h` |
+| Shader parameters DSL | `Source/Core/Public/RenderCore/ShaderParameter.h` |
 | DX12 implementation | `Source/GraphicsAPI/GAPI_DX12/Private/` |
 | Metal implementation | `Source/GraphicsAPI/GAPI_Metal/Private/` |
 | Shaders | `Resources/Shaders/` |

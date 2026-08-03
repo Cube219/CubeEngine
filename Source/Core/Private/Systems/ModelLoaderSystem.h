@@ -3,7 +3,7 @@
 #include "CoreHeader.h"
 
 #include "Vector.h"
-#include "Renderer/Mesh.h"
+#include "RenderCore/Mesh.h"
 #include "Systems/ModelLoader/IModelLoader.h"
 
 namespace cube

@@ -2,8 +2,8 @@
 
 #include "Allocator/AllocatorUtility.h"
 #include "GAPI_Texture.h"
-#include "Renderer/RenderGraphTypes.h"
-#include "Renderer/ShaderParameter.h"
+#include "RenderCore/RenderGraphTypes.h"
+#include "RenderCore/ShaderParameter.h"
 
 namespace cube
 {

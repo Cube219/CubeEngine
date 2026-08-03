@@ -7,7 +7,7 @@
 #include "GAPI_ShaderParameter.h"
 #include "GAPI_ShaderReflection.h"
 #include "Matrix.h"
-#include "Renderer/RenderTypes.h"
+#include "RenderCore/RenderTypes.h"
 
 #ifndef CUBE_CHECK_PARAMETERS
 #define CUBE_CHECK_PARAMETERS 1

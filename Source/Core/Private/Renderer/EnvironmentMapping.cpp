@@ -3,10 +3,10 @@
 #include "imgui.h"
 
 #include "GAPI_Shader.h"
-#include "Pipeline.h"
-#include "Renderer/Mesh.h"
-#include "RenderGraph.h"
-#include "Shader.h"
+#include "RenderCore/Pipeline.h"
+#include "RenderCore/Mesh.h"
+#include "RenderCore/RenderGraph.h"
+#include "RenderCore/Shader.h"
 #include "Allocator/FrameAllocator.h"
 
 namespace cube

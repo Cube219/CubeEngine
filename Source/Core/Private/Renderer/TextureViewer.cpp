@@ -6,9 +6,9 @@
 #include "CubeMath.h"
 #include "Engine.h"
 #include "Platform.h"
-#include "RenderGraph.h"
+#include "RenderCore/RenderGraph.h"
 #include "Renderer.h"
-#include "Shader.h"
+#include "RenderCore/Shader.h"
 
 namespace cube
 {

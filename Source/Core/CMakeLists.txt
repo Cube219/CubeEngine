@@ -3,51 +3,51 @@ cmake_minimum_required(VERSION 3.19)
 set(PUBLIC_FILES
     Public/Allocator/AllocatorUtility.h
     Public/Allocator/FrameAllocator.h
-    Public/Renderer/RenderGraphTypes.h
-    Public/Renderer/RenderTypes.h
-    Public/Renderer/ShaderParameter.h
+    Public/RenderCore/RenderGraphTypes.h
+    Public/RenderCore/RenderTypes.h
+    Public/RenderCore/ShaderParameter.h
     Public/CoreHeader.h
     Public/Engine.h
 )
 set(PRIVATE_FILES
     Private/Allocator/FrameAllocator.cpp
+    Private/RenderCore/Light.cpp
+    Private/RenderCore/Light.h
+    Private/RenderCore/LightManager.cpp
+    Private/RenderCore/LightManager.h
+    Private/RenderCore/Material.cpp
+    Private/RenderCore/Material.h
+    Private/RenderCore/Mesh.cpp
+    Private/RenderCore/Mesh.h
+    Private/RenderCore/MeshHelper.cpp
+    Private/RenderCore/MeshHelper.h
+    Private/RenderCore/Pipeline.cpp
+    Private/RenderCore/Pipeline.h
+    Private/RenderCore/RenderGraph.cpp
+    Private/RenderCore/RenderGraph.h
+    Private/RenderCore/RenderProfiling.cpp
+    Private/RenderCore/RenderProfiling.h
+    Private/RenderCore/SamplerManager.cpp
+    Private/RenderCore/SamplerManager.h
+    Private/RenderCore/Shader.cpp
+    Private/RenderCore/Shader.h
+    Private/RenderCore/ShaderParameter.cpp
+    Private/RenderCore/Texture.cpp
+    Private/RenderCore/Texture.h
+    Private/RenderCore/TextureManager.cpp
+    Private/RenderCore/TextureManager.h
+    Private/RenderCore/UploadManager.cpp
+    Private/RenderCore/UploadManager.h
     Private/Renderer/EnvironmentMapping.cpp
     Private/Renderer/EnvironmentMapping.h
-    Private/Renderer/Light.cpp
-    Private/Renderer/Light.h
-    Private/Renderer/LightManager.cpp
-    Private/Renderer/LightManager.h
-    Private/Renderer/Material.cpp
-    Private/Renderer/Material.h
-    Private/Renderer/Mesh.cpp
-    Private/Renderer/Mesh.h
-    Private/Renderer/MeshHelper.cpp
-    Private/Renderer/MeshHelper.h
-    Private/Renderer/Pipeline.cpp
-    Private/Renderer/Pipeline.h
     Private/Renderer/Renderer.cpp
     Private/Renderer/Renderer.h
-    Private/Renderer/RenderGraph.cpp
-    Private/Renderer/RenderGraph.h
-    Private/Renderer/RenderProfiling.cpp
-    Private/Renderer/RenderProfiling.h
-    Private/Renderer/SamplerManager.cpp
-    Private/Renderer/SamplerManager.h
-    Private/Renderer/Shader.cpp
-    Private/Renderer/Shader.h
-    Private/Renderer/ShaderParameter.cpp
-    Private/Renderer/Texture.cpp
-    Private/Renderer/Texture.h
-    Private/Renderer/TextureManager.cpp
-    Private/Renderer/TextureManager.h
+    Private/Renderer/RenderUtils.cpp
+    Private/Renderer/RenderUtils.h
     Private/Renderer/TextureViewer.cpp
     Private/Renderer/TextureViewer.h
     Private/Renderer/Tonemap.cpp
     Private/Renderer/Tonemap.h
-    Private/Renderer/UploadManager.cpp
-    Private/Renderer/UploadManager.h
-    Private/Renderer/RenderUtils.cpp
-    Private/Renderer/RenderUtils.h
     Private/Scene/Scene.cpp
     Private/Scene/Scene.h
     Private/Scene/SceneObject.cpp

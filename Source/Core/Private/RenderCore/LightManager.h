@@ -2,7 +2,7 @@
 
 #include "CoreHeader.h"
 
-#include "EnvironmentMapping.h"
+#include "Renderer/EnvironmentMapping.h"
 #include "Light.h"
 
 namespace cube
