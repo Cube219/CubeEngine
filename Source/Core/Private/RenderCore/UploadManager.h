@@ -38,13 +38,12 @@ namespace cube
         void Initialize(GAPI* gAPI);
         void Shutdown();
 
-        // TODO: Thread-safe
-        UploadDesc Allocate(SharedPtr<gapi::Buffer> dstBuffer);
-        UploadDesc Allocate(SharedPtr<gapi::Texture> dstTexture);
-        Uint64 Submit(UploadDesc& desc, bool waitForCompletion = false);
-        void Discard(UploadDesc& desc);
+        UploadDesc Allocate(SharedPtr<gapi::Buffer> dstBuffer, bool directIfPossible = false);
+        UploadDesc Allocate(SharedPtr<gapi::Texture> dstTexture, bool directIfPossible = false);
 
-        bool IsUploadFinished(Uint64 submitFenceValue);
+        void SubmitToCopyQueue(UploadDesc& desc, SharedPtr<gapi::Fence> finishSignalFence = nullptr, Uint64 signalValue = 0);
+        void Submit(UploadDesc& desc, SharedPtr<gapi::CommandList> commandList, SharedPtr<gapi::Fence> finishSignalFence = nullptr, Uint64 signalValue = 0);
+        void Discard(UploadDesc& desc);
 
     private:
         struct Page

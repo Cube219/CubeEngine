@@ -6,19 +6,20 @@
 #include "EnvironmentMapping.h"
 #include "GAPI.h"
 #include "GAPI_Texture.h"
-#include "RenderCore/LightManager.h"
 #include "Matrix.h"
-#include "RenderCore/Pipeline.h"
-#include "RenderUtils.h"
+#include "RenderCore/BufferManager.h"
+#include "RenderCore/LightManager.h"
 #include "RenderCore/Mesh.h"
-#include "RenderCore/ShaderParameter.h"
+#include "RenderCore/Pipeline.h"
 #include "RenderCore/SamplerManager.h"
 #include "RenderCore/Shader.h"
+#include "RenderCore/ShaderParameter.h"
 #include "RenderCore/Texture.h"
 #include "RenderCore/TextureManager.h"
+#include "RenderCore/UploadManager.h"
+#include "RenderUtils.h"
 #include "TextureViewer.h"
 #include "Tonemap.h"
-#include "RenderCore/UploadManager.h"
 #include "Vector.h"
 
 namespace cube
@@ -72,6 +73,7 @@ namespace cube
         GAPI& GetGAPI() const { return *mGAPI; }
         ShaderParameterListManager& GetShaderParameterListManager() { return mShaderParameterListManager; }
         ShaderManager& GetShaderManager() { return mShaderManager; }
+        BufferManager& GetBufferManager() { return mBufferManager; }
         TextureManager& GetTextureManager() { return mTextureManager; }
         SamplerManager& GetSamplerManager() { return mSamplerManager; }
         PipelineManager& GetPipelineManager() { return mPipelineManager; }
@@ -119,6 +121,7 @@ namespace cube
         UploadManager mUploadManager;
         ShaderParameterListManager mShaderParameterListManager;
         ShaderManager mShaderManager;
+        BufferManager mBufferManager;
         TextureManager mTextureManager;
         SamplerManager mSamplerManager;
         PipelineManager mPipelineManager;

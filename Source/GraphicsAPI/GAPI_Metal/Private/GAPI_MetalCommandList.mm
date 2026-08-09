@@ -707,22 +707,11 @@ namespace cube
             [mCommandBuffer encodeSignalEvent:metalFence->GetEvent() value:fenceValue];
         }
 
-        void MetalCommandList::Submit(bool waitUntilFinished, Fence* signalFence, Uint64 fenceValue)
+        void MetalCommandList::Submit()
         {
             CHECK(!IsWriting());
 
-            if (signalFence != nullptr)
-            {
-                MetalFence* metalFence = dynamic_cast<MetalFence*>(signalFence);
-                CHECK(metalFence);
-                [mCommandBuffer encodeSignalEvent:metalFence->GetEvent() value:fenceValue];
-            }
-
             [mCommandBuffer commit];
-            if (waitUntilFinished)
-            {
-                [mCommandBuffer waitUntilCompleted];
-            }
             mCommandBuffer = nil;
         }
 

@@ -367,7 +367,8 @@ namespace cube
         // ===== Executing =====
     public:
         // TODO: Rename to Execute and make not submitting at this function.
-        void ExecuteAndSubmit(gapi::CommandList& commandList, bool waitUntilFinished = false);
+        void ExecuteAndSubmit(gapi::CommandList& commandList);
+        void Execute(gapi::CommandList& commandList);
 
     private:
         void ResolveShaderParameterListsAndPipeline(RGPass& pass, gapi::CommandList& commandList);
@@ -406,7 +407,7 @@ namespace cube
             Init,
             TrackingResources,
             Executing,
-            Submitted
+            Executed
         };
         Phase mPhase = Phase::Init;
     };

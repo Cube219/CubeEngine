@@ -17,6 +17,7 @@ namespace cube
     namespace gapi
     {
         class CommandList;
+        class Fence;
         class Texture;
     } // namespace gapi
 
@@ -37,7 +38,15 @@ namespace cube
         void Initialize(GAPI* gapi, Uint32 numGPUSync);
         void Shutdown();
 
-        void GenerateMipmaps(SharedPtr<gapi::Texture> texture);
+        void GenerateMipmaps(SharedPtr<gapi::Texture> texture, gapi::CommandList& commandList);
+
+        SharedPtr<gapi::CommandList> GetTextureInitCommandList() const { return mTextureInitCommandList; }
+        SharedPtr<gapi::Fence> GetTextureInitFence() const { return mTextureInitFence; }
+        Uint64 GetAndMoveTextureInitFenceValue()
+        {
+            mTextureInitFenceLastValue++;
+            return mTextureInitFenceLastValue;
+        }
 
     private:
         GAPI* mGAPI;
@@ -46,6 +55,8 @@ namespace cube
         SharedPtr<Shader> mGenerateMipmapsShader;
         ComputePipelineInfo mGenerateMipmapsPipelineInfo;
 
-        SharedPtr<gapi::CommandList> mCommandList;
+        SharedPtr<gapi::CommandList> mTextureInitCommandList;
+        SharedPtr<gapi::Fence> mTextureInitFence;
+        Uint64 mTextureInitFenceLastValue = 0;
     };
 } // namespace cube

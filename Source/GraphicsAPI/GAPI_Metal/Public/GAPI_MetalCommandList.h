@@ -102,7 +102,7 @@ namespace cube
             virtual void WaitForFence(SharedPtr<Fence> fence, Uint64 fenceValue) override;
             virtual void SignalToFence(SharedPtr<Fence> fence, Uint64 fenceValue) override;
 
-            virtual void Submit(bool waitUntilFinished, Fence* signalFence = nullptr, Uint64 fenceValue = 0) override;
+            virtual void Submit() override;
 
         private:
             void UseResourceInternal(id<MTLResource> resource, MTLResourceUsage usage);

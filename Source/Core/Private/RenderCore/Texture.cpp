@@ -15,7 +15,7 @@ namespace cube
     {
         const gapi::TextureInfo& info = createInfo.textureInfo;
 
-        // TODO: Support otehr texture types.
+        // TODO: Support other texture types.
         if (info.type != gapi::TextureType::Texture2D && info.type != gapi::TextureType::TextureCube)
         {
             NOT_IMPLEMENTED();
@@ -60,7 +60,7 @@ namespace cube
         const Uint64 srcSubSize = info.width * info.height * createInfo.bytesPerElement;
 
         UploadManager& uploadManager = Engine::GetRenderer()->GetUploadManager();
-        UploadDesc uploadDesc = uploadManager.Allocate(mGAPITexture);
+        UploadDesc uploadDesc = uploadManager.Allocate(mGAPITexture, true);
         Byte* pDst = (Byte*)uploadDesc.pData;
         // Only set miplevel 0.
         for (int i = 0; i < numSlices; ++i)
@@ -77,17 +77,73 @@ namespace cube
                 memcpy(pDstSub + (y * layout.rowPitch), pSrcSub + (y * srcRowSize), srcRowSize);
             }
         }
-        uploadManager.Submit(uploadDesc, true);
+
+        TextureManager& textureManager = Engine::GetRenderer()->GetTextureManager();
+        SharedPtr<gapi::Fence> textureInitFence = textureManager.GetTextureInitFence();
+        Uint64 fenceValue = textureManager.GetAndMoveTextureInitFenceValue();
+
+        uploadManager.SubmitToCopyQueue(uploadDesc, textureInitFence, fenceValue);
 
         if (createInfo.generateMipMaps)
         {
-            Engine::GetRenderer()->GetTextureManager().GenerateMipmaps(mGAPITexture);
+            SharedPtr<gapi::CommandList> textureInitCommandList = textureManager.GetTextureInitCommandList();
+            textureInitCommandList->WaitForFence(textureInitFence, fenceValue);
+
+            textureManager.GenerateMipmaps(mGAPITexture, *textureInitCommandList);
+
+            fenceValue = textureManager.GetAndMoveTextureInitFenceValue();
+            textureInitCommandList->SignalToFence(textureInitFence, fenceValue);
         }
+
+        mInitFenceValue = fenceValue;
     }
 
     TextureResource::~TextureResource()
     {
         mGAPITexture = nullptr;
+    }
+
+    void TextureResource::WaitUntilInitialized()
+    {
+        if (mIsInitialized)
+        {
+            return;
+        }
+
+        CheckInitialized();
+
+        if (!mIsInitialized)
+        {
+            TextureManager& textureManager = Engine::GetRenderer()->GetTextureManager();
+            textureManager.GetTextureInitFence()->Wait(mInitFenceValue);
+        }
+    }
+
+    void TextureResource::WaitUntilInitialized(gapi::CommandList& commandList)
+    {
+        if (mIsInitialized)
+        {
+            return;
+        }
+
+        CheckInitialized();
+
+        if (!mIsInitialized)
+        {
+            TextureManager& textureManager = Engine::GetRenderer()->GetTextureManager();
+            commandList.WaitForFence(textureManager.GetTextureInitFence(), mInitFenceValue);
+        }
+    }
+
+    void TextureResource::CheckInitialized()
+    {
+        if (mIsInitialized)
+        {
+            return;
+        }
+
+        TextureManager& textureManager = Engine::GetRenderer()->GetTextureManager();
+        mIsInitialized = (textureManager.GetTextureInitFence()->GetCompletedValue() >= mInitFenceValue);
     }
 
     TextureRawData TextureHelper::LoadFromFile(platform::FilePath path, LoadElementType loadElementType)

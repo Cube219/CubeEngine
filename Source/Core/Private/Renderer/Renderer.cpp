@@ -28,6 +28,7 @@ namespace cube
 
     Renderer::Renderer()
         : mShaderManager(*this)
+        , mBufferManager(*this)
         , mTextureManager(*this)
         , mPipelineManager(*this)
         , mLightManager(*this)
@@ -82,6 +83,7 @@ namespace cube
 
         mShaderParameterListManager.Initialize(mGAPI.get(), mNumGPUSync);
         mShaderManager.Initialize(false);
+        mBufferManager.Initialize(mGAPI.get());
         mTextureManager.Initialize(mGAPI.get(), mNumGPUSync);
         mSamplerManager.Initialize(mGAPI.get());
         mPipelineManager.Initialize();
@@ -136,6 +138,7 @@ namespace cube
         mPipelineManager.Shutdown();
         mSamplerManager.Shutdown();
         mTextureManager.Shutdown();
+        mBufferManager.Shutdown();
         mShaderManager.Shutdown();
         mShaderParameterListManager.Shutdown();
 

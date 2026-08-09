@@ -788,7 +788,18 @@ namespace cube
         NO_ENTRY_FORMAT("You must call UseResource first before calling AddUAVBarrier.");
     }
 
-    void RGBuilder::ExecuteAndSubmit(gapi::CommandList& commandList, bool waitUntilFinished)
+    void RGBuilder::ExecuteAndSubmit(gapi::CommandList& commandList)
+    {
+        commandList.Reset();
+        commandList.Begin();
+
+        Execute(commandList);
+
+        commandList.End();
+        commandList.Submit();
+    }
+
+    void RGBuilder::Execute(gapi::CommandList& commandList)
     {
         CHECK(mPhase == Phase::Init);
         CHECK(!mInitState.isInRenderPass);
@@ -800,9 +811,6 @@ namespace cube
         ResolveBarriers();
 
         mPhase = Phase::Executing;
-
-        commandList.Reset();
-        commandList.Begin();
 
         commandList.BeginTimestamp(CUBE_T("RGBuilder"));
 
@@ -848,10 +856,7 @@ namespace cube
 
         commandList.EndTimestamp();
 
-        commandList.End();
-        commandList.Submit(waitUntilFinished);
-
-        mPhase = Phase::Submitted;
+        mPhase = Phase::Executed;
 
         Reset();
     }

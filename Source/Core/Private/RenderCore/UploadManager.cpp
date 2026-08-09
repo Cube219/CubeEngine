@@ -56,11 +56,11 @@ namespace cube
         mGAPI = nullptr;
     }
 
-    UploadDesc UploadManager::Allocate(SharedPtr<gapi::Buffer> dstBuffer)
+    UploadDesc UploadManager::Allocate(SharedPtr<gapi::Buffer> dstBuffer, bool directIfPossible)
     {
         CHECK(dstBuffer->GetUsage() == gapi::ResourceUsage::GPUOnly);
 
-        if (mGAPI->IsDirectMapSupported(gapi::ResourceType::Buffer))
+        if (directIfPossible && mGAPI->IsDirectMapSupported(gapi::ResourceType::Buffer))
         {
             void* pData = dstBuffer->Map();
             return {
@@ -75,11 +75,11 @@ namespace cube
         return desc;
     }
 
-    UploadDesc UploadManager::Allocate(SharedPtr<gapi::Texture> dstTexture)
+    UploadDesc UploadManager::Allocate(SharedPtr<gapi::Texture> dstTexture, bool directIfPossible)
     {
         CHECK(dstTexture->GetUsage() == gapi::ResourceUsage::GPUOnly);
 
-        if (mGAPI->IsDirectMapSupported(gapi::ResourceType::Texture))
+        if (directIfPossible && mGAPI->IsDirectMapSupported(gapi::ResourceType::Texture))
         {
             void* pData = dstTexture->Map();
             return {
@@ -130,7 +130,28 @@ namespace cube
         return res;
     }
 
-    Uint64 UploadManager::Submit(UploadDesc& desc, bool waitForCompletion)
+    void UploadManager::SubmitToCopyQueue(UploadDesc& desc, SharedPtr<gapi::Fence> finishSignalFence, Uint64 signalValue)
+    {
+        UpdateStates();
+
+        int commandListIndex = GetAvailableCommandListIndex();
+        CopyCommandList& copyCommandList = mCopyCommandLists[commandListIndex];
+
+        copyCommandList.commandList->Reset();
+        copyCommandList.commandList->Begin();
+
+        Submit(desc, copyCommandList.commandList, finishSignalFence, signalValue);
+
+        mLastFenceValue++;
+        copyCommandList.commandList->SignalToFence(mFence, mLastFenceValue);
+        copyCommandList.commandList->End();
+
+        copyCommandList.commandList->Submit();
+        copyCommandList.lastFenceValue = mLastFenceValue;
+        mFenceValueAndPageIdPairQueue.push({ mLastFenceValue, desc.pageId });
+    }
+
+    void UploadManager::Submit(UploadDesc& desc, SharedPtr<gapi::CommandList> commandList, SharedPtr<gapi::Fence> finishSignalFence, Uint64 signalValue)
     {
         UpdateStates();
 
@@ -144,44 +165,26 @@ namespace cube
             {
                 desc.dstTexture->Unmap();
 
-                int commandListIndex = GetAvailableCommandListIndex();
-                CopyCommandList& copyCommandList = mCopyCommandLists[commandListIndex];
-
-                copyCommandList.commandList->Reset();
-                copyCommandList.commandList->Begin();
-                copyCommandList.commandList->OptimizeTextureContentsForGPUAccess(desc.dstTexture);
-                copyCommandList.commandList->End();
-
-                mLastFenceValue++;
-                copyCommandList.commandList->Submit(false, mFence.get(), mLastFenceValue);
-                copyCommandList.lastFenceValue = mLastFenceValue;
+                commandList->Reset();
+                commandList->Begin();
+                commandList->OptimizeTextureContentsForGPUAccess(desc.dstTexture);
+                commandList->End();
             }
 
             desc.pData = nullptr;
             desc.dstBuffer = nullptr;
             desc.dstTexture = nullptr;
 
-            if (waitForCompletion)
-            {
-                mFence->Wait(mLastFenceValue);
-            }
-
-            return mLastFenceValue;
+            return;
         }
 
         auto pageIt = mPages.find(desc.pageId);
         CHECK(pageIt != mPages.end());
         Page& page = pageIt->second;
 
-        int commandListIndex = GetAvailableCommandListIndex();
-        CopyCommandList& copyCommandList = mCopyCommandLists[commandListIndex];
-
-        copyCommandList.commandList->Reset();
-        copyCommandList.commandList->Begin();
-
         if (desc.dstBuffer)
         {
-            copyCommandList.commandList->CopyBuffer(page.stagingBuffer, desc.offsetInPage, desc.dstBuffer, 0, desc.size);
+            commandList->CopyBuffer(page.stagingBuffer, desc.offsetInPage, desc.dstBuffer, 0, desc.size);
         }
         else
         {
@@ -198,30 +201,22 @@ namespace cube
                 .layoutSrc = gapi::ResourceLayout::Undefined,
                 .layoutDst = gapi::ResourceLayout::Common,
             };
-            copyCommandList.commandList->SetResourceBarrier(barrier);
+            commandList->SetResourceBarrier(barrier);
 
-            copyCommandList.commandList->CopyBufferToTexture(page.stagingBuffer, desc.offsetInPage, desc.dstTexture);
+            commandList->CopyBufferToTexture(page.stagingBuffer, desc.offsetInPage, desc.dstTexture);
 
-            copyCommandList.commandList->OptimizeTextureContentsForGPUAccess(desc.dstTexture);
+            commandList->OptimizeTextureContentsForGPUAccess(desc.dstTexture);
         }
 
-        copyCommandList.commandList->End();
-
         mLastFenceValue++;
-        copyCommandList.commandList->Submit(false, mFence.get(), mLastFenceValue);
-        copyCommandList.lastFenceValue = mLastFenceValue;
-        mFenceValueAndPageIdPairQueue.push({ mLastFenceValue, desc.pageId });
+        if (finishSignalFence)
+        {
+            commandList->SignalToFence(finishSignalFence, signalValue);
+        }
 
         desc.pData = nullptr;
         desc.dstBuffer = nullptr;
         desc.dstTexture = nullptr;
-
-        if (waitForCompletion)
-        {
-            mFence->Wait(mLastFenceValue);
-        }
-
-        return mLastFenceValue;
     }
 
     void UploadManager::Discard(UploadDesc& desc)
@@ -244,30 +239,16 @@ namespace cube
             auto pageIt = mPages.find(desc.pageId);
             CHECK(pageIt != mPages.end());
 
-            // Just add fence to identify the allocation was released in UpdateStates.
+            // Just add to release queue to identify the uploading was completed in UpdateStates.
             // The page can be used in other in-flight upload descs, so the release
             // must be deferred until all previously submitted uploads complete.
-            int commandListIndex = GetAvailableCommandListIndex();
-            CopyCommandList& copyCommandList = mCopyCommandLists[commandListIndex];
-
-            copyCommandList.commandList->Reset();
-            copyCommandList.commandList->Begin();
-            copyCommandList.commandList->End();
-
-            mLastFenceValue++;
-            copyCommandList.commandList->Submit(false, mFence.get(), mLastFenceValue);
-            copyCommandList.lastFenceValue = mLastFenceValue;
-            mFenceValueAndPageIdPairQueue.push({ mLastFenceValue, desc.pageId });
+            // (See ReleaseAllocation().)
+            mFenceValueAndPageIdPairQueue.push({ 0, desc.pageId });
         }
 
         desc.pData = nullptr;
         desc.dstBuffer = nullptr;
         desc.dstTexture = nullptr;
-    }
-
-    bool UploadManager::IsUploadFinished(Uint64 submitFenceValue)
-    {
-        return submitFenceValue <= mFence->GetCompletedValue();
     }
 
     int UploadManager::AllocateNewPage(Uint64 size)

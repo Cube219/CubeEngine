@@ -11,6 +11,7 @@ namespace cube
     namespace gapi
     {
         class Buffer;
+        class CommandList;
     } // namespace gapi
 
     struct SubMesh
@@ -71,13 +72,21 @@ namespace cube
         const StringView GetDebugName() const { return mMeshData->GetDebugName(); }
         const MeshMetadata& GetMeta() const { return mMeta; }
 
+        void WaitUntilInitialized();
+        void WaitUntilInitialized(gapi::CommandList& commandList);
+
     private:
         friend class MeshHelper;
+
+        void CheckInitialized();
 
         SharedPtr<MeshData> mMeshData;
         MeshMetadata mMeta;
 
         SharedPtr<gapi::Buffer> mVertexBuffer;
         SharedPtr<gapi::Buffer> mIndexBuffer;
+
+        Uint64 mInitFenceValue;
+        bool mIsInitialized = false;
     };
 } // namespace cube

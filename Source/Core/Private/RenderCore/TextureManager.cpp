@@ -46,20 +46,25 @@ namespace cube
             };
         }
 
-        mCommandList = mGAPI->CreateCommandList({
-            .debugName = CUBE_T("TextureManagerCommandList")
+        mTextureInitCommandList = mGAPI->CreateCommandList({
+            .debugName = CUBE_T("TextureInitCommandList")
+        });
+        mTextureInitFence = mGAPI->CreateFence({
+            .allowCPUAccess = true,
+            .debugName = CUBE_T("TextureInitFence")
         });
     }
 
     void TextureManager::Shutdown()
     {
-        mCommandList = nullptr;
+        mTextureInitFence = nullptr;
+        mTextureInitCommandList = nullptr;
 
         mGenerateMipmapsPipelineInfo = {};
         mGenerateMipmapsShader = nullptr;
     }
 
-    void TextureManager::GenerateMipmaps(SharedPtr<gapi::Texture> texture)
+    void TextureManager::GenerateMipmaps(SharedPtr<gapi::Texture> texture, gapi::CommandList& commandList)
     {
         // TODO: Implement other types
         if (texture->GetType() != gapi::TextureType::Texture2D)
@@ -105,6 +110,6 @@ namespace cube
             }
         }
 
-        builder.ExecuteAndSubmit(*mCommandList, true);
+        builder.Execute(commandList);
     }
 } // namespace cube

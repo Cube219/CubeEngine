@@ -172,7 +172,7 @@ namespace cube
             // NOTE: It split the command list internally, so bounded pipeline will be cleared.
             virtual void SignalToFence(SharedPtr<Fence> fence, Uint64 fenceValue) = 0;
 
-            virtual void Submit(bool waitUntilFinished = false, Fence* signalFence = nullptr, Uint64 fenceValue = 0) = 0;
+            virtual void Submit() = 0;
         };
     } // namespace gapi
 } // namespace cube

@@ -76,7 +76,7 @@ namespace cube
             virtual void WaitForFence(SharedPtr<Fence> fence, Uint64 fenceValue) override;
             virtual void SignalToFence(SharedPtr<Fence> fence, Uint64 fenceValue) override;
 
-            virtual void Submit(bool waitUntilFinished = false, Fence* signalFence = nullptr, Uint64 fenceValue = 0) override;
+            virtual void Submit() override;
 
             bool IsWriting() const { return mPhase == Phase::Writing; }
             bool IsInRenderPass() const { return mIsInRenderPass; }

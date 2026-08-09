@@ -2,6 +2,7 @@
 
 
 #include "Allocator/FrameAllocator.h"
+#include "BufferManager.h"
 #include "Engine.h"
 #include "GAPI_Buffer.h"
 #include "Platform.h"
@@ -70,7 +71,7 @@ namespace cube
 
             UploadManager& uploadManager = Engine::GetRenderer()->GetUploadManager();
 
-            UploadDesc vbUploadDesc = uploadManager.Allocate(mVertexBuffer);
+            UploadDesc vbUploadDesc = uploadManager.Allocate(mVertexBuffer, true);
             void* pVertexBufferData = vbUploadDesc.pData;
             if (mMeta.useFloat16)
             {
@@ -92,13 +93,23 @@ namespace cube
                     fp32Vertices[i] = ConvertVertexToFP32(vertices[i]);
                 }
             }
-            uploadManager.Submit(vbUploadDesc, true);
 
-            UploadDesc ibUploadDesc = uploadManager.Allocate(mIndexBuffer);
+            BufferManager& bufferManager = Engine::GetRenderer()->GetBufferManager();
+            SharedPtr<gapi::CommandList> bufferInitCommandList = bufferManager.GetBufferInitCommandList();
+            SharedPtr<gapi::Fence> bufferInitFence = bufferManager.GetBufferInitFence();
+
+            Uint64 fenceValue = bufferManager.GetAndMoveBufferInitFenceValue();
+            uploadManager.SubmitToCopyQueue(vbUploadDesc, bufferInitFence, fenceValue);
+
+            UploadDesc ibUploadDesc = uploadManager.Allocate(mIndexBuffer, true);
             void* pIndexBufferData = ibUploadDesc.pData;
             BlobView indexData = meshData->GetIndexData();
             memcpy(pIndexBufferData, indexData.GetData(), indexData.GetSize());
-            uploadManager.Submit(ibUploadDesc, true);
+
+            fenceValue = bufferManager.GetAndMoveBufferInitFenceValue();
+            uploadManager.SubmitToCopyQueue(ibUploadDesc, bufferInitFence, fenceValue);
+
+            mInitFenceValue = fenceValue;
         }
     }
 
@@ -106,5 +117,48 @@ namespace cube
     {
         mIndexBuffer = nullptr;
         mVertexBuffer = nullptr;
+    }
+
+    void Mesh::WaitUntilInitialized()
+    {
+        if (mIsInitialized)
+        {
+            return;
+        }
+
+        CheckInitialized();
+
+        if (!mIsInitialized)
+        {
+            BufferManager& bufferManager = Engine::GetRenderer()->GetBufferManager();
+            bufferManager.GetBufferInitFence()->Wait(mInitFenceValue);
+        }
+    }
+
+    void Mesh::WaitUntilInitialized(gapi::CommandList& commandList)
+    {
+        if (mIsInitialized)
+        {
+            return;
+        }
+
+        CheckInitialized();
+
+        if (!mIsInitialized)
+        {
+            BufferManager& bufferManager = Engine::GetRenderer()->GetBufferManager();
+            commandList.WaitForFence(bufferManager.GetBufferInitFence(), mInitFenceValue);
+        }
+    }
+
+    void Mesh::CheckInitialized()
+    {
+        if (mIsInitialized)
+        {
+            return;
+        }
+
+        BufferManager& bufferManager = Engine::GetRenderer()->GetBufferManager();
+        mIsInitialized = (bufferManager.GetBufferInitFence()->GetCompletedValue() >= mInitFenceValue);
     }
 } // namespace cube

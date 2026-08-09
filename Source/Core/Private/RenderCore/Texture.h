@@ -7,6 +7,11 @@
 
 namespace cube
 {
+    namespace gapi
+    {
+        class CommandList;
+    } // namespace gapi
+
     struct TextureResourceCreateInfo
     {
         gapi::TextureInfo textureInfo;
@@ -26,8 +31,16 @@ namespace cube
 
         SharedPtr<gapi::Texture> GetGAPITexture() const { return mGAPITexture; }
 
+        void WaitUntilInitialized();
+        void WaitUntilInitialized(gapi::CommandList& commandList);
+
     private:
+        void CheckInitialized();
+
         SharedPtr<gapi::Texture> mGAPITexture;
+
+        Uint64 mInitFenceValue;
+        bool mIsInitialized = false;
 
         String mDebugName;
     };

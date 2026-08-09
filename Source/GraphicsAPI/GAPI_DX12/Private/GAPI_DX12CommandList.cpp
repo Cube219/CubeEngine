@@ -621,7 +621,7 @@ namespace cube
             CUBE_DX12_BOUND_OBJECT(fence);
         }
 
-        void DX12CommandList::Submit(bool waitUntilFinished, Fence* signalFence, Uint64 fenceValue)
+        void DX12CommandList::Submit()
         {
             CHECK(mPhase == Phase::Closed);
 
@@ -656,27 +656,9 @@ namespace cube
                 }
             }
 
-            if (signalFence != nullptr)
-            {
-                DX12Fence* dx12Fence = dynamic_cast<DX12Fence*>(signalFence);
-                CHECK(dx12Fence);
-                dx12Fence->SignalToQueue(queue, fenceValue);
-            }
-
             mDevice.GetCommandListManager().AddBoundObjects(mBoundObjects);
             mBoundObjects.clear();
             mSubmitActions.clear();
-
-            if (waitUntilFinished)
-            {
-                cube::DX12FenceWrapper waitFence(mDevice);
-                waitFence.Initialize(CUBE_T("Wait Submit CommandList Fence"), true);
-
-                waitFence.SignalToQueue(queue, 1);
-                waitFence.Wait(1);
-
-                waitFence.Shutdown();
-            }
         }
 
         ID3D12CommandAllocator* DX12CommandList::GetCurrentAllocator() const
