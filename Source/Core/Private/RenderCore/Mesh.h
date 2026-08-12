@@ -3,17 +3,12 @@
 #include "CoreHeader.h"
 
 #include "Blob.h"
+#include "Buffer.h"
 #include "RenderCore/RenderTypes.h"
 #include "Vector.h"
 
 namespace cube
 {
-    namespace gapi
-    {
-        class Buffer;
-        class CommandList;
-    } // namespace gapi
-
     struct SubMesh
     {
         Uint64 vertexOffset;
@@ -65,28 +60,20 @@ namespace cube
         Mesh(const SharedPtr<MeshData>& meshData, const MeshMetadata& meta);
         ~Mesh();
 
-        SharedPtr<gapi::Buffer> GetVertexBuffer() const { return mVertexBuffer; }
-        SharedPtr<gapi::Buffer> GetIndexBuffer() const { return mIndexBuffer; }
+        SharedPtr<BufferResource> GetVertexBuffer() const { return mVertexBuffer; }
+        SharedPtr<BufferResource> GetIndexBuffer() const { return mIndexBuffer; }
         const Vector<SubMesh>& GetSubMeshes() const { return mMeshData->GetSubMeshes(); }
 
         const StringView GetDebugName() const { return mMeshData->GetDebugName(); }
         const MeshMetadata& GetMeta() const { return mMeta; }
 
-        void WaitUntilInitialized();
-        void WaitUntilInitialized(gapi::CommandList& commandList);
-
     private:
         friend class MeshHelper;
-
-        void CheckInitialized();
 
         SharedPtr<MeshData> mMeshData;
         MeshMetadata mMeta;
 
-        SharedPtr<gapi::Buffer> mVertexBuffer;
-        SharedPtr<gapi::Buffer> mIndexBuffer;
-
-        Uint64 mInitFenceValue;
-        bool mIsInitialized = false;
+        SharedPtr<BufferResource> mVertexBuffer;
+        SharedPtr<BufferResource> mIndexBuffer;
     };
 } // namespace cube

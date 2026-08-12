@@ -35,7 +35,7 @@ BreakConstructorInitializers: BeforeComma
 BreakConstructorInitializersBeforeComma: false
 ColumnLimit: 0
 ConstructorInitializerAllOnOneLineOrOnePerLine: false
-Cpp11BracedListStyle: false
+Cpp11BracedListStyle: true
 IncludeCategories: 
   - Regex: '^<.*'
     Priority: 1

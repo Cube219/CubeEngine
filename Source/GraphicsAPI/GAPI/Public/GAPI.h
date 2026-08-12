@@ -101,6 +101,7 @@ namespace cube
         // Whether a GPUOnly resource of the given type can be mapped directly
         // without an intermediate staging buffer (UMA / shared memory).
         virtual bool IsDirectMapSupported(gapi::ResourceType type) const = 0;
+        virtual bool IsNeededToOptimizeTextureContentsUsingCommandList() const = 0;
 
         virtual SharedPtr<gapi::Buffer> CreateBuffer(const gapi::BufferCreateInfo& info) = 0;
         virtual SharedPtr<gapi::CommandList> CreateCommandList(const gapi::CommandListCreateInfo& info) = 0;

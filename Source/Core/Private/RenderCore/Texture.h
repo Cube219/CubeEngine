@@ -4,14 +4,10 @@
 
 #include "FileSystem.h"
 #include "GAPI_Texture.h"
+#include "Resource.h"
 
 namespace cube
 {
-    namespace gapi
-    {
-        class CommandList;
-    } // namespace gapi
-
     struct TextureResourceCreateInfo
     {
         gapi::TextureInfo textureInfo;
@@ -23,7 +19,7 @@ namespace cube
         StringView debugName;
     };
 
-    class TextureResource
+    class TextureResource : public Resource
     {
     public:
         TextureResource(const TextureResourceCreateInfo& createInfo);
@@ -31,16 +27,11 @@ namespace cube
 
         SharedPtr<gapi::Texture> GetGAPITexture() const { return mGAPITexture; }
 
-        void WaitUntilInitialized();
-        void WaitUntilInitialized(gapi::CommandList& commandList);
+        static SharedPtr<TextureResource> Create(const TextureResourceCreateInfo& createInfo);
 
     private:
-        void CheckInitialized();
-
         SharedPtr<gapi::Texture> mGAPITexture;
-
-        Uint64 mInitFenceValue;
-        bool mIsInitialized = false;
+        Uint64 mUploadFinishFenceValue = 0;
 
         String mDebugName;
     };

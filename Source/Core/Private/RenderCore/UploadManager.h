@@ -41,9 +41,11 @@ namespace cube
         UploadDesc Allocate(SharedPtr<gapi::Buffer> dstBuffer, bool directIfPossible = false);
         UploadDesc Allocate(SharedPtr<gapi::Texture> dstTexture, bool directIfPossible = false);
 
-        void SubmitToCopyQueue(UploadDesc& desc, SharedPtr<gapi::Fence> finishSignalFence = nullptr, Uint64 signalValue = 0);
-        void Submit(UploadDesc& desc, SharedPtr<gapi::CommandList> commandList, SharedPtr<gapi::Fence> finishSignalFence = nullptr, Uint64 signalValue = 0);
+        Uint64 SubmitToCopyQueue(UploadDesc& desc);
+        Uint64 Submit(UploadDesc& desc, SharedPtr<gapi::CommandList> commandList);
         void Discard(UploadDesc& desc);
+
+        SharedPtr<gapi::Fence> GetFinishFence() const { return mFinishFence; }
 
     private:
         struct Page
@@ -64,6 +66,7 @@ namespace cube
 
         void UpdateStates();
         int GetAvailableCommandListIndex();
+        bool IsCopyCommandListNeeded(const UploadDesc& desc) const;
 
         GAPI* mGAPI;
 
@@ -80,8 +83,8 @@ namespace cube
         };
         Array<CopyCommandList, MAX_COMMAND_LIST_SIZE> mCopyCommandLists;
 
-        SharedPtr<gapi::Fence> mFence;
-        Uint64 mLastFenceValue;
+        SharedPtr<gapi::Fence> mFinishFence;
+        Uint64 mLastFinishFenceValue = 0;
         std::queue<std::pair<Uint64, int>> mFenceValueAndPageIdPairQueue;
     };
 } // namespace cube

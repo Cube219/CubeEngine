@@ -100,6 +100,7 @@ namespace cube
                 Vector<D3D12_VIEWPORT> viewports;
                 Vector<D3D12_RECT> scissors;
                 D3D12_PRIMITIVE_TOPOLOGY primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+                ID3D12PipelineState* computePipelineState = nullptr;
 
                 struct ConstantBuffer
                 {
@@ -113,6 +114,7 @@ namespace cube
                     viewports.clear();
                     scissors.clear();
                     primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+                    computePipelineState = nullptr;
                     constantBuffers.clear();
                 }
             };

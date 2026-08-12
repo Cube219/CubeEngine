@@ -13,11 +13,6 @@ namespace cube
     class RGBuilder;
     class TextureResource;
 
-    namespace gapi
-    {
-        class CommandList;
-    } // namespace gapi
-
     class EnvironmentMapLightShaderParameterList : public ShaderParameterList
     {
         CUBE_BEGIN_SHADER_PARAMETER_LIST(EnvironmentMapLightShaderParameterList)
@@ -65,9 +60,13 @@ namespace cube
         void ClearCurrentIBLTexture();
         void LoadCurrentIBLTexture();
 
-        void GenerateIrradianceMap();
-        void GenerateIntegratedBRDFLUT();
-        void GeneratePrefilterMap();
+        void QueueGenerateIrradianceMap();
+        void QueueGenerateIntegratedBRDFLUT();
+        void QueueGeneratePrefilterMap();
+
+        void GenerateIrradianceMap(RGBuilder& builder);
+        void GenerateIntegratedBRDFLUT(RGBuilder& builder);
+        void GeneratePrefilterMap(RGBuilder& builder);
 
         Renderer& mRenderer;
 
@@ -100,7 +99,6 @@ namespace cube
         ComputePipelineInfo mGenerateIntegratedBRDFLUTPipelineInfo;
         SharedPtr<Shader> mGeneratePrefilterMapShader;
         ComputePipelineInfo mGeneratePrefilterMapPipelineInfo;
-        SharedPtr<gapi::CommandList> mCommandList;
 
         SharedPtr<gapi::Texture> mDiffuseIrradianceMap;
         SharedPtr<gapi::Texture> mIntegratedBRDFLUT;

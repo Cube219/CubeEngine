@@ -19,8 +19,8 @@ set(PRIVATE_FILES
     Private/RenderCore/Material.h
     Private/RenderCore/Mesh.cpp
     Private/RenderCore/Mesh.h
-    Private/RenderCore/BufferManager.cpp
-    Private/RenderCore/BufferManager.h
+    Private/RenderCore/Buffer.cpp
+    Private/RenderCore/Buffer.h
     Private/RenderCore/MeshHelper.cpp
     Private/RenderCore/MeshHelper.h
     Private/RenderCore/Pipeline.cpp
@@ -29,6 +29,10 @@ set(PRIVATE_FILES
     Private/RenderCore/RenderGraph.h
     Private/RenderCore/RenderProfiling.cpp
     Private/RenderCore/RenderProfiling.h
+    Private/RenderCore/Resource.cpp
+    Private/RenderCore/Resource.h
+    Private/RenderCore/ResourceManager.cpp
+    Private/RenderCore/ResourceManager.h
     Private/RenderCore/SamplerManager.cpp
     Private/RenderCore/SamplerManager.h
     Private/RenderCore/Shader.cpp

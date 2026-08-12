@@ -7,8 +7,8 @@
 #include "GAPI_Texture.h"
 #include "Mesh.h"
 #include "Pipeline.h"
-#include "Renderer/Renderer.h"
 #include "RenderGraph.h"
+#include "Renderer/Renderer.h"
 #include "Shader.h"
 #include "Texture.h"
 
@@ -25,8 +25,7 @@ namespace cube
         mTextures.fill(nullptr);
 
         static const Character* defaultChannelMappingCode =
-            CUBE_T("value.albedo = materialData.baseColor.rgb;\n")
-        ;
+            CUBE_T("value.albedo = materialData.baseColor.rgb;\n");
 
         SetChannelMappingCode(defaultChannelMappingCode);
     }

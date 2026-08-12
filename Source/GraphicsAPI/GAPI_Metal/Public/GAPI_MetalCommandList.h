@@ -24,12 +24,17 @@ namespace cube
                 bool isSet = false;
             };
             Map<int, ConstantBuffer> constantBuffers;
+
+            id<MTLComputePipelineState> computePipelineState = nil;
+
             void Clear()
             {
                 viewports.clear();
                 scissors.clear();
                 primitiveType = MTLPrimitiveTypeTriangle;
                 constantBuffers.clear();
+
+                computePipelineState = nil;
             }
 
             void SetViewports(ConstArrayView<Viewport> newViewports);
@@ -44,6 +49,10 @@ namespace cube
             void UnsetConstantBuffer(Uint32 index);
             void ApplyConstantBuffers(id<MTLRenderCommandEncoder> encoder, bool forceAll = false);
             void ApplyConstantBuffers(id<MTLComputeCommandEncoder> computeEncoder, bool forceAll = false);
+
+            void SetComputePipelineState(id<MTLComputePipelineState> newComputePipelineState);
+            void UnsetComputePipelineState();
+            void ApplyComputePipelineState(id<MTLComputeCommandEncoder> encoder);
 
             void ApplyAll(id<MTLRenderCommandEncoder> encoder);
             void ApplyAll(id<MTLComputeCommandEncoder> encoder);
@@ -116,11 +125,13 @@ namespace cube
             void UseComputeEncoder();
             void UseBlitEncoder();
             void ConsumeTimestampIndexBeforeUseEncoder(NSUInteger& outBeginIndex, NSUInteger& outEndIndex);
+            void RestoreBoundPipelineState();
 
             void EndRenderEncoder();
-            void EndComputeEncoder();
+            void EndComputeEncoder(bool clearBoundPipelineState = true);
             void EndBlitEncoder();
-            void EndAllEncoders();
+            void EndAllEncoders(bool clearBoundPipelineState = true);
+
 
             bool HasTimestamps() const { return !mTimestampStack.empty(); }
             bool HasPreBeginTimestamps() const { return !mTimestampStack.empty() && mTimestampStack.back().beginSampleIndex == MetalInvalidSampleIndex; }

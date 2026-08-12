@@ -1,11 +1,12 @@
 #include "RenderGraph.h"
 
 #include "Allocator/FrameAllocator.h"
+#include "Buffer.h"
 #include "Checker.h"
 #include "GAPI_CommandList.h"
 #include "Pipeline.h"
-#include "Texture.h"
 #include "RenderCore/RenderGraphTypes.h"
+#include "Texture.h"
 
 
 namespace cube
@@ -262,15 +263,20 @@ namespace cube
 
     RGBufferHandle RGBuilder::RegisterBuffer(SharedPtr<gapi::Buffer> buffer)
     {
-        if (auto findIt = mRegisteredBuffers.find(buffer.get()); findIt != mRegisteredBuffers.end())
+        if (auto findIt = mRegisteredBufferInfos.find(buffer.get()); findIt != mRegisteredBufferInfos.end())
         {
-            return findIt->second;
+            return findIt->second.buffer;
         }
 
         RGBufferHandle rgBuffer(new RGBuffer(mResources.size(), buffer));
         mResources.push_back(rgBuffer);
 
-        mRegisteredBuffers.insert({ buffer.get(), rgBuffer });
+        mRegisteredBufferInfos.insert({
+            buffer.get(),
+            RegisteredBufferInfo{
+                .buffer = rgBuffer,
+            }
+        });
 
         return rgBuffer;
     }
@@ -427,7 +433,7 @@ namespace cube
     {
         if (!mDummyBlackTexture2D.IsValid())
         {
-            RGTextureHandle rgTexture = RegisterTexture(mRenderer.GetDummyBlackTexture2D());
+            RGTextureHandle rgTexture = RegisterTexture(mRenderer.GetDummyBlackTexture2D()->GetGAPITexture());
             mDummyBlackTexture2D = CreateSRV(rgTexture);
         }
 
@@ -438,7 +444,7 @@ namespace cube
     {
         if (!mDummyBlackTextureCube.IsValid())
         {
-            RGTextureHandle rgTexture = RegisterTexture(mRenderer.GetDummyBlackTextureCube());
+            RGTextureHandle rgTexture = RegisterTexture(mRenderer.GetDummyBlackTextureCube()->GetGAPITexture());
             mDummyBlackTextureCube = CreateSRV(rgTexture);
         }
 
@@ -449,7 +455,7 @@ namespace cube
     {
         if (!mDummyWhiteTexture2D.IsValid())
         {
-            RGTextureHandle rgTexture = RegisterTexture(mRenderer.GetDummyWhiteTexture2D());
+            RGTextureHandle rgTexture = RegisterTexture(mRenderer.GetDummyWhiteTexture2D()->GetGAPITexture());
             mDummyWhiteTexture2D = CreateSRV(rgTexture);
         }
 
@@ -597,8 +603,10 @@ namespace cube
 
             const MeshMetadata& meshMeta = drawMeshInfo.mesh->GetMeta();
 
-            RGBufferHandle rgVertexBuffer = RegisterBuffer(drawMeshInfo.mesh->GetVertexBuffer());
+            RGBufferHandle rgVertexBuffer = RegisterBuffer(drawMeshInfo.mesh->GetVertexBuffer()->GetGAPIBuffer());
             RGBufferSRVHandle rgVertexBufferSRV = CreateSRV(rgVertexBuffer);
+
+            RGBufferHandle rgIndexBuffer = RegisterBuffer(drawMeshInfo.mesh->GetIndexBuffer()->GetGAPIBuffer());
 
             RGShaderParameterListHandle<ObjectShaderParameterList> objectShaderParameterList = CreateShaderParameterList<ObjectShaderParameterList>();
             objectShaderParameterList->Get()->model = drawMeshInfo.model;
@@ -610,7 +618,7 @@ namespace cube
 
             AddPassInternal(CUBE_T("##DrawMeshPass - Bind Index buffer"), nullptr, nullptr, {},
                 [mesh = drawMeshInfo.mesh](gapi::CommandList& commandList){
-                    commandList.BindIndexBuffer(mesh->GetIndexBuffer(), 0);
+                    commandList.BindIndexBuffer(mesh->GetIndexBuffer()->GetGAPIBuffer(), 0);
                 },
                 nullptr,
                 false
@@ -1424,7 +1432,7 @@ namespace cube
         mPasses.clear();
         mLastPass = {};
         mRegisteredTextureInfos.clear();
-        mRegisteredBuffers.clear();
+        mRegisteredBufferInfos.clear();
         mCachedBufferViews.clear();
         mCachedTextureViews.clear();
         for (RGResourceHandle resource : mResources)

@@ -29,7 +29,7 @@ namespace cube
 
         {
             platform::FilePath shaderFilePath = Engine::GetShaderDirectoryPath() / CUBE_T("GenerateMipmaps.slang");
-        
+
             mGenerateMipmapsShader = mRenderer.GetShaderManager().CreateShader({
                 .shaderInfo = {
                     .type = gapi::ShaderType::Compute,
@@ -45,26 +45,15 @@ namespace cube
                 .shader = mGenerateMipmapsShader
             };
         }
-
-        mTextureInitCommandList = mGAPI->CreateCommandList({
-            .debugName = CUBE_T("TextureInitCommandList")
-        });
-        mTextureInitFence = mGAPI->CreateFence({
-            .allowCPUAccess = true,
-            .debugName = CUBE_T("TextureInitFence")
-        });
     }
 
     void TextureManager::Shutdown()
     {
-        mTextureInitFence = nullptr;
-        mTextureInitCommandList = nullptr;
-
         mGenerateMipmapsPipelineInfo = {};
         mGenerateMipmapsShader = nullptr;
     }
 
-    void TextureManager::GenerateMipmaps(SharedPtr<gapi::Texture> texture, gapi::CommandList& commandList)
+    void TextureManager::GenerateMipmaps(RGBuilder& builder, SharedPtr<gapi::Texture> texture)
     {
         // TODO: Implement other types
         if (texture->GetType() != gapi::TextureType::Texture2D)
@@ -78,7 +67,6 @@ namespace cube
             .debugName = CUBE_T("GenerateMipmapsComputePipeline")
         });
 
-        RGBuilder builder(mRenderer);
         {
             RG_GPU_EVENT_SCOPE(builder, CUBE_T("GenerateMipmaps"));
 
@@ -109,7 +97,5 @@ namespace cube
                 });
             }
         }
-
-        builder.Execute(commandList);
     }
 } // namespace cube

@@ -141,6 +141,12 @@ namespace cube
         const Uint32 lastGPUSyncIndex = mCurrentGPUSyncIndex;
 
         const Uint32 numSamples = mLastSampleIndices[lastGPUSyncIndex];
+        if (numSamples == 0)
+        {
+            mLastTimestampRangeList.timestampRanges.clear();
+            return;
+        }
+
         NSData* nsData = [mCounterSampleBuffers[lastGPUSyncIndex] resolveCounterRange:NSMakeRange(0, numSamples)];
         if (nsData)
         {

@@ -159,7 +159,7 @@ namespace cube
                             .generateMipMaps = true,
                             .debugName = debugName
                         };
-                        SharedPtr<TextureResource> texture = std::make_shared<TextureResource>(createInfo);
+                        SharedPtr<TextureResource> texture = TextureResource::Create(createInfo);
                         stbi_image_free(imageData);
 
                         return texture;

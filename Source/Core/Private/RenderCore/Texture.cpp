@@ -5,8 +5,12 @@
 #include "Allocator/FrameAllocator.h"
 #include "Checker.h"
 #include "Engine.h"
+#include "GAPI_CommandList.h"
 #include "GAPI_Texture.h"
 #include "Renderer/Renderer.h"
+#include "RenderCore/RenderGraph.h"
+#include "RenderCore/ResourceManager.h"
+#include "TextureManager.h"
 #include "UploadManager.h"
 
 namespace cube
@@ -34,6 +38,8 @@ namespace cube
                 height >>= 1;
             }
         }
+
+        mDebugName = String(createInfo.debugName);
 
         mGAPITexture = Engine::GetRenderer()->GetGAPI().CreateTexture({
             .usage = gapi::ResourceUsage::GPUOnly,
@@ -78,72 +84,39 @@ namespace cube
             }
         }
 
-        TextureManager& textureManager = Engine::GetRenderer()->GetTextureManager();
-        SharedPtr<gapi::Fence> textureInitFence = textureManager.GetTextureInitFence();
-        Uint64 fenceValue = textureManager.GetAndMoveTextureInitFenceValue();
+        mUploadFinishFenceValue = uploadManager.SubmitToCopyQueue(uploadDesc);
+    }
 
-        uploadManager.SubmitToCopyQueue(uploadDesc, textureInitFence, fenceValue);
+    SharedPtr<TextureResource> TextureResource::Create(const TextureResourceCreateInfo& createInfo)
+    {
+        SharedPtr<TextureResource> resource(new TextureResource(createInfo));
 
-        if (createInfo.generateMipMaps)
+        ResourceManager& resourceManager = Engine::GetRenderer()->GetResourceManager();
+
+        resourceManager.QueuePreprocessTask([resource, generateMipMaps = createInfo.generateMipMaps](RGBuilder& builder)
         {
-            SharedPtr<gapi::CommandList> textureInitCommandList = textureManager.GetTextureInitCommandList();
-            textureInitCommandList->WaitForFence(textureInitFence, fenceValue);
+            if (resource->mUploadFinishFenceValue > 0)
+            {
+                builder.AddPass(Format<String>(CUBE_T("##Preprocess - Wait {0}"), resource->mDebugName),
+                [resource](gapi::CommandList& commandList)
+                {
+                    UploadManager& uploadManager = Engine::GetRenderer()->GetUploadManager();
+                    commandList.WaitForFence(uploadManager.GetFinishFence(), resource->mUploadFinishFenceValue);
+                });
+            }
 
-            textureManager.GenerateMipmaps(mGAPITexture, *textureInitCommandList);
+            if (generateMipMaps)
+            {
+                Engine::GetRenderer()->GetTextureManager().GenerateMipmaps(builder, resource->GetGAPITexture());
+            }
+        });
 
-            fenceValue = textureManager.GetAndMoveTextureInitFenceValue();
-            textureInitCommandList->SignalToFence(textureInitFence, fenceValue);
-        }
-
-        mInitFenceValue = fenceValue;
+        return resource;
     }
 
     TextureResource::~TextureResource()
     {
         mGAPITexture = nullptr;
-    }
-
-    void TextureResource::WaitUntilInitialized()
-    {
-        if (mIsInitialized)
-        {
-            return;
-        }
-
-        CheckInitialized();
-
-        if (!mIsInitialized)
-        {
-            TextureManager& textureManager = Engine::GetRenderer()->GetTextureManager();
-            textureManager.GetTextureInitFence()->Wait(mInitFenceValue);
-        }
-    }
-
-    void TextureResource::WaitUntilInitialized(gapi::CommandList& commandList)
-    {
-        if (mIsInitialized)
-        {
-            return;
-        }
-
-        CheckInitialized();
-
-        if (!mIsInitialized)
-        {
-            TextureManager& textureManager = Engine::GetRenderer()->GetTextureManager();
-            commandList.WaitForFence(textureManager.GetTextureInitFence(), mInitFenceValue);
-        }
-    }
-
-    void TextureResource::CheckInitialized()
-    {
-        if (mIsInitialized)
-        {
-            return;
-        }
-
-        TextureManager& textureManager = Engine::GetRenderer()->GetTextureManager();
-        mIsInitialized = (textureManager.GetTextureInitFence()->GetCompletedValue() >= mInitFenceValue);
     }
 
     TextureRawData TextureHelper::LoadFromFile(platform::FilePath path, LoadElementType loadElementType)

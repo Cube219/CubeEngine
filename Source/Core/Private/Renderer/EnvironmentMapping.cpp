@@ -161,16 +161,10 @@ namespace cube
                 .debugName = CUBE_T("PrefilterMap Sampler")
             });
         }
-
-        mCommandList = mRenderer.GetGAPI().CreateCommandList({
-            .debugName = CUBE_T("EnvironmentMappingCommandList")
-        });
     }
 
     void EnvironmentMapping::Shutdown()
     {
-        mCommandList = nullptr;
-
         mGeneratePrefilterMapPipelineInfo = {};
         mGeneratePrefilterMapShader = nullptr;
         mGenerateIntegratedBRDFLUTPipelineInfo = {};
@@ -298,7 +292,7 @@ namespace cube
 
         if (!mIntegratedBRDFLUT)
         {
-            GenerateIntegratedBRDFLUT();
+            QueueGenerateIntegratedBRDFLUT();
         }
     }
 
@@ -491,37 +485,46 @@ namespace cube
                 .bytesPerElement = negXData.bytesPerElement,
                 .debugName = CUBE_T("IBLTexture")
             };
-            mIBLTexture = std::make_shared<TextureResource>(createInfo);
+            mIBLTexture = TextureResource::Create(createInfo);
 
-            GenerateIrradianceMap();
-            GeneratePrefilterMap();
+            QueueGenerateIrradianceMap();
+            QueueGeneratePrefilterMap();
         }
     }
 
-    void EnvironmentMapping::GenerateIrradianceMap()
+    void EnvironmentMapping::QueueGenerateIrradianceMap()
     {
         CHECK(mIBLTexture);
 
-        const gapi::ElementFormat format = gapi::ElementFormat::RGBA16_Float;
+        mDiffuseIrradianceMap = mRenderer.GetGAPI().CreateTexture({
+            .usage = gapi::ResourceUsage::GPUOnly,
+            .textureInfo = {
+                .format = gapi::ElementFormat::RGBA16_Float,
+                .type = gapi::TextureType::TextureCube,
+                .flags = gapi::TextureFlag::UAV,
+                .width = 256,
+                .height = 256,
+            },
+            .debugName = CUBE_T("Irradiance Map")
+        });
+
+        mRenderer.GetResourceManager().QueuePreprocessTask([this](RGBuilder& builder)
+        {
+            GenerateIrradianceMap(builder);
+        });
+    }
+
+    void EnvironmentMapping::GenerateIrradianceMap(RGBuilder& builder)
+    {
+        CHECK(mIBLTexture);
+        CHECK(mDiffuseIrradianceMap);
+
         const Uint32 widthAndHeight = 256;
 
         const Uint32 numSlices = 128;
         // Split work into tile to avoid TDR.
         const Uint32 tileSize = 32;
 
-        mDiffuseIrradianceMap = mRenderer.GetGAPI().CreateTexture({
-            .usage = gapi::ResourceUsage::GPUOnly,
-            .textureInfo = {
-                .format = format,
-                .type = gapi::TextureType::TextureCube,
-                .flags = gapi::TextureFlag::UAV,
-                .width = widthAndHeight,
-                .height = widthAndHeight,
-            },
-            .debugName = CUBE_T("Irradiance Map")
-        });
-
-        RGBuilder builder(mRenderer);
         {
             RGTextureHandle srcIBL = builder.RegisterTexture(mIBLTexture->GetGAPITexture());
             RGTextureSRVHandle srcIBLSRV = builder.CreateSRV(srcIBL);
@@ -564,30 +567,37 @@ namespace cube
                 }
             }
         }
-        builder.ExecuteAndSubmit(*mCommandList);
     }
 
-    void EnvironmentMapping::GenerateIntegratedBRDFLUT()
+    void EnvironmentMapping::QueueGenerateIntegratedBRDFLUT()
     {
-        const gapi::ElementFormat format = gapi::ElementFormat::RG16_Float;
-        const Uint32 widthAndHeight = 512;
-
-        // Split work into tile to avoid TDR.
-        const Uint32 tileSize = 32;
-
         mIntegratedBRDFLUT = mRenderer.GetGAPI().CreateTexture({
             .usage = gapi::ResourceUsage::GPUOnly,
             .textureInfo = {
-                .format = format,
+                .format = gapi::ElementFormat::RG16_Float,
                 .type = gapi::TextureType::Texture2D,
                 .flags = gapi::TextureFlag::UAV,
-                .width = widthAndHeight,
-                .height = widthAndHeight,
+                .width = 512,
+                .height = 512,
             },
             .debugName = CUBE_T("IntegratedBRDF LUT")
         });
 
-        RGBuilder builder(mRenderer);
+        mRenderer.GetResourceManager().QueuePreprocessTask([this](RGBuilder& builder)
+        {
+            GenerateIntegratedBRDFLUT(builder);
+        });
+    }
+
+    void EnvironmentMapping::GenerateIntegratedBRDFLUT(RGBuilder& builder)
+    {
+        CHECK(mIntegratedBRDFLUT);
+
+        const Uint32 widthAndHeight = mIntegratedBRDFLUT->GetInfo().width;
+
+        // Split work into tile to avoid TDR.
+        const Uint32 tileSize = 32;
+
         {
             RGTextureHandle dstIntegratedBRDFLUT = builder.RegisterTexture(mIntegratedBRDFLUT);
             RGTextureUAVHandle dstIntegratedBRDFLUTUAV = builder.CreateUAV(dstIntegratedBRDFLUT);
@@ -624,34 +634,42 @@ namespace cube
                 }
             }
         }
-        builder.ExecuteAndSubmit(*mCommandList);
     }
 
-    void EnvironmentMapping::GeneratePrefilterMap()
+    void EnvironmentMapping::QueueGeneratePrefilterMap()
     {
         CHECK(mIBLTexture);
-
-        const gapi::ElementFormat format = gapi::ElementFormat::RGBA16_Float;
-        const Uint32 widthAndHeight = 256;
-        const Uint32 mipLevels = 5;
-
-        // Split work into tile to avoid TDR.
-        const Uint32 tileSize = 32;
 
         mPrefilterMap = mRenderer.GetGAPI().CreateTexture({
             .usage = gapi::ResourceUsage::GPUOnly,
             .textureInfo = {
-                .format = format,
+                .format = gapi::ElementFormat::RGBA16_Float,
                 .type = gapi::TextureType::TextureCube,
                 .flags = gapi::TextureFlag::UAV,
-                .width = widthAndHeight,
-                .height = widthAndHeight,
-                .mipLevels = mipLevels
+                .width = 256,
+                .height = 256,
+                .mipLevels = 5
             },
             .debugName = CUBE_T("Prefilter Map")
         });
 
-        RGBuilder builder(mRenderer);
+        mRenderer.GetResourceManager().QueuePreprocessTask([this](RGBuilder& builder)
+        {
+            GeneratePrefilterMap(builder);
+        });
+    }
+
+    void EnvironmentMapping::GeneratePrefilterMap(RGBuilder& builder)
+    {
+        CHECK(mIBLTexture);
+        CHECK(mPrefilterMap);
+
+        const Uint32 widthAndHeight = mPrefilterMap->GetInfo().width;
+        const Uint32 mipLevels = mPrefilterMap->GetInfo().mipLevels;
+
+        // Split work into tile to avoid TDR.
+        const Uint32 tileSize = 32;
+
         {
             RGTextureHandle srcIBL = builder.RegisterTexture(mIBLTexture->GetGAPITexture());
             RGTextureSRVHandle srcIBLSRV = builder.CreateSRV(srcIBL);
@@ -702,6 +720,5 @@ namespace cube
                 }
             }
         }
-        builder.ExecuteAndSubmit(*mCommandList);
     }
 } // namespace cube

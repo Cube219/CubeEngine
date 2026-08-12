@@ -170,6 +170,24 @@ namespace cube
             }
         }
 
+        void MetalEncoderState::SetComputePipelineState(id<MTLComputePipelineState> newComputePipelineState)
+        {
+            computePipelineState = newComputePipelineState;
+        }
+
+        void MetalEncoderState::UnsetComputePipelineState()
+        {
+            computePipelineState = nil;
+        }
+
+        void MetalEncoderState::ApplyComputePipelineState(id<MTLComputeCommandEncoder> encoder)
+        {
+            if (computePipelineState)
+            {
+                [encoder setComputePipelineState:computePipelineState];
+            }
+        }
+
         void MetalEncoderState::ApplyAll(id<MTLRenderCommandEncoder> encoder)
         {
             ApplyViewports(encoder);
@@ -180,6 +198,7 @@ namespace cube
         void MetalEncoderState::ApplyAll(id<MTLComputeCommandEncoder> encoder)
         {
             ApplyConstantBuffers(encoder, true);
+            ApplyComputePipelineState(encoder);
         }
 
         MetalCommandList::MetalCommandList(const CommandListCreateInfo& info, MetalDevice& device)
@@ -243,6 +262,8 @@ namespace cube
 
             NSString* nsName = String_Convert<NSString*>(name);
 
+            RestoreBoundPipelineState();
+
             if (IsInRenderPass())
             {
                 [mRenderEncoder pushDebugGroup:nsName];
@@ -264,6 +285,8 @@ namespace cube
         void MetalCommandList::EndEvent()
         {
             CHECK(IsWriting());
+
+            RestoreBoundPipelineState();
 
             if (IsInRenderPass())
             {
@@ -426,6 +449,8 @@ namespace cube
         {
             CHECK(IsWriting());
 
+            RestoreBoundPipelineState();
+
             mCurrentEncoderState.SetConstantBuffer(constantBuffer, index);
             if (IsInRenderPass())
             {
@@ -526,7 +551,9 @@ namespace cube
 
             UseComputeEncoder();
 
-            [mComputeEncoder setComputePipelineState:metalComputePipeline->GetMTLComputePipelineState()];
+            mCurrentEncoderState.SetComputePipelineState(metalComputePipeline->GetMTLComputePipelineState());
+            mCurrentEncoderState.ApplyComputePipelineState(mComputeEncoder);
+
             mComputeThreadGroupSize = metalComputePipeline->GetThreadGroupSize();
         }
 
@@ -534,7 +561,8 @@ namespace cube
         {
             CHECK(IsWriting());
             CHECK(mType == CommandListType::Direct);
-            CHECK(mComputeEncoder);
+
+            UseComputeEncoder();
 
             [mComputeEncoder
                 dispatchThreads:MTLSizeMake(numThreadsX, numThreadsY, numThreadsZ)
@@ -651,7 +679,7 @@ namespace cube
             {
                 // End encoder to split the pass. Begin sample index will be assigned after using a new encoder.
                 // (See ConsumeTimestampIndexBeforeUseEncoder().)
-                EndAllEncoders();
+                EndAllEncoders(false);
 
                 mTimestampStack.push_back({
                     .name = { name.begin(), name.end() },
@@ -671,7 +699,7 @@ namespace cube
                 CHECK(!mTimestampStack.empty());
 
                 // End encoder to split the pass and sample at this point.
-                EndAllEncoders();
+                EndAllEncoders(false);
 
                 const TimestampBegin& lastTimestamp = mTimestampStack.back();
                 if (lastTimestamp.beginSampleIndex != MetalInvalidSampleIndex)
@@ -690,7 +718,7 @@ namespace cube
         void MetalCommandList::WaitForFence(SharedPtr<Fence> fence, Uint64 fenceValue)
         {
             CHECK(IsWriting());
-            EndAllEncoders();
+            EndAllEncoders(false);
 
             MetalFence* metalFence = dynamic_cast<MetalFence*>(fence.get());
             CHECK(metalFence);
@@ -700,7 +728,7 @@ namespace cube
         void MetalCommandList::SignalToFence(SharedPtr<Fence> fence, Uint64 fenceValue)
         {
             CHECK(IsWriting());
-            EndAllEncoders();
+            EndAllEncoders(false);
 
             MetalFence* metalFence = dynamic_cast<MetalFence*>(fence.get());
             CHECK(metalFence);
@@ -721,6 +749,8 @@ namespace cube
             {
                 return;
             }
+
+            RestoreBoundPipelineState();
 
             if (IsInRenderPass())
             {
@@ -883,6 +913,19 @@ namespace cube
             }
         }
 
+        void MetalCommandList::RestoreBoundPipelineState()
+        {
+            if (mRenderEncoder || mComputeEncoder || mBlitEncoder)
+            {
+                return;
+            }
+
+            if (mCurrentEncoderState.computePipelineState)
+            {
+                UseComputeEncoder();
+            }
+        }
+
         void MetalCommandList::EndRenderEncoder()
         {
             if (mRenderEncoder)
@@ -892,12 +935,17 @@ namespace cube
             }
         }
 
-        void MetalCommandList::EndComputeEncoder()
+        void MetalCommandList::EndComputeEncoder(bool clearBoundPipelineState)
         {
             if (mComputeEncoder)
             {
                 [mComputeEncoder endEncoding];
                 mComputeEncoder = nil;
+            }
+
+            if (clearBoundPipelineState)
+            {
+                mCurrentEncoderState.UnsetComputePipelineState();
             }
         }
 
@@ -910,10 +958,10 @@ namespace cube
             }
         }
 
-        void MetalCommandList::EndAllEncoders()
+        void MetalCommandList::EndAllEncoders(bool clearBoundPipelineState)
         {
             EndRenderEncoder();
-            EndComputeEncoder();
+            EndComputeEncoder(clearBoundPipelineState);
             EndBlitEncoder();
         }
     } // namespace gapi

@@ -7,10 +7,10 @@
 #include "GAPI.h"
 #include "GAPI_Texture.h"
 #include "Matrix.h"
-#include "RenderCore/BufferManager.h"
 #include "RenderCore/LightManager.h"
 #include "RenderCore/Mesh.h"
 #include "RenderCore/Pipeline.h"
+#include "RenderCore/ResourceManager.h"
 #include "RenderCore/SamplerManager.h"
 #include "RenderCore/Shader.h"
 #include "RenderCore/ShaderParameter.h"
@@ -27,6 +27,7 @@ namespace cube
     class GraphicsPipeline;
     class Material;
     class MeshData;
+    class RGBuilder;
     class Scene;
     class Shader;
 
@@ -73,11 +74,11 @@ namespace cube
         GAPI& GetGAPI() const { return *mGAPI; }
         ShaderParameterListManager& GetShaderParameterListManager() { return mShaderParameterListManager; }
         ShaderManager& GetShaderManager() { return mShaderManager; }
-        BufferManager& GetBufferManager() { return mBufferManager; }
         TextureManager& GetTextureManager() { return mTextureManager; }
         SamplerManager& GetSamplerManager() { return mSamplerManager; }
         PipelineManager& GetPipelineManager() { return mPipelineManager; }
         UploadManager& GetUploadManager() { return mUploadManager; }
+        ResourceManager& GetResourceManager() { return mResourceManager; }
 
         TextureViewer& GetTextureViewer() { return mTextureViewer; }
         RenderUtils& GetRenderUtils() { return mRenderUtils; }
@@ -86,9 +87,9 @@ namespace cube
 
         SharedPtr<Mesh> GetBoxMesh() const { return mBoxMesh; }
         SharedPtr<Material> GetDefaultMaterial() const { return mDefaultMaterial; }
-        SharedPtr<gapi::Texture> GetDummyBlackTexture2D() const { return mDummyBlackTexture2D->GetGAPITexture(); }
-        SharedPtr<gapi::Texture> GetDummyBlackTextureCube() const { return mDummyBlackTextureCube->GetGAPITexture(); }
-        SharedPtr<gapi::Texture> GetDummyWhiteTexture2D() const { return mDummyWhiteTexture2D->GetGAPITexture(); }
+        SharedPtr<TextureResource> GetDummyBlackTexture2D() const { return mDummyBlackTexture2D; }
+        SharedPtr<TextureResource> GetDummyBlackTextureCube() const { return mDummyBlackTextureCube; }
+        SharedPtr<TextureResource> GetDummyWhiteTexture2D() const { return mDummyWhiteTexture2D; }
 
         gapi::ElementFormat GetBackbufferFormat() const { return mBackbufferFormat; }
         gapi::ElementFormat GetDepthStencilFormat() const { return mDepthStencilFormat; }
@@ -107,7 +108,7 @@ namespace cube
 
     private:
         void SetGlobalConstantBuffers();
-        void RenderImpl();
+        void RenderImpl(RGBuilder& builder);
 
         void LoadResources();
         void ClearResources();
@@ -121,7 +122,6 @@ namespace cube
         UploadManager mUploadManager;
         ShaderParameterListManager mShaderParameterListManager;
         ShaderManager mShaderManager;
-        BufferManager mBufferManager;
         TextureManager mTextureManager;
         SamplerManager mSamplerManager;
         PipelineManager mPipelineManager;
@@ -129,6 +129,7 @@ namespace cube
 
         Tonemap mTonemap;
         RenderUtils mRenderUtils;
+        ResourceManager mResourceManager;
 
         TextureViewer mTextureViewer;
 

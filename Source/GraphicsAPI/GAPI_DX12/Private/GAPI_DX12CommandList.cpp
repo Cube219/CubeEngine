@@ -179,6 +179,7 @@ namespace cube
             CHECK(IsWriting());
             CHECK(IsInRenderPass());
 
+            mCommandListState.computePipelineState = nullptr;
             mCommandList->SetPipelineState(dynamic_cast<DX12GraphicsPipeline*>(graphicsPipeline.get())->GetPipelineState());
 
             CUBE_DX12_BOUND_OBJECT(graphicsPipeline);
@@ -451,6 +452,8 @@ namespace cube
             mComputeThreadGroupSizeY = dx12ComputePipeline->GetThreadGroupSizeY();
             mComputeThreadGroupSizeZ = dx12ComputePipeline->GetThreadGroupSizeZ();
 
+            mCommandListState.computePipelineState = dx12ComputePipeline->GetPipelineState();
+
             CUBE_DX12_BOUND_OBJECT(computePipeline);
         }
 
@@ -672,6 +675,7 @@ namespace cube
 
         void DX12CommandList::InitCommandList(bool createCommandList)
         {
+            // TODO: Defer creating command list until it actually used.
             if (createCommandList)
             {
                 D3D12_COMMAND_LIST_TYPE commandListType = mType == CommandListType::Copy
@@ -711,6 +715,10 @@ namespace cube
             if (mCommandListState.primitiveTopology != D3D_PRIMITIVE_TOPOLOGY_UNDEFINED)
             {
                 mCommandList->IASetPrimitiveTopology(mCommandListState.primitiveTopology);
+            }
+            if (mCommandListState.computePipelineState)
+            {
+                mCommandList->SetPipelineState(mCommandListState.computePipelineState);
             }
 
             DX12ShaderParameterHelper& shaderParameterHelper = mDevice.GetShaderParameterHelper();

@@ -2,18 +2,21 @@
 
 
 #include "Allocator/FrameAllocator.h"
-#include "BufferManager.h"
 #include "Engine.h"
 #include "GAPI_Buffer.h"
+#include "GAPI_CommandList.h"
 #include "Platform.h"
 #include "Renderer/Renderer.h"
+#include "RenderCore/ResourceManager.h"
+#include "RenderCore/RenderGraph.h"
+#include "UploadManager.h"
 
 namespace cube
 {
-    MeshData::MeshData(ArrayView<Vertex> vertices, ArrayView<Index> indices, ArrayView<SubMesh> subMeshes, StringView debugName) :
-        mNumVertices(vertices.size()),
-        mNumIndices(indices.size()),
-        mDebugName(debugName)
+    MeshData::MeshData(ArrayView<Vertex> vertices, ArrayView<Index> indices, ArrayView<SubMesh> subMeshes, StringView debugName)
+        : mNumVertices(vertices.size())
+        , mNumIndices(indices.size())
+        , mDebugName(debugName)
     {
         Uint64 dataSize = sizeof(Vertex) * mNumVertices + sizeof(Index) * mNumIndices;
         mIndexOffset = sizeof(Vertex) * mNumVertices;
@@ -28,9 +31,9 @@ namespace cube
     {
     }
 
-    Mesh::Mesh(const SharedPtr<MeshData>& meshData, const MeshMetadata& meta) :
-        mMeshData(meshData),
-        mMeta(meta)
+    Mesh::Mesh(const SharedPtr<MeshData>& meshData, const MeshMetadata& meta)
+        : mMeshData(meshData)
+        , mMeta(meta)
     {
         GAPI& gAPI = Engine::GetRenderer()->GetGAPI();
         {
@@ -55,7 +58,7 @@ namespace cube
                 },
                 .debugName = vbDebugName
             };
-            mVertexBuffer = gAPI.CreateBuffer(vertexBufferCreateInfo);
+            mVertexBuffer = std::make_shared<BufferResource>(vertexBufferCreateInfo);
 
             FrameString ibDebugName = Format<FrameString>(CUBE_T("[{0}] IndexBuffer"), meshData->GetDebugName());
             BufferCreateInfo indexBufferCreateInfo = {
@@ -67,11 +70,12 @@ namespace cube
                 },
                 .debugName = ibDebugName
             };
-            mIndexBuffer = gAPI.CreateBuffer(indexBufferCreateInfo);
+            mIndexBuffer = std::make_shared<BufferResource>(indexBufferCreateInfo);
 
             UploadManager& uploadManager = Engine::GetRenderer()->GetUploadManager();
+            ResourceManager& resourceManager = Engine::GetRenderer()->GetResourceManager();
 
-            UploadDesc vbUploadDesc = uploadManager.Allocate(mVertexBuffer, true);
+            UploadDesc vbUploadDesc = uploadManager.Allocate(mVertexBuffer->GetGAPIBuffer(), true);
             void* pVertexBufferData = vbUploadDesc.pData;
             if (mMeta.useFloat16)
             {
@@ -93,23 +97,28 @@ namespace cube
                     fp32Vertices[i] = ConvertVertexToFP32(vertices[i]);
                 }
             }
+            Uint64 finishVBFenceValue = uploadManager.SubmitToCopyQueue(vbUploadDesc);
 
-            BufferManager& bufferManager = Engine::GetRenderer()->GetBufferManager();
-            SharedPtr<gapi::CommandList> bufferInitCommandList = bufferManager.GetBufferInitCommandList();
-            SharedPtr<gapi::Fence> bufferInitFence = bufferManager.GetBufferInitFence();
-
-            Uint64 fenceValue = bufferManager.GetAndMoveBufferInitFenceValue();
-            uploadManager.SubmitToCopyQueue(vbUploadDesc, bufferInitFence, fenceValue);
-
-            UploadDesc ibUploadDesc = uploadManager.Allocate(mIndexBuffer, true);
+            UploadDesc ibUploadDesc = uploadManager.Allocate(mIndexBuffer->GetGAPIBuffer(), true);
             void* pIndexBufferData = ibUploadDesc.pData;
             BlobView indexData = meshData->GetIndexData();
             memcpy(pIndexBufferData, indexData.GetData(), indexData.GetSize());
+            Uint64 finishIBFenceValue = uploadManager.SubmitToCopyQueue(ibUploadDesc);
 
-            fenceValue = bufferManager.GetAndMoveBufferInitFenceValue();
-            uploadManager.SubmitToCopyQueue(ibUploadDesc, bufferInitFence, fenceValue);
+            Uint64 finishFenceValue = Math::Max(finishVBFenceValue, finishIBFenceValue);
 
-            mInitFenceValue = fenceValue;
+            if (finishFenceValue > 0)
+            {
+                resourceManager.QueuePreprocessTask([vertexBuffer = mVertexBuffer, indexBuffer = mIndexBuffer, finishFenceValue](RGBuilder& builder)
+                {
+                    builder.AddPass(CUBE_T("##Preprocess - Wait mesh upload"),
+                    [vertexBuffer, indexBuffer, finishFenceValue](gapi::CommandList& commandList)
+                    {
+                        UploadManager& uploadManager = Engine::GetRenderer()->GetUploadManager();
+                        commandList.WaitForFence(uploadManager.GetFinishFence(), finishFenceValue);
+                    });
+                });
+            }
         }
     }
 
@@ -117,48 +126,5 @@ namespace cube
     {
         mIndexBuffer = nullptr;
         mVertexBuffer = nullptr;
-    }
-
-    void Mesh::WaitUntilInitialized()
-    {
-        if (mIsInitialized)
-        {
-            return;
-        }
-
-        CheckInitialized();
-
-        if (!mIsInitialized)
-        {
-            BufferManager& bufferManager = Engine::GetRenderer()->GetBufferManager();
-            bufferManager.GetBufferInitFence()->Wait(mInitFenceValue);
-        }
-    }
-
-    void Mesh::WaitUntilInitialized(gapi::CommandList& commandList)
-    {
-        if (mIsInitialized)
-        {
-            return;
-        }
-
-        CheckInitialized();
-
-        if (!mIsInitialized)
-        {
-            BufferManager& bufferManager = Engine::GetRenderer()->GetBufferManager();
-            commandList.WaitForFence(bufferManager.GetBufferInitFence(), mInitFenceValue);
-        }
-    }
-
-    void Mesh::CheckInitialized()
-    {
-        if (mIsInitialized)
-        {
-            return;
-        }
-
-        BufferManager& bufferManager = Engine::GetRenderer()->GetBufferManager();
-        mIsInitialized = (bufferManager.GetBufferInitFence()->GetCompletedValue() >= mInitFenceValue);
     }
 } // namespace cube

@@ -177,7 +177,7 @@ namespace cube
                     .generateMipMaps = true,
                     .debugName = debugName
                 };
-                SharedPtr<TextureResource> texture = std::make_shared<TextureResource>(createInfo);
+                SharedPtr<TextureResource> texture = TextureResource::Create(createInfo);
                 loadedImageCache.emplace(imageIndex, texture);
 
                 return texture;

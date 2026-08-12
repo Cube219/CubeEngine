@@ -13,9 +13,9 @@ namespace cube
         mGAPI = gAPI;
         mMinPageSize = 4ll * 1024 * 1024; // 4 MiB
         mPageNextId = 0;
-        mLastFenceValue = 0;
+        mLastFinishFenceValue = 0;
 
-        mFence = mGAPI->CreateFence({
+        mFinishFence = mGAPI->CreateFence({
             .allowCPUAccess = true,
             .debugName = CUBE_T("UploadManagerFence"),
         });
@@ -35,9 +35,9 @@ namespace cube
 
     void UploadManager::Shutdown()
     {
-        mFence->Wait(mLastFenceValue);
+        mFinishFence->Wait(mLastFinishFenceValue);
         UpdateStates();
-        mFence = nullptr;
+        mFinishFence = nullptr;
 
         for (CopyCommandList& copyCommandList : mCopyCommandLists)
         {
@@ -130,33 +130,46 @@ namespace cube
         return res;
     }
 
-    void UploadManager::SubmitToCopyQueue(UploadDesc& desc, SharedPtr<gapi::Fence> finishSignalFence, Uint64 signalValue)
+    Uint64 UploadManager::SubmitToCopyQueue(UploadDesc& desc)
     {
-        UpdateStates();
+        if (IsCopyCommandListNeeded(desc))
+        {
+            int commandListIndex = GetAvailableCommandListIndex();
+            CopyCommandList& copyCommandList = mCopyCommandLists[commandListIndex];
 
-        int commandListIndex = GetAvailableCommandListIndex();
-        CopyCommandList& copyCommandList = mCopyCommandLists[commandListIndex];
+            copyCommandList.commandList->Reset();
+            copyCommandList.commandList->Begin();
 
-        copyCommandList.commandList->Reset();
-        copyCommandList.commandList->Begin();
+            Uint64 finishSignalValue = Submit(desc, copyCommandList.commandList);
+            CHECK(finishSignalValue > 0);
 
-        Submit(desc, copyCommandList.commandList, finishSignalFence, signalValue);
+            copyCommandList.commandList->End();
 
-        mLastFenceValue++;
-        copyCommandList.commandList->SignalToFence(mFence, mLastFenceValue);
-        copyCommandList.commandList->End();
+            copyCommandList.commandList->Submit();
+            copyCommandList.lastFenceValue = finishSignalValue;
+            if (!desc.IsDirectWrite())
+            {
+                mFenceValueAndPageIdPairQueue.push({ finishSignalValue, desc.pageId });
+            }
 
-        copyCommandList.commandList->Submit();
-        copyCommandList.lastFenceValue = mLastFenceValue;
-        mFenceValueAndPageIdPairQueue.push({ mLastFenceValue, desc.pageId });
+            return finishSignalValue;
+        }
+        else
+        {
+            Submit(desc, nullptr);
+
+            return 0;
+        }
     }
 
-    void UploadManager::Submit(UploadDesc& desc, SharedPtr<gapi::CommandList> commandList, SharedPtr<gapi::Fence> finishSignalFence, Uint64 signalValue)
+    Uint64 UploadManager::Submit(UploadDesc& desc, SharedPtr<gapi::CommandList> commandList)
     {
         UpdateStates();
 
         if (desc.IsDirectWrite())
         {
+            Uint64 finishFenceValue = 0;
+
             if (desc.dstBuffer)
             {
                 desc.dstBuffer->Unmap();
@@ -165,17 +178,18 @@ namespace cube
             {
                 desc.dstTexture->Unmap();
 
-                commandList->Reset();
-                commandList->Begin();
                 commandList->OptimizeTextureContentsForGPUAccess(desc.dstTexture);
-                commandList->End();
+
+                mLastFinishFenceValue++;
+                finishFenceValue = mLastFinishFenceValue;
+                commandList->SignalToFence(mFinishFence, finishFenceValue);
             }
 
             desc.pData = nullptr;
             desc.dstBuffer = nullptr;
             desc.dstTexture = nullptr;
 
-            return;
+            return finishFenceValue;
         }
 
         auto pageIt = mPages.find(desc.pageId);
@@ -208,15 +222,14 @@ namespace cube
             commandList->OptimizeTextureContentsForGPUAccess(desc.dstTexture);
         }
 
-        mLastFenceValue++;
-        if (finishSignalFence)
-        {
-            commandList->SignalToFence(finishSignalFence, signalValue);
-        }
-
         desc.pData = nullptr;
         desc.dstBuffer = nullptr;
         desc.dstTexture = nullptr;
+
+        mLastFinishFenceValue++;
+        commandList->SignalToFence(mFinishFence, mLastFinishFenceValue);
+
+        return mLastFinishFenceValue;
     }
 
     void UploadManager::Discard(UploadDesc& desc)
@@ -314,7 +327,7 @@ namespace cube
 
     void UploadManager::UpdateStates()
     {
-        Uint64 completedFenceValue = mFence->GetCompletedValue();
+        Uint64 completedFenceValue = mFinishFence->GetCompletedValue();
 
         // Release executed allocations.
         while (!mFenceValueAndPageIdPairQueue.empty())
@@ -332,7 +345,7 @@ namespace cube
 
     int UploadManager::GetAvailableCommandListIndex()
     {
-        Uint64 completedFenceValue = mFence->GetCompletedValue();
+        Uint64 completedFenceValue = mFinishFence->GetCompletedValue();
 
         // Reuse the first command list whose previous submission has completed.
         for (int i = 0; i < MAX_COMMAND_LIST_SIZE; ++i)
@@ -352,7 +365,12 @@ namespace cube
                 oldestIndex = i;
             }
         }
-        mFence->Wait(mCopyCommandLists[oldestIndex].lastFenceValue);
+        mFinishFence->Wait(mCopyCommandLists[oldestIndex].lastFenceValue);
         return oldestIndex;
+    }
+
+    bool UploadManager::IsCopyCommandListNeeded(const UploadDesc& desc) const
+    {
+        return !desc.IsDirectWrite() || (desc.dstTexture && mGAPI->IsNeededToOptimizeTextureContentsUsingCommandList());
     }
 } // namespace cube

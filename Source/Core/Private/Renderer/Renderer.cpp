@@ -28,12 +28,12 @@ namespace cube
 
     Renderer::Renderer()
         : mShaderManager(*this)
-        , mBufferManager(*this)
         , mTextureManager(*this)
         , mPipelineManager(*this)
         , mLightManager(*this)
         , mTonemap(*this)
         , mRenderUtils(*this)
+        , mResourceManager(*this)
         , mTextureViewer(*this)
     {
     }
@@ -83,7 +83,6 @@ namespace cube
 
         mShaderParameterListManager.Initialize(mGAPI.get(), mNumGPUSync);
         mShaderManager.Initialize(false);
-        mBufferManager.Initialize(mGAPI.get());
         mTextureManager.Initialize(mGAPI.get(), mNumGPUSync);
         mSamplerManager.Initialize(mGAPI.get());
         mPipelineManager.Initialize();
@@ -138,7 +137,6 @@ namespace cube
         mPipelineManager.Shutdown();
         mSamplerManager.Shutdown();
         mTextureManager.Shutdown();
-        mBufferManager.Shutdown();
         mShaderManager.Shutdown();
         mShaderParameterListManager.Shutdown();
 
@@ -227,7 +225,10 @@ namespace cube
 
         mGAPI->OnBeforeRender();
 
-        RenderImpl();
+        RGBuilder builder(*this);
+        mResourceManager.ExecutePreprocessTasks(builder);
+        RenderImpl(builder);
+        builder.ExecuteAndSubmit(*mCommandList);
 
         mGAPI->OnAfterRender();
 
@@ -326,13 +327,11 @@ namespace cube
         }
     }
 
-    void Renderer::RenderImpl()
+    void Renderer::RenderImpl(RGBuilder& builder)
     {
         gapi::RasterizerState::FillMode fillMode = mWireframe
             ? gapi::RasterizerState::FillMode::Line
             : gapi::RasterizerState::FillMode::Solid;
-
-        RGBuilder builder(*this);
 
         {
             RG_GPU_EVENT_SCOPE(builder, CUBE_T("Frame"));
@@ -487,7 +486,6 @@ namespace cube
                 mTextureViewer.Update(builder);
             }
         }
-        builder.ExecuteAndSubmit(*mCommandList);
     }
 
     void Renderer::LoadResources()
@@ -510,17 +508,17 @@ namespace cube
                 .bytesPerElement = sizeof(Uint32),
                 .debugName = CUBE_T("DummyBlackTexture2D")
             };
-            mDummyBlackTexture2D = std::make_shared<TextureResource>(dummyTextureCreateInfo);
+            mDummyBlackTexture2D = TextureResource::Create(dummyTextureCreateInfo);
             dummyTextureCreateInfo.textureInfo.type  = gapi::TextureType::TextureCube;
             dummyTextureCreateInfo.data = BlobView(dummyValue.data(), sizeof(Uint32) * 6);
             dummyTextureCreateInfo.debugName = CUBE_T("DummyBlackTextureCube");
-            mDummyBlackTextureCube = std::make_shared<TextureResource>(dummyTextureCreateInfo);
+            mDummyBlackTextureCube = TextureResource::Create(dummyTextureCreateInfo);
 
             memset(dummyValue.data(), 0xFF, sizeof(Uint32) * dummyValue.size());
             dummyTextureCreateInfo.textureInfo.type  = gapi::TextureType::Texture2D;
             dummyTextureCreateInfo.data = BlobView(dummyValue.data(), sizeof(Uint32));
             dummyTextureCreateInfo.debugName = CUBE_T("DummyWhiteTexture2D");
-            mDummyWhiteTexture2D = std::make_shared<TextureResource>(dummyTextureCreateInfo);
+            mDummyWhiteTexture2D = TextureResource::Create(dummyTextureCreateInfo);
         }
 
         {

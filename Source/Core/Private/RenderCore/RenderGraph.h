@@ -6,8 +6,8 @@
 #include "Engine.h"
 #include "GAPI_CommandList.h"
 #include "RenderCore/RenderGraphTypes.h"
-#include "Renderer/Renderer.h"
 #include "RenderCore/ShaderParameter.h"
+#include "Renderer/Renderer.h"
 
 namespace cube
 {
@@ -95,7 +95,11 @@ namespace cube
 
     private:
         Vector<RGResourceHandle> mResources;
-        Map<gapi::Buffer*, RGBufferHandle> mRegisteredBuffers;
+        struct RegisteredBufferInfo
+        {
+            RGBufferHandle buffer;
+        };
+        Map<gapi::Buffer*, RegisteredBufferInfo> mRegisteredBufferInfos;
         struct RegisteredTextureInfo
         {
             RGTextureHandle texture;
@@ -135,14 +139,13 @@ namespace cube
         // Graphics
 
         void AddPass(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline,
-             RGPass::PassFunction&& passFunction,
-             bool addTimestamp = false
+            RGPass::PassFunction&& passFunction,
+            bool addTimestamp = false
         )
         {
             AddPassInternal(name, graphicsPipeline, nullptr, {},
                 std::move(passFunction), nullptr,
-                addTimestamp
-            );
+                addTimestamp);
         }
 
         void AddPass(StringView name, SharedPtr<GraphicsPipeline> graphicsPipeline,
@@ -427,12 +430,12 @@ namespace cube
             mCurrentBuilder.AddPass(CUBE_T("##EndGPUEventScope"), [](gapi::CommandList& commandList){ commandList.EndEvent(); });
 		}
 
-		RGGPUEventScope(const RGGPUEventScope& other) = delete;
-		RGGPUEventScope& operator=(const RGGPUEventScope& rhs) = delete;
+        RGGPUEventScope(const RGGPUEventScope& other) = delete;
+        RGGPUEventScope& operator=(const RGGPUEventScope& rhs) = delete;
 
-	private:
+    private:
         RGBuilder& mCurrentBuilder;
-	};
+    };
 #define RG_GPU_EVENT_SCOPE(builder, name) RGGPUEventScope CUBE_MACRO_JOIN(_eventScope, __LINE__)(builder, name)
 
     class RGGPUTimestampScope
