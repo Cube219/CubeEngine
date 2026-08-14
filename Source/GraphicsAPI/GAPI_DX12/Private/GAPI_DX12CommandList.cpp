@@ -40,15 +40,14 @@ namespace cube
         DX12CommandList::DX12CommandList(DX12Device& device, const CommandListCreateInfo& info)
             : mDevice(device)
             , mType(info.type)
+            , mCurrentCopyAllocator(nullptr)
             , mPhase(Phase::Closed)
         {
             D3D12_COMMAND_LIST_TYPE commandListType = D3D12_COMMAND_LIST_TYPE_DIRECT;
             if (mType == CommandListType::Copy)
             {
                 commandListType = D3D12_COMMAND_LIST_TYPE_COPY;
-
-                CHECK_HR(device.GetDevice()->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(&mCopyAllocator)));
-                SET_DEBUG_NAME_FORMAT(mCopyAllocator, "Copy CommandList Allocator ({0})", info.debugName);
+                mCurrentCopyAllocator = device.GetCommandListManager().GetCurrentCopyAllocator();
             }
 
             device.GetDevice()->CreateCommandList(0, commandListType, GetCurrentAllocator(), nullptr, IID_PPV_ARGS(&mCommandList));
@@ -99,6 +98,11 @@ namespace cube
             }
 
             CHECK(mPhase == Phase::Closed);
+
+            if (mType == CommandListType::Copy)
+            {
+                mCurrentCopyAllocator = mDevice.GetCommandListManager().GetCurrentCopyAllocator();
+            }
 
             CHECK_HR(mCommandList->Reset(GetCurrentAllocator(), nullptr));
             mHasQuery = false;
@@ -659,7 +663,16 @@ namespace cube
                 }
             }
 
-            mDevice.GetCommandListManager().AddBoundObjects(mBoundObjects);
+            if (mType == CommandListType::Copy)
+            {
+                mDevice.GetCommandListManager().AddCopyBoundObjects(mBoundObjects);
+                mDevice.GetCommandListManager().SignalCopyFence();
+                mCurrentCopyAllocator = nullptr;
+            }
+            else
+            {
+                mDevice.GetCommandListManager().AddBoundObjects(mBoundObjects);
+            }
             mBoundObjects.clear();
             mSubmitActions.clear();
         }
@@ -668,7 +681,7 @@ namespace cube
         {
             if (mType == CommandListType::Copy)
             {
-                return mCopyAllocator.Get();
+                return mCurrentCopyAllocator;
             }
             return mDevice.GetCommandListManager().GetCurrentAllocator();
         }

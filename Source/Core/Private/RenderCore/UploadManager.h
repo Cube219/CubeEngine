@@ -65,7 +65,6 @@ namespace cube
         void ReleaseAllocation(int pageId);
 
         void UpdateStates();
-        int GetAvailableCommandListIndex();
         bool IsCopyCommandListNeeded(const UploadDesc& desc) const;
 
         GAPI* mGAPI;
@@ -75,13 +74,7 @@ namespace cube
         Map<int, Page> mPages;
         MultiMap<Uint64, int> mPageRemainSizeMap;
 
-        static constexpr int MAX_COMMAND_LIST_SIZE = 2;
-        struct CopyCommandList
-        {
-            SharedPtr<gapi::CommandList> commandList;
-            Uint64 lastFenceValue = 0;
-        };
-        Array<CopyCommandList, MAX_COMMAND_LIST_SIZE> mCopyCommandLists;
+        SharedPtr<gapi::CommandList> mCopyCommandList;
 
         SharedPtr<gapi::Fence> mFinishFence;
         Uint64 mLastFinishFenceValue = 0;

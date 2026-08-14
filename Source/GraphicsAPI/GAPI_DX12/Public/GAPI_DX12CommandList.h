@@ -137,9 +137,7 @@ namespace cube
             DX12Device& mDevice;
 
             CommandListType mType;
-            // Copy-type command lists own their allocator to reset it independently
-            // from the per-frame allocators in the command list manager.
-            ComPtr<ID3D12CommandAllocator> mCopyAllocator;
+            ID3D12CommandAllocator* mCurrentCopyAllocator;
 
             Phase mPhase;
             ComPtr<ID3D12GraphicsCommandList7> mCommandList;

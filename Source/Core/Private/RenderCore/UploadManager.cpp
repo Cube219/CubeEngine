@@ -20,17 +20,10 @@ namespace cube
             .debugName = CUBE_T("UploadManagerFence"),
         });
 
-        int index = 0;
-        for (CopyCommandList& copyCommandList : mCopyCommandLists)
-        {
-            FrameString debugName = Format<FrameString>(CUBE_T("UploadManagerCopyCommandList_{0}"), index);
-            copyCommandList.commandList = mGAPI->CreateCommandList({
-                .type = gapi::CommandListType::Copy,
-                .debugName = debugName
-            });
-            copyCommandList.lastFenceValue = 0;
-            index++;
-        }
+        mCopyCommandList = mGAPI->CreateCommandList({
+            .type = gapi::CommandListType::Copy,
+            .debugName = CUBE_T("UploadManagerCopyCommandList")
+        });
     }
 
     void UploadManager::Shutdown()
@@ -39,10 +32,7 @@ namespace cube
         UpdateStates();
         mFinishFence = nullptr;
 
-        for (CopyCommandList& copyCommandList : mCopyCommandLists)
-        {
-            copyCommandList.commandList = nullptr;
-        }
+        mCopyCommandList = nullptr;
 
         for (auto& [_, page] : mPages)
         {
@@ -134,19 +124,15 @@ namespace cube
     {
         if (IsCopyCommandListNeeded(desc))
         {
-            int commandListIndex = GetAvailableCommandListIndex();
-            CopyCommandList& copyCommandList = mCopyCommandLists[commandListIndex];
+            mCopyCommandList->Reset();
+            mCopyCommandList->Begin();
 
-            copyCommandList.commandList->Reset();
-            copyCommandList.commandList->Begin();
-
-            Uint64 finishSignalValue = Submit(desc, copyCommandList.commandList);
+            Uint64 finishSignalValue = Submit(desc, mCopyCommandList);
             CHECK(finishSignalValue > 0);
 
-            copyCommandList.commandList->End();
+            mCopyCommandList->End();
 
-            copyCommandList.commandList->Submit();
-            copyCommandList.lastFenceValue = finishSignalValue;
+            mCopyCommandList->Submit();
             if (!desc.IsDirectWrite())
             {
                 mFenceValueAndPageIdPairQueue.push({ finishSignalValue, desc.pageId });
@@ -341,32 +327,6 @@ namespace cube
             mFenceValueAndPageIdPairQueue.pop();
             ReleaseAllocation(pageId);
         }
-    }
-
-    int UploadManager::GetAvailableCommandListIndex()
-    {
-        Uint64 completedFenceValue = mFinishFence->GetCompletedValue();
-
-        // Reuse the first command list whose previous submission has completed.
-        for (int i = 0; i < MAX_COMMAND_LIST_SIZE; ++i)
-        {
-            if (mCopyCommandLists[i].lastFenceValue <= completedFenceValue)
-            {
-                return i;
-            }
-        }
-
-        // All command lists are in flight. Wait for the oldest one.
-        int oldestIndex = 0;
-        for (int i = 1; i < MAX_COMMAND_LIST_SIZE; ++i)
-        {
-            if (mCopyCommandLists[i].lastFenceValue < mCopyCommandLists[oldestIndex].lastFenceValue)
-            {
-                oldestIndex = i;
-            }
-        }
-        mFinishFence->Wait(mCopyCommandLists[oldestIndex].lastFenceValue);
-        return oldestIndex;
     }
 
     bool UploadManager::IsCopyCommandListNeeded(const UploadDesc& desc) const
