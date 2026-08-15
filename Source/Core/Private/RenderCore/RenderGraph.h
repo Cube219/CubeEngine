@@ -41,7 +41,7 @@ namespace cube
             gapi::ResourceAccessFlags accesses;
             gapi::ResourceLayout layout;
             gapi::SubresourceRange subresourceRange;
-            bool forceBarrier = false; // Used for UAV barrier
+            bool skipUAVBarrier = false;
         };
         Vector<ResourceUsage> resourceUsages;
 
@@ -340,8 +340,8 @@ namespace cube
         void UseResource(RGTextureDSVHandle rgDSV);
         void UseResource(RGTextureHandle rgTexture, gapi::SubresourceRangeInput range, gapi::ResourceAccessFlags accesses, gapi::ResourceLayout layout, gapi::ResourceSyncFlags syncs);
 
-        void AddUAVBarrier(RGBufferUAVHandle rgUAV);
-        void AddUAVBarrier(RGTextureUAVHandle rgUAV);
+        void SkipUAVBarrier(RGBufferUAVHandle rgUAV);
+        void SkipUAVBarrier(RGTextureUAVHandle rgUAV);
 
     private:
         void UpdateResourceUsages();

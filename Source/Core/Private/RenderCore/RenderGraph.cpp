@@ -760,7 +760,7 @@ namespace cube
         });
     }
 
-    void RGBuilder::AddUAVBarrier(RGBufferUAVHandle rgUAV)
+    void RGBuilder::SkipUAVBarrier(RGBufferUAVHandle rgUAV)
     {
         CHECK(mPhase == Phase::TrackingResources);
 
@@ -770,15 +770,15 @@ namespace cube
         {
             if (usage.rgResourceIndex == rgUAV->mIndex)
             {
-                usage.forceBarrier = true;
+                usage.skipUAVBarrier = true;
                 return;
             }
         }
 
-        NO_ENTRY_FORMAT("You must call UseResource first before calling AddUAVBarrier.");
+        NO_ENTRY_FORMAT("You must call UseResource first before calling SkipUAVBarrier.");
     }
 
-    void RGBuilder::AddUAVBarrier(RGTextureUAVHandle rgUAV)
+    void RGBuilder::SkipUAVBarrier(RGTextureUAVHandle rgUAV)
     {
         CHECK(mPhase == Phase::TrackingResources);
 
@@ -788,12 +788,12 @@ namespace cube
         {
             if (usage.rgResourceIndex == rgUAV->mIndex)
             {
-                usage.forceBarrier = true;
+                usage.skipUAVBarrier = true;
                 return;
             }
         }
 
-        NO_ENTRY_FORMAT("You must call UseResource first before calling AddUAVBarrier.");
+        NO_ENTRY_FORMAT("You must call UseResource first before calling SkipUAVBarrier.");
     }
 
     void RGBuilder::ExecuteAndSubmit(gapi::CommandList& commandList)
@@ -1284,7 +1284,11 @@ namespace cube
                     }
 
                     SubresourcePendingBarrier& pendingBarrier = pendingSubresourceBarriers[0];
-                    if (resourceUsage.forceBarrier || pendingBarrier.accesses != resourceUsage.accesses)
+                    const bool needUAVBarrier =
+                        !resourceUsage.skipUAVBarrier
+                        && pendingBarrier.accesses.IsSet(gapi::ResourceAccessFlag::UAV)
+                        && resourceUsage.accesses.IsSet(gapi::ResourceAccessFlag::UAV);
+                    if (needUAVBarrier || pendingBarrier.accesses != resourceUsage.accesses)
                     {
                         if (pendingBarrier.firstPassIndex != -1)
                         {
@@ -1323,7 +1327,12 @@ namespace cube
                             const Uint32 subresourceIndex = texture->GetSubresourceIndex(sliceIndex, mipLevel);
                             SubresourcePendingBarrier& pendingBarrier = pendingSubresourceBarriers[subresourceIndex];
 
-                            if (resourceUsage.forceBarrier ||
+                            const bool needUAVBarrier =
+                                !resourceUsage.skipUAVBarrier
+                                && pendingBarrier.accesses.IsSet(gapi::ResourceAccessFlag::UAV)
+                                && resourceUsage.accesses.IsSet(gapi::ResourceAccessFlag::UAV);
+
+                            if (needUAVBarrier ||
                                 (pendingBarrier.accesses != resourceUsage.accesses
                                 || pendingBarrier.layout != resourceUsage.layout))
                             {
