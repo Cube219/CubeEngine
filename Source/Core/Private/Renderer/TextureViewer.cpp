@@ -564,13 +564,13 @@ namespace cube
         if (textureInfo.type == gapi::TextureType::Texture2D)
         {
             auto params = builder.CreateShaderParameterList<TextureViewerFetchInfo2DShaderParameterList>();
-            params->Get()->sizeAndInvSize = Vector4(
+            params->sizeAndInvSize = Vector4(
                 static_cast<float>(mCanvasTextureSize.x), static_cast<float>(mCanvasTextureSize.y),
                 1.0f / static_cast<float>(mCanvasTextureSize.x), 1.0f / static_cast<float>(mCanvasTextureSize.y)
             );
-            params->Get()->srcTexture2D = srcSRV;
-            params->Get()->positionToRead = mPixel;
-            params->Get()->readbackBuffer = readbackUAV;
+            params->srcTexture2D = srcSRV;
+            params->positionToRead = mPixel;
+            params->readbackBuffer = readbackUAV;
 
             SharedPtr<ComputePipeline> pipeline = mRenderer.GetPipelineManager().GetOrCreateComputePipeline({
                 .pipelineInfo = mFetchInfo2DPipelineInfo,
@@ -589,13 +589,13 @@ namespace cube
         else if (textureInfo.type == gapi::TextureType::TextureCube)
         {
             auto params = builder.CreateShaderParameterList<TextureViewerFetchInfoCubeShaderParameterList>();
-            params->Get()->faceSizeAndInvSize = Vector4(
+            params->faceSizeAndInvSize = Vector4(
                 static_cast<float>(textureInfo.width), static_cast<float>(textureInfo.height),
                 1.0f / static_cast<float>(textureInfo.width), 1.0f / static_cast<float>(textureInfo.height)
             );
-            params->Get()->srcTextureCube = srcSRV;
-            params->Get()->positionToRead = mPixel;
-            params->Get()->readbackBuffer = readbackUAV;
+            params->srcTextureCube = srcSRV;
+            params->positionToRead = mPixel;
+            params->readbackBuffer = readbackUAV;
 
             SharedPtr<ComputePipeline> pipeline = mRenderer.GetPipelineManager().GetOrCreateComputePipeline({
                 .pipelineInfo = mFetchInfoCubePipelineInfo,
@@ -679,14 +679,14 @@ namespace cube
         if (textureInfo.type == gapi::TextureType::Texture2D)
         {
             auto params = builder.CreateShaderParameterList<CopyToTextureViewerShaderParameterList>();
-            params->Get()->dstSizeAndInvSize = Vector4(
+            params->dstSizeAndInvSize = Vector4(
                 static_cast<float>(mCanvasTextureSize.x), static_cast<float>(mCanvasTextureSize.y),
                 1.0f / static_cast<float>(mCanvasTextureSize.x), 1.0f / static_cast<float>(mCanvasTextureSize.y)
             );
-            params->Get()->srcTexture2D = srcSRV;
-            params->Get()->dstTexture = dstUAV;
-            params->Get()->rgbaMask = currentRGBAMask;
-            params->Get()->colorRange = Vector2(mRangeMin, mRangeMax);
+            params->srcTexture2D = srcSRV;
+            params->dstTexture = dstUAV;
+            params->rgbaMask = currentRGBAMask;
+            params->colorRange = Vector2(mRangeMin, mRangeMax);
 
             SharedPtr<ComputePipeline> copyToTextureViewer2DPipeline = mRenderer.GetPipelineManager().GetOrCreateComputePipeline({
                 .pipelineInfo = mCopyToTextureViewer2DPipelineInfo,
@@ -706,14 +706,14 @@ namespace cube
             const Uint32 srcHeight = textureInfo.height;
 
             auto params = builder.CreateShaderParameterList<CopyToTextureViewerCubeShaderParameterList>();
-            params->Get()->srcSizeAndInvSize = Vector4(
+            params->srcSizeAndInvSize = Vector4(
                 static_cast<float>(srcWidth), static_cast<float>(srcHeight),
                 1.0f / static_cast<float>(srcWidth), 1.0f / static_cast<float>(srcHeight)
             );
-            params->Get()->srcTextureCube = srcSRV;
-            params->Get()->dstTexture = dstUAV;
-            params->Get()->rgbaMask = currentRGBAMask;
-            params->Get()->colorRange = Vector2(mRangeMin, mRangeMax);
+            params->srcTextureCube = srcSRV;
+            params->dstTexture = dstUAV;
+            params->rgbaMask = currentRGBAMask;
+            params->colorRange = Vector2(mRangeMin, mRangeMax);
 
             SharedPtr<ComputePipeline> copyToTextureViewerCubePipeline = mRenderer.GetPipelineManager().GetOrCreateComputePipeline({
                 .pipelineInfo = mCopyToTextureViewerCubePipelineInfo,

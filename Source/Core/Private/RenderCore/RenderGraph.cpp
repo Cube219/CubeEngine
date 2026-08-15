@@ -609,11 +609,11 @@ namespace cube
             RGBufferHandle rgIndexBuffer = RegisterBuffer(drawMeshInfo.mesh->GetIndexBuffer()->GetGAPIBuffer());
 
             RGShaderParameterListHandle<ObjectShaderParameterList> objectShaderParameterList = CreateShaderParameterList<ObjectShaderParameterList>();
-            objectShaderParameterList->Get()->model = drawMeshInfo.model;
-            objectShaderParameterList->Get()->modelInverse = drawMeshInfo.model.Inversed();
-            objectShaderParameterList->Get()->modelInverseTranspose = drawMeshInfo.model.Inversed().Transposed();
-            objectShaderParameterList->Get()->vertexBuffer = rgVertexBufferSRV;
-            objectShaderParameterList->Get()->useFP16 = meshMeta.useFloat16;
+            objectShaderParameterList->model = drawMeshInfo.model;
+            objectShaderParameterList->modelInverse = drawMeshInfo.model.Inversed();
+            objectShaderParameterList->modelInverseTranspose = drawMeshInfo.model.Inversed().Transposed();
+            objectShaderParameterList->vertexBuffer = rgVertexBufferSRV;
+            objectShaderParameterList->useFP16 = meshMeta.useFloat16;
             paramListArray[0] = objectShaderParameterList;
 
             AddPassInternal(CUBE_T("##DrawMeshPass - Bind Index buffer"), nullptr, nullptr, {},
@@ -645,7 +645,7 @@ namespace cube
                 // Metal applies it in vertex_id.
                 // (See https://github.com/microsoft/DirectXShaderCompiler/pull/5770)
                 auto subMeshShaderParameterList = CreateShaderParameterList<SubMeshShaderParameterList>();
-                subMeshShaderParameterList->Get()->vertexBufferOffset = subMesh.vertexOffset;
+                subMeshShaderParameterList->vertexBufferOffset = subMesh.vertexOffset;
                 paramListArray[2] = subMeshShaderParameterList;
 
                 AddPassInternal(Format<FrameString>(CUBE_T("Mesh: {0}[{1}] / Material: {2}"), drawMeshInfo.mesh->GetDebugName(), subMesh.debugName, material->GetDebugName()),

@@ -97,10 +97,10 @@ namespace cube
         CHECK(width == dst->GetTextureInfo().width && height == dst->GetTextureInfo().height);
 
         auto params = builder.CreateShaderParameterList<TonemapShaderParameterList>();
-        params->Get()->srcTexture = srcSRV;
-        params->Get()->dstTexture = dstUAV;
-        params->Get()->mode = static_cast<Uint32>(mMode);
-        params->Get()->useGammaCorrect = mUseGammaCorrect;
+        params->srcTexture = srcSRV;
+        params->dstTexture = dstUAV;
+        params->mode = static_cast<Uint32>(mMode);
+        params->useGammaCorrect = mUseGammaCorrect;
 
         SharedPtr<ComputePipeline> tonemappingPipeline = mRenderer.GetPipelineManager().GetOrCreateComputePipeline({
             .pipelineInfo = mTonemappingPipelineInfo,

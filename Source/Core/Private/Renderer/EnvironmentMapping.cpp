@@ -341,7 +341,7 @@ namespace cube
         }
 
         auto skyboxParams = builder.CreateShaderParameterList<SkyboxShaderParameterList>();
-        skyboxParams->Get()->skyboxTexture = skyboxSRV;
+        skyboxParams->skyboxTexture = skyboxSRV;
 
         mSkyboxPipelineInfo.rasterizerState.fillMode = mRenderer.IsDrawInWireframe()
             ? gapi::RasterizerState::FillMode::Line
@@ -543,11 +543,11 @@ namespace cube
                     for (Uint32 offsetY = 0; offsetY < widthAndHeight; offsetY += tileSize)
                     {
                         auto params = builder.CreateShaderParameterList<GenerateIrradianceMapShaderParameterList>();
-                        params->Get()->numSlices = numSlices;
-                        params->Get()->widthAndInvWidth = Float2(static_cast<float>(widthAndHeight), 1.0f / static_cast<float>(widthAndHeight));
-                        params->Get()->tileOffsetAndCubeFaceIndex = Uint3(offsetX, offsetY, cubeFaceIndex);
-                        params->Get()->srcIBL = srcIBLSRV;
-                        params->Get()->dstDiffuseIrradianceMap = dstDiffuseEnvMapUAV;
+                        params->numSlices = numSlices;
+                        params->widthAndInvWidth = Float2(static_cast<float>(widthAndHeight), 1.0f / static_cast<float>(widthAndHeight));
+                        params->tileOffsetAndCubeFaceIndex = Uint3(offsetX, offsetY, cubeFaceIndex);
+                        params->srcIBL = srcIBLSRV;
+                        params->dstDiffuseIrradianceMap = dstDiffuseEnvMapUAV;
 
                         const Uint2 dispatchTileSize = Uint2(
                             std::min(tileSize, widthAndHeight - offsetX),
@@ -612,10 +612,10 @@ namespace cube
                 for (Uint32 offsetY = 0; offsetY < widthAndHeight; offsetY += tileSize)
                 {
                     auto params = builder.CreateShaderParameterList<GenerateIntegratedBRDFLUTShaderParameterList>();
-                    params->Get()->sampleCount = 1024;
-                    params->Get()->width = widthAndHeight;
-                    params->Get()->tileOffset = Uint2(offsetX, offsetY);
-                    params->Get()->dstIntegratedBRDFLUT = dstIntegratedBRDFLUTUAV;
+                    params->sampleCount = 1024;
+                    params->width = widthAndHeight;
+                    params->tileOffset = Uint2(offsetX, offsetY);
+                    params->dstIntegratedBRDFLUT = dstIntegratedBRDFLUTUAV;
 
                     const Uint2 dispatchTileSize = Uint2(
                         std::min(tileSize, widthAndHeight - offsetX),
@@ -694,12 +694,12 @@ namespace cube
                         for (Uint32 offsetY = 0; offsetY < mipWidthAndHeight; offsetY += tileSize)
                         {
                             auto params = builder.CreateShaderParameterList<GeneratePrefilterMapShaderParameterList>();
-                            params->Get()->numSamples = 256;
-                            params->Get()->widthAndInvWidth = Float2(static_cast<float>(mipWidthAndHeight), 1.0f / static_cast<float>(mipWidthAndHeight));
-                            params->Get()->tileOffsetAndCubeFaceIndex = Uint3(offsetX, offsetY, cubeFaceIndex);
-                            params->Get()->roughness = roughness;
-                            params->Get()->srcIBL = srcIBLSRV;
-                            params->Get()->dstPrefilterMap = dstPrefilterMapUAV;
+                            params->numSamples = 256;
+                            params->widthAndInvWidth = Float2(static_cast<float>(mipWidthAndHeight), 1.0f / static_cast<float>(mipWidthAndHeight));
+                            params->tileOffsetAndCubeFaceIndex = Uint3(offsetX, offsetY, cubeFaceIndex);
+                            params->roughness = roughness;
+                            params->srcIBL = srcIBLSRV;
+                            params->dstPrefilterMap = dstPrefilterMapUAV;
 
                             const Uint2 dispatchTileSize = Uint2(
                                 std::min(tileSize, mipWidthAndHeight - offsetX),

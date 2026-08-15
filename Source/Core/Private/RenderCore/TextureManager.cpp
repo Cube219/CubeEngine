@@ -85,8 +85,8 @@ namespace cube
                 RGTextureUAVHandle dstUAV = builder.CreateUAV(rgTexture, { .subresourceRange = { .firstMipLevel = mipIndex } });
 
                 RGShaderParameterListHandle<GenerateMipmapsShaderParameterList> params = builder.CreateShaderParameterList<GenerateMipmapsShaderParameterList>();
-                params->Get()->srcTexture = srcSRV;
-                params->Get()->dstTexture = dstUAV;
+                params->srcTexture = srcSRV;
+                params->dstTexture = dstUAV;
 
                 builder.AddPass(Format<FrameString>(CUBE_T("GenerateMipmaps ({0}->{1})"), mipIndex - 1, mipIndex),
                     generateMipmapsPipeline,

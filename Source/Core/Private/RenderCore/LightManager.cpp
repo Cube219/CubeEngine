@@ -83,17 +83,17 @@ namespace cube
     void LightManager::BindLightShaderParameterList(RGBuilder& builder)
     {
         auto lightShaderParameterList = builder.CreateShaderParameterList<LightShaderParameterList>();
-        lightShaderParameterList->Get()->isDirectionalLightEnabled = mIsDirectionalLightEnabled;
-        lightShaderParameterList->Get()->directionalLightDirection = mDirectionalLight.GetDirection();
-        lightShaderParameterList->Get()->directionalLightIntensity = mDirectionalLight.GetIntensity();
+        lightShaderParameterList->isDirectionalLightEnabled = mIsDirectionalLightEnabled;
+        lightShaderParameterList->directionalLightDirection = mDirectionalLight.GetDirection();
+        lightShaderParameterList->directionalLightIntensity = mDirectionalLight.GetIntensity();
         builder.BindGlobalShaderParameterList(lightShaderParameterList);
 
         auto envMapShaderParameterList = builder.CreateShaderParameterList<EnvironmentMapLightShaderParameterList>();
-        envMapShaderParameterList->Get()->diffuseIrradianceMap = mEnvironmentMapping.GetDiffuseIrradianceMap(builder);
-        envMapShaderParameterList->Get()->integratedBRDFLUT = mEnvironmentMapping.GetIntegratedBRDFLUT(builder);
-        envMapShaderParameterList->Get()->prefilterMap = mEnvironmentMapping.GetPrefilterMap(builder);
-        envMapShaderParameterList->Get()->prefilterSampler = mEnvironmentMapping.GetPrefilterMapSampler();
-        envMapShaderParameterList->Get()->prefilterMapMipLevels = mEnvironmentMapping.GetPrefilterMapMipLevels();
+        envMapShaderParameterList->diffuseIrradianceMap = mEnvironmentMapping.GetDiffuseIrradianceMap(builder);
+        envMapShaderParameterList->integratedBRDFLUT = mEnvironmentMapping.GetIntegratedBRDFLUT(builder);
+        envMapShaderParameterList->prefilterMap = mEnvironmentMapping.GetPrefilterMap(builder);
+        envMapShaderParameterList->prefilterSampler = mEnvironmentMapping.GetPrefilterMapSampler();
+        envMapShaderParameterList->prefilterMapMipLevels = mEnvironmentMapping.GetPrefilterMapMipLevels();
         builder.BindGlobalShaderParameterList(envMapShaderParameterList);
     }
 

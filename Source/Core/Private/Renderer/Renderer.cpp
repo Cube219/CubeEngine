@@ -372,8 +372,8 @@ namespace cube
                 };
 
                 RGShaderParameterListHandle<GlobalShaderParameterList> globalShaderParameterList = builder.CreateShaderParameterList<GlobalShaderParameterList>();
-                globalShaderParameterList->Get()->viewPosition = mViewPosition;
-                globalShaderParameterList->Get()->viewProjection = mViewPerspectiveMatrix;
+                globalShaderParameterList->viewPosition = mViewPosition;
+                globalShaderParameterList->viewProjection = mViewPerspectiveMatrix;
                 builder.BindGlobalShaderParameterList(globalShaderParameterList);
 
                 RGBuilder::RenderPassInfo renderPassInfo;

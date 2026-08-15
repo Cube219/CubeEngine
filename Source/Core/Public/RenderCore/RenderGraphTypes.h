@@ -360,10 +360,10 @@ namespace cube
         requires std::derived_from<ShaderParameterListType, ShaderParameterList>
     class RGShaderParameterList : public RGShaderParameterListBase
     {
-    public:
-        ShaderParameterListType* Get() { return mCastedPtr; }
-
     private:
+        template <typename OtherType>
+            requires std::derived_from<OtherType, RGResource>
+        friend class RGResourceHandler;
         friend class RGBuilder;
 
         RGShaderParameterList(int index, SharedPtr<ShaderParameterListType> parameterList, const ShaderParameterListInfo& parameterListInfo)
@@ -374,6 +374,41 @@ namespace cube
 
         ShaderParameterListType* mCastedPtr;
     };
+
+    // Specialize resource handler for shader parameter list to remove Get() function.
+    template <typename ShaderParameterListType>
+        requires std::derived_from<ShaderParameterListType, ShaderParameterList>
+    class RGResourceHandler<RGShaderParameterList<ShaderParameterListType>>
+    {
+    public:
+        RGResourceHandler() = default;
+
+        ShaderParameterListType* operator->() const { return mResource->mCastedPtr; }
+        ShaderParameterListType& operator*() const { return *mResource->mCastedPtr; }
+
+        bool operator==(const RGResourceHandler& rhs) const { return mResource == rhs.mResource; }
+        bool operator!=(const RGResourceHandler& rhs) const { return mResource != rhs.mResource; }
+
+        template <typename RGResourceUpcastType>
+            requires std::derived_from<RGShaderParameterList<ShaderParameterListType>, RGResourceUpcastType> && std::derived_from<RGResourceUpcastType, RGResource>
+        operator RGResourceHandler<RGResourceUpcastType>() const
+        {
+            return RGResourceHandler<RGResourceUpcastType>(static_cast<RGResourceUpcastType*>(mResource));
+        }
+
+        bool IsValid() const { return (mResource != nullptr); }
+
+    private:
+        friend class RGBuilder;
+
+        RGResourceHandler(RGShaderParameterList<ShaderParameterListType>* resource)
+            : mResource(resource)
+        {
+        }
+
+        RGShaderParameterList<ShaderParameterListType>* mResource = nullptr;
+    };
+
     template <typename ShaderParameterListType>
         requires std::derived_from<ShaderParameterListType, ShaderParameterList>
     using RGShaderParameterListHandle = RGResourceHandler<RGShaderParameterList<ShaderParameterListType>>;

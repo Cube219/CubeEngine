@@ -99,63 +99,63 @@ namespace cube
     {
         RGShaderParameterListHandle<MaterialShaderParameterList> parameters = builder.CreateShaderParameterList<MaterialShaderParameterList>();
 
-        parameters->Get()->baseColor = mConstantBaseColor;
-        parameters->Get()->diffuseColor = mConstantDiffuseColor;
-        parameters->Get()->specularColor = mConstantSpecularColor;
-        parameters->Get()->shininess = mConstantShininess;
+        parameters->baseColor = mConstantBaseColor;
+        parameters->diffuseColor = mConstantDiffuseColor;
+        parameters->specularColor = mConstantSpecularColor;
+        parameters->shininess = mConstantShininess;
 
-        parameters->Get()->materialMode = static_cast<Uint32>(mMode);
-        parameters->Get()->alphaCutoff = mAlphaCutoff;
+        parameters->materialMode = static_cast<Uint32>(mMode);
+        parameters->alphaCutoff = mAlphaCutoff;
 
         if (mTextures[0])
         {
             RGTextureHandle texture = builder.RegisterTexture(mTextures[0]->GetGAPITexture());
             RGTextureSRVHandle srv = builder.CreateSRV(texture);
-            parameters->Get()->textureSlot0 = srv;
+            parameters->textureSlot0 = srv;
         }
         else
         {
-            parameters->Get()->textureSlot0 = builder.GetDummyBlackTexture2D();
+            parameters->textureSlot0 = builder.GetDummyBlackTexture2D();
         }
         if (mTextures[1])
         {
             RGTextureHandle texture = builder.RegisterTexture(mTextures[1]->GetGAPITexture());
             RGTextureSRVHandle srv = builder.CreateSRV(texture);
-            parameters->Get()->textureSlot1 = srv;
+            parameters->textureSlot1 = srv;
         }
         else
         {
-            parameters->Get()->textureSlot1 = builder.GetDummyBlackTexture2D();
+            parameters->textureSlot1 = builder.GetDummyBlackTexture2D();
         }
         if (mTextures[2])
         {
             RGTextureHandle texture = builder.RegisterTexture(mTextures[2]->GetGAPITexture());
             RGTextureSRVHandle srv = builder.CreateSRV(texture);
-            parameters->Get()->textureSlot2 = srv;
+            parameters->textureSlot2 = srv;
         }
         else
         {
-            parameters->Get()->textureSlot2 = builder.GetDummyBlackTexture2D();
+            parameters->textureSlot2 = builder.GetDummyBlackTexture2D();
         }
         if (mTextures[3])
         {
             RGTextureHandle texture = builder.RegisterTexture(mTextures[3]->GetGAPITexture());
             RGTextureSRVHandle srv = builder.CreateSRV(texture);
-            parameters->Get()->textureSlot3 = srv;
+            parameters->textureSlot3 = srv;
         }
         else
         {
-            parameters->Get()->textureSlot3 = builder.GetDummyBlackTexture2D();
+            parameters->textureSlot3 = builder.GetDummyBlackTexture2D();
         }
         if (mTextures[4])
         {
             RGTextureHandle texture = builder.RegisterTexture(mTextures[4]->GetGAPITexture());
             RGTextureSRVHandle srv = builder.CreateSRV(texture);
-            parameters->Get()->textureSlot4 = srv;
+            parameters->textureSlot4 = srv;
         }
         else
         {
-            parameters->Get()->textureSlot4 = builder.GetDummyBlackTexture2D();
+            parameters->textureSlot4 = builder.GetDummyBlackTexture2D();
         }
 
         return parameters;

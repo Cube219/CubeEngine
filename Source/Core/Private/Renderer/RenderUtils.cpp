@@ -71,8 +71,8 @@ namespace cube
         RGTextureRTVHandle dstRTV = builder.CreateRTV(dst);
 
         auto params = builder.CreateShaderParameterList<CopyTexturePSParameterList>();
-        params->Get()->srcTexture = srcSRV;
-        params->Get()->size = Int2(srcInfo.width, srcInfo.height);
+        params->srcTexture = srcSRV;
+        params->size = Int2(srcInfo.width, srcInfo.height);
 
         RGBuilder::RenderPassInfo renderPassInfo;
         renderPassInfo.colors.push_back({
