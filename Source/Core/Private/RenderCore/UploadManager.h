@@ -11,6 +11,15 @@
 
 namespace cube
 {
+    struct UploadAllocationInfo
+    {
+        Uint64 offset = 0;
+        Uint64 size = std::numeric_limits<Uint64>::max();
+        // TODO: Subresource uploading in texture.
+
+        bool directIfPossible = false;
+    };
+
     struct UploadDesc
     {
         void* pData = nullptr;
@@ -18,6 +27,7 @@ namespace cube
 
         SharedPtr<gapi::Buffer> dstBuffer = nullptr;
         SharedPtr<gapi::Texture> dstTexture = nullptr;
+        Uint64 dstOffset = 0;
 
         int pageId = -1;
         Uint64 offsetInPage = 0;
@@ -38,8 +48,8 @@ namespace cube
         void Initialize(GAPI* gAPI);
         void Shutdown();
 
-        UploadDesc Allocate(SharedPtr<gapi::Buffer> dstBuffer, bool directIfPossible = false);
-        UploadDesc Allocate(SharedPtr<gapi::Texture> dstTexture, bool directIfPossible = false);
+        UploadDesc Allocate(SharedPtr<gapi::Buffer> dstBuffer, const UploadAllocationInfo& info);
+        UploadDesc Allocate(SharedPtr<gapi::Texture> dstTexture, const UploadAllocationInfo& info);
 
         Uint64 SubmitToCopyQueue(UploadDesc& desc);
         Uint64 Submit(UploadDesc& desc, SharedPtr<gapi::CommandList> commandList);

@@ -66,7 +66,7 @@ namespace cube
         const Uint64 srcSubSize = info.width * info.height * createInfo.bytesPerElement;
 
         UploadManager& uploadManager = Engine::GetRenderer()->GetUploadManager();
-        UploadDesc uploadDesc = uploadManager.Allocate(mGAPITexture, true);
+        UploadDesc uploadDesc = uploadManager.Allocate(mGAPITexture, { .directIfPossible = true });
         Byte* pDst = (Byte*)uploadDesc.pData;
         // Only set miplevel 0.
         for (int i = 0; i < numSlices; ++i)

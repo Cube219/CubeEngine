@@ -75,7 +75,7 @@ namespace cube
             UploadManager& uploadManager = Engine::GetRenderer()->GetUploadManager();
             ResourceManager& resourceManager = Engine::GetRenderer()->GetResourceManager();
 
-            UploadDesc vbUploadDesc = uploadManager.Allocate(mVertexBuffer->GetGAPIBuffer(), true);
+            UploadDesc vbUploadDesc = uploadManager.Allocate(mVertexBuffer->GetGAPIBuffer(), { .directIfPossible = true });
             void* pVertexBufferData = vbUploadDesc.pData;
             if (mMeta.useFloat16)
             {
@@ -99,7 +99,7 @@ namespace cube
             }
             Uint64 finishVBFenceValue = uploadManager.SubmitToCopyQueue(vbUploadDesc);
 
-            UploadDesc ibUploadDesc = uploadManager.Allocate(mIndexBuffer->GetGAPIBuffer(), true);
+            UploadDesc ibUploadDesc = uploadManager.Allocate(mIndexBuffer->GetGAPIBuffer(), { .directIfPossible = true });
             void* pIndexBufferData = ibUploadDesc.pData;
             BlobView indexData = meshData->GetIndexData();
             memcpy(pIndexBufferData, indexData.GetData(), indexData.GetSize());

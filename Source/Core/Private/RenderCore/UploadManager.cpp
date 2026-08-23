@@ -46,30 +46,35 @@ namespace cube
         mGAPI = nullptr;
     }
 
-    UploadDesc UploadManager::Allocate(SharedPtr<gapi::Buffer> dstBuffer, bool directIfPossible)
+    UploadDesc UploadManager::Allocate(SharedPtr<gapi::Buffer> dstBuffer, const UploadAllocationInfo& info)
     {
         CHECK(dstBuffer->GetUsage() == gapi::ResourceUsage::GPUOnly);
 
-        if (directIfPossible && mGAPI->IsDirectMapSupported(gapi::ResourceType::Buffer))
+        Uint64 dstSize = std::min(info.size, dstBuffer->GetSize());
+        CHECK(info.offset + dstSize <= dstBuffer->GetSize());
+
+        if (info.directIfPossible && mGAPI->IsDirectMapSupported(gapi::ResourceType::Buffer))
         {
-            void* pData = dstBuffer->Map();
+            Byte* pData = (Byte*)(dstBuffer->Map()) + info.offset;
             return {
                 .pData = pData,
-                .size = dstBuffer->GetSize(),
+                .size = dstSize,
                 .dstBuffer = dstBuffer,
+                .dstOffset = info.offset,
             };
         }
 
-        UploadDesc desc = AllocateInternal(dstBuffer->GetSize(), 1);
+        UploadDesc desc = AllocateInternal(dstSize, 1);
         desc.dstBuffer = dstBuffer;
+        desc.dstOffset = info.offset;
         return desc;
     }
 
-    UploadDesc UploadManager::Allocate(SharedPtr<gapi::Texture> dstTexture, bool directIfPossible)
+    UploadDesc UploadManager::Allocate(SharedPtr<gapi::Texture> dstTexture, const UploadAllocationInfo& info)
     {
         CHECK(dstTexture->GetUsage() == gapi::ResourceUsage::GPUOnly);
 
-        if (directIfPossible && mGAPI->IsDirectMapSupported(gapi::ResourceType::Texture))
+        if (info.directIfPossible && mGAPI->IsDirectMapSupported(gapi::ResourceType::Texture))
         {
             void* pData = dstTexture->Map();
             return {
@@ -184,7 +189,7 @@ namespace cube
 
         if (desc.dstBuffer)
         {
-            commandList->CopyBuffer(page.stagingBuffer, desc.offsetInPage, desc.dstBuffer, 0, desc.size);
+            commandList->CopyBuffer(page.stagingBuffer, desc.offsetInPage, desc.dstBuffer, desc.dstOffset, desc.size);
         }
         else
         {
