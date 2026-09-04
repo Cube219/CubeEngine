@@ -72,6 +72,7 @@ namespace cube
     void ShaderParameterListManager::Initialize(GAPI* gapi, Uint32 numGPUSync)
     {
         mGAPI = gapi;
+        mConstantBufferAlignment = mGAPI->GetInfo().constantBufferAlignment;
         mShaderParameterHelper = &mGAPI->GetShaderParameterHelper();
         mCompatibleShaderParameterReflectionTypeMap = mShaderParameterHelper->GetCompatibleShaderParameterReflectionTypeMap();
         mBufferPools.resize(numGPUSync);
@@ -202,11 +203,11 @@ namespace cube
 
     void ShaderParameterListManager::AllocateShaderParameterList(ShaderParameterList* parameterList, const ShaderParameterListInfo& parameterListInfo)
     {
-        // Constant buffer size must be 256 byte aligned in HLSL.
         Uint32 bufferSize = parameterListInfo.totalBufferSize;
-        if ((bufferSize & 255) != 0)
+        const Uint32 alignment = mConstantBufferAlignment;
+        if ((bufferSize & (alignment - 1)) != 0)
         {
-            bufferSize = (bufferSize + 255) & ~255;
+            bufferSize = (bufferSize + (alignment - 1)) & ~(alignment - 1);
         }
 
         parameterList->mGPUSyncIndex = mCurrentIndex;

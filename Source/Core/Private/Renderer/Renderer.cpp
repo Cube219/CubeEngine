@@ -38,7 +38,7 @@ namespace cube
     {
     }
 
-    void Renderer::Initialize(GAPIName gAPIName, const ImGUIContext& imGUIContext, Uint32 numGPUSync)
+    void Renderer::Initialize(gapi::GAPIName gAPIName, const ImGUIContext& imGUIContext, Uint32 numGPUSync)
     {
         CUBE_LOG(Info, Renderer, "Initialize renderer. (GAPI: {})", GAPINameToString(gAPIName));
 
@@ -49,14 +49,14 @@ namespace cube
         platform::FilePath dLibPath;
         switch (gAPIName)
         {
-        case GAPIName::DX12:
+        case gapi::GAPIName::DX12:
             dLibPath = platform::FilePath(CUBE_T("CE-GAPI_DX12"));
             break;
-        case GAPIName::Metal:
+        case gapi::GAPIName::Metal:
             dLibPath = platform::FilePath(CUBE_T("CE-GAPI_Metal"));
             break;
 
-        case GAPIName::Unknown:
+        case gapi::GAPIName::Unknown:
         default:
             CHECK_FORMAT(false, "Invalid GAPIName: {}", (int)gAPIName);
             break;

@@ -31,6 +31,8 @@ namespace cube
             Uint32 currentOffset = 0;
             Uint32 totalBufferSize = 0;
 
+            Uint32 maxAlignment = 1;
+
             for (ShaderParameterInfo& paramInfo : inOutParameterListInfo.parameterInfos)
             {
                 Uint32 sizeInGPU = 0;
@@ -90,6 +92,7 @@ namespace cube
                     break;
                 }
 
+                maxAlignment = std::max(maxAlignment, alignment);
                 Uint32 alignedOffset = Align(currentOffset, alignment);
 
                 paramInfo.sizeInGPU = sizeInGPU;
@@ -98,6 +101,8 @@ namespace cube
                 currentOffset = alignedOffset + sizeInGPU;
                 totalBufferSize = std::max(totalBufferSize, currentOffset);
             }
+            // Add tail padding.
+            totalBufferSize = Align(totalBufferSize, maxAlignment);
 
             inOutParameterListInfo.totalBufferSize = totalBufferSize;
         }

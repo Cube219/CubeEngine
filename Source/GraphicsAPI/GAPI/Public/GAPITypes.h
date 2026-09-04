@@ -1,5 +1,6 @@
 #pragma once
 
+#include "CubeString.h"
 #include "Flags.h"
 
 namespace cube
@@ -142,6 +143,39 @@ namespace cube
             Uint64 physicalMaximumUsage;
             Uint64 logicalCurrentUsage;
             Uint64 logicalMaximumUsage;
+        };
+
+        enum class GAPIName
+        {
+            Unknown,
+            DX12,
+            Metal
+        };
+        inline const Character* GAPINameToString(GAPIName gAPIName)
+        {
+            switch (gAPIName)
+            {
+            case GAPIName::DX12:
+                return CUBE_T("DX12");
+            case GAPIName::Metal:
+                return CUBE_T("Metal");
+            case GAPIName::Unknown:
+            default:
+                return CUBE_T("Unknown");
+            }
+        }
+
+        struct GAPIInfo
+        {
+            GAPIName apiName = GAPIName::Unknown;
+
+            Uint32 constantBufferAlignment = 256;
+
+            // Whether a GPUOnly buffer/texture can be mapped directly without an
+            // intermediate staging buffer. (UMA / shared memory architecture)
+            bool supportsDirectMapInBuffer = false;
+            bool supportsDirectMapInTexture = false;
+            bool needsToOptimizeTextureContentsUsingCommandList = true;
         };
     } // namespace gapi
 } // namespace cube

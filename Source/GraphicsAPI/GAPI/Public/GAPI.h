@@ -5,6 +5,7 @@
 #include "CubeString.h"
 #include "GAPI_Resource.h"
 #include "GAPI_Timestamp.h"
+#include "GAPITypes.h"
 
 namespace cube
 {
@@ -35,26 +36,6 @@ namespace cube
         class TextureRTV;
     } // namespace gapi
 
-    enum class GAPIName
-    {
-        Unknown,
-        DX12,
-        Metal
-    };
-    inline const Character* GAPINameToString(GAPIName gAPIName)
-    {
-        switch (gAPIName)
-        {
-        case GAPIName::DX12:
-            return CUBE_T("DX12");
-        case GAPIName::Metal:
-            return CUBE_T("Metal");
-        case GAPIName::Unknown:
-        default:
-            return CUBE_T("Unknown");
-        }
-    }
-
     struct ImGUIContext
     {
         void* context = nullptr;
@@ -73,11 +54,6 @@ namespace cube
     class GAPI
     {
     public:
-        struct Info
-        {
-            GAPIName apiName = GAPIName::Unknown;
-        };
-    public:
         GAPI() = default;
         virtual ~GAPI() = default;
 
@@ -95,13 +71,8 @@ namespace cube
         virtual void EndRenderingFrame() = 0;
         virtual void WaitAllGPUSync() = 0;
 
-        const Info& GetInfo() const { return mInfo; }
+        const gapi::GAPIInfo& GetInfo() const { return mInfo; }
         virtual const gapi::ShaderParameterHelper& GetShaderParameterHelper() const = 0;
-
-        // Whether a GPUOnly resource of the given type can be mapped directly
-        // without an intermediate staging buffer (UMA / shared memory).
-        virtual bool IsDirectMapSupported(gapi::ResourceType type) const = 0;
-        virtual bool IsNeededToOptimizeTextureContentsUsingCommandList() const = 0;
 
         virtual SharedPtr<gapi::Buffer> CreateBuffer(const gapi::BufferCreateInfo& info) = 0;
         virtual SharedPtr<gapi::CommandList> CreateCommandList(const gapi::CommandListCreateInfo& info) = 0;
@@ -117,6 +88,6 @@ namespace cube
         virtual gapi::VRAMStatus GetVRAMUsage() = 0;
 
     protected:
-        Info mInfo;
+        gapi::GAPIInfo mInfo;
     };
 } // namespace cube

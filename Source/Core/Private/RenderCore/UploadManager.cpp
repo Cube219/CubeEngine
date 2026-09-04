@@ -16,6 +16,10 @@ namespace cube
         mPageNextId = 0;
         mLastFinishFenceValue = 0;
 
+        mSupportsDirectMapInBuffer = mGAPI->GetInfo().supportsDirectMapInBuffer;
+        mSupportsDirectMapInTexture = mGAPI->GetInfo().supportsDirectMapInTexture;
+        mNeedsToOptimizeTextureContentsUsingCommandList = mGAPI->GetInfo().needsToOptimizeTextureContentsUsingCommandList;
+
         mFinishFence = mGAPI->CreateFence({
             .allowCPUAccess = true,
             .debugName = CUBE_T("UploadManagerFence"),
@@ -54,7 +58,7 @@ namespace cube
         Uint64 dstSize = std::min(info.size, dstBuffer->GetSize());
         CHECK(info.offset + dstSize <= dstBuffer->GetSize());
 
-        if (info.directIfPossible && mGAPI->IsDirectMapSupported(gapi::ResourceType::Buffer))
+        if (info.directIfPossible && mSupportsDirectMapInBuffer)
         {
             Byte* pData = (Byte*)(dstBuffer->Map()) + info.offset;
             return {
@@ -75,7 +79,7 @@ namespace cube
     {
         CHECK(dstTexture->GetUsage() == gapi::ResourceUsage::GPUOnly);
 
-        if (info.directIfPossible && mGAPI->IsDirectMapSupported(gapi::ResourceType::Texture))
+        if (info.directIfPossible && mSupportsDirectMapInTexture)
         {
             void* pData = dstTexture->Map();
             return {
@@ -184,7 +188,7 @@ namespace cube
             {
                 desc.dstTexture->Unmap();
 
-                if (mGAPI->IsNeededToOptimizeTextureContentsUsingCommandList())
+                if (mNeedsToOptimizeTextureContentsUsingCommandList)
                 {
                     commandList->OptimizeTextureContentsForGPUAccess(desc.dstTexture);
 
@@ -340,6 +344,6 @@ namespace cube
 
     bool UploadManager::IsCopyCommandListNeeded(const UploadDesc& desc) const
     {
-        return !desc.IsDirectWrite() || (desc.dstTexture && mGAPI->IsNeededToOptimizeTextureContentsUsingCommandList());
+        return !desc.IsDirectWrite() || (desc.dstTexture && mNeedsToOptimizeTextureContentsUsingCommandList);
     }
 } // namespace cube

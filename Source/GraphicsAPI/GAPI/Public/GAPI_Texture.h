@@ -69,8 +69,6 @@ namespace cube
             {}
             virtual ~Texture() = default;
 
-            // NOTE: Mapping a GPUOnly texture is allowed only when direct map is supported
-            // (GAPI::IsDirectMapSupported). Otherwise, use the UploadManager in Core instead.
             virtual void* Map() = 0;
             // NOTE: Unmapping a GPUOnly resource will transition its layout to Common.
             virtual void Unmap() = 0;

@@ -79,6 +79,16 @@ namespace cube
         RGTextureSRVHandle GetDummyBlackTextureCube();
         RGTextureSRVHandle GetDummyWhiteTexture2D();
 
+        struct Test
+        {
+            Uint32 a;
+            double b;
+            __int128 c;
+            float d;
+            double e;
+            double f;
+        };
+
         template <typename ShaderParameterListType>
             requires std::derived_from<ShaderParameterListType, ShaderParameterList>
         RGShaderParameterListHandle<ShaderParameterListType> CreateShaderParameterList()

@@ -497,6 +497,7 @@ public: \
         void FreeBuffer(ShaderParameterList& parameterList);
 
         GAPI* mGAPI;
+        Uint32 mConstantBufferAlignment;
         const gapi::ShaderParameterHelper* mShaderParameterHelper;
         Vector<Vector<gapi::ShaderParameterReflection::Type>> mCompatibleShaderParameterReflectionTypeMap;
 

@@ -22,7 +22,7 @@ namespace cube
         {
             int argc;
             const char** argv;
-            GAPIName gapi;
+            gapi::GAPIName gapi;
             bool drawImGUI = true;
             // Some platform cannot execute loop logic in the main thread. (Ex. MacOS)
             // So, run initialize and shutdown logic in platform loop function which runs another thread.

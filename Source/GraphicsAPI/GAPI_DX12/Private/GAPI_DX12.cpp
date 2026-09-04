@@ -36,10 +36,6 @@ namespace cube
     {
         CUBE_LOG(Info, DX12, "Initialize GAPI_DX12.");
 
-        mInfo = {
-            .apiName = GAPIName::DX12
-        };
-
         InitializeTypes();
 
         Uint32 dxgiFactoryFlags = 0;
@@ -103,6 +99,14 @@ namespace cube
         {
             DX12Debug::InitializeD3DDebugMessageLogging(*mMainDevice);
         }
+
+        mInfo = {
+            .apiName = gapi::GAPIName::DX12,
+            .constantBufferAlignment = 256,
+            .supportsDirectMapInBuffer = mMainDevice->IsGPUUploadHeapSupported(),
+            .supportsDirectMapInTexture = false, // Direct-mapping textures is possible, but inefficient because swizzling is performed on the CPU side.
+            .needsToOptimizeTextureContentsUsingCommandList = false,
+        };
 
         InitializeImGUI(initInfo.imGUI);
         DX12ShaderCompiler::Initialize();
@@ -259,15 +263,6 @@ namespace cube
     const gapi::ShaderParameterHelper& GAPI_DX12::GetShaderParameterHelper() const
     {
         return mMainDevice->GetShaderParameterHelper();
-    }
-
-    bool GAPI_DX12::IsDirectMapSupported(gapi::ResourceType type) const
-    {
-        if (type == gapi::ResourceType::Buffer)
-        {
-            return mMainDevice->IsGPUUploadHeapSupported();
-        }
-        return false;
     }
 
     SharedPtr<gapi::Buffer> GAPI_DX12::CreateBuffer(const gapi::BufferCreateInfo& info)

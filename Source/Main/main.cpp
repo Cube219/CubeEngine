@@ -17,7 +17,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
     Engine::EngineInitializeInfo initInfo = {
         .argc = __argc,
         .argv = const_cast<const char**>(__argv),
-        .gapi = cube::GAPIName::DX12,
+        .gapi = gapi::GAPIName::DX12,
     };
     Engine::Initialize(initInfo);
     Engine::StartLoop();
@@ -35,7 +35,7 @@ int main(int argc, const char* argv[])
     Engine::EngineInitializeInfo initInfo = {
         .argc = argc,
         .argv = argv,
-        .gapi = cube::GAPIName::Metal,
+        .gapi = gapi::GAPIName::Metal,
         .runLoopInOtherThread = true,
     };
     platform::Platform::SetEngineInitializeFunction([initInfo](){

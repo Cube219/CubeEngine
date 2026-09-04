@@ -45,10 +45,6 @@ namespace cube
     {
         CUBE_LOG(Info, Metal, "Initialize GAPI_Metal.");
 
-        mInfo = {
-            .apiName = GAPIName::Metal
-        };
-
         InitializeTypes();
 
         mDevices.resize(1);
@@ -56,6 +52,15 @@ namespace cube
         mDevices[0]->Initialize(MTLCreateSystemDefaultDevice(), initInfo.numGPUSync);
         mMainDevice = mDevices[0];
         CHECK(mMainDevice->CheckFeatureRequirements());
+
+        mInfo = {
+            .apiName = gapi::GAPIName::Metal,
+            .constantBufferAlignment = 4,
+            // All non-transient Metal resources use MTLStorageModeShared (mappable).
+            .supportsDirectMapInBuffer = true,
+            .supportsDirectMapInTexture = true,
+            .needsToOptimizeTextureContentsUsingCommandList = true,
+        };
 
         InitializeImGUI(initInfo.imGUI);
         MetalShaderCompiler::Initialize(mMainDevice);
@@ -165,12 +170,6 @@ namespace cube
     const gapi::ShaderParameterHelper& GAPI_Metal::GetShaderParameterHelper() const
     {
         return *mShaderParameterHelper.get();
-    }
-
-    bool GAPI_Metal::IsDirectMapSupported(gapi::ResourceType type) const
-    {
-        // All non-transient Metal resources use MTLStorageModeShared (mappable).
-        return true;
     }
 
     SharedPtr<gapi::Buffer> GAPI_Metal::CreateBuffer(const gapi::BufferCreateInfo& info)

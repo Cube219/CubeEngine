@@ -80,6 +80,9 @@ namespace cube
         bool IsCopyCommandListNeeded(const UploadDesc& desc) const;
 
         GAPI* mGAPI;
+        bool mSupportsDirectMapInBuffer;
+        bool mSupportsDirectMapInTexture;
+        bool mNeedsToOptimizeTextureContentsUsingCommandList;
 
         Uint64 mMinPageSize;
         int mPageNextId;

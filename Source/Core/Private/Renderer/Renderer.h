@@ -63,7 +63,7 @@ namespace cube
         Renderer();
         ~Renderer() = default;
 
-        void Initialize(GAPIName gAPIName, const ImGUIContext& imGUIContext, Uint32 numGPUSync = 3);
+        void Initialize(gapi::GAPIName gAPIName, const ImGUIContext& imGUIContext, Uint32 numGPUSync = 3);
         void Shutdown(const ImGUIContext& imGUIContext);
 
         void OnLoopImGUIContent();
