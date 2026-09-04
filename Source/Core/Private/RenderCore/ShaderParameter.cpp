@@ -259,7 +259,6 @@ namespace cube
         CHECK(parameterList.mPooledBuffer.buffer);
         CHECK(parameterList.mPooledBuffer.buffer == pool.buffers[parameterList.mPooledBuffer.poolIndex]);
         CHECK(parameterList.mPooledBuffer.srv == pool.srvs[parameterList.mPooledBuffer.poolIndex]);
-        parameterList.mPooledBuffer.buffer->SetDebugName(CUBE_T("PooledShaderParameter"));
         pool.freedBufferIndices.push_back(parameterList.mPooledBuffer.poolIndex);
 
         parameterList.mPooledBuffer = { .buffer = nullptr, .srv = nullptr, .poolIndex = 0 };
