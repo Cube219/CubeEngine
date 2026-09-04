@@ -74,6 +74,15 @@ PSOutput PSMain(PSInput input) : SV_TARGET
         color += pointLight.CalculateLight(view, normal, worldPosition, materialValue);
     }
 
+    for (uint i = 0; i < lightParams.numRectLights; ++i)
+    {
+        RectLightInfo rectLightInfo = lightParams.rectLightInfos[i];
+        RectLight rectLight = RectLight(
+            rectLightInfo.position.xyz, rectLightInfo.direction.xyz, rectLightInfo.rectSize.xy, rectLightInfo.intensity.xyz,
+            lightParams.rectLightLTC1, lightParams.rectLightLTC2);
+        color += rectLight.CalculateLight(view, normal, worldPosition, materialValue);
+    }
+
     EnvironmentMapLight envMapLight = EnvironmentMapLight(
         envMapParams.diffuseIrradianceMap,
         envMapParams.integratedBRDFLUT,

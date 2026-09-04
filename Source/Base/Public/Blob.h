@@ -40,7 +40,7 @@ namespace cube
         {
             mData = malloc(size);
         }
-        Blob(void* data, Uint64 size) :
+        Blob(const void* data, Uint64 size) :
             mSize(size)
         {
             mData = malloc(size);
