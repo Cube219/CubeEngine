@@ -42,6 +42,7 @@ set(PRIVATE_FILES
     Private/RenderCore/UploadManager.h
     Private/Renderer/EnvironmentMapping.cpp
     Private/Renderer/EnvironmentMapping.h
+    Private/Renderer/LTC.h
     Private/Renderer/Light.cpp
     Private/Renderer/Light.h
     Private/Renderer/LightManager.cpp

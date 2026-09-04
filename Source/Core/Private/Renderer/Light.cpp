@@ -73,4 +73,35 @@ namespace cube
         }
         ImGui::EndDisabled();
     }
+
+    void RectLight::OnLoopImGUIContent()
+    {
+        ImGui::BeginDisabled(!mEnabled);
+        {
+            Float3 position = GetPosition();
+            ImGui::DragFloat3("Position", &position.x, 0.1f);
+            SetPosition(position);
+        }
+        {
+            Float3 direction = GetDirection();
+            ImGui::DragFloat3("Direction", &direction.x, 0.1f);
+            SetDirection(direction);
+        }
+        {
+            Float2 rectSize = GetRectSize();
+            ImGui::DragFloat2("RectSize", &rectSize.x, 0.1f);
+            SetRectSize(rectSize);
+        }
+        {
+            Float3 intensity = GetIntensity();
+            ImGui::DragFloat3("Intensity", &intensity.x, 0.1f, 0.0f, FLT_MAX);
+            SetIntensity(intensity);
+        }
+        ImGui::EndDisabled();
+    }
+
+    void RectLight::SetRectSize(const Float2& newRectSize)
+    {
+        mRectSize = newRectSize;
+    }
 } // namespace cube

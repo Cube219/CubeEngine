@@ -48,4 +48,18 @@ namespace cube
 
         virtual void OnLoopImGUIContent() override;
     };
+
+    class RectLight : public Light
+    {
+    public:
+        RectLight() = default;
+
+        virtual void OnLoopImGUIContent() override;
+
+        const Float2& GetRectSize() const { return mRectSize; }
+        void SetRectSize(const Float2& newRectSize);
+
+    private:
+        Float2 mRectSize = { 1.0f, 1.0f };
+    };
 } // namespace cube
