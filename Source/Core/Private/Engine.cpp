@@ -399,4 +399,11 @@ namespace cube
         }
         return AnsiStringView();
     }
+
+    bool Engine::GetCommandLineParamBool(AnsiStringView name)
+    {
+        AnsiStringView res = GetCommandLineParam(name);
+
+        return res.empty() || (res == "0") || (res == "false");
+    }
 } // namespace cube

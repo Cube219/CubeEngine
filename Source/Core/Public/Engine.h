@@ -41,6 +41,7 @@ namespace cube
         CUBE_CORE_EXPORT static const platform::FilePath& GetShaderDirectoryPath() { return mShaderDirectoryPath; }
 
         CUBE_CORE_EXPORT static AnsiStringView GetCommandLineParam(AnsiStringView name);
+        CUBE_CORE_EXPORT static bool GetCommandLineParamBool(AnsiStringView name);
 
         static void SetScene(SharedPtr<Scene> scene);
 

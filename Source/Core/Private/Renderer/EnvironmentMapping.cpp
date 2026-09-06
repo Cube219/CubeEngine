@@ -67,6 +67,12 @@ namespace cube
         mIsEnabled = enable;
         mIBLDropdownExpandedLastFrame = false;
 
+        if (Engine::GetCommandLineParamBool("disableEnvMapping"))
+        {
+            mIsEnabled = false;
+            return;
+        }
+
         mCurrentSkyboxType = SkyboxType::IBL;
 
         {
@@ -264,6 +270,11 @@ namespace cube
 
     void EnvironmentMapping::LoadResources()
     {
+        if (Engine::GetCommandLineParamBool("disableEnvMapping"))
+        {
+            return;
+        }
+
         // Load the first IBL texture as default.
         LoadIBLTextureList();
         if (mIBLTextureList.size() > 0)
