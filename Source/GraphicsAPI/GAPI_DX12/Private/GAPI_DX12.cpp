@@ -106,6 +106,7 @@ namespace cube
             .supportsDirectMapInBuffer = mMainDevice->IsGPUUploadHeapSupported(),
             .supportsDirectMapInTexture = false, // Direct-mapping textures is possible, but inefficient because swizzling is performed on the CPU side.
             .needsToOptimizeTextureContentsUsingCommandList = false,
+            .supportsHWRT = mMainDevice->IsHWRTSupported(),
         };
 
         InitializeImGUI(initInfo.imGUI);

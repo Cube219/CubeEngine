@@ -9,6 +9,11 @@
 
 namespace cube
 {
+    namespace gapi
+    {
+        class BLAS;
+    } // namespace gapi
+
     struct SubMesh
     {
         Uint64 vertexOffset;
@@ -75,5 +80,7 @@ namespace cube
 
         SharedPtr<BufferResource> mVertexBuffer;
         SharedPtr<BufferResource> mIndexBuffer;
+
+        SharedPtr<gapi::BLAS> mBLAS;
     };
 } // namespace cube
