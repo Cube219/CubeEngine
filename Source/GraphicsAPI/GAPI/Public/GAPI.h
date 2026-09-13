@@ -32,6 +32,10 @@ namespace cube
         struct FenceCreateInfo;
         class SwapChain;
         struct SwapChainCreateInfo;
+        class BLAS;
+        struct BLASCreateInfo;
+        class TLAS;
+        struct TLASCreateInfo;
 
         class TextureRTV;
     } // namespace gapi
@@ -82,7 +86,11 @@ namespace cube
         virtual SharedPtr<gapi::Sampler> CreateSampler(const gapi::SamplerCreateInfo& info) = 0;
         virtual SharedPtr<gapi::Shader> CreateShader(const gapi::ShaderCreateInfo& info) = 0;
         virtual SharedPtr<gapi::Texture> CreateTexture(const gapi::TextureCreateInfo& createInfo) = 0;
+        
         virtual SharedPtr<gapi::SwapChain> CreateSwapChain(const gapi::SwapChainCreateInfo& info) = 0;
+
+        virtual SharedPtr<gapi::BLAS> CreateBLAS(const gapi::BLASCreateInfo& createInfo) = 0;
+        virtual SharedPtr<gapi::TLAS> CreateTLAS(const gapi::TLASCreateInfo& createInfo) = 0;
 
         virtual gapi::TimestampRangeList GetLastTimestampRangeList() = 0;
         virtual gapi::VRAMStatus GetVRAMUsage() = 0;

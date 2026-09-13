@@ -15,7 +15,9 @@ namespace cube
         enum class ResourceType
         {
             Buffer,
-            Texture
+            Texture,
+            TLAS,
+            BLAS,
         };
 
         enum class ResourceUsage

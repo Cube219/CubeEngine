@@ -29,6 +29,7 @@ namespace cube
             virtual void SetDebugName(StringView debugName) override;
 
             ID3D12Resource* GetResource() const { return mAllocation.resource; }
+            D3D12_GPU_VIRTUAL_ADDRESS GetGPUAddress() const { return mAllocation.resource->GetGPUVirtualAddress(); }
 
             void CopyToReadbackBuffer(ID3D12GraphicsCommandList* commandList);
 

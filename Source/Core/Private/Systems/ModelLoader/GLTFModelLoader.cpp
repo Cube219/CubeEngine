@@ -314,6 +314,7 @@ namespace cube
 
                 subMeshes.push_back({
                     .vertexOffset = vertexOffset,
+                    .numVertices = numVertices,
                     .indexOffset = indexOffset,
                     .numIndices = numIndices,
                     .materialIndex = static_cast<int>(materialsPerMesh.size()),

@@ -9,6 +9,7 @@
 #include "DX12ShaderCompiler.h"
 #include "DX12Types.h"
 #include "DX12Utility.h"
+#include "GAPI_DX12AccelerationStructure.h"
 #include "GAPI_DX12Buffer.h"
 #include "GAPI_DX12CommandList.h"
 #include "GAPI_DX12Fence.h"
@@ -106,6 +107,7 @@ namespace cube
             .supportsDirectMapInBuffer = mMainDevice->IsGPUUploadHeapSupported(),
             .supportsDirectMapInTexture = false, // Direct-mapping textures is possible, but inefficient because swizzling is performed on the CPU side.
             .needsToOptimizeTextureContentsUsingCommandList = false,
+            .supportsHWRT = mMainDevice->IsHWRTSupported(),
         };
 
         InitializeImGUI(initInfo.imGUI);
@@ -312,6 +314,16 @@ namespace cube
     SharedPtr<gapi::SwapChain> GAPI_DX12::CreateSwapChain(const gapi::SwapChainCreateInfo& info)
     {
         return std::make_shared<gapi::DX12SwapChain>(mFactory.Get(), *mMainDevice, info);
+    }
+
+    SharedPtr<gapi::BLAS> GAPI_DX12::CreateBLAS(const gapi::BLASCreateInfo& createInfo)
+    {
+        return std::make_shared<gapi::DX12BLAS>(createInfo, *mMainDevice);
+    }
+
+    SharedPtr<gapi::BLAS> GAPI_DX12::CreateTLAS(const gapi::TLASCreateInfo& createInfo)
+    {
+        return std::make_shared<gapi::DX12TLAS>(createInfo, *mMainDevice);
     }
 
     gapi::TimestampRangeList GAPI_DX12::GetLastTimestampRangeList()

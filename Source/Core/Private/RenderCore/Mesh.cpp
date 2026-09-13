@@ -3,6 +3,7 @@
 
 #include "Allocator/FrameAllocator.h"
 #include "Engine.h"
+#include "GAPI_AccelerationStructure.h"
 #include "GAPI_Buffer.h"
 #include "GAPI_CommandList.h"
 #include "Platform.h"
@@ -20,15 +21,20 @@ namespace cube
     {
         Uint64 dataSize = sizeof(Vertex) * mNumVertices + sizeof(Index) * mNumIndices;
         mIndexOffset = sizeof(Vertex) * mNumVertices;
-        mData = Blob(dataSize);
-        memcpy(mData.GetData(), vertices.data(), sizeof(Vertex) * mNumVertices);
-        memcpy((Byte*)mData.GetData() + mIndexOffset, indices.data(), sizeof(Index) * mNumIndices);
+        mCPUData = Blob(dataSize);
+        memcpy(mCPUData.GetData(), vertices.data(), sizeof(Vertex) * mNumVertices);
+        memcpy((Byte*)mCPUData.GetData() + mIndexOffset, indices.data(), sizeof(Index) * mNumIndices);
 
         mSubMeshes = Vector<SubMesh>(subMeshes.begin(), subMeshes.end());
     }
 
     MeshData::~MeshData()
     {
+    }
+
+    void MeshData::ClearCPUData()
+    {
+        mCPUData = Blob();
     }
 
     Mesh::Mesh(const SharedPtr<MeshData>& meshData, const MeshMetadata& meta)
@@ -79,7 +85,7 @@ namespace cube
             void* pVertexBufferData = vbUploadDesc.pData;
             if (mMeta.useFloat16)
             {
-                BlobView vertexData = meshData->GetVertexData();
+                BlobView vertexData = meshData->GetCPUVertexData();
                 const Vertex* vertices = reinterpret_cast<const Vertex*>(vertexData.GetData());
                 VertexFP16* fp16Vertices = reinterpret_cast<VertexFP16*>(pVertexBufferData);
                 for (Uint64 i = 0; i < meshData->GetNumVertices(); ++i)
@@ -89,7 +95,7 @@ namespace cube
             }
             else
             {
-                BlobView vertexData = meshData->GetVertexData();
+                BlobView vertexData = meshData->GetCPUVertexData();
                 const Vertex* vertices = reinterpret_cast<const Vertex*>(vertexData.GetData());
                 VertexFP32* fp32Vertices = reinterpret_cast<VertexFP32*>(pVertexBufferData);
                 for (Uint64 i = 0; i < meshData->GetNumVertices(); ++i)
@@ -101,7 +107,7 @@ namespace cube
 
             UploadDesc ibUploadDesc = uploadManager.Allocate(mIndexBuffer->GetGAPIBuffer(), { .directIfPossible = true });
             void* pIndexBufferData = ibUploadDesc.pData;
-            BlobView indexData = meshData->GetIndexData();
+            BlobView indexData = meshData->GetCPUIndexData();
             memcpy(pIndexBufferData, indexData.GetData(), indexData.GetSize());
             Uint64 finishIBFenceValue = uploadManager.SubmitToCopyQueue(ibUploadDesc);
 
@@ -119,6 +125,40 @@ namespace cube
                     });
                 });
             }
+        }
+
+        if (!meta.remainCPUData)
+        {
+            mMeshData->ClearCPUData();
+        }
+
+        if (meta.buildBLAS)
+        {
+            const Vector<SubMesh>& subMeshes = mMeshData->GetSubMeshes();
+            FrameVector<gapi::BLASCreateInfo::GeometryInfo> geometryInfos(subMeshes.size());
+            for (int i = 0; i < static_cast<int>(subMeshes.size()); ++i)
+            {
+                const SubMesh& subMesh = subMeshes[i];
+                gapi::BLASCreateInfo::GeometryInfo& geometryInfo = geometryInfos[i];
+                geometryInfo = {
+                    .vertexOffset = subMesh.vertexOffset,
+                    .vertexCount = subMesh.numVertices,
+                    .indexOffset = subMesh.indexOffset,
+                    .indexCount = subMesh.numIndices,
+                    .debugName = subMesh.debugName,
+                };
+            }
+
+            FrameString blasDebugName = Format<FrameString>(CUBE_T("[{0}] BLAS"), meshData->GetDebugName());
+            gapi::BLASCreateInfo blasCreateInfo = {
+                .vertexBuffer = mVertexBuffer->GetGAPIBuffer(),
+                .vertexFormat = mMeta.useFloat16 ? gapi::ElementFormat::RGBA16_Float : gapi::ElementFormat::RGB32_Float,
+                .vertexStride = mMeta.useFloat16 ? sizeof(VertexFP16) : sizeof(VertexFP32),
+                .indexBuffer = mIndexBuffer->GetGAPIBuffer(),
+                .geometryInfos = geometryInfos,
+                .debugName = blasDebugName,
+            };
+            mBLAS = gAPI.CreateBLAS(blasCreateInfo);
         }
     }
 

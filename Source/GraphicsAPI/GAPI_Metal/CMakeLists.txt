@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.19)
 
 set(PUBLIC_FILES
     Public/GAPI_Metal.h
+    Public/GAPI_MetalAccelerationStructure.h
     Public/GAPI_MetalBuffer.h
     Public/GAPI_MetalCommandList.h
     Public/GAPI_MetalFence.h
@@ -15,6 +16,7 @@ set(PUBLIC_FILES
 )
 set(PRIVATE_FILES
     Private/GAPI_Metal.mm
+    Private/GAPI_MetalAccelerationStructure.mm
     Private/GAPI_MetalBuffer.mm
     Private/GAPI_MetalCommandList.mm
     Private/GAPI_MetalFence.mm

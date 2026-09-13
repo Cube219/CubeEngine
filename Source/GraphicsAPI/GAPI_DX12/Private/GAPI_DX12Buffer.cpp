@@ -177,7 +177,7 @@ namespace cube
             const BufferInfo& bufferInfo = dx12Buffer->GetInfo();
 
             mSRVDescriptor = device.GetDescriptorManager().GetSRVHeap().Allocate();
-            mGPUAddress = dx12Buffer->GetResource()->GetGPUVirtualAddress() + mFirstElement * bufferInfo.stride;
+            mGPUAddress = dx12Buffer->GetGPUAddress() + mFirstElement * bufferInfo.stride;
 
             if (bufferInfo.type == BufferType::Constant)
             {
@@ -230,7 +230,7 @@ namespace cube
             const BufferInfo& bufferInfo = dx12Buffer->GetInfo();
 
             mUAVDescriptor = device.GetDescriptorManager().GetSRVHeap().Allocate();
-            mGPUAddress = dx12Buffer->GetResource()->GetGPUVirtualAddress() + mFirstElement * bufferInfo.stride;
+            mGPUAddress = dx12Buffer->GetGPUAddress() + mFirstElement * bufferInfo.stride;
 
             DXGI_FORMAT format;
             if (bufferInfo.type == BufferType::Structured)

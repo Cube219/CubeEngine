@@ -10,10 +10,9 @@ namespace cube
     {
         MTLPixelFormat pixelFormat;
         MTLVertexFormat vertexFormat;
+        MTLAttributeFormat attributeFormat;
         // BC format: Bytes per 4x4 block
         Uint8 bytes;
-        bool unsupportedPixel;
-        bool unsupportedVertex;
     };
 
     MetalElementFormatInfo GetMetalElementFormatInfo(gapi::ElementFormat elementFormat);

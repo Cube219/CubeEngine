@@ -159,6 +159,7 @@ namespace cube
 
             id<MTLBuffer> mIndexBuffer;
             NSUInteger mIndexBufferOffset;
+            MTLIndexType mIndexType;
             MTLSize mComputeThreadGroupSize;
 
             String mDebugName;

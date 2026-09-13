@@ -109,6 +109,11 @@ namespace cube
             res = false;
         }
 
+        if (IsHWRTSupported())
+        {
+            CUBE_LOG(Info, DX12, "Device {0} supports HWRT. (Tier: {1})", WindowsStringView(mAdapterDesc.Description), (float)mFeatureSupport.RaytracingTier() / 10.0f);
+        }
+
         return res;
     }
 

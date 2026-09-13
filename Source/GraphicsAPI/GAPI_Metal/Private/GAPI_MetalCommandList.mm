@@ -409,6 +409,7 @@ namespace cube
             CHECK(metalBuffer);
 
             mIndexBuffer = metalBuffer->GetMTLBuffer();
+            mIndexType = metalBuffer->GetMTLIndexType();
             mIndexBufferOffset = offset;
         }
 
@@ -436,7 +437,7 @@ namespace cube
             [mRenderEncoder
                 drawIndexedPrimitives:mCurrentEncoderState.primitiveType
                 indexCount:numIndices
-                indexType:sizeof(Index) == 2 ? MTLIndexTypeUInt16 : MTLIndexTypeUInt32
+                indexType:mIndexType
                 indexBuffer:mIndexBuffer
                 indexBufferOffset:baseIndex * sizeof(Index)
                 instanceCount:numInstances

@@ -106,6 +106,14 @@ namespace cube
             mBuffer.label = String_Convert<NSString*>(debugName);
         }
 
+        MTLIndexType MetalBuffer::GetMTLIndexType() const
+        {
+            const Uint32 stride = GetStride();
+            CHECK_FORMAT(stride == 4 || stride == 2, "Index buffer's stride must be 2(16bits) or 4(32bits).");
+
+            return stride == 2 ? MTLIndexTypeUInt16 : MTLIndexTypeUInt32;
+        }
+
         MetalBufferSRV::MetalBufferSRV(MetalDevice& device, const BufferSRVCreateInfo& createInfo, SharedPtr<MetalBuffer> metalBuffer)
             : BufferSRV(createInfo, metalBuffer)
             , mParentMTLBuffer(metalBuffer->GetMTLBuffer())

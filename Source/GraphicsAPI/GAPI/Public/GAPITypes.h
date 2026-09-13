@@ -176,6 +176,8 @@ namespace cube
             bool supportsDirectMapInBuffer = false;
             bool supportsDirectMapInTexture = false;
             bool needsToOptimizeTextureContentsUsingCommandList = true;
+
+            bool supportsHWRT = false;
         };
     } // namespace gapi
 } // namespace cube

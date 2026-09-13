@@ -6,6 +6,7 @@
 #include "imgui_impl_osx.h"
 
 #include "Checker.h"
+#include "GAPI_MetalAccelerationStructure.h"
 #include "GAPI_MetalBuffer.h"
 #include "GAPI_MetalCommandList.h"
 #include "GAPI_MetalFence.h"
@@ -60,6 +61,8 @@ namespace cube
             .supportsDirectMapInBuffer = true,
             .supportsDirectMapInTexture = true,
             .needsToOptimizeTextureContentsUsingCommandList = true,
+
+            .supportsHWRT = mMainDevice->IsHWRTSupported(),
         };
 
         InitializeImGUI(initInfo.imGUI);
@@ -219,6 +222,16 @@ namespace cube
     SharedPtr<gapi::SwapChain> GAPI_Metal::CreateSwapChain(const gapi::SwapChainCreateInfo& info)
     {
         return std::make_shared<gapi::MetalSwapChain>(*mMainDevice, mImGUIView, info);
+    }
+
+    SharedPtr<gapi::BLAS> GAPI_Metal::CreateBLAS(const gapi::BLASCreateInfo& createInfo)
+    {
+        return std::make_shared<gapi::MetalBLAS>(createInfo, *mMainDevice);
+    }
+
+    SharedPtr<gapi::TLAS> GAPI_Metal::CreateTLAS(const gapi::TLASCreateInfo& createInfo)
+    {
+        return std::make_shared<gapi::MetalTLAS>(createInfo, *mMainDevice);
     }
 
     gapi::TimestampRangeList GAPI_Metal::GetLastTimestampRangeList()
