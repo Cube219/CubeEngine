@@ -170,6 +170,13 @@ namespace cube
             commandList->CopyResource(mReadbackAllocation.resource, mAllocation.resource);
         }
 
+        DXGI_FORMAT DX12Buffer::GetIndexFormat() const
+        {
+            const Uint32 indexStride = GetStride();
+            CHECK_FORMAT(indexStride == 4 || indexStride == 2, "Index buffer's stride must be 2(16bits) or 4(32bits).");
+            return (indexStride == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT);
+        }
+
         DX12BufferSRV::DX12BufferSRV(DX12Device& device, const BufferSRVCreateInfo& createInfo, SharedPtr<DX12Buffer> dx12Buffer)
             : BufferSRV(createInfo, dx12Buffer)
             , mDevice(device)
@@ -177,7 +184,7 @@ namespace cube
             const BufferInfo& bufferInfo = dx12Buffer->GetInfo();
 
             mSRVDescriptor = device.GetDescriptorManager().GetSRVHeap().Allocate();
-            mGPUAddress = dx12Buffer->GetResource()->GetGPUVirtualAddress() + mFirstElement * bufferInfo.stride;
+            mGPUAddress = dx12Buffer->GetGPUAddress() + mFirstElement * bufferInfo.stride;
 
             if (bufferInfo.type == BufferType::Constant)
             {
@@ -230,7 +237,7 @@ namespace cube
             const BufferInfo& bufferInfo = dx12Buffer->GetInfo();
 
             mUAVDescriptor = device.GetDescriptorManager().GetSRVHeap().Allocate();
-            mGPUAddress = dx12Buffer->GetResource()->GetGPUVirtualAddress() + mFirstElement * bufferInfo.stride;
+            mGPUAddress = dx12Buffer->GetGPUAddress() + mFirstElement * bufferInfo.stride;
 
             DXGI_FORMAT format;
             if (bufferInfo.type == BufferType::Structured)

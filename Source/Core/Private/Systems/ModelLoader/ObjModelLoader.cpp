@@ -366,10 +366,12 @@ namespace cube
                         }
                     }
 
+                    const Uint64 numVertices = vertices.size() - vertexOffset;
                     const Uint64 numIndices = indices.size() - indexOffset;
 
                     subMeshes.push_back({
                         .vertexOffset = vertexOffset,
+                        .numVertices = numVertices,
                         .indexOffset = indexOffset,
                         .numIndices = numIndices,
                         .materialIndex = (matId >= 0) ? matId : -1,

@@ -15,7 +15,7 @@ namespace cube
         enum class ResourceType
         {
             Buffer,
-            Texture
+            Texture,
         };
 
         enum class ResourceUsage
@@ -42,7 +42,6 @@ namespace cube
             }
         }
 
-        // TODO: Add raytracing related flags.
         enum class ResourceSyncFlag
         {
             None = 0,
@@ -57,11 +56,12 @@ namespace cube
             Resolve = (1 << 8),
             ExecuteIndirect = (1 << 9),
             ClearUAV = (1 << 10),
+            BuildAccelerationStructure = (1 << 11),
+            CopyAccelerationStructure = (1 << 12),
         };
         using ResourceSyncFlags = Flags<ResourceSyncFlag>;
         FLAGS_OPERATOR(ResourceSyncFlag);
 
-        // TODO: Add raytracing related flags.
         enum class ResourceAccessFlag
         {
             Common = 0,
@@ -72,17 +72,18 @@ namespace cube
             RenderTarget = (1 << 4),
             SRV = (1 << 5),
             UAV = (1 << 6),
-            DepthStencilRead = (1 << 7),
-            DepthStencilWrite = (1 << 8),
+            ReadDepthStencil = (1 << 7),
+            WriteDepthStencil = (1 << 8),
             CopySrc = (1 << 9),
             CopyDst = (1 << 10),
             ResolveSrc = (1 << 11),
             ResolveDst = (1 << 12),
+            ReadAccelerationStructure = (1 << 13),
+            WriteAccelerationStructure = (1 << 14),
         };
         using ResourceAccessFlags = Flags<ResourceAccessFlag>;
         FLAGS_OPERATOR(ResourceAccessFlag);
 
-        // TODO: Add raytracing related layouts.
         enum class ResourceLayout
         {
             Undefined,

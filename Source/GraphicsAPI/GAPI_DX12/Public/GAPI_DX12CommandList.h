@@ -70,6 +70,8 @@ namespace cube
 
             virtual void OptimizeTextureContentsForGPUAccess(SharedPtr<Texture> texture) override;
 
+            virtual void BuildBLAS(SharedPtr<BLAS> blas, SharedPtr<Buffer> scratchBuffer) override;
+
             virtual void BeginTimestamp(StringView name) override;
             virtual void EndTimestamp() override;
 

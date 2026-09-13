@@ -4,6 +4,11 @@
 
 namespace cube
 {
+    namespace gapi
+    {
+        class BLAS;
+    } // namespace gapi
+
     class RGBuilder;
     class Renderer;
 
@@ -17,7 +22,11 @@ namespace cube
         void QueuePreprocessTask(PreprocessTaskFunction&& task);
         void ExecutePreprocessTasks(RGBuilder& builder);
 
+        void QueueBLASBuild(SharedPtr<gapi::BLAS> blas);
+        void ExecuteBLASBuilds(RGBuilder& builder);
+
     private:
         Vector<PreprocessTaskFunction> mPreprocessTasks;
+        Vector<SharedPtr<gapi::BLAS>> mBLASesToBuild;
     };
 } // namespace cube

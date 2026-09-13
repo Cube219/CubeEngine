@@ -15,7 +15,8 @@ namespace cube
     {
         enum class ResourceType
         {
-            Buffer, Texture
+            Buffer,
+            Texture,
         };
         ResourceType type;
         D3D12_HEAP_TYPE heapType;

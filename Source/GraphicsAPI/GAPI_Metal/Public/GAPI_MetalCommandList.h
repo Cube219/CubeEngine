@@ -105,6 +105,8 @@ namespace cube
 
             virtual void OptimizeTextureContentsForGPUAccess(SharedPtr<Texture> texture) override;
 
+            virtual void BuildBLAS(SharedPtr<BLAS> blas, SharedPtr<Buffer> scratchBuffer) override;
+
             virtual void BeginTimestamp(StringView name) override;
             virtual void EndTimestamp() override;
 
@@ -124,12 +126,14 @@ namespace cube
             void UseRenderEncoder(MTLRenderPassDescriptor* desc);
             void UseComputeEncoder();
             void UseBlitEncoder();
+            void UseASEncoder();
             void ConsumeTimestampIndexBeforeUseEncoder(NSUInteger& outBeginIndex, NSUInteger& outEndIndex);
             void RestoreBoundPipelineState();
 
             void EndRenderEncoder();
             void EndComputeEncoder(bool clearBoundPipelineState = true);
             void EndBlitEncoder();
+            void EndASEncoder();
             void EndAllEncoders(bool clearBoundPipelineState = true);
 
 
@@ -154,11 +158,13 @@ namespace cube
             id<MTLRenderCommandEncoder> mRenderEncoder;
             id<MTLComputeCommandEncoder> mComputeEncoder;
             id<MTLBlitCommandEncoder> mBlitEncoder;
+            id<MTLAccelerationStructureCommandEncoder> mASEncoder;
 
             Map<id<MTLResource>, MTLResourceUsage> mCachedUseResources;
 
             id<MTLBuffer> mIndexBuffer;
             NSUInteger mIndexBufferOffset;
+            MTLIndexType mIndexType;
             MTLSize mComputeThreadGroupSize;
 
             String mDebugName;

@@ -49,7 +49,11 @@ namespace cube
         virtual SharedPtr<gapi::Sampler> CreateSampler(const gapi::SamplerCreateInfo& info) override;
         virtual SharedPtr<gapi::Shader> CreateShader(const gapi::ShaderCreateInfo& info) override;
         virtual SharedPtr<gapi::Texture> CreateTexture(const gapi::TextureCreateInfo& info) override;
+
         virtual SharedPtr<gapi::SwapChain> CreateSwapChain(const gapi::SwapChainCreateInfo& info) override;
+
+        virtual SharedPtr<gapi::BLAS> CreateBLAS(const gapi::BLASCreateInfo& createInfo) override;
+        virtual SharedPtr<gapi::TLAS> CreateTLAS(const gapi::TLASCreateInfo& createInfo) override;
 
         virtual gapi::TimestampRangeList GetLastTimestampRangeList() override;
         virtual gapi::VRAMStatus GetVRAMUsage() override;

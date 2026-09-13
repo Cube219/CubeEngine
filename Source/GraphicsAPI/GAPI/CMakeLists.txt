@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.19)
 
 set(PUBLIC_FILES
+    Public/GAPI_AccelerationStructure.h
     Public/GAPI_Buffer.h
     Public/GAPI_CommandList.h
     Public/GAPI_Fence.h

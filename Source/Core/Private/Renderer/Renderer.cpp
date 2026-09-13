@@ -227,6 +227,7 @@ namespace cube
 
         RGBuilder builder(*this);
         mResourceManager.ExecutePreprocessTasks(builder);
+        mResourceManager.ExecuteBLASBuilds(builder);
         RenderImpl(builder);
         builder.ExecuteAndSubmit(*mCommandList);
 

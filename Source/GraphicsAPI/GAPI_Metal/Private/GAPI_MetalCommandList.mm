@@ -2,6 +2,7 @@
 
 #include "Allocator/FrameAllocator.h"
 #include "Checker.h"
+#import "GAPI_MetalAccelerationStructure.h"
 #include "GAPI_MetalBuffer.h"
 #include "GAPI_MetalFence.h"
 #include "GAPI_MetalPipeline.h"
@@ -208,6 +209,7 @@ namespace cube
             , mRenderEncoder(nil)
             , mComputeEncoder(nil)
             , mBlitEncoder(nil)
+            , mASEncoder(nil)
         {
             mCommandQueueRef = device.GetMainCommandQueue();
             AllocateNewCommandBuffer();
@@ -232,8 +234,10 @@ namespace cube
             mRenderEncoder = nil;
             mComputeEncoder = nil;
             mBlitEncoder = nil;
+            mASEncoder = nil;
             mIndexBuffer = nil;
             mIndexBufferOffset = 0;
+            mIndexType = MTLIndexTypeUInt32;
             mComputeThreadGroupSize = MTLSizeMake(0, 0, 0);
 
             mIsWriting = true;
@@ -276,6 +280,10 @@ namespace cube
             {
                 [mBlitEncoder pushDebugGroup:nsName];
             }
+            else if (mASEncoder)
+            {
+                [mASEncoder pushDebugGroup:nsName];
+            }
             else
             {
                 [mCommandBuffer pushDebugGroup:nsName];
@@ -299,6 +307,10 @@ namespace cube
             else if (mBlitEncoder)
             {
                 [mBlitEncoder popDebugGroup];
+            }
+            else if (mASEncoder)
+            {
+                [mASEncoder popDebugGroup];
             }
             else
             {
@@ -409,6 +421,7 @@ namespace cube
             CHECK(metalBuffer);
 
             mIndexBuffer = metalBuffer->GetMTLBuffer();
+            mIndexType = metalBuffer->GetMTLIndexType();
             mIndexBufferOffset = offset;
         }
 
@@ -436,9 +449,9 @@ namespace cube
             [mRenderEncoder
                 drawIndexedPrimitives:mCurrentEncoderState.primitiveType
                 indexCount:numIndices
-                indexType:sizeof(Index) == 2 ? MTLIndexTypeUInt16 : MTLIndexTypeUInt32
+                indexType:mIndexType
                 indexBuffer:mIndexBuffer
-                indexBufferOffset:baseIndex * sizeof(Index)
+                indexBufferOffset:baseIndex * (mIndexType == MTLIndexTypeUInt16 ? 2 : 4)
                 instanceCount:numInstances
                 baseVertex:baseVertex
                 baseInstance:baseInstance
@@ -669,6 +682,30 @@ namespace cube
             [mBlitEncoder optimizeContentsForGPUAccess:metalTexture->GetMTLTexture()];
         }
 
+        void MetalCommandList::BuildBLAS(SharedPtr<BLAS> blas, SharedPtr<Buffer> scratchBuffer)
+        {
+            CHECK(IsWriting());
+            CHECK(!IsInRenderPass());
+            CHECK(mType == CommandListType::Direct);
+
+            UseASEncoder();
+
+            MetalBLAS* metalBLAS = dynamic_cast<MetalBLAS*>(blas.get());
+            CHECK(metalBLAS);
+
+            MetalBuffer* metalScratchBuffer = dynamic_cast<MetalBuffer*>(scratchBuffer.get());
+            CHECK(metalScratchBuffer);
+
+            CHECK(metalBLAS->GetScratchBufferSize() <= metalScratchBuffer->GetSize());
+
+            [mASEncoder
+                buildAccelerationStructure:metalBLAS->GetMetalAS()
+                descriptor:metalBLAS->GetDesc()
+                scratchBuffer:metalScratchBuffer->GetMTLBuffer()
+                scratchBufferOffset:0
+            ];
+        }
+
         void MetalCommandList::BeginTimestamp(StringView name)
         {
             CHECK(IsWriting());
@@ -808,6 +845,7 @@ namespace cube
             CHECK(!IsInRenderPass());
             EndComputeEncoder();
             EndBlitEncoder();
+            EndASEncoder();
 
             mCachedUseResources.clear();
 
@@ -832,6 +870,7 @@ namespace cube
         {
             EndRenderEncoder();
             EndBlitEncoder();
+            EndASEncoder();
 
             if (!mComputeEncoder)
             {
@@ -859,6 +898,7 @@ namespace cube
         {
             EndRenderEncoder();
             EndComputeEncoder();
+            EndASEncoder();
 
             if (!mBlitEncoder)
             {
@@ -878,6 +918,33 @@ namespace cube
                 }
 
                 mBlitEncoder = [mCommandBuffer blitCommandEncoderWithDescriptor:desc];
+            }
+        }
+
+        void MetalCommandList::UseASEncoder()
+        {
+            EndRenderEncoder();
+            EndComputeEncoder();
+            EndBlitEncoder();
+
+            if (!mASEncoder)
+            {
+                mCachedUseResources.clear();
+
+                MTLAccelerationStructurePassDescriptor* desc = [[MTLAccelerationStructurePassDescriptor alloc] init];
+
+                if (HasTimestamps())
+                {
+                    NSUInteger beginIndex;
+                    NSUInteger endIndex;
+                    ConsumeTimestampIndexBeforeUseEncoder(beginIndex, endIndex);
+
+                    desc.sampleBufferAttachments[0].sampleBuffer = mTimestampManager.GetCurrentCounterSampleBuffer();
+                    desc.sampleBufferAttachments[0].startOfEncoderSampleIndex = beginIndex;
+                    desc.sampleBufferAttachments[0].endOfEncoderSampleIndex = endIndex;
+                }
+
+                mASEncoder = [mCommandBuffer accelerationStructureCommandEncoderWithDescriptor:desc];
             }
         }
 
@@ -958,11 +1025,21 @@ namespace cube
             }
         }
 
+        void MetalCommandList::EndASEncoder()
+        {
+            if (mASEncoder)
+            {
+                [mASEncoder endEncoding];
+                mASEncoder = nil;
+            }
+        }
+
         void MetalCommandList::EndAllEncoders(bool clearBoundPipelineState)
         {
             EndRenderEncoder();
             EndComputeEncoder(clearBoundPipelineState);
             EndBlitEncoder();
+            EndASEncoder();
         }
     } // namespace gapi
 } // namespace cube
