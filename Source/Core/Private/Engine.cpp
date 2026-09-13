@@ -404,6 +404,6 @@ namespace cube
     {
         AnsiStringView res = GetCommandLineParam(name);
 
-        return res.empty() || (res == "0") || (res == "false");
+        return !(res.empty() || (res == "0") || (res == "false"));
     }
 } // namespace cube
