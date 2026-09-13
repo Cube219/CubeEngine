@@ -226,7 +226,14 @@ namespace cube
         mGAPI->OnBeforeRender();
 
         RGBuilder builder(*this);
+
         mResourceManager.ExecutePreprocessTasks(builder);
+        mResourceManager.ExecuteBLASBuilds(builder);
+        if (mScene)
+        {
+            mScene->UpdateScene(builder, mCurrentRenderingFrame);
+        }
+
         RenderImpl(builder);
         builder.ExecuteAndSubmit(*mCommandList);
 
@@ -277,9 +284,9 @@ namespace cube
         }
     }
 
-    void Renderer::SetObjectModelMatrix(const Vector3& position, const Vector3& rotation, const Vector3& scale)
+    void Renderer::SetGlobalTransformMatrix(const Vector3& position, const Vector3& rotation, const Vector3& scale)
     {
-        mModelMatrix = MatrixUtility::GetScale(scale) * MatrixUtility::GetRotationXYZ(rotation) + MatrixUtility::GetTranslation_Add(position);
+        mGlobalTransformMatrix = MatrixUtility::GetScale(scale) * MatrixUtility::GetRotationXYZ(rotation) + MatrixUtility::GetTranslation_Add(position);
     }
 
     void Renderer::SetViewMatrix(const Vector3& eye, const Vector3& target, const Vector3& upDir)
@@ -423,7 +430,7 @@ namespace cube
                                 .rasterizerState = mainPassRasterizerState,
                                 .depthStencilState = mainPassDepthStencilState,
                                 .materials = sceneObject->GetMaterials(),
-                                .model = sceneObject->GetModelMatrix() * mModelMatrix
+                                .transformMatrix = sceneObject->GetTransformMatrix() * mGlobalTransformMatrix
                             });
                         }
                     }
@@ -440,7 +447,7 @@ namespace cube
                         .rasterizerState = mainPassRasterizerState,
                         .depthStencilState = mainPassDepthStencilState,
                         .materials = { &xAxisMaterial, 1 },
-                        .model = mXAxisModelMatrix,
+                        .transformMatrix = mXAxisTransformMatrix,
                     });
                     WeakPtr<Material> yAxisMaterial = mYAxisMaterial;
                     drawAxisMeshInfos.push_back({
@@ -448,7 +455,7 @@ namespace cube
                         .rasterizerState = mainPassRasterizerState,
                         .depthStencilState = mainPassDepthStencilState,
                         .materials = { &yAxisMaterial, 1 },
-                        .model = mYAxisModelMatrix
+                        .transformMatrix = mYAxisTransformMatrix
                     });
                     WeakPtr<Material> zAxisMaterial = mZAxisMaterial;
                     drawAxisMeshInfos.push_back({
@@ -456,7 +463,7 @@ namespace cube
                         .rasterizerState = mainPassRasterizerState,
                         .depthStencilState = mainPassDepthStencilState,
                         .materials = { &zAxisMaterial, 1 },
-                        .model = mZAxisModelMatrix
+                        .transformMatrix = mZAxisTransformMatrix
                     });
                     builder.AddDrawMeshPass(CUBE_T("Draw Axis"), drawAxisMeshInfos, {});
                 }
@@ -523,15 +530,15 @@ namespace cube
         }
 
         {
-            mXAxisModelMatrix = MatrixUtility::GetScale(4.0f, 0.2f, 0.2f) + MatrixUtility::GetTranslation_Add(2, 0, 0);
+            mXAxisTransformMatrix = MatrixUtility::GetScale(4.0f, 0.2f, 0.2f) + MatrixUtility::GetTranslation_Add(2, 0, 0);
             mXAxisMaterial = std::make_shared<Material>(CUBE_T("XAxisMaterial"));
             mXAxisMaterial->SetBaseColor({ 1.0f, 0.0f, 0.0f, 1.0f });
 
-            mYAxisModelMatrix = MatrixUtility::GetScale(0.2f, 4.0f, 0.2f) + MatrixUtility::GetTranslation_Add(0, 2, 0);
+            mYAxisTransformMatrix = MatrixUtility::GetScale(0.2f, 4.0f, 0.2f) + MatrixUtility::GetTranslation_Add(0, 2, 0);
             mYAxisMaterial = std::make_shared<Material>(CUBE_T("YAxisMaterial"));
             mYAxisMaterial->SetBaseColor({ 0.0f, 1.0f, 0.0f, 1.0f });
 
-            mZAxisModelMatrix = MatrixUtility::GetScale(0.2f, 0.2f, 4.0f) + MatrixUtility::GetTranslation_Add(0, 0, 2);
+            mZAxisTransformMatrix = MatrixUtility::GetScale(0.2f, 0.2f, 4.0f) + MatrixUtility::GetTranslation_Add(0, 0, 2);
             mZAxisMaterial = std::make_shared<Material>(CUBE_T("ZAxisMaterial"));
             mZAxisMaterial->SetBaseColor({ 0.0f, 0.0f, 1.0f, 1.0f });
         }

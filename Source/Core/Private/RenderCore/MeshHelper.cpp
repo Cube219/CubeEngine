@@ -51,6 +51,7 @@ namespace cube
         SubMesh subMeshes[] = {
             {
                 .vertexOffset = 0,
+                .numVertices = vertices.size(),
                 .indexOffset = 0,
                 .numIndices = indices.size(),
                 .materialIndex = 0,
@@ -142,6 +143,7 @@ namespace cube
         SubMesh subMeshes[] = {
             {
                 .vertexOffset = 0,
+                .numVertices = vertices.size(),
                 .indexOffset = 0,
                 .numIndices = indices.size(),
                 .materialIndex = 0,
@@ -312,6 +314,7 @@ namespace cube
         SubMesh subMeshes[] = {
             {
                 .vertexOffset = 0,
+                .numVertices = vertices.size(),
                 .indexOffset = 0,
                 .numIndices = indices.size(),
                 .materialIndex = 0,
@@ -392,6 +395,7 @@ namespace cube
         SubMesh subMeshes[] = {
             {
                 .vertexOffset = 0,
+                .numVertices = vertices.size(),
                 .indexOffset = 0,
                 .numIndices = indices.size(),
                 .materialIndex = 0,
@@ -427,6 +431,7 @@ namespace cube
         SubMesh subMeshes[] = {
             {
                 .vertexOffset = 0,
+                .numVertices = vertices.size(),
                 .indexOffset = 0,
                 .numIndices = indices.size(),
                 .materialIndex = 0,

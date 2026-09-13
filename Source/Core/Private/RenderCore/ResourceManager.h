@@ -4,6 +4,7 @@
 
 namespace cube
 {
+    class BLASResource;
     class RGBuilder;
     class Renderer;
 
@@ -17,7 +18,14 @@ namespace cube
         void QueuePreprocessTask(PreprocessTaskFunction&& task);
         void ExecutePreprocessTasks(RGBuilder& builder);
 
+        void QueueBLASBuild(SharedPtr<BLASResource> blas);
+        void ExecuteBLASBuilds(RGBuilder& builder);
+
     private:
+        Renderer& mRenderer;
+
         Vector<PreprocessTaskFunction> mPreprocessTasks;
+        Vector<SharedPtr<BLASResource>> mBLASesToBuild;
+        Uint32 mScratchBufferAlignment = 0;
     };
 } // namespace cube

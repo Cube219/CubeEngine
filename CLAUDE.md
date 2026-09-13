@@ -126,6 +126,7 @@ Test mode (`--test`) enables automatic testing by modifying platform behavior:
 
 ## Git Commit Conventions
 
+- This project uses Jujutsu (`jj`), not plain Git. Do not run `git commit` or other Git write commands directly; use `jj` commands instead.
 - Always use `--no-gpg-sign` flag
 - Always prefix commit message with `*AGENT: `
 - Add a summary description of the work.

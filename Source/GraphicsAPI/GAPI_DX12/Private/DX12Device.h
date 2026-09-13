@@ -35,6 +35,7 @@ namespace cube
         bool IsNonZeroInHeapCreationSupported() const { return mIsNonZeroInHeapCreationSupported; }
         bool IsGPUUploadHeapSupported() const { return mFeatureSupport.GPUUploadHeapSupported(); }
         bool IsTightAlignmentSupported() const { return mFeatureSupport.TightAlignmentSupportTier() >= D3D12_TIGHT_ALIGNMENT_TIER_1; }
+        bool IsHWRTSupported() const { return mFeatureSupport.RaytracingTier() >= D3D12_RAYTRACING_TIER_1_0; }
 
         DX12MemoryAllocator& GetMemoryAllocator() { return mMemoryAllocator; }
         DX12QueueManager& GetQueueManager() { return mQueueManager; }

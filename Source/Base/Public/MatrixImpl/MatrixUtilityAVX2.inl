@@ -322,8 +322,8 @@ namespace cube
 
     inline void MatrixUtility::DecomposeTransformation(const Matrix& matrix, Vector3& outTranslation, Vector3& outRotation, Vector3& outScale)
     {
-        // Model matrix is built as Scale * RotationXYZ with translation in the last row.
-        // (See SceneObject::GetModelMatrix)
+        // Transform matrix is built as Scale * RotationXYZ with translation in the last row.
+        // (See SceneObject::GetTransformMatrix)
         Vector4 row0 = matrix.GetRow(0);
         Vector4 row1 = matrix.GetRow(1);
         Vector4 row2 = matrix.GetRow(2);

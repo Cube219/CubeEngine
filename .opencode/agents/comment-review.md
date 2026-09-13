@@ -1,18 +1,28 @@
 ---
 description: Reviews the code comments and a git commit message.
 mode: subagent
-temperature: 0.1
-permission:
-  *: deny
-  read: allow
-  glob: allow
-  grep: allow
-  list: allow
-  bash:
-    "*": deny
-    "git diff*": allow
-    "git log*": allow
-    "git show*": allow
+permissions:
+  - action: "*"
+    resource: "*"
+    effect: deny
+  - action: read
+    resource: "*"
+    effect: allow
+  - action: glob
+    resource: "*"
+    effect: allow
+  - action: grep
+    resource: "*"
+    effect: allow
+  - action: shell
+    resource: "git diff*"
+    effect: allow
+  - action: shell
+    resource: "git log*"
+    effect: allow
+  - action: shell
+    resource: "git show*"
+    effect: allow
 ---
 
 You are a comment reviewer. Review the code comments and the commit messages.

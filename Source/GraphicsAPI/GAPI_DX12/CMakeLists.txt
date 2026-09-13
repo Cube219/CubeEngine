@@ -4,6 +4,7 @@ set(PUBLIC_FILES
     Public/DX12APIObject.h
     Public/DX12Header.h
     Public/GAPI_DX12.h
+    Public/GAPI_DX12AccelerationStructure.h
     Public/GAPI_DX12Buffer.h
     Public/GAPI_DX12CommandList.h
     Public/GAPI_DX12Fence.h
@@ -43,6 +44,7 @@ set(PRIVATE_FILES
     Private/DX12Types.h
     Private/DX12Utility.h
     Private/GAPI_DX12.cpp
+    Private/GAPI_DX12AccelerationStructure.cpp
     Private/GAPI_DX12Buffer.cpp
     Private/GAPI_DX12CommandList.cpp
     Private/GAPI_DX12Fence.cpp

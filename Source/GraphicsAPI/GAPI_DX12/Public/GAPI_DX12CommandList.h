@@ -57,6 +57,7 @@ namespace cube
             virtual void UseResource(SharedPtr<BufferUAV> uav) override;
             virtual void UseResource(SharedPtr<TextureSRV> srv) override;
             virtual void UseResource(SharedPtr<TextureUAV> uav) override;
+            virtual void UseResource(SharedPtr<AccelerationStructure> accelerationStructure, bool write) override;
 
             virtual void SetResourceBarrier(ResourceBarrier barrier) override;
             virtual void SetResourceBarrier(ConstArrayView<ResourceBarrier> barriers) override;
@@ -69,6 +70,10 @@ namespace cube
             virtual void CopyBufferToTexture(SharedPtr<Buffer> srcBuffer, Uint64 srcOffset, SharedPtr<Texture> dstTexture) override;
 
             virtual void OptimizeTextureContentsForGPUAccess(SharedPtr<Texture> texture) override;
+
+            virtual void PrepareAccelerationStructureBuild() override;
+            virtual void BuildBLAS(SharedPtr<BLAS> blas, SharedPtr<Buffer> scratchBuffer, bool update) override;
+            virtual void BuildTLAS(SharedPtr<TLAS> tlas, SharedPtr<Buffer> scratchBuffer, SharedPtr<Buffer> instanceDescBuffer, bool update) override;
 
             virtual void BeginTimestamp(StringView name) override;
             virtual void EndTimestamp() override;

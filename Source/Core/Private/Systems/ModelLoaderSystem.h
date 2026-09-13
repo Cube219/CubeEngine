@@ -29,7 +29,7 @@ namespace cube
 
         static MeshMetadata GetMeshMetadata();
 
-        static void UpdateModelMatrix();
+        static void UpdateModelTransformMatrix();
         static void ResetModelTransform();
 
         static Vector<UniquePtr<IModelLoader>> mLoaders;
@@ -41,5 +41,8 @@ namespace cube
         static Float3 mModelRotation;
         static float mModelScale;
         static bool mUseFloat16Vertices;
+
+        static bool mSupportsHWRT;
+        static bool mBuildBLAS;
     };
 } // namespace cube

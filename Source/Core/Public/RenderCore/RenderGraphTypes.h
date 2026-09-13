@@ -2,6 +2,7 @@
 
 #include "CoreHeader.h"
 
+#include "GAPI_AccelerationStructure.h"
 #include "GAPI_Texture.h"
 #include "ShaderParameter.h"
 
@@ -442,4 +443,23 @@ namespace cube
         static constexpr ShaderParameterCPUType type = ShaderParameterCPUType::RGTextureUAV;
         static constexpr Uint32 size = sizeof(RGTextureUAVHandle);
     };
+
+    // ===== Acceleration structure =====
+    class RGAccelerationStructure : public RGResource
+    {
+    public:
+        SharedPtr<gapi::AccelerationStructure> GetGAPIAccelerationStructure() const { return mAccelerationStructure; }
+
+        virtual void CreateResource(GAPI& gapi) override;
+        virtual bool IsResourceCreated() const override { return mAccelerationStructure != nullptr; }
+
+    private:
+        friend class RGBuilder;
+
+        RGAccelerationStructure(int index, SharedPtr<gapi::AccelerationStructure> accelerationStructure);
+        virtual ~RGAccelerationStructure() = default;
+
+        SharedPtr<gapi::AccelerationStructure> mAccelerationStructure;
+    };
+    using RGAccelerationStructureHandle = RGResourceHandler<RGAccelerationStructure>;
 } // namespace cube

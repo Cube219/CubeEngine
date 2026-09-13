@@ -18,8 +18,8 @@ namespace cube
         SharedPtr<Mesh> GetMesh() const { return mMesh; }
         const Vector<WeakPtr<Material>>& GetMaterials() const { return mMaterials; }
 
-        Matrix GetModelMatrix();
-        void SetModelMatrix(const Matrix& model);
+        const Matrix& GetTransformMatrix() const { return mTransformMatrix; };
+        void SetTransformMatrix(const Matrix& transform);
 
         void SetPosition(Vector3 position);
         void SetRotation(Vector3 rotation);
@@ -27,14 +27,18 @@ namespace cube
 
         void SetMaterials(ArrayView<WeakPtr<Material>> materials);
 
+        void UpdateDirtyTransform(Uint64 renderingFrame);
+        bool IsRecentlyChangedTransform(Uint64 renderingFrame) const;
+
     private:
         String mName;
 
         Vector3 mPosition = Vector3::Zero();
         Vector3 mRotation = Vector3::Zero();
         Vector3 mScale = { 1.0f, 1.0f, 1.0f };
-        Matrix mModel;
-        bool mIsModelMatrixDirty = true;
+        Matrix mTransformMatrix;
+        bool mIsTransformMatrixDirty = true;
+        Uint64 mLastDirtyTransformRenderingFrame = 0;
 
         SharedPtr<Mesh> mMesh;
         Vector<WeakPtr<Material>> mMaterials;

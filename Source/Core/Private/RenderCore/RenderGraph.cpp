@@ -3,6 +3,7 @@
 #include "Allocator/FrameAllocator.h"
 #include "Buffer.h"
 #include "Checker.h"
+#include "GAPI_AccelerationStructure.h"
 #include "GAPI_CommandList.h"
 #include "Pipeline.h"
 #include "RenderCore/Mesh.h"
@@ -250,6 +251,19 @@ namespace cube
     {
     }
 
+    void RGAccelerationStructure::CreateResource(GAPI& gapi)
+    {
+        CHECK(mAccelerationStructure);
+    }
+
+    RGAccelerationStructure::RGAccelerationStructure(int index, SharedPtr<gapi::AccelerationStructure> accelerationStructure)
+        : RGResource(index, accelerationStructure->GetDebugName())
+        , mAccelerationStructure(accelerationStructure)
+    {
+        // Acceleration structure does not support transient.
+        mIsTransient = false;
+    }
+
     // ===== Builder =====
 
     RGBuilder::RGBuilder(Renderer& renderer)
@@ -463,6 +477,24 @@ namespace cube
         return mDummyWhiteTexture2D;
     }
 
+    RGAccelerationStructureHandle RGBuilder::RegisterAccelerationStructure(SharedPtr<gapi::AccelerationStructure> accelerationStructure)
+    {
+        if (auto findIt = mRegisteredAccelerationStructures.find(accelerationStructure.get()); findIt != mRegisteredAccelerationStructures.end())
+        {
+            return findIt->second;
+        }
+
+        RGAccelerationStructureHandle rgAccelerationStructure(new RGAccelerationStructure(mResources.size(), accelerationStructure));
+        mResources.push_back(rgAccelerationStructure);
+
+        mRegisteredAccelerationStructures.insert({
+            accelerationStructure.get(),
+            rgAccelerationStructure
+        });
+
+        return rgAccelerationStructure;
+    }
+
     void RGBuilder::BeginRenderPass(const RenderPassInfo& info)
     {
         CHECK(mPhase == Phase::Init);
@@ -610,9 +642,9 @@ namespace cube
             RGBufferHandle rgIndexBuffer = RegisterBuffer(drawMeshInfo.mesh->GetIndexBuffer()->GetGAPIBuffer());
 
             RGShaderParameterListHandle<ObjectShaderParameterList> objectShaderParameterList = CreateShaderParameterList<ObjectShaderParameterList>();
-            objectShaderParameterList->model = drawMeshInfo.model;
-            objectShaderParameterList->modelInverse = drawMeshInfo.model.Inversed();
-            objectShaderParameterList->modelInverseTranspose = drawMeshInfo.model.Inversed().Transposed();
+            objectShaderParameterList->transform = drawMeshInfo.transformMatrix;
+            objectShaderParameterList->invTransform = drawMeshInfo.transformMatrix.Inversed();
+            objectShaderParameterList->invTransposedTransform = drawMeshInfo.transformMatrix.Inversed().Transposed();
             objectShaderParameterList->vertexBuffer = rgVertexBufferSRV;
             objectShaderParameterList->useFP16 = meshMeta.useFloat16;
             paramListArray[0] = objectShaderParameterList;
@@ -740,7 +772,7 @@ namespace cube
         pass.resourceUsages.push_back({
             .rgResourceIndex = rgDSV->mIndex,
             .syncs = gapi::ResourceSyncFlag::DepthStencil,
-            .accesses = gapi::ResourceAccessFlag::DepthStencilWrite,
+            .accesses = gapi::ResourceAccessFlag::WriteDepthStencil,
             .layout = gapi::ResourceLayout::DepthStencilWrite,
             .subresourceRange = rgDSV->GetSubresourceRange(),
         });
@@ -772,6 +804,22 @@ namespace cube
             .accesses = accesses,
             .layout = layout,
             .subresourceRange = range.Clamp(rgTexture->GetTextureInfo()),
+        });
+    }
+
+    void RGBuilder::UseResource(RGAccelerationStructureHandle rgAccelerationStructure, gapi::ResourceAccessFlags accesses, gapi::ResourceSyncFlags syncs)
+    {
+        CHECK(mPhase == Phase::TrackingResources);
+        CHECK(rgAccelerationStructure.IsValid());
+
+        CHECK(accesses.IsSet(gapi::ResourceAccessFlag::ReadAccelerationStructure) || accesses.IsSet(gapi::ResourceAccessFlag::WriteAccelerationStructure));
+
+        RGPass& pass = mPasses[mTrackingResourcesState.passIndex];
+        pass.resourceUsages.push_back({
+            .rgResourceIndex = rgAccelerationStructure->mIndex,
+            .syncs = syncs,
+            .accesses = accesses,
+            .layout = gapi::ResourceLayout::Undefined,
         });
     }
 
@@ -1022,21 +1070,26 @@ namespace cube
             for (const RGPass::ResourceUsage& resourceUsage : pass.resourceUsages)
             {
                 RGResourceHandle rgResource = mResources[resourceUsage.rgResourceIndex];
-                if (RGTextureSRVHandle rgSRV = rgResource.Cast<RGTextureSRV>(); rgSRV.IsValid())
+                if (RGTextureSRVHandle rgTextureSRV = rgResource.Cast<RGTextureSRV>(); rgTextureSRV.IsValid())
                 {
-                    commandList.UseResource(rgSRV->GetSRV());
+                    commandList.UseResource(rgTextureSRV->GetSRV());
                 }
-                else if (RGTextureUAVHandle rgUAV = rgResource.Cast<RGTextureUAV>(); rgUAV.IsValid())
+                else if (RGTextureUAVHandle rgTextureUAV = rgResource.Cast<RGTextureUAV>(); rgTextureUAV.IsValid())
                 {
-                    commandList.UseResource(rgUAV->GetUAV());
+                    commandList.UseResource(rgTextureUAV->GetUAV());
                 }
-                else if (RGBufferSRVHandle rgSRV = rgResource.Cast<RGBufferSRV>(); rgSRV.IsValid())
+                else if (RGBufferSRVHandle rgBufferSRV = rgResource.Cast<RGBufferSRV>(); rgBufferSRV.IsValid())
                 {
-                    commandList.UseResource(rgSRV->GetSRV());
+                    commandList.UseResource(rgBufferSRV->GetSRV());
                 }
-                else if (RGBufferUAVHandle rgUAV = rgResource.Cast<RGBufferUAV>(); rgUAV.IsValid())
+                else if (RGBufferUAVHandle rgBufferUAV = rgResource.Cast<RGBufferUAV>(); rgBufferUAV.IsValid())
                 {
-                    commandList.UseResource(rgUAV->GetUAV());
+                    commandList.UseResource(rgBufferUAV->GetUAV());
+                }
+                else if (RGAccelerationStructureHandle rgAccelerationStructure = rgResource.Cast<RGAccelerationStructure>(); rgAccelerationStructure.IsValid())
+                {
+                    const bool hasWrite = resourceUsage.accesses.IsSet(gapi::ResourceAccessFlag::WriteAccelerationStructure);
+                    commandList.UseResource(rgAccelerationStructure->GetGAPIAccelerationStructure(), hasWrite);
                 }
             }
         }
@@ -1266,6 +1319,21 @@ namespace cube
                     .layoutDst = layout,
                 };
             }
+            gapi::ResourceBarrier EmitAccelerationStructureBarrier(SharedPtr<gapi::AccelerationStructure> accelerationStructure) const
+            {
+                CHECK(resourceType == gapi::ResourceType::AccelerationStructure);
+
+                return gapi::ResourceBarrier{
+                    .resourceType = gapi::ResourceBarrier::ResourceType::AccelerationStructure,
+                    .accelerationStructure = accelerationStructure,
+                    .syncSrc = lastSyncs,
+                    .syncDst = syncs,
+                    .accessSrc = lastAccesses,
+                    .accessDst = accesses,
+                    .layoutSrc = gapi::ResourceLayout::Undefined,
+                    .layoutDst = gapi::ResourceLayout::Undefined,
+                };
+            }
             void MoveNext(int newPassIndex, gapi::ResourceAccessFlags newAccesses, gapi::ResourceLayout newLayout)
             {
                 lastSyncs = syncs;
@@ -1304,10 +1372,9 @@ namespace cube
                     }
 
                     SubresourcePendingBarrier& pendingBarrier = pendingSubresourceBarriers[0];
-                    const bool needUAVBarrier =
-                        !resourceUsage.skipUAVBarrier
-                        && pendingBarrier.accesses.IsSet(gapi::ResourceAccessFlag::UAV)
+                    const bool sameUAV = pendingBarrier.accesses.IsSet(gapi::ResourceAccessFlag::UAV)
                         && resourceUsage.accesses.IsSet(gapi::ResourceAccessFlag::UAV);
+                    const bool needUAVBarrier = !resourceUsage.skipUAVBarrier && sameUAV;
                     if (needUAVBarrier || pendingBarrier.accesses != resourceUsage.accesses)
                     {
                         if (pendingBarrier.firstPassIndex != -1)
@@ -1367,6 +1434,33 @@ namespace cube
                     }
                 };
 
+                auto TryResolveAccelerationStructure = [&](RGAccelerationStructureHandle rgAccelerationStructure)
+                {
+                    SharedPtr<gapi::AccelerationStructure> accelerationStructure = rgAccelerationStructure->GetGAPIAccelerationStructure();
+
+                    FrameVector<SubresourcePendingBarrier>& pendingSubresourceBarriers = pendingBarriersByResource[rgAccelerationStructure->mIndex];
+                    if (pendingSubresourceBarriers.empty())
+                    {
+                        pendingSubresourceBarriers.push_back({
+                            .resourceType = gapi::ResourceType::AccelerationStructure,
+                        });
+                    }
+
+                    SubresourcePendingBarrier& pendingBarrier = pendingSubresourceBarriers[0];
+                    const bool sameASWrite = pendingBarrier.accesses.IsSet(gapi::ResourceAccessFlag::WriteAccelerationStructure)
+                        && resourceUsage.accesses.IsSet(gapi::ResourceAccessFlag::WriteAccelerationStructure);
+                    const bool needUAVBarrier = !resourceUsage.skipUAVBarrier && sameASWrite;
+                    if (needUAVBarrier || pendingBarrier.accesses != resourceUsage.accesses)
+                    {
+                        if (pendingBarrier.firstPassIndex != -1)
+                        {
+                            mPasses[pendingBarrier.firstPassIndex].barriers.push_back(pendingBarrier.EmitAccelerationStructureBarrier(accelerationStructure));
+                        }
+                        pendingBarrier.MoveNext(mTrackingResourcesState.passIndex, resourceUsage.accesses, gapi::ResourceLayout::Undefined);
+                    }
+                    pendingBarrier.syncs |= resourceUsage.syncs;
+                };
+
                 if (RGBufferViewHandle bufferView = resource.Cast<RGBufferView>(); bufferView.IsValid())
                 {
                     TryResolveBuffer(bufferView->mRGBuffer);
@@ -1383,6 +1477,10 @@ namespace cube
                 {
                     TryResolveTexture(texture, resourceUsage.subresourceRange);
                 }
+                else if (RGAccelerationStructureHandle accelerationStructure = resource.Cast<RGAccelerationStructure>(); accelerationStructure.IsValid())
+                {
+                    TryResolveAccelerationStructure(accelerationStructure);
+                }
                 else
                 {
                     NO_ENTRY_FORMAT("Barrier is not supported in this RGResource.");
@@ -1398,6 +1496,7 @@ namespace cube
 
             RGBufferHandle rgBuffer = rgResource.Cast<RGBuffer>();
             RGTextureHandle rgTexture = rgResource.Cast<RGTexture>();
+            RGAccelerationStructureHandle rgAccelerationStructure = rgResource.Cast<RGAccelerationStructure>();
             gapi::ResourceLayout dstLayout = gapi::ResourceLayout::Undefined;
             if (rgTexture.IsValid() && !(rgTexture->IsTransient()))
             {
@@ -1442,6 +1541,16 @@ namespace cube
                         }
                     }
                 }
+                else if (rgAccelerationStructure.IsValid())
+                {
+                    if (pendingBarrier.firstPassIndex != -1)
+                    {
+                        mPasses[pendingBarrier.firstPassIndex].barriers.push_back(pendingBarrier.EmitAccelerationStructureBarrier(rgAccelerationStructure->GetGAPIAccelerationStructure()));
+                    }
+                    // NOTE: It is okay to skip the barrier after the last pass because RGBuilder submits
+                    // the command list right after writing the last pass.
+                    // (An implicit global barrier is inserted between submitted command lists.)
+                }
                 else
                 {
                     NO_ENTRY();
@@ -1460,6 +1569,7 @@ namespace cube
 
         mPasses.clear();
         mLastPass = {};
+        mRegisteredAccelerationStructures.clear();
         mRegisteredTextureInfos.clear();
         mRegisteredBufferInfos.clear();
         mCachedBufferViews.clear();

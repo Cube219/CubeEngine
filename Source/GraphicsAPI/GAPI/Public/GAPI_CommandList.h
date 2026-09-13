@@ -10,6 +10,8 @@ namespace cube
 {
     namespace gapi
     {
+        class AccelerationStructure;
+        class BLAS;
         class Buffer;
         class BufferSRV;
         class BufferUAV;
@@ -22,6 +24,7 @@ namespace cube
         class TextureRTV;
         class TextureSRV;
         class TextureUAV;
+        class TLAS;
 
         struct Viewport
         {
@@ -85,11 +88,13 @@ namespace cube
             {
                 Buffer,
                 Texture,
+                AccelerationStructure,
             };
             ResourceType resourceType;
 
             SharedPtr<Buffer> buffer = nullptr;
             SharedPtr<Texture> texture = nullptr;
+            SharedPtr<AccelerationStructure> accelerationStructure = nullptr;
             // < 0 : All subresources.
             Int32 subresourceIndex = -1;
             bool discard = false;
@@ -98,8 +103,8 @@ namespace cube
             ResourceSyncFlags syncDst;
             ResourceAccessFlags accessSrc;
             ResourceAccessFlags accessDst;
-            ResourceLayout layoutSrc;
-            ResourceLayout layoutDst;
+            ResourceLayout layoutSrc = ResourceLayout::Undefined;
+            ResourceLayout layoutDst = ResourceLayout::Undefined;
         };
 
         enum class CommandListType
@@ -149,6 +154,7 @@ namespace cube
             virtual void UseResource(SharedPtr<BufferUAV> uav) = 0;
             virtual void UseResource(SharedPtr<TextureSRV> srv) = 0;
             virtual void UseResource(SharedPtr<TextureUAV> uav) = 0;
+            virtual void UseResource(SharedPtr<AccelerationStructure> accelerationStructure, bool write) = 0;
 
             virtual void SetResourceBarrier(ResourceBarrier barrier) = 0;
             virtual void SetResourceBarrier(ConstArrayView<ResourceBarrier> barriers) = 0;
@@ -163,6 +169,10 @@ namespace cube
 
             // Required on Metal after copying to a GPUOnly texture. No-op on DX12.
             virtual void OptimizeTextureContentsForGPUAccess(SharedPtr<Texture> texture) = 0;
+
+            virtual void PrepareAccelerationStructureBuild() = 0;
+            virtual void BuildBLAS(SharedPtr<BLAS> blas, SharedPtr<Buffer> scratchBuffer, bool update = false) = 0;
+            virtual void BuildTLAS(SharedPtr<TLAS> tlas, SharedPtr<Buffer> scratchBuffer, SharedPtr<Buffer> instanceDescBuffer, bool update = false) = 0;
 
             virtual void BeginTimestamp(StringView name) = 0;
             virtual void EndTimestamp() = 0;

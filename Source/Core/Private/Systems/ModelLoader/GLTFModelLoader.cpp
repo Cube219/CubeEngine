@@ -314,6 +314,7 @@ namespace cube
 
                 subMeshes.push_back({
                     .vertexOffset = vertexOffset,
+                    .numVertices = numVertices,
                     .indexOffset = indexOffset,
                     .numIndices = numIndices,
                     .materialIndex = static_cast<int>(materialsPerMesh.size()),
@@ -541,7 +542,7 @@ namespace cube
         }
 
         // Make scene and scene objects.
-        SharedPtr<Scene> scene = std::make_shared<Scene>();
+        SharedPtr<Scene> scene = std::make_shared<Scene>(meshMetadata.buildBLAS);
 
         auto BuildLocalMatrix = [](const tinygltf::Node& node) -> Matrix
         {
@@ -598,7 +599,7 @@ namespace cube
                     String_Convert<FrameString>(node.name),
                     meshes[node.mesh]);
                 obj->SetMaterials(materialsPerMeshes[node.mesh]);
-                obj->SetModelMatrix(globalMatrix);
+                obj->SetTransformMatrix(globalMatrix);
 
                 scene->AddSceneObject(std::move(obj));
             }

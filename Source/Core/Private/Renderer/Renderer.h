@@ -42,9 +42,9 @@ namespace cube
     class ObjectShaderParameterList : public ShaderParameterList
     {
         CUBE_BEGIN_SHADER_PARAMETER_LIST(ObjectShaderParameterList)
-            CUBE_SHADER_PARAMETER(Matrix, model)
-            CUBE_SHADER_PARAMETER(Matrix, modelInverse)
-            CUBE_SHADER_PARAMETER(Matrix, modelInverseTranspose)
+            CUBE_SHADER_PARAMETER(Matrix, transform)
+            CUBE_SHADER_PARAMETER(Matrix, invTransform)
+            CUBE_SHADER_PARAMETER(Matrix, invTransposedTransform)
             CUBE_SHADER_PARAMETER(RGBufferSRVHandle, vertexBuffer)
             CUBE_SHADER_PARAMETER(bool, useFP16)
         CUBE_END_SHADER_PARAMETER_LIST
@@ -94,10 +94,11 @@ namespace cube
         gapi::ElementFormat GetBackbufferFormat() const { return mBackbufferFormat; }
         gapi::ElementFormat GetDepthStencilFormat() const { return mDepthStencilFormat; }
 
+        const Matrix& GetGlobalTransformMatrix() const { return mGlobalTransformMatrix; }
         const Matrix& GetViewMatrix() const { return mViewMatrix; }
         const Matrix& GetInverseViewMatrix() const { return mInverseViewMatrix; }
 
-        void SetObjectModelMatrix(const Vector3& position, const Vector3& rotation, const Vector3& scale);
+        void SetGlobalTransformMatrix(const Vector3& position, const Vector3& rotation, const Vector3& scale);
         void SetViewMatrix(const Vector3& eye, const Vector3& target, const Vector3& upDir);
         void SetPerspectiveMatrix(float fovAngleY, float aspectRatio, float nearZ, float farZ);
 
@@ -135,6 +136,7 @@ namespace cube
 
         bool mRenderImGUI;
 
+        // TODO: Move separate class.
         Vector3 mViewPosition;
         Matrix mViewMatrix;
         Matrix mInverseViewMatrix;
@@ -152,7 +154,8 @@ namespace cube
         gapi::ElementFormat mColorFormat;
         gapi::ElementFormat mDepthStencilFormat;
 
-        Matrix mModelMatrix;
+        // TODO: Move to scene class.
+        Matrix mGlobalTransformMatrix;
         SharedPtr<Material> mDefaultMaterial;
         SharedPtr<Scene> mScene;
 
@@ -163,13 +166,13 @@ namespace cube
         bool mShowAxis = true;
         bool mWireframe = false;
         SharedPtr<Mesh> mBoxMesh;
-        Matrix mXAxisModelMatrix;
+        Matrix mXAxisTransformMatrix;
         SharedPtr<Material> mXAxisMaterial;
 
-        Matrix mYAxisModelMatrix;
+        Matrix mYAxisTransformMatrix;
         SharedPtr<Material> mYAxisMaterial;
 
-        Matrix mZAxisModelMatrix;
+        Matrix mZAxisTransformMatrix;
         SharedPtr<Material> mZAxisMaterial;
     };
 } // namespace cube

@@ -862,8 +862,8 @@ TEST(MatrixUtilityTest, SRT_InverseReconstruction)
 
 // ===== DecomposeTransformation =====
 
-// Build a model matrix the same way SceneObject::GetModelMatrix does.
-static Matrix BuildModel(const Vector3& scale, const Vector3& rotation, const Vector3& position)
+// Build a transform matrix the same way SceneObject::GetTransformMatrix does.
+static Matrix BuildTransform(const Vector3& scale, const Vector3& rotation, const Vector3& position)
 {
     return MatrixUtility::GetScale(scale) * MatrixUtility::GetRotationXYZ(rotation) + MatrixUtility::GetTranslation_Add(position);
 }
@@ -883,10 +883,10 @@ TEST(MatrixUtilityTest, DecomposeTransformation_RoundTrip)
     Vector3 rotation(Math::Deg2Rad(20.0f), Math::Deg2Rad(-35.0f), Math::Deg2Rad(58.0f));
     Vector3 position(5.0f, -2.0f, 8.0f);
 
-    Matrix model = BuildModel(scale, rotation, position);
+    Matrix transform = BuildTransform(scale, rotation, position);
 
     Vector3 outTranslation, outRotation, outScale;
-    MatrixUtility::DecomposeTransformation(model, outTranslation, outRotation, outScale);
+    MatrixUtility::DecomposeTransformation(transform, outTranslation, outRotation, outScale);
 
     ExpectVector3Near(outTranslation, 5.0f, -2.0f, 8.0f);
     ExpectVector3Near(outRotation, Math::Deg2Rad(20.0f), Math::Deg2Rad(-35.0f), Math::Deg2Rad(58.0f));
@@ -906,10 +906,10 @@ TEST(MatrixUtilityTest, DecomposeTransformation_Identity)
 TEST(MatrixUtilityTest, DecomposeTransformation_TranslationOnly)
 {
     Vector3 position(-10.0f, 20.0f, -30.0f);
-    Matrix model = BuildModel(Vector3(1.0f, 1.0f, 1.0f), Vector3::Zero(), position);
+    Matrix transform = BuildTransform(Vector3(1.0f, 1.0f, 1.0f), Vector3::Zero(), position);
 
     Vector3 outTranslation, outRotation, outScale;
-    MatrixUtility::DecomposeTransformation(model, outTranslation, outRotation, outScale);
+    MatrixUtility::DecomposeTransformation(transform, outTranslation, outRotation, outScale);
 
     ExpectVector3Near(outTranslation, -10.0f, 20.0f, -30.0f);
     ExpectVector3Near(outRotation, 0.0f, 0.0f, 0.0f);
@@ -919,10 +919,10 @@ TEST(MatrixUtilityTest, DecomposeTransformation_TranslationOnly)
 TEST(MatrixUtilityTest, DecomposeTransformation_ScaleOnly)
 {
     Vector3 scale(0.5f, 4.0f, 2.5f);
-    Matrix model = BuildModel(scale, Vector3::Zero(), Vector3::Zero());
+    Matrix transform = BuildTransform(scale, Vector3::Zero(), Vector3::Zero());
 
     Vector3 outTranslation, outRotation, outScale;
-    MatrixUtility::DecomposeTransformation(model, outTranslation, outRotation, outScale);
+    MatrixUtility::DecomposeTransformation(transform, outTranslation, outRotation, outScale);
 
     ExpectVector3Near(outTranslation, 0.0f, 0.0f, 0.0f);
     ExpectVector3Near(outRotation, 0.0f, 0.0f, 0.0f);
@@ -937,13 +937,13 @@ TEST(MatrixUtilityTest, DecomposeTransformation_ReconstructsMatrix)
     Vector3 rotation(Math::Deg2Rad(73.0f), Math::Deg2Rad(-41.0f), Math::Deg2Rad(158.0f));
     Vector3 position(3.0f, -6.0f, 1.0f);
 
-    Matrix model = BuildModel(scale, rotation, position);
+    Matrix transform = BuildTransform(scale, rotation, position);
 
     Vector3 outTranslation, outRotation, outScale;
-    MatrixUtility::DecomposeTransformation(model, outTranslation, outRotation, outScale);
+    MatrixUtility::DecomposeTransformation(transform, outTranslation, outRotation, outScale);
 
-    Matrix reconstructed = BuildModel(outScale, outRotation, outTranslation);
-    ExpectMatrixNear(reconstructed, model);
+    Matrix reconstructed = BuildTransform(outScale, outRotation, outTranslation);
+    ExpectMatrixNear(reconstructed, transform);
 }
 
 TEST(MatrixUtilityTest, DecomposeTransformation_GimbalLock)
@@ -954,14 +954,14 @@ TEST(MatrixUtilityTest, DecomposeTransformation_GimbalLock)
     Vector3 rotation(Math::Deg2Rad(30.0f), Math::Deg2Rad(90.0f), Math::Deg2Rad(0.0f));
     Vector3 position(1.0f, 2.0f, 3.0f);
 
-    Matrix model = BuildModel(scale, rotation, position);
+    Matrix transform = BuildTransform(scale, rotation, position);
 
     Vector3 outTranslation, outRotation, outScale;
-    MatrixUtility::DecomposeTransformation(model, outTranslation, outRotation, outScale);
+    MatrixUtility::DecomposeTransformation(transform, outTranslation, outRotation, outScale);
 
     ExpectVector3Near(outTranslation, 1.0f, 2.0f, 3.0f);
     ExpectVector3Near(outScale, 2.0f, 2.0f, 2.0f);
 
-    Matrix reconstructed = BuildModel(outScale, outRotation, outTranslation);
-    ExpectMatrixNear(reconstructed, model);
+    Matrix reconstructed = BuildTransform(outScale, outRotation, outTranslation);
+    ExpectMatrixNear(reconstructed, transform);
 }

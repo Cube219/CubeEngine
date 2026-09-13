@@ -1,5 +1,8 @@
 #include "SceneObject.h"
 
+#include "Engine.h"
+#include "Renderer/Renderer.h"
+
 namespace cube
 {
     SceneObject::SceneObject(StringView name, const SharedPtr<Mesh>& mesh)
@@ -13,45 +16,51 @@ namespace cube
         mMesh = nullptr;
     }
 
-    Matrix SceneObject::GetModelMatrix()
+    void SceneObject::SetTransformMatrix(const Matrix& transform)
     {
-        if (mIsModelMatrixDirty)
-        {
-            mModel = MatrixUtility::GetScale(mScale) * MatrixUtility::GetRotationXYZ(mRotation) + MatrixUtility::GetTranslation_Add(mPosition);
+        mTransformMatrix = transform;
+        mIsTransformMatrixDirty = false;
+        mLastDirtyTransformRenderingFrame = Engine::GetRenderer()->GetCurrentRenderingFrame();
 
-            mIsModelMatrixDirty = false;
-        }
+        MatrixUtility::DecomposeTransformation(mTransformMatrix, mPosition, mRotation, mScale);
 
-        return mModel;
-    }
-
-    void SceneObject::SetModelMatrix(const Matrix& model)
-    {
-        mModel = model;
-        mIsModelMatrixDirty = false;
-
-        MatrixUtility::DecomposeTransformation(mModel, mPosition, mRotation, mScale);
     }
 
     void SceneObject::SetPosition(Vector3 position)
     {
         mPosition = position;
 
-        mIsModelMatrixDirty = true;
+        mIsTransformMatrixDirty = true;
     }
 
     void SceneObject::SetRotation(Vector3 rotation)
     {
         mRotation = rotation;
 
-        mIsModelMatrixDirty = true;
+        mIsTransformMatrixDirty = true;
     }
 
     void SceneObject::SetScale(Vector3 scale)
     {
         mScale = scale;
 
-        mIsModelMatrixDirty = true;
+        mIsTransformMatrixDirty = true;
+    }
+
+    void SceneObject::UpdateDirtyTransform(Uint64 renderingFrame)
+    {
+        if (mIsTransformMatrixDirty)
+        {
+            mTransformMatrix = MatrixUtility::GetScale(mScale) * MatrixUtility::GetRotationXYZ(mRotation) + MatrixUtility::GetTranslation_Add(mPosition);
+
+            mIsTransformMatrixDirty = false;
+            mLastDirtyTransformRenderingFrame = renderingFrame;
+        }
+    }
+
+    bool SceneObject::IsRecentlyChangedTransform(Uint64 renderingFrame) const
+    {
+        return renderingFrame <= mLastDirtyTransformRenderingFrame;
     }
 
     void SceneObject::SetMaterials(ArrayView<WeakPtr<Material>> materials)

@@ -26,8 +26,13 @@ namespace cube
     float ModelLoaderSystem::mModelScale;
     bool ModelLoaderSystem::mUseFloat16Vertices = true;
 
+    bool ModelLoaderSystem::mSupportsHWRT = false;
+    bool ModelLoaderSystem::mBuildBLAS = true;
+
     void ModelLoaderSystem::Initialize()
     {
+        mSupportsHWRT = Engine::GetRenderer()->GetGAPI().GetInfo().supportsHWRT;
+
         // Register model loaders. Order determines the model list grouping order.
         mLoaders.push_back(std::make_unique<GLTFModelLoader>());
         mLoaders.push_back(std::make_unique<ObjModelLoader>());
@@ -162,18 +167,18 @@ namespace cube
         ImGui::PushItemWidth(200.0f);
         if (ImGui::DragFloat3("Position", &mModelPosition.x, 0.1f))
         {
-            UpdateModelMatrix();
+            UpdateModelTransformMatrix();
         }
         if (ImGui::DragFloat3("Rotation", &mModelRotation.x, 1.0f))
         {
-            UpdateModelMatrix();
+            UpdateModelTransformMatrix();
         }
         ImGui::PopItemWidth();
 
         ImGui::PushItemWidth(65.0f);
         if (ImGui::DragFloat("Scale", &mModelScale, 0.1f))
         {
-            UpdateModelMatrix();
+            UpdateModelTransformMatrix();
         }
         ImGui::PopItemWidth();
 
@@ -187,6 +192,15 @@ namespace cube
         if (ImGui::Checkbox("Float16 Vertices", &mUseFloat16Vertices))
         {
             LoadCurrentModelAndSet(false);
+        }
+
+        {
+            ImGui::BeginDisabled(!mSupportsHWRT);
+            if (ImGui::Checkbox("Build BLAS", &mBuildBLAS))
+            {
+                LoadCurrentModelAndSet(false);
+            }
+            ImGui::EndDisabled();
         }
     }
 
@@ -234,7 +248,7 @@ namespace cube
             SharedPtr<Mesh> boxMesh = std::make_shared<Mesh>(MeshHelper::GenerateBoxMeshData(), GetMeshMetadata());
             UniquePtr<SceneObject> obj = std::make_unique<SceneObject>(CUBE_T("DefaultBox"), boxMesh);
 
-            SharedPtr<Scene> scene = std::make_shared<Scene>();
+            SharedPtr<Scene> scene = std::make_shared<Scene>(mSupportsHWRT && mBuildBLAS);
             scene->AddSceneObject(std::move(obj));
 
             Engine::SetScene(scene);
@@ -245,11 +259,12 @@ namespace cube
     {
         MeshMetadata meshMeta;
         meshMeta.useFloat16 = mUseFloat16Vertices;
+        meshMeta.buildBLAS = mSupportsHWRT && mBuildBLAS;
 
         return meshMeta;
     }
 
-    void ModelLoaderSystem::UpdateModelMatrix()
+    void ModelLoaderSystem::UpdateModelTransformMatrix()
     {
         Vector3 position(mModelPosition.x, mModelPosition.y, mModelPosition.z);
         Vector3 rotation(
@@ -257,7 +272,7 @@ namespace cube
             Math::Deg2Rad(mModelRotation.y),
             Math::Deg2Rad(mModelRotation.z));
         Vector3 scale(mModelScale, mModelScale, mModelScale);
-        Engine::GetRenderer()->SetObjectModelMatrix(position, rotation, scale);
+        Engine::GetRenderer()->SetGlobalTransformMatrix(position, rotation, scale);
     }
 
     void ModelLoaderSystem::ResetModelTransform()
@@ -276,6 +291,6 @@ namespace cube
             mModelRotation = { 0.0f, 0.0f, 0.0f };
             mModelScale = 1.0f;
         }
-        UpdateModelMatrix();
+        UpdateModelTransformMatrix();
     }
 } // namespace cube

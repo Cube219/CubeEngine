@@ -123,6 +123,9 @@ namespace cube
             denyIDs.push_back(D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE);
             denyIDs.push_back(D3D12_MESSAGE_ID_CLEARDEPTHSTENCILVIEW_MISMATCHINGCLEARVALUE);
 
+            // DX12 emits this warning when multiple transient buffers alias the same heap range. Ignore it.
+            denyIDs.push_back(D3D12_MESSAGE_ID_HEAP_ADDRESS_RANGE_INTERSECTS_MULTIPLE_BUFFERS);
+
             filter.DenyList.NumIDs = static_cast<UINT>(denyIDs.size());
             filter.DenyList.pIDList = denyIDs.data();
             infoQueue->PushStorageFilter(&filter);

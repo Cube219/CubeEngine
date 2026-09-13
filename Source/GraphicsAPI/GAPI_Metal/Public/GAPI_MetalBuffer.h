@@ -27,6 +27,8 @@ namespace cube
             id<MTLBuffer> GetMTLBuffer() const { return mBuffer; }
             MTLResourceOptions GetMTLResourceOptions() const { return mMTLResourceOptions; }
 
+            MTLIndexType GetMTLIndexType() const;
+
         private:
             MetalDevice& mDevice;
 
