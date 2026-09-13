@@ -9,9 +9,15 @@
 
 namespace cube
 {
+    namespace gapi
+    {
+        class BLAS;
+    } // namespace gapi
+
     struct SubMesh
     {
         Uint64 vertexOffset;
+        Uint64 numVertices;
         Uint64 indexOffset;
         Uint64 numIndices;
         int materialIndex;
@@ -22,6 +28,8 @@ namespace cube
     struct MeshMetadata
     {
         bool useFloat16 = true;
+        bool remainCPUData = false;
+        bool buildBLAS = true;
     };
 
     class MeshData
@@ -36,18 +44,20 @@ namespace cube
         Uint64 GetNumVertices() const { return mNumVertices; }
         Uint64 GetNumIndices() const { return mNumIndices; }
 
-        BlobView GetVertexData() const { return mData.CreateBlobView(0, sizeof(Vertex) * mNumVertices); }
-        BlobView GetIndexData() const { return mData.CreateBlobView(mIndexOffset, sizeof(Index) * mNumIndices); }
-        BlobView GetData() const { return mData; }
+        BlobView GetCPUVertexData() const { return mCPUData.CreateBlobView(0, sizeof(Vertex) * mNumVertices); }
+        BlobView GetCPUIndexData() const { return mCPUData.CreateBlobView(mIndexOffset, sizeof(Index) * mNumIndices); }
+        BlobView GetCPUData() const { return mCPUData; }
 
         const Vector<SubMesh>& GetSubMeshes() const { return mSubMeshes; }
 
         StringView GetDebugName() const { return mDebugName; }
 
+        void ClearCPUData();
+
     private:
         Uint64 mNumVertices;
         Uint64 mNumIndices;
-        Blob mData;
+        Blob mCPUData;
         Uint64 mIndexOffset;
         Vector<SubMesh> mSubMeshes;
 
@@ -67,6 +77,8 @@ namespace cube
         const StringView GetDebugName() const { return mMeshData->GetDebugName(); }
         const MeshMetadata& GetMeta() const { return mMeta; }
 
+        const SharedPtr<gapi::BLAS> GetBLAS() const { return mBLAS; }
+
     private:
         friend class MeshHelper;
 
@@ -75,5 +87,7 @@ namespace cube
 
         SharedPtr<BufferResource> mVertexBuffer;
         SharedPtr<BufferResource> mIndexBuffer;
+
+        SharedPtr<gapi::BLAS> mBLAS;
     };
 } // namespace cube

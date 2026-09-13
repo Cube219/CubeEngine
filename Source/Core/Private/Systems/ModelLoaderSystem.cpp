@@ -26,8 +26,13 @@ namespace cube
     float ModelLoaderSystem::mModelScale;
     bool ModelLoaderSystem::mUseFloat16Vertices = true;
 
+    bool ModelLoaderSystem::mSupportHWRT = false;
+    bool ModelLoaderSystem::mBuildBLAS = true;
+
     void ModelLoaderSystem::Initialize()
     {
+        mSupportHWRT = Engine::GetRenderer()->GetGAPI().GetInfo().supportsHWRT;
+
         // Register model loaders. Order determines the model list grouping order.
         mLoaders.push_back(std::make_unique<GLTFModelLoader>());
         mLoaders.push_back(std::make_unique<ObjModelLoader>());
@@ -188,6 +193,15 @@ namespace cube
         {
             LoadCurrentModelAndSet(false);
         }
+
+        {
+            ImGui::BeginDisabled(!mSupportHWRT);
+            if (ImGui::Checkbox("Build BLAS", &mBuildBLAS))
+            {
+                LoadCurrentModelAndSet(false);
+            }
+            ImGui::EndDisabled();
+        }
     }
 
     SharedPtr<Scene> ModelLoaderSystem::LoadModel(const ModelPathInfo& pathInfo)
@@ -245,6 +259,7 @@ namespace cube
     {
         MeshMetadata meshMeta;
         meshMeta.useFloat16 = mUseFloat16Vertices;
+        meshMeta.buildBLAS = mSupportHWRT && mBuildBLAS;
 
         return meshMeta;
     }

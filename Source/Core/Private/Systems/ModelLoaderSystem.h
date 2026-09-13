@@ -41,5 +41,8 @@ namespace cube
         static Float3 mModelRotation;
         static float mModelScale;
         static bool mUseFloat16Vertices;
+
+        static bool mSupportHWRT;
+        static bool mBuildBLAS;
     };
 } // namespace cube

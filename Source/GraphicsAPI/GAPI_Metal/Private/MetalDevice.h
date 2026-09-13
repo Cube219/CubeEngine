@@ -22,6 +22,7 @@ namespace cube
         bool CheckFeatureRequirements();
 
         bool IsCounterSamplingSupported() const { return mIsCounterSamplingSupported; }
+        bool IsHWRTSupported() const { return mSupportsHWRT; }
 
         MetalTimestampManager& GetTimestampManager() { return mTimestampManager; }
         MetalTransientHeapManager& GetTransientHeapManager() { return mTransientHeapManager; }
@@ -41,6 +42,7 @@ namespace cube
         id<MTLDevice> mDevice;
 
         bool mIsCounterSamplingSupported = false;
+        bool mSupportsHWRT = false;
 
         MetalTimestampManager mTimestampManager;
         MetalTransientHeapManager mTransientHeapManager;

@@ -740,7 +740,7 @@ namespace cube
         pass.resourceUsages.push_back({
             .rgResourceIndex = rgDSV->mIndex,
             .syncs = gapi::ResourceSyncFlag::DepthStencil,
-            .accesses = gapi::ResourceAccessFlag::DepthStencilWrite,
+            .accesses = gapi::ResourceAccessFlag::WriteDepthStencil,
             .layout = gapi::ResourceLayout::DepthStencilWrite,
             .subresourceRange = rgDSV->GetSubresourceRange(),
         });

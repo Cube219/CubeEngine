@@ -10,6 +10,7 @@ namespace cube
 {
     namespace gapi
     {
+        class BLAS;
         class Buffer;
         class BufferSRV;
         class BufferUAV;
@@ -22,6 +23,7 @@ namespace cube
         class TextureRTV;
         class TextureSRV;
         class TextureUAV;
+        class TLAS;
 
         struct Viewport
         {
@@ -163,6 +165,8 @@ namespace cube
 
             // Required on Metal after copying to a GPUOnly texture. No-op on DX12.
             virtual void OptimizeTextureContentsForGPUAccess(SharedPtr<Texture> texture) = 0;
+
+            virtual void BuildBLAS(SharedPtr<BLAS> blas, SharedPtr<Buffer> scratchBuffer) = 0;
 
             virtual void BeginTimestamp(StringView name) = 0;
             virtual void EndTimestamp() = 0;

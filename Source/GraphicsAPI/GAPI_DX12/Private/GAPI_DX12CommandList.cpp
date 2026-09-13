@@ -4,6 +4,7 @@
 
 #include "Allocator/FrameAllocator.h"
 #include "DX12Device.h"
+#include "GAPI_DX12AccelerationStructure.h"
 #include "GAPI_DX12Buffer.h"
 #include "GAPI_DX12Fence.h"
 #include "GAPI_DX12Pipeline.h"
@@ -256,13 +257,11 @@ namespace cube
             CHECK(IsInRenderPass());
 
             const DX12Buffer* dx12Buffer = dynamic_cast<DX12Buffer*>(buffer.get());
-            const Uint32 stride = dx12Buffer->GetStride();
-            CHECK_FORMAT(stride == 4 || stride == 2, "Index buffer's stride must be 2(16bits) or 4(32bits).");
 
             const D3D12_INDEX_BUFFER_VIEW indexBufferView = {
                 .BufferLocation = dx12Buffer->GetResource()->GetGPUVirtualAddress(),
                 .SizeInBytes = static_cast<UINT>(dx12Buffer->GetSize()),
-                .Format = (stride == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT)
+                .Format = dx12Buffer->GetIndexFormat(),
             };
 
             mCommandList->IASetIndexBuffer(&indexBufferView);
@@ -540,6 +539,30 @@ namespace cube
         void DX12CommandList::OptimizeTextureContentsForGPUAccess(SharedPtr<Texture> texture)
         {
             // No-op on DX12.
+        }
+
+        void DX12CommandList::BuildBLAS(SharedPtr<BLAS> blas, SharedPtr<Buffer> scratchBuffer)
+        {
+            CHECK(IsWriting());
+            CHECK(!IsInRenderPass());
+            CHECK(mType == CommandListType::Direct);
+
+            DX12BLAS* dx12BLAS = dynamic_cast<DX12BLAS*>(blas.get());
+            CHECK(dx12BLAS);
+
+            DX12Buffer* dx12ScratchBuffer = dynamic_cast<DX12Buffer*>(scratchBuffer.get());
+            CHECK(dx12ScratchBuffer);
+            CHECK(dx12BLAS->GetScratchBufferSize() <= dx12ScratchBuffer->GetSize());
+
+            D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC buildDesc;
+            buildDesc.DestAccelerationStructureData = dx12BLAS->GetGPUAddress();
+            buildDesc.Inputs = dx12BLAS->GetInputs();
+            buildDesc.SourceAccelerationStructureData = NULL;
+            buildDesc.ScratchAccelerationStructureData = dx12ScratchBuffer->GetGPUAddress();
+            mCommandList->BuildRaytracingAccelerationStructure(&buildDesc, 0, NULL);
+
+            CUBE_DX12_BOUND_OBJECT(blas);
+            CUBE_DX12_BOUND_OBJECT(scratchBuffer);
         }
 
         void DX12CommandList::BeginTimestamp(StringView name)

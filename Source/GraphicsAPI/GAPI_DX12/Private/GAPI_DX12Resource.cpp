@@ -54,6 +54,14 @@ namespace cube
             {
                 sync |= D3D12_BARRIER_SYNC_CLEAR_UNORDERED_ACCESS_VIEW;
             }
+            if (syncFlags.IsSet(ResourceSyncFlag::BuildAccelerationStructure))
+            {
+                sync |= D3D12_BARRIER_SYNC_BUILD_RAYTRACING_ACCELERATION_STRUCTURE;
+            }
+            if (syncFlags.IsSet(ResourceSyncFlag::CopyAccelerationStructure))
+            {
+                sync |= D3D12_BARRIER_SYNC_COPY_RAYTRACING_ACCELERATION_STRUCTURE;
+            }
 
             return sync;
         }
@@ -94,11 +102,11 @@ namespace cube
             {
                 access |= D3D12_BARRIER_ACCESS_UNORDERED_ACCESS;
             }
-            if (accessFlags.IsSet(ResourceAccessFlag::DepthStencilRead))
+            if (accessFlags.IsSet(ResourceAccessFlag::ReadDepthStencil))
             {
                 access |= D3D12_BARRIER_ACCESS_DEPTH_STENCIL_READ;
             }
-            if (accessFlags.IsSet(ResourceAccessFlag::DepthStencilWrite))
+            if (accessFlags.IsSet(ResourceAccessFlag::WriteDepthStencil))
             {
                 access |= D3D12_BARRIER_ACCESS_DEPTH_STENCIL_WRITE;
             }
@@ -117,6 +125,14 @@ namespace cube
             if (accessFlags.IsSet(ResourceAccessFlag::ResolveDst))
             {
                 access |= D3D12_BARRIER_ACCESS_RESOLVE_DEST;
+            }
+            if (accessFlags.IsSet(ResourceAccessFlag::ReadAccelerationStructure))
+            {
+                access |= D3D12_BARRIER_ACCESS_RAYTRACING_ACCELERATION_STRUCTURE_READ;
+            }
+            if (accessFlags.IsSet(ResourceAccessFlag::WriteAccelerationStructure))
+            {
+                access |= D3D12_BARRIER_ACCESS_RAYTRACING_ACCELERATION_STRUCTURE_WRITE;
             }
 
             return access;

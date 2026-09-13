@@ -115,5 +115,12 @@ namespace cube
         {
             CUBE_LOG(Warning, Metal, "Device {0} does not support counter sampling at stage boundary. GPU timestamp will be disabled.", mDevice.name);
         }
+
+        // Optional features.
+        mSupportsHWRT = [mDevice supportsRaytracing];
+        if (mSupportsHWRT)
+        {
+            CUBE_LOG(Info, Metal, "Device {0} supports HWRT.", mDevice.name);
+        }
     }
 } // namespace cube
