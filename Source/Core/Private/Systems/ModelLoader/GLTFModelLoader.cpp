@@ -200,10 +200,10 @@ namespace cube
             if (gltfMaterial.pbrMetallicRoughness.baseColorTexture.index != -1)
             {
                 material->SetTexture(0, LoadTexture(materialName, CUBE_T("baseColorTexture"), gltfMaterial.pbrMetallicRoughness.baseColorTexture.index));
-                channelMappingCode += CUBE_T("float4 baseColor = materialData.textureSlot0.Sample(GetStaticLinearWrapSampler(), input.uv).rgba;\n");
+                channelMappingCode += CUBE_T("float4 baseColor = materialParams.textureSlot0.Sample(GetStaticLinearWrapSampler(), psInput.uv).rgba;\n");
                 // Encoded in sRGB. Decode to linear.
-                channelMappingCode += CUBE_T("value.albedo = GammaCorrection::sRGBToLinear(baseColor.rgb);\n");
-                channelMappingCode += CUBE_T("value.alpha = baseColor.a;\n");
+                channelMappingCode += CUBE_T("input.albedo = GammaCorrection::sRGBToLinear(baseColor.rgb);\n");
+                channelMappingCode += CUBE_T("input.alpha = baseColor.a;\n");
 
                 material->AddAdditionalModule(CUBE_T("StaticSampler"));
                 material->AddAdditionalModule(CUBE_T("GammaCorrection"));
@@ -211,17 +211,17 @@ namespace cube
             if (gltfMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index != -1)
             {
                 material->SetTexture(1, LoadTexture(materialName, CUBE_T("metallicRoughnessTexture"), gltfMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index));
-                channelMappingCode += CUBE_T("float3 roughnessAndMetallic = materialData.textureSlot1.Sample(GetStaticLinearWrapSampler(), input.uv).rgb;\n");
-                channelMappingCode += CUBE_T("value.metallic = roughnessAndMetallic.b;\n");
-                channelMappingCode += CUBE_T("value.roughness = roughnessAndMetallic.g;\n");
+                channelMappingCode += CUBE_T("float3 roughnessAndMetallic = materialParams.textureSlot1.Sample(GetStaticLinearWrapSampler(), psInput.uv).rgb;\n");
+                channelMappingCode += CUBE_T("input.metallic = roughnessAndMetallic.b;\n");
+                channelMappingCode += CUBE_T("input.roughness = roughnessAndMetallic.g;\n");
 
                 material->AddAdditionalModule(CUBE_T("StaticSampler"));
             }
             if (gltfMaterial.normalTexture.index != -1)
             {
                 material->SetTexture(2, LoadTexture(materialName, CUBE_T("normalTexture"), gltfMaterial.normalTexture.index));
-                channelMappingCode += CUBE_T("float3 normal = normalize(materialData.textureSlot2.Sample(GetStaticLinearWrapSampler(), input.uv).rgb * 2.0f - 1.0f);\n");
-                channelMappingCode += CUBE_T("value.normal = normal;\n");
+                channelMappingCode += CUBE_T("float3 normal = normalize(materialParams.textureSlot2.Sample(GetStaticLinearWrapSampler(), psInput.uv).rgb * 2.0f - 1.0f);\n");
+                channelMappingCode += CUBE_T("input.normal = normal;\n");
 
                 material->AddAdditionalModule(CUBE_T("StaticSampler"));
             }
@@ -229,8 +229,8 @@ namespace cube
             {
                 material->SetTexture(3, LoadTexture(materialName, CUBE_T("emissiveTexture"), gltfMaterial.emissiveTexture.index));
                 // Encoded in sRGB. Decode to linear.
-                channelMappingCode += CUBE_T("float3 emissive = materialData.textureSlot3.Sample(GetStaticLinearWrapSampler(), input.uv).rgb;\n");
-                channelMappingCode += CUBE_T("value.emissive = GammaCorrection::sRGBToLinear(emissive);\n");
+                channelMappingCode += CUBE_T("float3 emissive = materialParams.textureSlot3.Sample(GetStaticLinearWrapSampler(), psInput.uv).rgb;\n");
+                channelMappingCode += CUBE_T("input.emissive = GammaCorrection::sRGBToLinear(emissive);\n");
 
                 material->AddAdditionalModule(CUBE_T("StaticSampler"));
                 material->AddAdditionalModule(CUBE_T("GammaCorrection"));
@@ -238,8 +238,8 @@ namespace cube
             if (gltfMaterial.occlusionTexture.index != -1)
             {
                 material->SetTexture(4, LoadTexture(materialName, CUBE_T("occlusionTexture"), gltfMaterial.occlusionTexture.index));
-                channelMappingCode += CUBE_T("float occlusion = materialData.textureSlot4.Sample(GetStaticLinearWrapSampler(), input.uv).r;\n");
-                channelMappingCode += CUBE_T("value.indirectOcclusion = occlusion;\n");
+                channelMappingCode += CUBE_T("float occlusion = materialParams.textureSlot4.Sample(GetStaticLinearWrapSampler(), psInput.uv).r;\n");
+                channelMappingCode += CUBE_T("input.indirectOcclusion = occlusion;\n");
 
                 material->AddAdditionalModule(CUBE_T("StaticSampler"));
             }

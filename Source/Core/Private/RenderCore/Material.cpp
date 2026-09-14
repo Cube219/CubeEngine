@@ -25,7 +25,7 @@ namespace cube
         mTextures.fill(nullptr);
 
         static const Character* defaultChannelMappingCode =
-            CUBE_T("value.albedo = materialData.baseColor.rgb;\n");
+            CUBE_T("input.albedo = materialParams.baseColor.rgb;\n");
 
         SetChannelMappingCode(defaultChannelMappingCode);
     }
@@ -218,13 +218,13 @@ namespace cube
         if (!pixelShader)
         {
             FrameString getMaterialShaderCode = Format<FrameString>(
-                CUBE_T("MaterialValue GetMaterialValue(MaterialShaderParameterList materialData, PSInput input)\n")
+                CUBE_T("MaterialInput GetMaterialInput(MaterialShaderParameterList materialParams, PSInput psInput)\n")
                 CUBE_T("{{\n")
-                CUBE_T("    MaterialValue value = {{}};\n")
+                CUBE_T("    MaterialInput input = {{}};\n")
                 CUBE_T("\n")
                 CUBE_T("    {0}")
                 CUBE_T("\n")
-                CUBE_T("    return value;\n")
+                CUBE_T("    return input;\n")
                 CUBE_T("}}\n"),
                 material->mChannelMappingCode
             );
@@ -240,7 +240,7 @@ namespace cube
                 CUBE_T("import Material;\n")
                 CUBE_T("{0}\n")
                 CUBE_T("\n")
-                CUBE_T("export struct Material : IMaterial\n")
+                CUBE_T("export struct MaterialCode : IMaterialCode\n")
                 CUBE_T("{{\n")
                 CUBE_T("\n")
                 CUBE_T("{1}\n")

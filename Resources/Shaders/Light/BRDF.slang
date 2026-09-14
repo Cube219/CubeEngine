@@ -2,138 +2,57 @@ module BRDF;
 
 import Common;
 
-public struct BRDFParam
+public struct BRDFParameters
 {
     public float VoH;
     public float VoN;
     public float LoN;
     public float NoH;
 
-    public float3 albedo;
-    public float metallic;
-    public float roughness;
-
-    public float3 specularColor;
-    public float shininess;
-
-    public __init(float3 L, float3 V, float3 N, float3 inAlbedo, float inMetallic, float inRoughness, float3 inSpecularColor, float inShininess)
+    public __init(float3 L, float3 V, float3 N)
     {
         float3 H = normalize(V + L);
         VoH = dot(V, H);
         VoN = dot(V, N);
         LoN = dot(L, N);
         NoH = dot(N, H);
-        albedo = inAlbedo;
-        metallic = inMetallic;
-        roughness = inRoughness;
-        specularColor = inSpecularColor;
-        shininess = inShininess;
     }
 }
 
-interface IDiffuse
+namespace BRDF
 {
-    static float3 Calculate(BRDFParam param);
-}
-
-public struct Diffuse_Lambert : IDiffuse
-{
-    public static float3 Calculate(BRDFParam param)
+    public float3 Fresnel_Schlick(float VoH, float3 F0)
     {
-        return param.albedo / PI;
-    }
-}
-
-interface IFresnel
-{
-    static float3 Calculate(BRDFParam param);
-}
-
-public struct Fresnel_Schlick : IFresnel
-{
-    static float3 Calculate(BRDFParam param)
-    {
-        float3 F0 = float3(0.04);
-        F0 = lerp(F0, param.albedo, param.metallic);
-
-        float cosT = max(param.VoH, 0.0);
+        float cosT = max(VoH, 0.0);
 	    return F0 + (1.0 - F0) * pow(clamp(1.0 - cosT, 0.0, 1.0), 5.0);
     }
-}
 
-public struct Fresnel_SchlickRoughness : IFresnel
-{
-    public static float3 Calculate(BRDFParam param)
+    public float3 Fresnel_SchlickRoughness(float VoH, float3 F0, float roughness)
     {
-        float3 F0 = float3(0.04);
-        F0 = lerp(F0, param.albedo, param.metallic);
-
-        float cosT = max(param.VoH, 0.0);
-	    return F0 + (max(float3(1.0 - param.roughness), F0) - F0) * pow(clamp(1.0 - cosT, 0.0, 1.0), 5.0);
-    }
-}
-
-interface IGeometry
-{
-    static float Calculate(BRDFParam param);
-}
-
-public struct Geometry_SmithGGX : IGeometry
-{
-    public static float Calculate(BRDFParam param)
-    {
-        float ggx2 = SchlickGGX(max(param.VoN, 0.0), param.roughness);
-        float ggx1 = SchlickGGX(max(param.LoN, 0.0), param.roughness);
-
-        return ggx1 * ggx2;
+        float cosT = max(VoH, 0.0);
+	    return F0 + (max(float3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosT, 0.0, 1.0), 5.0);
     }
 
-    static float SchlickGGX(float NoV, float roughness)
+    public float Geometry_SchlickGGX(float VoN, float k)
     {
-        float r = (roughness + 1.0);
-        float k = (r*r) / 8.0;
-
-        float nom = NoV;
-        float denom = NoV * (1.0 - k) + k;
+        float nom = VoN;
+        float denom = VoN * (1.0 - k) + k;
 
         return nom / denom;
     }
-}
-
-public struct Geometry_SmithGGXIBL : IGeometry
-{
-    public static float Calculate(BRDFParam param)
+    
+    public float Geometry_SmithGGX(float VoN, float LoN, float k)
     {
-        float ggx2 = SchlickGGX(max(param.VoN, 0.0), param.roughness);
-        float ggx1 = SchlickGGX(max(param.LoN, 0.0), param.roughness);
+        float schlickGGX1 = Geometry_SchlickGGX(max(VoN, 0.0), k);
+        float schlickGGX2 = Geometry_SchlickGGX(max(LoN, 0.0), k);
 
-        return ggx1 * ggx2;
+        return schlickGGX1 * schlickGGX2;
     }
 
-    static float SchlickGGX(float NoV, float roughness)
+    public float NDF_GGX(float NoH, float a)
     {
-        float r = roughness;
-        float k = (r*r) / 2.0;
-
-        float nom = NoV;
-        float denom = NoV * (1.0 - k) + k;
-
-        return nom / denom;
-    }
-}
-
-interface INDF
-{
-    static float Calculate(BRDFParam param);
-}
-
-public struct NDF_GGX : INDF
-{
-    static float Calculate(BRDFParam param)
-    {
-        float a = param.roughness * param.roughness;
         float a2 = a*a;
-        float NoH = max(param.NoH, 0.0);
+        float NoH = max(NoH, 0.0);
         float NoH2 = NoH*NoH;
 
         float nom = a2;
@@ -142,52 +61,24 @@ public struct NDF_GGX : INDF
 
         return nom / denom;
     }
-}
 
-interface ISpecular
-{
-    static float3 Calculate(BRDFParam param);
-    static float3 DiffuseWeight(BRDFParam param);
-}
-
-public struct Specular_CookTorrance<F, G, N> : ISpecular
-    where F : IFresnel
-    where G : IGeometry
-    where N : INDF
-{
-    public static float3 Calculate(BRDFParam param)
+    public float3 Diffuse_Lambert(float3 diffuseColor)
     {
-        float3 f = F.Calculate(param);
-        float d = N.Calculate(param);
-        float g = G.Calculate(param);
+        return diffuseColor / PI;
+    }
+
+    public float3 Specular_CookTorrance(BRDFParameters params, float3 F0, float roughness)
+    {
+        float3 f = BRDF::Fresnel_Schlick(params.VoH, F0);
+        float d = BRDF::NDF_GGX(params.NoH, roughness * roughness);
+        float g = BRDF::Geometry_SmithGGX(params.VoN, params.LoN, (roughness + 1) * (roughness + 1) / 8.0);
         float3 nom = d * g * f;
-        float denom = 4.0 * max(param.VoN, 0.0) * max(param.LoN, 0.0) + 0.00001;
+        float denom = 4.0 * max(params.VoN, 0.0) * max(params.LoN, 0.0) + 0.00001;
         return nom / denom;
     }
 
-    public static float3 DiffuseWeight(BRDFParam param)
+    public float3 Specular_BlinnPhong(BRDFParameters params, float3 specularColor, float shininess)
     {
-        float3 kS = F.Calculate(param);
-        float3 kD = float3(1.0) - kS;
-        kD *= 1.0 - param.metallic;
-        return kD;
+        return specularColor * pow(max(params.NoH, 0.0), shininess);
     }
 }
-
-public struct Specular_BlinnPhong : ISpecular
-{
-    public static float3 Calculate(BRDFParam param)
-    {
-        return param.specularColor * pow(max(param.NoH, 0.0), param.shininess);
-    }
-
-    public static float3 DiffuseWeight(BRDFParam param)
-    {
-        return float3(1.0);
-    }
-}
-
-public typealias PBRDiffuse = Diffuse_Lambert;
-public typealias PBRSpecular = Specular_CookTorrance<Fresnel_Schlick, Geometry_SmithGGX, NDF_GGX>;
-public typealias LegacyDiffuse = Diffuse_Lambert;
-public typealias LegacySpecular = Specular_BlinnPhong;

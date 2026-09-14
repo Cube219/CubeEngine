@@ -10,7 +10,7 @@ ParameterBlock<SubMeshShaderParameterList> subMeshObjectParams;
 ParameterBlock<MaterialShaderParameterList> materialParams;
 ParameterBlock<EnvironmentMapLightShaderParameterList> envMapParams;
 
-extern struct Material : IMaterial;
+extern struct MaterialCode : IMaterialCode;
 
 struct PSOutput
 {
@@ -38,8 +38,9 @@ PSInput VSMain(uint vertexId : SV_VertexID)
 [shader("pixel")]
 PSOutput PSMain(PSInput input) : SV_TARGET
 {
-    Material material;
-    MaterialValue materialValue = material.GetMaterialValue(materialParams, input);
+    MaterialCode code;
+    MaterialInput materialInput = code.GetMaterialInput(materialParams, input);
+    MaterialValue materialValue = MaterialValue(materialInput);
 
     if (materialParams.IsMask())
     {

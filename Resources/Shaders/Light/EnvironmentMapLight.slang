@@ -38,36 +38,26 @@ public struct EnvironmentMapLight : ILight
 
     public float3 CalculateLight(float3 view, float3 normal, float3 worldPosition, MaterialValue materialValue)
     {
+        BRDFParameters params = BRDFParameters(normal, view, normal);
 #ifdef MATERIAL_PBR
-        BRDFParam param = BRDFParam(
-            normal, view, normal,
-            materialValue.albedo, materialValue.metallic, materialValue.roughness,
-            float3(0), 0
-        );
-
         // Reverse z for right-handed.
-        const float3 diffuse = diffuseIrradianceMap.Sample(GetStaticLinearWrapSampler(), float3(normal.xy, -normal.z)).xyz * materialValue.albedo;
+        const float3 diffuse = diffuseIrradianceMap.Sample(GetStaticLinearWrapSampler(), float3(normal.xy, -normal.z)).xyz * materialValue.diffuseColor;
         
         const float3 R = -view - 2.0 * dot(normal, -view) * normal;
-        const float3 prefilterColor = prefilterMap.SampleLevel(prefilterSampler, float3(R.xy, -R.z), param.roughness * (prefilterMapMipLevels - 1)).xyz;
-        const float2 integratedBRDF = integratedBRDFLUT.Sample(GetStaticLinearWrapSampler(), float2(max(param.VoN, 0.0), param.roughness)).xy;
-        param.VoH = dot(view, normal);
-        const float3 F = Fresnel_SchlickRoughness.Calculate(param);
+        const float3 prefilterColor = prefilterMap.SampleLevel(prefilterSampler, float3(R.xy, -R.z), materialValue.roughness * (prefilterMapMipLevels - 1)).xyz;
+        const float2 integratedBRDF = integratedBRDFLUT.Sample(GetStaticLinearWrapSampler(), float2(max(params.VoN, 0.0), materialValue.roughness)).xy;
+        params.VoH = dot(view, normal);
+        
+        float3 F0 = materialValue.specularColor;
+        const float3 F = BRDF::Fresnel_SchlickRoughness(params.VoH, F0, materialValue.roughness);
         const float3 specular = prefilterColor * (F * integratedBRDF.x + integratedBRDF.y);
         
-        const float3 Kd = PBRSpecular.DiffuseWeight(param);
+        const float3 Kd = 1.0f - F;
 
         return (Kd * diffuse + specular) * materialValue.indirectOcclusion;
 #else
-        BRDFParam param = BRDFParam(
-            normal, view, normal,
-            materialValue.diffuseColor, 0, 0,
-            materialValue.specularColor, materialValue.shininess
-        );
-
-        const float3 Kd = 1.0;
         // Reverse z for right-handed.
-        return (Kd * diffuseIrradianceMap.Sample(GetStaticLinearWrapSampler(), float3(normal.xy, -normal.z)).xyz * materialValue.diffuseColor)
+        return (diffuseIrradianceMap.Sample(GetStaticLinearWrapSampler(), float3(normal.xy, -normal.z)).xyz * materialValue.diffuseColor)
             * materialValue.indirectOcclusion;
 #endif
     }

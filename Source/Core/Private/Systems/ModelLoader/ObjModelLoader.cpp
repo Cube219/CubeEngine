@@ -180,31 +180,31 @@ namespace cube
                     if (!objMaterial.diffuse_texname.empty())
                     {
                         material->SetTexture(0, LoadTexture(CUBE_T("baseColorTexture"), objMaterial.diffuse_texname));
-                        channelMappingCode += CUBE_T("value.albedo = materialData.textureSlot0.Sample(GetStaticLinearWrapSampler(), input.uv).rgb;\n");
+                        channelMappingCode += CUBE_T("input.albedo = materialParams.textureSlot0.Sample(GetStaticLinearWrapSampler(), psInput.uv).rgb;\n");
 
                         material->AddAdditionalModule(CUBE_T("StaticSampler"));
                     }
                     if (!objMaterial.metallic_texname.empty())
                     {
                         material->SetTexture(1, LoadTexture(CUBE_T("metallicTexture"), objMaterial.metallic_texname));
-                        channelMappingCode += CUBE_T("float t1 = materialData.textureSlot1.Sample(GetStaticLinearWrapSampler(), input.uv).r;\n");
-                        channelMappingCode += CUBE_T("value.metallic = t1;\n");
+                        channelMappingCode += CUBE_T("float t1 = materialParams.textureSlot1.Sample(GetStaticLinearWrapSampler(), psInput.uv).r;\n");
+                        channelMappingCode += CUBE_T("input.metallic = t1;\n");
 
                         material->AddAdditionalModule(CUBE_T("StaticSampler"));
                     }
                     if (!objMaterial.roughness_texname.empty())
                     {
                         material->SetTexture(2, LoadTexture(CUBE_T("roughnessTexture"), objMaterial.roughness_texname));
-                        channelMappingCode += CUBE_T("float t2 = materialData.textureSlot2.Sample(GetStaticLinearWrapSampler(), input.uv).r;\n");
-                        channelMappingCode += CUBE_T("value.roughness = t2;\n");
+                        channelMappingCode += CUBE_T("float t2 = materialParams.textureSlot2.Sample(GetStaticLinearWrapSampler(), psInput.uv).r;\n");
+                        channelMappingCode += CUBE_T("input.roughness = t2;\n");
 
                         material->AddAdditionalModule(CUBE_T("StaticSampler"));
                     }
                     if (!objMaterial.normal_texname.empty())
                     {
                         material->SetTexture(3, LoadTexture(CUBE_T("normalTexture"), objMaterial.normal_texname));
-                        channelMappingCode += CUBE_T("float3 t3 = normalize(materialData.textureSlot3.Sample(GetStaticLinearWrapSampler(), input.uv).rgb * 2.0f - 1.0f);\n");
-                        channelMappingCode += CUBE_T("value.normal = t3;\n");
+                        channelMappingCode += CUBE_T("float3 t3 = normalize(materialParams.textureSlot3.Sample(GetStaticLinearWrapSampler(), psInput.uv).rgb * 2.0f - 1.0f);\n");
+                        channelMappingCode += CUBE_T("input.normal = t3;\n");
 
                         material->AddAdditionalModule(CUBE_T("StaticSampler"));
                     }
@@ -214,34 +214,34 @@ namespace cube
                     if (!objMaterial.diffuse_texname.empty())
                     {
                         material->SetTexture(0, LoadTexture(CUBE_T("diffuseTexture"), objMaterial.diffuse_texname));
-                        channelMappingCode += CUBE_T("value.diffuseColor = materialData.textureSlot0.Sample(GetStaticLinearWrapSampler(), input.uv).rgb;\n");
+                        channelMappingCode += CUBE_T("input.diffuseColor = materialParams.textureSlot0.Sample(GetStaticLinearWrapSampler(), psInput.uv).rgb;\n");
 
                         material->AddAdditionalModule(CUBE_T("StaticSampler"));
                     }
                     else
                     {
                         material->SetDiffuseColor(Vector4(objMaterial.diffuse[0], objMaterial.diffuse[1], objMaterial.diffuse[2], 1.0f));
-                        channelMappingCode += CUBE_T("value.diffuseColor = materialData.diffuseColor.rgb;\n");
+                        channelMappingCode += CUBE_T("input.diffuseColor = materialParams.diffuseColor.rgb;\n");
                     }
                     if (!objMaterial.specular_texname.empty())
                     {
                         material->SetTexture(1, LoadTexture(CUBE_T("specularTexture"), objMaterial.specular_texname));
-                        channelMappingCode += CUBE_T("value.specularColor = materialData.textureSlot1.Sample(GetStaticLinearWrapSampler(), input.uv).rgb;\n");
+                        channelMappingCode += CUBE_T("input.specularColor = materialParams.textureSlot1.Sample(GetStaticLinearWrapSampler(), psInput.uv).rgb;\n");
 
                         material->AddAdditionalModule(CUBE_T("StaticSampler"));
                     }
                     else
                     {
                         material->SetSpecularColor(Vector4(objMaterial.specular[0], objMaterial.specular[1], objMaterial.specular[2], 1.0f));
-                        channelMappingCode += CUBE_T("value.specularColor = materialData.specularColor.rgb;\n");
+                        channelMappingCode += CUBE_T("input.specularColor = materialParams.specularColor.rgb;\n");
 
                     }
                     material->SetShininess(objMaterial.shininess);
-                    channelMappingCode += CUBE_T("value.shininess = materialData.shininess;\n");
+                    channelMappingCode += CUBE_T("input.shininess = materialParams.shininess;\n");
                     if (!objMaterial.normal_texname.empty())
                     {
                         material->SetTexture(2, LoadTexture(CUBE_T("normalTexture"), objMaterial.normal_texname));
-                        channelMappingCode += CUBE_T("value.normal = normalize(materialData.textureSlot2.Sample(GetStaticLinearWrapSampler(), input.uv).rgb * 2.0f - 1.0f);\n");
+                        channelMappingCode += CUBE_T("input.normal = normalize(materialParams.textureSlot2.Sample(GetStaticLinearWrapSampler(), psInput.uv).rgb * 2.0f - 1.0f);\n");
 
                         material->AddAdditionalModule(CUBE_T("StaticSampler"));
                     }

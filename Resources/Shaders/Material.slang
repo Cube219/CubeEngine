@@ -38,7 +38,7 @@ public struct MaterialShaderParameterList
     }
 };
 
-public struct MaterialValue
+public struct MaterialInput
 {
 #ifdef MATERIAL_PBR
     public float3 albedo = float3(1.0f, 1.0f, 1.0f);
@@ -49,13 +49,53 @@ public struct MaterialValue
     public float3 specularColor = float3(0.0f, 0.0f, 0.0f);
     public float shininess = 0.0f;
 #endif
+
     public float3 normal = float3(0.0f, 0.0f, 1.0f);
     public float3 emissive = float3(0.0f, 0.0f, 0.0f);
     public float alpha = 1.0f;
     public float indirectOcclusion = 1.0f;
 };
 
-public interface IMaterial
+public interface IMaterialCode
 {
-    MaterialValue GetMaterialValue(MaterialShaderParameterList materialData, PSInput input);
+    MaterialInput GetMaterialInput(MaterialShaderParameterList materialParams, PSInput psInput);
 }
+
+public struct MaterialValue
+{
+#ifdef MATERIAL_PBR
+    public float3 albedo;
+    public float metallic;
+    public float roughness;
+#else
+    public float shininess;
+#endif
+    public float3 diffuseColor;
+    public float3 specularColor;
+
+    public float3 normal;
+    public float3 emissive;
+    public float alpha;
+    public float indirectOcclusion;
+
+    public __init(MaterialInput input)
+    {
+#ifdef MATERIAL_PBR
+        albedo = input.albedo;
+        metallic = input.metallic;
+        roughness = input.roughness;
+
+        diffuseColor = albedo * (1.0f - metallic);
+        specularColor = lerp(0.04f, albedo, metallic);
+#else
+        diffuseColor = input.diffuseColor;
+        specularColor = input.specularColor;
+        shininess = input.shininess;
+#endif
+
+        normal = input.normal;
+        emissive = input.emissive;
+        alpha = input.alpha;
+        indirectOcclusion = input.indirectOcclusion;
+    }
+};

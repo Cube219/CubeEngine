@@ -89,11 +89,11 @@ float2 IntegrateBRDF(float NoV, float roughness, uint sampleCount)
 
         if (L.z > 0.0)
         {
-            BRDFParam param = BRDFParam(L, V, N, 0, 0, roughness, 0, 0);
-            const float VoH = max(param.VoH, 0.0);
-            const float NoH = max(param.NoH, 0.0);
-            const float VoN = max(param.VoN, 0.0);
-            float g = Geometry_SmithGGXIBL.Calculate(param);
+            BRDFParameters params = BRDFParameters(L, V, N);
+            const float VoH = max(params.VoH, 0.0);
+            const float NoH = max(params.NoH, 0.0);
+            const float VoN = max(params.VoN, 0.0);
+            float g = BRDF::Geometry_SmithGGX(VoN, params.LoN, roughness * roughness / 2);
             float gVis = (g * VoH) / (NoH * VoN);
             float Fc = pow(1.0 - VoH, 5.0);
 

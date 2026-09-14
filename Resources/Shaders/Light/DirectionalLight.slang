@@ -15,30 +15,18 @@ public struct DirectionalLight : ILight
 
     public float3 CalculateLight(float3 view, float3 normal, float3 worldPosition, MaterialValue materialValue)
     {
+        BRDFParameters params = BRDFParameters(direction, view, normal);
 #ifdef MATERIAL_PBR
-        BRDFParam param = BRDFParam(
-            direction, view, normal,
-            materialValue.albedo, materialValue.metallic, materialValue.roughness,
-            float3(0), 0
-        );
-
-        const float3 diffuse = PBRDiffuse.Calculate(param);
-        const float3 specular = PBRSpecular.Calculate(param);
-        const float3 Kd = PBRSpecular.DiffuseWeight(param);
+        const float3 diffuse = BRDF::Diffuse_Lambert(materialValue.diffuseColor);
+        const float3 specular = BRDF::Specular_CookTorrance(params, materialValue.specularColor, materialValue.roughness);
+        const float3 Kd = 1.0f - BRDF::Fresnel_Schlick(params.VoH, materialValue.specularColor);
 
         float3 v0 = Kd * diffuse + specular;
 #else
-        BRDFParam param = BRDFParam(
-            direction, view, normal,
-            materialValue.diffuseColor, 0, 0,
-            materialValue.specularColor, materialValue.shininess
-        );
-        
-        const float3 diffuse = LegacyDiffuse.Calculate(param);
-        const float3 specular = LegacySpecular.Calculate(param);
-        const float3 Kd = LegacySpecular.DiffuseWeight(param);
+        const float3 diffuse = BRDF::Diffuse_Lambert(materialValue.diffuseColor);
+        const float3 specular = BRDF::Specular_BlinnPhong(params, materialValue.specularColor, materialValue.shininess);
 
-        float3 v0 = Kd * diffuse + specular;
+        float3 v0 = diffuse + specular;
 #endif
         return v0 * max(dot(normal, direction), 0.0) * intensity;
     }
