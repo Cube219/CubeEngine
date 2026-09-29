@@ -75,14 +75,17 @@ PSOutput PSMain(PSInput input) : SV_TARGET
         color += pointLight.CalculateLight(view, normal, worldPosition, materialValue);
     }
 
-    EnvironmentMapLight envMapLight = EnvironmentMapLight(
-        envMapParams.diffuseIrradianceMap,
-        envMapParams.integratedBRDFLUT,
-        envMapParams.prefilterMap,
-        envMapParams.prefilterSampler,
-        envMapParams.prefilterMapMipLevels
-    );
-    color += envMapLight.CalculateLight(view, normal, worldPosition, materialValue);
+    if (envMapParams.isEnvironmentMapLightEnabled)
+    {
+        EnvironmentMapLight envMapLight = EnvironmentMapLight(
+            envMapParams.diffuseIrradianceMap,
+            envMapParams.integratedBRDFLUT,
+            envMapParams.prefilterMap,
+            envMapParams.prefilterSampler,
+            envMapParams.prefilterMapMipLevels
+        );
+        color += envMapLight.CalculateLight(view, normal, worldPosition, materialValue);
+    }
 
     color += materialValue.emissive;
 

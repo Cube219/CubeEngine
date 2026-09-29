@@ -6,6 +6,7 @@ import StaticSampler;
 
 public struct EnvironmentMapLightShaderParameterList
 {
+    public bool isEnvironmentMapLightEnabled;
     public Bindless<TextureCube> diffuseIrradianceMap;
     public Bindless<Texture2D> integratedBRDFLUT;
     public Bindless<TextureCube> prefilterMap;

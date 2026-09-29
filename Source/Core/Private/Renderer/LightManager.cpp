@@ -226,6 +226,7 @@ namespace cube
         builder.BindGlobalShaderParameterList(lightShaderParameterList);
 
         auto envMapShaderParameterList = builder.CreateShaderParameterList<EnvironmentMapLightShaderParameterList>();
+        envMapShaderParameterList->isEnvironmentMapLightEnabled = mEnvironmentMapping.IsEnabled();
         envMapShaderParameterList->diffuseIrradianceMap = mEnvironmentMapping.GetDiffuseIrradianceMap(builder);
         envMapShaderParameterList->integratedBRDFLUT = mEnvironmentMapping.GetIntegratedBRDFLUT(builder);
         envMapShaderParameterList->prefilterMap = mEnvironmentMapping.GetPrefilterMap(builder);

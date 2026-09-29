@@ -16,6 +16,7 @@ namespace cube
     class EnvironmentMapLightShaderParameterList : public ShaderParameterList
     {
         CUBE_BEGIN_SHADER_PARAMETER_LIST(EnvironmentMapLightShaderParameterList)
+            CUBE_SHADER_PARAMETER(bool, isEnvironmentMapLightEnabled)
             CUBE_SHADER_PARAMETER(RGTextureSRVHandle, diffuseIrradianceMap)
             CUBE_SHADER_PARAMETER(RGTextureSRVHandle, integratedBRDFLUT)
             CUBE_SHADER_PARAMETER(RGTextureSRVHandle, prefilterMap)

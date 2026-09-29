@@ -6,6 +6,7 @@
 #include "PlatformDebug.h"
 
 #include "DX12Device.h"
+#include "Engine.h"
 
 namespace cube
 {
@@ -34,7 +35,30 @@ namespace cube
 
             outDxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
 
-            CUBE_LOG(Info, DX12, "Enabled DX12 debug layer.");
+            CUBE_LOG(Info, DX12, "Enable DX12 debug layer.");
+        }
+
+        if (Engine::GetCommandLineParamBool("dx12GPUValidation"))
+        {
+            ComPtr<ID3D12Debug1> debug1Controller;
+            if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debug1Controller))))
+            {
+                debug1Controller->SetEnableGPUBasedValidation(true);
+
+                CUBE_LOG(Info, DX12, "Enable DX12 GPU validation.");
+            }
+        }
+        
+        if (Engine::GetCommandLineParamBool("dx12DRED"))
+        {
+            ComPtr<ID3D12DeviceRemovedExtendedDataSettings> pDredSettings;
+            if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&pDredSettings))))
+            {
+                pDredSettings->SetAutoBreadcrumbsEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
+                pDredSettings->SetPageFaultEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
+
+                CUBE_LOG(Info, DX12, "Enable DX12 DRED.");
+            }
         }
 
         mDXGIDebugDLib = platform::Platform::LoadDLib(platform::FilePath(CUBE_T("dxgidebug")));
@@ -46,7 +70,7 @@ namespace cube
             {
                 DXGIGetDebugInterfaceFunc(IID_PPV_ARGS(&mDXGIDebug));
 
-                CUBE_LOG(Info, DX12, "Enabled DXGI debug layer.");
+                CUBE_LOG(Info, DX12, "Enable DXGI debug layer.");
             }
         }
 
@@ -93,7 +117,7 @@ namespace cube
             D3D12_MESSAGE_SEVERITY infoSeverity = D3D12_MESSAGE_SEVERITY_INFO;
             filter.DenyList.NumSeverities = 1;
             filter.DenyList.pSeverityList = &infoSeverity;
-            
+
             FrameVector<D3D12_MESSAGE_ID> denyIDs;
             // Ignore optimized clear values warnings.
             denyIDs.push_back(D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE);
@@ -108,7 +132,7 @@ namespace cube
             {
                 // Use debug layer message callback if possible.
                 infoQueue1->RegisterMessageCallback(D3DMessageCallback, D3D12_MESSAGE_CALLBACK_FLAG_NONE, nullptr, &mMessageCallbackCookie);
-            
+
                 useMessageCallback = true;
             }
         }
