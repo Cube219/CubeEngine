@@ -52,10 +52,11 @@ namespace cube
 
             for (const SharedPtr<gapi::BLAS>& blas : mBLASesToBuild)
             {
-                FrameVector<RGBufferHandle> geometryBuffers;
-                for (const SharedPtr<gapi::Buffer>& geometryBuffer : blas->GetGeometriesToBuild())
+                RGBufferHandle vertexBuffer = builder.RegisterBuffer(blas->GetVertexBufferToBuild());
+                RGBufferHandle indexBuffer;
+                if (SharedPtr<gapi::Buffer> gapiIndexBuffer = blas->GetIndexBufferToBuild())
                 {
-                    geometryBuffers.push_back(builder.RegisterBuffer(geometryBuffer));
+                    indexBuffer = builder.RegisterBuffer(gapiIndexBuffer);
                 }
 
                 builder.AddPass(Format<FrameString>(CUBE_T("{0}"), blas->GetDebugName()),
@@ -63,11 +64,13 @@ namespace cube
                 {
                     commandList.BuildBLAS(blas, scratchBuffer->GetGAPIBuffer());
                 },
-                [geometryBuffers, scratchBuffer](RGBuilder& builder)
+                [vertexBuffer, indexBuffer, scratchBuffer](RGBuilder& builder)
                 {
-                    for (RGBufferHandle bufferHandle : geometryBuffers)
+                    // TODO: Add barriers for BLAS.
+                    builder.UseResource(vertexBuffer, gapi::ResourceAccessFlag::SRV, gapi::ResourceSyncFlag::BuildAccelerationStructure);
+                    if (indexBuffer.IsValid())
                     {
-                        builder.UseResource(bufferHandle, gapi::ResourceAccessFlag::SRV, gapi::ResourceSyncFlag::BuildAccelerationStructure);
+                        builder.UseResource(indexBuffer, gapi::ResourceAccessFlag::SRV, gapi::ResourceSyncFlag::BuildAccelerationStructure);
                     }
                     builder.UseResource(scratchBuffer, gapi::ResourceAccessFlag::UAV, gapi::ResourceSyncFlag::BuildAccelerationStructure);
                 });

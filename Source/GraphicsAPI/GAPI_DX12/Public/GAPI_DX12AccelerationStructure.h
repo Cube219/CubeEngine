@@ -29,6 +29,7 @@ namespace cube
             Vector<D3D12_RAYTRACING_GEOMETRY_DESC> mGeometryDescs;
             D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS mInputs;
             D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO mPrebuildInfo;
+
             DX12Allocation mAllocation;
         };
 
@@ -38,8 +39,22 @@ namespace cube
             DX12TLAS(const TLASCreateInfo& createInfo, DX12Device& device);
             virtual ~DX12TLAS();
 
+            virtual void UpdateInstances(ConstArrayView<BLASInstance> instances) override;
+
+            D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS GetInputs() const { return mInputs; }
+            D3D12_GPU_VIRTUAL_ADDRESS GetGPUAddress() const { return mAllocation.resource->GetGPUVirtualAddress(); }
+
+            void WriteInstanceDescs(DX12Buffer& instanceBuffer);
+
         private:
             DX12Device& mDevice;
+
+            Vector<BLASInstance> mInstances;
+
+            D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS mInputs;
+            D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO mPrebuildInfo;
+
+            DX12Allocation mAllocation;
         };
     } // namespace gapi
 } // namespace cube

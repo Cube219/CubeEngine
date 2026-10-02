@@ -2,6 +2,8 @@
 
 #include "GAPIHeader.h"
 
+#include "Matrix.h"
+
 namespace cube
 {
     namespace gapi
@@ -21,7 +23,7 @@ namespace cube
             ElementFormat vertexFormat = ElementFormat::RGBA32_Float;
             Uint64 vertexStride;
 
-            SharedPtr<Buffer> indexBuffer;
+            SharedPtr<Buffer> indexBuffer = nullptr;
 
             struct GeometryInfo
             {
@@ -35,7 +37,7 @@ namespace cube
             ConstArrayView<GeometryInfo> geometryInfos;
 
             bool isOpaque = true;
-            // bool allowUpdate = false; // TODO
+            bool allowUpdate = false;
             ASBuildPreferType buildPreferType = ASBuildPreferType::Default;
 
             StringView debugName;
@@ -45,35 +47,75 @@ namespace cube
         {
         public:
             BLAS(const BLASCreateInfo& createInfo)
-                : mDebugName(createInfo.debugName)
+                : mAllowUpdate(createInfo.allowUpdate)
+                , mDebugName(createInfo.debugName)
             {}
             virtual ~BLAS() = default;
 
+            bool IsAllowUpdate() const { return mAllowUpdate; }
+
             Uint64 GetScratchBufferSize() const { return mScratchBufferSize; }
             Uint64 GetUpdateScratchBufferSize() const { return mUpdateScratchBufferSize; }
-            ConstArrayView<SharedPtr<Buffer>> GetGeometriesToBuild() const { return mGeometriesToBuild; }
+
+            SharedPtr<Buffer> GetVertexBufferToBuild() const { return mVertexBufferToBuild; }
+            SharedPtr<Buffer> GetIndexBufferToBuild() const { return mIndexBufferToBuild; }
 
             StringView GetDebugName() const { return mDebugName; }
 
         protected:
+            bool mAllowUpdate;
+
             Uint64 mScratchBufferSize = 0; // Set in child class
             Uint64 mUpdateScratchBufferSize = 0; // Set in child class
 
-            Vector<SharedPtr<Buffer>> mGeometriesToBuild;
+            SharedPtr<Buffer> mVertexBufferToBuild;
+            SharedPtr<Buffer> mIndexBufferToBuild;
 
             String mDebugName;
         };
 
+        struct BLASInstance
+        {
+            SharedPtr<BLAS> blas;
+            Matrix transform;
+            Uint32 hitGroupIndex;
+        };
+
         struct TLASCreateInfo
         {
+            ConstArrayView<BLASInstance> instances;
+
+            bool allowUpdate = false;
+            ASBuildPreferType buildPreferType = ASBuildPreferType::Default;
+
             StringView debugName;
         };
 
         class TLAS
         {
         public:
-            TLAS(const TLASCreateInfo& createInfo) {}
+            TLAS(const TLASCreateInfo& createInfo)
+                : mAllowUpdate(createInfo.allowUpdate)
+                , mDebugName(createInfo.debugName)
+            {}
             virtual ~TLAS() = default;
+
+            bool IsAllowUpdate() const { return mAllowUpdate; }
+
+            Uint64 GetScratchBufferSize() const { return mScratchBufferSize; }
+            Uint64 GetUpdateScratchBufferSize() const { return mUpdateScratchBufferSize; }
+            Uint64 GetInstanceDescBufferSize() const { return mInstanceDescBufferSize; }
+            
+            virtual void UpdateInstances(ConstArrayView<BLASInstance> instances) = 0;
+
+        protected:
+            bool mAllowUpdate;
+
+            Uint64 mScratchBufferSize = 0; // Set in child class
+            Uint64 mUpdateScratchBufferSize = 0; // Set in child class
+            Uint64 mInstanceDescBufferSize = 0; // Set in child class
+
+            String mDebugName;
         };
     } // namespace gapi
 } // namespace cube

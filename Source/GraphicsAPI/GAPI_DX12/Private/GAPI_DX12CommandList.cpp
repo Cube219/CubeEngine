@@ -541,7 +541,7 @@ namespace cube
             // No-op on DX12.
         }
 
-        void DX12CommandList::BuildBLAS(SharedPtr<BLAS> blas, SharedPtr<Buffer> scratchBuffer)
+        void DX12CommandList::BuildBLAS(SharedPtr<BLAS> blas, SharedPtr<Buffer> scratchBuffer, bool update)
         {
             CHECK(IsWriting());
             CHECK(!IsInRenderPass());
@@ -550,19 +550,76 @@ namespace cube
             DX12BLAS* dx12BLAS = dynamic_cast<DX12BLAS*>(blas.get());
             CHECK(dx12BLAS);
 
+            CHECK(!update || blas->IsAllowUpdate());
+
             DX12Buffer* dx12ScratchBuffer = dynamic_cast<DX12Buffer*>(scratchBuffer.get());
             CHECK(dx12ScratchBuffer);
-            CHECK(dx12BLAS->GetScratchBufferSize() <= dx12ScratchBuffer->GetSize());
+            if (update)
+            {
+                CHECK(dx12BLAS->GetUpdateScratchBufferSize() <= dx12ScratchBuffer->GetSize());
+            }
+            else
+            {
+                CHECK(dx12BLAS->GetScratchBufferSize() <= dx12ScratchBuffer->GetSize());
+            }
 
             D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC buildDesc;
             buildDesc.DestAccelerationStructureData = dx12BLAS->GetGPUAddress();
             buildDesc.Inputs = dx12BLAS->GetInputs();
-            buildDesc.SourceAccelerationStructureData = NULL;
+            if (update)
+            {
+                buildDesc.Inputs.Flags |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE;
+            }
+            buildDesc.SourceAccelerationStructureData = update ? dx12BLAS->GetGPUAddress() : NULL;
             buildDesc.ScratchAccelerationStructureData = dx12ScratchBuffer->GetGPUAddress();
             mCommandList->BuildRaytracingAccelerationStructure(&buildDesc, 0, NULL);
 
             CUBE_DX12_BOUND_OBJECT(blas);
             CUBE_DX12_BOUND_OBJECT(scratchBuffer);
+        }
+
+        void DX12CommandList::BuildTLAS(SharedPtr<TLAS> tlas, SharedPtr<Buffer> scratchBuffer, SharedPtr<Buffer> instanceDescBuffer, bool update)
+        {
+            CHECK(IsWriting());
+            CHECK(!IsInRenderPass());
+            CHECK(mType == CommandListType::Direct);
+
+            DX12TLAS* dx12TLAS = dynamic_cast<DX12TLAS*>(tlas.get());
+            CHECK(dx12TLAS);
+
+            CHECK(!update || dx12TLAS->IsAllowUpdate());
+
+            DX12Buffer* dx12ScratchBuffer = dynamic_cast<DX12Buffer*>(scratchBuffer.get());
+            CHECK(dx12ScratchBuffer);
+            if (update)
+            {
+                CHECK(dx12TLAS->GetUpdateScratchBufferSize() <= dx12ScratchBuffer->GetSize());
+            }
+            else
+            {
+                CHECK(dx12TLAS->GetScratchBufferSize() <= dx12ScratchBuffer->GetSize());
+            }
+
+            D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC buildDesc;
+            buildDesc.DestAccelerationStructureData = dx12TLAS->GetGPUAddress();
+            buildDesc.Inputs = dx12TLAS->GetInputs();
+            if (update)
+            {
+                buildDesc.Inputs.Flags |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE;
+            }
+            
+            DX12Buffer* dx12InstanceDescBuffer = dynamic_cast<DX12Buffer*>(instanceDescBuffer.get());
+            CHECK(dx12InstanceDescBuffer);
+            dx12TLAS->WriteInstanceDescs(*dx12InstanceDescBuffer);
+            buildDesc.Inputs.InstanceDescs = dx12InstanceDescBuffer->GetGPUAddress();
+
+            buildDesc.SourceAccelerationStructureData = update ? dx12TLAS->GetGPUAddress() : NULL;
+            buildDesc.ScratchAccelerationStructureData = dx12ScratchBuffer->GetGPUAddress();
+            mCommandList->BuildRaytracingAccelerationStructure(&buildDesc, 0, NULL);
+
+            CUBE_DX12_BOUND_OBJECT(tlas);
+            CUBE_DX12_BOUND_OBJECT(scratchBuffer);
+            CUBE_DX12_BOUND_OBJECT(instanceDescBuffer);
         }
 
         void DX12CommandList::BeginTimestamp(StringView name)

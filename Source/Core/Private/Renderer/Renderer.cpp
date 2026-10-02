@@ -228,6 +228,11 @@ namespace cube
         RGBuilder builder(*this);
         mResourceManager.ExecutePreprocessTasks(builder);
         mResourceManager.ExecuteBLASBuilds(builder);
+        if (mScene)
+        {
+            // TODO: Only build if needed.
+            mScene->BuildTLAS(builder, mCurrentRenderingFrame);
+        }
         RenderImpl(builder);
         builder.ExecuteAndSubmit(*mCommandList);
 

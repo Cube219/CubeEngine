@@ -248,7 +248,7 @@ namespace cube
             SharedPtr<Mesh> boxMesh = std::make_shared<Mesh>(MeshHelper::GenerateBoxMeshData(), GetMeshMetadata());
             UniquePtr<SceneObject> obj = std::make_unique<SceneObject>(CUBE_T("DefaultBox"), boxMesh);
 
-            SharedPtr<Scene> scene = std::make_shared<Scene>();
+            SharedPtr<Scene> scene = std::make_shared<Scene>(mSupportsHWRT && mBuildBLAS);
             scene->AddSceneObject(std::move(obj));
 
             Engine::SetScene(scene);

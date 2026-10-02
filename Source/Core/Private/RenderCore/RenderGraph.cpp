@@ -1304,10 +1304,11 @@ namespace cube
                     }
 
                     SubresourcePendingBarrier& pendingBarrier = pendingSubresourceBarriers[0];
-                    const bool needUAVBarrier =
-                        !resourceUsage.skipUAVBarrier
-                        && pendingBarrier.accesses.IsSet(gapi::ResourceAccessFlag::UAV)
+                    const bool sameUAV = pendingBarrier.accesses.IsSet(gapi::ResourceAccessFlag::UAV)
                         && resourceUsage.accesses.IsSet(gapi::ResourceAccessFlag::UAV);
+                    const bool sameASWrite = pendingBarrier.accesses.IsSet(gapi::ResourceAccessFlag::WriteAccelerationStructure)
+                        && resourceUsage.accesses.IsSet(gapi::ResourceAccessFlag::WriteAccelerationStructure);
+                    const bool needUAVBarrier = !resourceUsage.skipUAVBarrier && (sameUAV || sameASWrite);
                     if (needUAVBarrier || pendingBarrier.accesses != resourceUsage.accesses)
                     {
                         if (pendingBarrier.firstPassIndex != -1)

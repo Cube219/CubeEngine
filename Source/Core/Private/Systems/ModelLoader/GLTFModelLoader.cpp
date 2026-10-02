@@ -542,7 +542,7 @@ namespace cube
         }
 
         // Make scene and scene objects.
-        SharedPtr<Scene> scene = std::make_shared<Scene>();
+        SharedPtr<Scene> scene = std::make_shared<Scene>(meshMetadata.buildBLAS);
 
         auto BuildLocalMatrix = [](const tinygltf::Node& node) -> Matrix
         {

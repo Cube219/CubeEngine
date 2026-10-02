@@ -123,6 +123,9 @@ namespace cube
             denyIDs.push_back(D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE);
             denyIDs.push_back(D3D12_MESSAGE_ID_CLEARDEPTHSTENCILVIEW_MISMATCHINGCLEARVALUE);
 
+            // DX12 shows this warning when using aliasing buffer in the transient heap. Ignore it.
+            denyIDs.push_back(D3D12_MESSAGE_ID_HEAP_ADDRESS_RANGE_INTERSECTS_MULTIPLE_BUFFERS);
+
             filter.DenyList.NumIDs = static_cast<UINT>(denyIDs.size());
             filter.DenyList.pIDList = denyIDs.data();
             infoQueue->PushStorageFilter(&filter);
