@@ -50,7 +50,7 @@ namespace cube
         }
     }
 
-    DX12Allocation DX12MemoryAllocator::Allocate(D3D12_HEAP_TYPE heapType, const D3D12_RESOURCE_DESC1& desc, D3D12_BARRIER_LAYOUT layout, bool transient, const D3D12_CLEAR_VALUE* pOptimizedClearValue)
+    DX12Allocation DX12MemoryAllocator::Allocate(D3D12_HEAP_TYPE heapType, const D3D12_RESOURCE_DESC1& desc, D3D12_BARRIER_LAYOUT layout, bool transient, Uint32 overrideAlignment, const D3D12_CLEAR_VALUE* pOptimizedClearValue)
     {
         DX12Allocation allocation;
         if (desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
@@ -65,7 +65,11 @@ namespace cube
         allocation.isTransient = transient;
 
         D3D12_RESOURCE_DESC1 newDesc = desc;
-        if (mDevice.IsTightAlignmentSupported())
+        if (overrideAlignment > 0)
+        {
+            newDesc.Alignment = overrideAlignment;
+        }
+        else if (mDevice.IsTightAlignmentSupported())
         {
             newDesc.Alignment = 0;
             newDesc.Flags |= D3D12_RESOURCE_FLAG_USE_TIGHT_ALIGNMENT;
@@ -110,8 +114,13 @@ namespace cube
         allocation.resource = nullptr;
     }
 
-    void DX12MemoryAllocator::AllocateFromTransient(DX12Allocation& inOutAllocation, const D3D12_RESOURCE_DESC1& desc, D3D12_BARRIER_LAYOUT layout, const D3D12_CLEAR_VALUE* pOptimizedClearValue)
+    void DX12MemoryAllocator::AllocateFromTransient(DX12Allocation& inOutAllocation, D3D12_RESOURCE_DESC1& desc, D3D12_BARRIER_LAYOUT layout, const D3D12_CLEAR_VALUE* pOptimizedClearValue)
     {
+        if (desc.Alignment > 0)
+        {
+            desc.Alignment = std::max(desc.Alignment, (UINT64)D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);
+        }
+
         const D3D12_RESOURCE_ALLOCATION_INFO allocationInfo = mDevice.GetDevice()->GetResourceAllocationInfo2(0, 1, &desc, nullptr);
 
         TransientHeap* selectedHeap = nullptr;

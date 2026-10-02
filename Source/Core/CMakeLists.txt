@@ -11,6 +11,8 @@ set(PUBLIC_FILES
 )
 set(PRIVATE_FILES
     Private/Allocator/FrameAllocator.cpp
+    Private/RenderCore/AccelerationStructure.cpp
+    Private/RenderCore/AccelerationStructure.h
     Private/RenderCore/Material.cpp
     Private/RenderCore/Material.h
     Private/RenderCore/Mesh.cpp

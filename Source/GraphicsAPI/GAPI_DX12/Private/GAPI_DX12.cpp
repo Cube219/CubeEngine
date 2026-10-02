@@ -108,6 +108,7 @@ namespace cube
             .supportsDirectMapInTexture = false, // Direct-mapping textures is possible, but inefficient because swizzling is performed on the CPU side.
             .needsToOptimizeTextureContentsUsingCommandList = false,
             .supportsHWRT = mMainDevice->IsHWRTSupported(),
+            .scratchBufferAlignment = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT,
         };
 
         InitializeImGUI(initInfo.imGUI);

@@ -93,7 +93,7 @@ namespace cube
             return {};
         }
 
-        SharedPtr<Scene> scene = std::make_shared<Scene>();
+        SharedPtr<Scene> scene = std::make_shared<Scene>(meshMetadata.buildBLAS);
 
         Vector<SharedPtr<Material>> materials;
 

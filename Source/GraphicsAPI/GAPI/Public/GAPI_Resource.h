@@ -16,6 +16,7 @@ namespace cube
         {
             Buffer,
             Texture,
+            AccelerationStructure,
         };
 
         enum class ResourceUsage

@@ -9,6 +9,8 @@
 
 namespace cube
 {
+    class BLASResource;
+
     namespace gapi
     {
         class BLAS;
@@ -77,7 +79,7 @@ namespace cube
         const StringView GetDebugName() const { return mMeshData->GetDebugName(); }
         const MeshMetadata& GetMeta() const { return mMeta; }
 
-        const SharedPtr<gapi::BLAS> GetBLAS() const { return mBLAS; }
+        const SharedPtr<BLASResource> GetBLAS() const { return mBLAS; }
 
     private:
         friend class MeshHelper;
@@ -88,6 +90,6 @@ namespace cube
         SharedPtr<BufferResource> mVertexBuffer;
         SharedPtr<BufferResource> mIndexBuffer;
 
-        SharedPtr<gapi::BLAS> mBLAS;
+        SharedPtr<BLASResource> mBLAS;
     };
 } // namespace cube

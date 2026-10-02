@@ -178,6 +178,7 @@ namespace cube
             bool needsToOptimizeTextureContentsUsingCommandList = true;
 
             bool supportsHWRT = false;
+            Uint32 scratchBufferAlignment = 1;
         };
     } // namespace gapi
 } // namespace cube

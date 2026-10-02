@@ -35,9 +35,9 @@ public struct Vertex
 
 public struct ObjectShaderParameterList
 {
-    public float4x4 model;
-    public float4x4 modelInverse;
-    public float4x4 modelInverseTranspose;
+    public float4x4 transform;
+    public float4x4 invTransform;
+    public float4x4 invTransposedTransform;
     public Bindless<ByteAddressBuffer> vertexBuffer;
     public bool useFP16;
 };

@@ -542,6 +542,26 @@ namespace cube
             UseResourceInternal(resource, MTLResourceUsageRead | MTLResourceUsageWrite);
         }
 
+        void MetalCommandList::UseResource(SharedPtr<AccelerationStructure> accelerationStructure, bool write)
+        {
+            CHECK(IsWriting());
+
+            MetalBLAS* metalBLAS = dynamic_cast<MetalBLAS*>(accelerationStructure.get());
+            MetalTLAS* metalTLAS = dynamic_cast<MetalTLAS*>(accelerationStructure.get());
+            CHECK(metalBLAS || metalTLAS);
+
+            if (metalBLAS)
+            {
+                id<MTLResource> resource = metalBLAS->GetMetalAS();
+                UseResourceInternal(resource, write ? MTLResourceUsageRead | MTLResourceUsageWrite : MTLResourceUsageRead);
+            }
+            if (metalTLAS)
+            {
+                id<MTLResource> resource = metalTLAS->GetMetalAS();
+                UseResourceInternal(resource, write ? MTLResourceUsageRead | MTLResourceUsageWrite : MTLResourceUsageRead);
+            }
+        }
+
         void MetalCommandList::SetResourceBarrier(ResourceBarrier barrier)
         {
             CHECK(IsWriting());
@@ -682,11 +702,22 @@ namespace cube
             [mBlitEncoder optimizeContentsForGPUAccess:metalTexture->GetMTLTexture()];
         }
 
-        void MetalCommandList::BuildBLAS(SharedPtr<BLAS> blas, SharedPtr<Buffer> scratchBuffer)
+        void MetalCommandList::PrepareAccelerationStructureBuild()
         {
             CHECK(IsWriting());
             CHECK(!IsInRenderPass());
             CHECK(mType == CommandListType::Direct);
+
+            UseASEncoder();
+        }
+
+        void MetalCommandList::BuildBLAS(SharedPtr<BLAS> blas, SharedPtr<Buffer> scratchBuffer, bool update)
+        {
+            CHECK(IsWriting());
+            CHECK(!IsInRenderPass());
+            CHECK(mType == CommandListType::Direct);
+
+            CHECK(!update || blas->IsUpdateAllowed());
 
             UseASEncoder();
 
@@ -696,14 +727,77 @@ namespace cube
             MetalBuffer* metalScratchBuffer = dynamic_cast<MetalBuffer*>(scratchBuffer.get());
             CHECK(metalScratchBuffer);
 
-            CHECK(metalBLAS->GetScratchBufferSize() <= metalScratchBuffer->GetSize());
+            if (update)
+            {
+                CHECK(metalBLAS->GetUpdateScratchBufferSize() <= metalScratchBuffer->GetSize());
 
-            [mASEncoder
-                buildAccelerationStructure:metalBLAS->GetMetalAS()
-                descriptor:metalBLAS->GetDesc()
-                scratchBuffer:metalScratchBuffer->GetMTLBuffer()
-                scratchBufferOffset:0
-            ];
+                [mASEncoder
+                    refitAccelerationStructure:metalBLAS->GetMetalAS()
+                    descriptor:metalBLAS->GetDesc()
+                    destination:metalBLAS->GetMetalAS()
+                    scratchBuffer:metalScratchBuffer->GetMTLBuffer()
+                    scratchBufferOffset:0
+                ];
+            }
+            else
+            {
+                CHECK(metalBLAS->GetScratchBufferSize() <= metalScratchBuffer->GetSize());
+
+                [mASEncoder
+                    buildAccelerationStructure:metalBLAS->GetMetalAS()
+                    descriptor:metalBLAS->GetDesc()
+                    scratchBuffer:metalScratchBuffer->GetMTLBuffer()
+                    scratchBufferOffset:0
+                ];
+            }
+        }
+
+        void MetalCommandList::BuildTLAS(SharedPtr<TLAS> tlas, SharedPtr<Buffer> scratchBuffer, SharedPtr<Buffer> instanceDescBuffer, bool update)
+        {
+            CHECK(IsWriting());
+            CHECK(!IsInRenderPass());
+            CHECK(mType == CommandListType::Direct);
+
+            CHECK(!update || tlas->IsUpdateAllowed());
+
+            UseASEncoder();
+
+            MetalTLAS* metalTLAS = dynamic_cast<MetalTLAS*>(tlas.get());
+            CHECK(metalTLAS);
+
+            MetalBuffer* metalScratchBuffer = dynamic_cast<MetalBuffer*>(scratchBuffer.get());
+            CHECK(metalScratchBuffer);
+
+            MetalBuffer* metalInstanceDescBuffer = dynamic_cast<MetalBuffer*>(instanceDescBuffer.get());
+            CHECK(metalInstanceDescBuffer);
+            metalTLAS->WriteInstanceDescs(metalInstanceDescBuffer);
+
+            MTLInstanceAccelerationStructureDescriptor* desc = metalTLAS->GetDesc();
+            desc.instanceDescriptorBuffer = metalInstanceDescBuffer->GetMTLBuffer();
+
+            if (update)
+            {
+                CHECK(metalTLAS->GetUpdateScratchBufferSize() <= metalScratchBuffer->GetSize());
+
+                [mASEncoder
+                    refitAccelerationStructure:metalTLAS->GetMetalAS()
+                    descriptor:desc
+                    destination:metalTLAS->GetMetalAS()
+                    scratchBuffer:metalScratchBuffer->GetMTLBuffer()
+                    scratchBufferOffset:0
+                ];
+            }
+            else
+            {
+                CHECK(metalTLAS->GetScratchBufferSize() <= metalScratchBuffer->GetSize());
+
+                [mASEncoder
+                    buildAccelerationStructure:metalTLAS->GetMetalAS()
+                    descriptor:desc
+                    scratchBuffer:metalScratchBuffer->GetMTLBuffer()
+                    scratchBufferOffset:0
+                ];
+            }
         }
 
         void MetalCommandList::BeginTimestamp(StringView name)

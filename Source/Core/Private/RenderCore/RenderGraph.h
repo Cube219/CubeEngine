@@ -93,6 +93,8 @@ namespace cube
             return rgParameterList;
         }
 
+        RGAccelerationStructureHandle RegisterAccelerationStructure(SharedPtr<gapi::AccelerationStructure> accelerationStructure);
+
     private:
         Vector<RGResourceHandle> mResources;
         struct RegisteredBufferInfo
@@ -107,6 +109,7 @@ namespace cube
             gapi::ResourceLayout dstLayout;
         };
         Map<gapi::Texture*, RegisteredTextureInfo> mRegisteredTextureInfos;
+        Map<gapi::AccelerationStructure*, RGAccelerationStructureHandle> mRegisteredAccelerationStructures;
 
         // Caches to avoid creating duplicate views with the same parameters.
         // The view type is encoded into the cache key, so each base map can hold every view kind.
@@ -284,7 +287,7 @@ namespace cube
             gapi::RasterizerState rasterizerState;
             gapi::DepthStencilState depthStencilState;
             ConstArrayView<WeakPtr<Material>> materials;
-            Matrix model;
+            Matrix transformMatrix;
         };
         void AddDrawMeshPass(StringView name, ArrayView<DrawMeshInfo> drawMeshInfos, ConstArrayView<RGShaderParameterListBaseHandle> parameterLists);
 
@@ -341,6 +344,8 @@ namespace cube
 
         void UseResource(RGBufferHandle rgBuffer, gapi::ResourceAccessFlags accesses, gapi::ResourceSyncFlags syncs);
         void UseResource(RGTextureHandle rgTexture, gapi::SubresourceRangeInput range, gapi::ResourceAccessFlags accesses, gapi::ResourceLayout layout, gapi::ResourceSyncFlags syncs);
+
+        void UseResource(RGAccelerationStructureHandle rgAccelerationStructure, gapi::ResourceAccessFlags accesses, gapi::ResourceSyncFlags syncs);
 
         void SkipUAVBarrier(RGBufferUAVHandle rgUAV);
         void SkipUAVBarrier(RGTextureUAVHandle rgUAV);

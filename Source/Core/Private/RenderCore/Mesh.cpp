@@ -1,6 +1,7 @@
 #include "Mesh.h"
 
 
+#include "AccelerationStructure.h"
 #include "Allocator/FrameAllocator.h"
 #include "Engine.h"
 #include "GAPI_AccelerationStructure.h"
@@ -158,7 +159,7 @@ namespace cube
                 .geometryInfos = geometryInfos,
                 .debugName = blasDebugName,
             };
-            mBLAS = gAPI.CreateBLAS(blasCreateInfo);
+            mBLAS = BLASResource::Create(blasCreateInfo);
 
             ResourceManager& resourceManager = Engine::GetRenderer()->GetResourceManager();
             resourceManager.QueueBLASBuild(mBLAS);

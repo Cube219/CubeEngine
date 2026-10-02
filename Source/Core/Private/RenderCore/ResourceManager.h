@@ -4,6 +4,8 @@
 
 namespace cube
 {
+    class BLASResource;
+
     namespace gapi
     {
         class BLAS;
@@ -22,11 +24,14 @@ namespace cube
         void QueuePreprocessTask(PreprocessTaskFunction&& task);
         void ExecutePreprocessTasks(RGBuilder& builder);
 
-        void QueueBLASBuild(SharedPtr<gapi::BLAS> blas);
+        void QueueBLASBuild(SharedPtr<BLASResource> blas);
         void ExecuteBLASBuilds(RGBuilder& builder);
 
     private:
+        Renderer& mRenderer;
+
         Vector<PreprocessTaskFunction> mPreprocessTasks;
-        Vector<SharedPtr<gapi::BLAS>> mBLASesToBuild;
+        Vector<SharedPtr<BLASResource>> mBLASesToBuild;
+        Uint32 mScratchBufferAlignment = 0;
     };
 } // namespace cube

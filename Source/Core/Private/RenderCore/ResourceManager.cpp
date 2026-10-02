@@ -1,5 +1,6 @@
 #include "ResourceManager.h"
 
+#include "AccelerationStructure.h"
 #include "Allocator/FrameAllocator.h"
 #include "GAPI_AccelerationStructure.h"
 #include "RenderCore/RenderGraph.h"
@@ -7,6 +8,7 @@
 namespace cube
 {
     ResourceManager::ResourceManager(Renderer& renderer)
+        : mRenderer(renderer)
     {
     }
 
@@ -24,23 +26,31 @@ namespace cube
         mPreprocessTasks.clear();
     }
 
-    void ResourceManager::QueueBLASBuild(SharedPtr<gapi::BLAS> blas)
+    void ResourceManager::QueueBLASBuild(SharedPtr<BLASResource> blas)
     {
-        mBLASesToBuild.push_back(blas);
+        Uint64 currentRenderingFrame = mRenderer.GetCurrentRenderingFrame();
+        if (currentRenderingFrame == 0 || blas->GetLastBuildRenderingFrame() < currentRenderingFrame)
+        {
+            mBLASesToBuild.push_back(blas);
+        }
     }
 
     void ResourceManager::ExecuteBLASBuilds(RGBuilder& builder)
     {
+        if (mScratchBufferAlignment == 0)
+        {
+            mScratchBufferAlignment = mRenderer.GetGAPI().GetInfo().scratchBufferAlignment;
+        }
         Uint64 maxScratchBufferSize = 0;
 
-        for (SharedPtr<gapi::BLAS>& blas : mBLASesToBuild)
+        for (SharedPtr<BLASResource>& blas : mBLASesToBuild)
         {
-            maxScratchBufferSize = std::max(maxScratchBufferSize, blas->GetScratchBufferSize());
+            maxScratchBufferSize = std::max(maxScratchBufferSize, blas->GetGAPIBLAS()->GetScratchBufferSize());
         }
 
         if (!mBLASesToBuild.empty() && maxScratchBufferSize > 0)
         {
-            RG_GPU_TIMESTAMP_SCOPE(builder, CUBE_T("BuildingBLAS"));
+            RG_GPU_TIMESTAMP_SCOPE(builder, CUBE_T("BuildBLAS"));
 
             // TODO: Use multiple scratch buffer to avoid UAV barrier between builds.
             RGBufferHandle scratchBuffer = builder.CreateBuffer({
@@ -48,29 +58,40 @@ namespace cube
                 .size = maxScratchBufferSize,
                 .stride = 4,
                 .flags = gapi::BufferFlag::UAV,
+                .overrideAlignment = mScratchBufferAlignment,
             }, CUBE_T("BLAS scratch buffer"));
 
-            for (const SharedPtr<gapi::BLAS>& blas : mBLASesToBuild)
+            const Uint64 currentRenderingFrame = mRenderer.GetCurrentRenderingFrame();
+
+            for (SharedPtr<BLASResource>& blas : mBLASesToBuild)
             {
-                FrameVector<RGBufferHandle> geometryBuffers;
-                for (const SharedPtr<gapi::Buffer>& geometryBuffer : blas->GetGeometriesToBuild())
+                RGBufferHandle vertexBuffer = builder.RegisterBuffer(blas->GetVertexBufferToBuild());
+                RGBufferHandle indexBuffer;
+                if (SharedPtr<gapi::Buffer> gapiIndexBuffer = blas->GetIndexBufferToBuild())
                 {
-                    geometryBuffers.push_back(builder.RegisterBuffer(geometryBuffer));
+                    indexBuffer = builder.RegisterBuffer(gapiIndexBuffer);
                 }
 
-                builder.AddPass(Format<FrameString>(CUBE_T("{0}"), blas->GetDebugName()),
-                [blas, scratchBuffer](gapi::CommandList& commandList)
+                RGAccelerationStructureHandle rgBLAS = builder.RegisterAccelerationStructure(blas->GetGAPIBLAS());
+
+                builder.AddPass(Format<FrameString>(CUBE_T("{0}"), blas->GetGAPIBLAS()->GetDebugName()),
+                [gapiBLAS = blas->GetGAPIBLAS(), scratchBuffer](gapi::CommandList& commandList)
                 {
-                    commandList.BuildBLAS(blas, scratchBuffer->GetGAPIBuffer());
+                    commandList.PrepareAccelerationStructureBuild();
+                    commandList.BuildBLAS(gapiBLAS, scratchBuffer->GetGAPIBuffer());
                 },
-                [geometryBuffers, scratchBuffer](RGBuilder& builder)
+                [rgBLAS, vertexBuffer, indexBuffer, scratchBuffer](RGBuilder& builder)
                 {
-                    for (RGBufferHandle bufferHandle : geometryBuffers)
+                    builder.UseResource(rgBLAS, gapi::ResourceAccessFlag::WriteAccelerationStructure, gapi::ResourceSyncFlag::BuildAccelerationStructure);
+                    builder.UseResource(vertexBuffer, gapi::ResourceAccessFlag::SRV, gapi::ResourceSyncFlag::BuildAccelerationStructure);
+                    if (indexBuffer.IsValid())
                     {
-                        builder.UseResource(bufferHandle, gapi::ResourceAccessFlag::SRV, gapi::ResourceSyncFlag::BuildAccelerationStructure);
+                        builder.UseResource(indexBuffer, gapi::ResourceAccessFlag::SRV, gapi::ResourceSyncFlag::BuildAccelerationStructure);
                     }
                     builder.UseResource(scratchBuffer, gapi::ResourceAccessFlag::UAV, gapi::ResourceSyncFlag::BuildAccelerationStructure);
                 });
+
+                blas->UpdateLastBuildRenderingFrame(currentRenderingFrame);
             }
         }
 

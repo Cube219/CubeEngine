@@ -70,7 +70,7 @@ namespace cube
                 heapType = D3D12_HEAP_TYPE_UPLOAD; break;
             }
             const bool isTransient = (mUsage == ResourceUsage::Transient);
-            mAllocation = device.GetMemoryAllocator().Allocate(heapType, desc, D3D12_BARRIER_LAYOUT_UNDEFINED, isTransient);
+            mAllocation = device.GetMemoryAllocator().Allocate(heapType, desc, D3D12_BARRIER_LAYOUT_UNDEFINED, isTransient, info.bufferInfo.overrideAlignment);
             SET_DEBUG_NAME(mAllocation.resource, info.debugName);
 
             if (mUsage == ResourceUsage::GPUtoCPU)

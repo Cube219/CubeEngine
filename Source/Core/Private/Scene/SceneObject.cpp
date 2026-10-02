@@ -13,45 +13,45 @@ namespace cube
         mMesh = nullptr;
     }
 
-    Matrix SceneObject::GetModelMatrix()
+    Matrix SceneObject::GetTransformMatrix()
     {
-        if (mIsModelMatrixDirty)
+        if (mIsTransformMatrixDirty)
         {
-            mModel = MatrixUtility::GetScale(mScale) * MatrixUtility::GetRotationXYZ(mRotation) + MatrixUtility::GetTranslation_Add(mPosition);
+            mTransformMatrix = MatrixUtility::GetScale(mScale) * MatrixUtility::GetRotationXYZ(mRotation) + MatrixUtility::GetTranslation_Add(mPosition);
 
-            mIsModelMatrixDirty = false;
+            mIsTransformMatrixDirty = false;
         }
 
-        return mModel;
+        return mTransformMatrix;
     }
 
-    void SceneObject::SetModelMatrix(const Matrix& model)
+    void SceneObject::SetTransformMatrix(const Matrix& transform)
     {
-        mModel = model;
-        mIsModelMatrixDirty = false;
+        mTransformMatrix = transform;
+        mIsTransformMatrixDirty = false;
 
-        MatrixUtility::DecomposeTransformation(mModel, mPosition, mRotation, mScale);
+        MatrixUtility::DecomposeTransformation(mTransformMatrix, mPosition, mRotation, mScale);
     }
 
     void SceneObject::SetPosition(Vector3 position)
     {
         mPosition = position;
 
-        mIsModelMatrixDirty = true;
+        mIsTransformMatrixDirty = true;
     }
 
     void SceneObject::SetRotation(Vector3 rotation)
     {
         mRotation = rotation;
 
-        mIsModelMatrixDirty = true;
+        mIsTransformMatrixDirty = true;
     }
 
     void SceneObject::SetScale(Vector3 scale)
     {
         mScale = scale;
 
-        mIsModelMatrixDirty = true;
+        mIsTransformMatrixDirty = true;
     }
 
     void SceneObject::SetMaterials(ArrayView<WeakPtr<Material>> materials)

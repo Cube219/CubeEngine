@@ -63,6 +63,7 @@ namespace cube
             .needsToOptimizeTextureContentsUsingCommandList = true,
 
             .supportsHWRT = mMainDevice->IsHWRTSupported(),
+            .scratchBufferAlignment = 1,
         };
 
         InitializeImGUI(initInfo.imGUI);

@@ -10,6 +10,8 @@ namespace cube
     
     namespace gapi
     {
+        class MetalBuffer;
+
         class MetalBLAS : public BLAS
         {
         public:
@@ -32,8 +34,20 @@ namespace cube
             MetalTLAS(const TLASCreateInfo& createInfo, MetalDevice& device);
             virtual ~MetalTLAS();
 
+            virtual void UpdateInstances(ConstArrayView<BLASInstance> instances) override;
+
+            MTLInstanceAccelerationStructureDescriptor* GetDesc() const;
+            id<MTLAccelerationStructure> GetMetalAS() const { return mAS; }
+
+            void WriteInstanceDescs(MetalBuffer* instanceDescBuffer);
+
         private:
             MetalDevice& mDevice;
+
+            Vector<BLASInstance> mInstances;
+
+            MTLInstanceAccelerationStructureDescriptor* mPartialDesc;
+            id<MTLAccelerationStructure> mAS;
         };
     } // namespace gapi
 } // namespace cube

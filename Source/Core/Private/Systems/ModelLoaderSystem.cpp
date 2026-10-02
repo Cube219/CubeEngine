@@ -167,18 +167,18 @@ namespace cube
         ImGui::PushItemWidth(200.0f);
         if (ImGui::DragFloat3("Position", &mModelPosition.x, 0.1f))
         {
-            UpdateModelMatrix();
+            UpdateModelTransformMatrix();
         }
         if (ImGui::DragFloat3("Rotation", &mModelRotation.x, 1.0f))
         {
-            UpdateModelMatrix();
+            UpdateModelTransformMatrix();
         }
         ImGui::PopItemWidth();
 
         ImGui::PushItemWidth(65.0f);
         if (ImGui::DragFloat("Scale", &mModelScale, 0.1f))
         {
-            UpdateModelMatrix();
+            UpdateModelTransformMatrix();
         }
         ImGui::PopItemWidth();
 
@@ -248,7 +248,7 @@ namespace cube
             SharedPtr<Mesh> boxMesh = std::make_shared<Mesh>(MeshHelper::GenerateBoxMeshData(), GetMeshMetadata());
             UniquePtr<SceneObject> obj = std::make_unique<SceneObject>(CUBE_T("DefaultBox"), boxMesh);
 
-            SharedPtr<Scene> scene = std::make_shared<Scene>();
+            SharedPtr<Scene> scene = std::make_shared<Scene>(mSupportsHWRT && mBuildBLAS);
             scene->AddSceneObject(std::move(obj));
 
             Engine::SetScene(scene);
@@ -264,7 +264,7 @@ namespace cube
         return meshMeta;
     }
 
-    void ModelLoaderSystem::UpdateModelMatrix()
+    void ModelLoaderSystem::UpdateModelTransformMatrix()
     {
         Vector3 position(mModelPosition.x, mModelPosition.y, mModelPosition.z);
         Vector3 rotation(
@@ -272,7 +272,7 @@ namespace cube
             Math::Deg2Rad(mModelRotation.y),
             Math::Deg2Rad(mModelRotation.z));
         Vector3 scale(mModelScale, mModelScale, mModelScale);
-        Engine::GetRenderer()->SetObjectModelMatrix(position, rotation, scale);
+        Engine::GetRenderer()->SetGlobalTransformMatrix(position, rotation, scale);
     }
 
     void ModelLoaderSystem::ResetModelTransform()
@@ -291,6 +291,6 @@ namespace cube
             mModelRotation = { 0.0f, 0.0f, 0.0f };
             mModelScale = 1.0f;
         }
-        UpdateModelMatrix();
+        UpdateModelTransformMatrix();
     }
 } // namespace cube

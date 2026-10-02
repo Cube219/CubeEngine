@@ -29,7 +29,7 @@ namespace cube
 
         static MeshMetadata GetMeshMetadata();
 
-        static void UpdateModelMatrix();
+        static void UpdateModelTransformMatrix();
         static void ResetModelTransform();
 
         static Vector<UniquePtr<IModelLoader>> mLoaders;

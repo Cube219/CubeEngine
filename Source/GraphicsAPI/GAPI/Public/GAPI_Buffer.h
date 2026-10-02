@@ -37,6 +37,8 @@ namespace cube
             Uint64 size;
             Uint32 stride = 1;
             BufferFlags flags = BufferFlag::None;
+
+            Uint32 overrideAlignment = 0;
         };
 
         struct BufferCreateInfo
