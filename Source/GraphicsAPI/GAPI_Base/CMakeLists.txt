@@ -37,6 +37,7 @@ add_custom_command(
     TARGET CE-GAPI_Base POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         $<TARGET_FILE:slang>
+        $<TARGET_FILE:slang-compiler>
         $<TARGET_FILE_DIR:CE-GAPI_Base>
     COMMAND_EXPAND_LISTS
 )

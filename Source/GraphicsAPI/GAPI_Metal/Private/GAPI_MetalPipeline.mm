@@ -317,5 +317,56 @@ namespace cube
         {
             mPipelineState = nil;
         }
+
+        MetalRayTracingPipeline::MetalRayTracingPipeline(const RayTracingPipelineCreateInfo& createInfo, MetalDevice& device)
+        { @autoreleasepool {
+            CHECK(device.IsHWRTSupported());
+
+            MetalShader* metalRayGenShader = dynamic_cast<MetalShader*>(createInfo.pipelineInfo.rayGenShader.get());
+            CHECK(metalRayGenShader);
+
+            MTLLinkedFunctions* linkedFunctions = nil;
+            if (createInfo.pipelineInfo.closestHitShader || createInfo.pipelineInfo.missShader)
+            {
+                NSMutableArray* functions = [[NSMutableArray alloc] init];
+                if (createInfo.pipelineInfo.closestHitShader)
+                {
+                    MetalShader* metalClosestHitShader = dynamic_cast<MetalShader*>(createInfo.pipelineInfo.closestHitShader.get());
+                    CHECK(metalClosestHitShader);
+                    [functions addObject:metalClosestHitShader->GetMTLFunction()];
+                }
+                if (createInfo.pipelineInfo.missShader)
+                {
+                    MetalShader* metalMissShader = dynamic_cast<MetalShader*>(createInfo.pipelineInfo.missShader.get());
+                    CHECK(metalMissShader);
+                    [functions addObject:metalMissShader->GetMTLFunction()];
+                }
+
+                linkedFunctions = [[MTLLinkedFunctions alloc] init];
+                linkedFunctions.functions = functions;
+            }
+
+            MTLComputePipelineDescriptor* desc = [[MTLComputePipelineDescriptor alloc] init];
+
+            desc.computeFunction = metalRayGenShader->GetMTLFunction();
+            desc.linkedFunctions = linkedFunctions;
+            desc.label = String_Convert<NSString*>(createInfo.debugName);
+
+            NSError* error = nil;
+            mPipelineState = [device.GetMTLDevice() newComputePipelineStateWithDescriptor:desc options:MTLPipelineOptionNone reflection:nil error:&error];
+
+            if (error != nil)
+            {
+                CHECK_FORMAT(false, "Failed to create a ray tracing pipeline state. ({0})", [error localizedDescription]);
+            }
+            CHECK(mPipelineState);
+
+            mThreadGroupSize = MTLSizeMake(metalRayGenShader->GetThreadGroupSizeX(), metalRayGenShader->GetThreadGroupSizeY(), metalRayGenShader->GetThreadGroupSizeZ());
+        }}
+
+        MetalRayTracingPipeline::~MetalRayTracingPipeline()
+        {
+            mPipelineState = nil;
+        }
     } // namespace gapi
 } // namespace cube

@@ -401,6 +401,9 @@ namespace cube
 
     private:
         friend class RGBuilder;
+        template <typename OtherType>
+            requires std::derived_from<OtherType, RGResource>
+        friend class RGResourceHandler;
 
         RGResourceHandler(RGShaderParameterList<ShaderParameterListType>* resource)
             : mResource(resource)

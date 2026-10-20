@@ -35,6 +35,7 @@ namespace cube
         , mRenderUtils(*this)
         , mResourceManager(*this)
         , mTextureViewer(*this)
+        , mRayTracingDebugView(*this)
     {
     }
 
@@ -111,6 +112,7 @@ namespace cube
         mRenderUtils.Initialize();
 
         mTextureViewer.Initialize(mNumGPUSync);
+        mRayTracingDebugView.Initialize(mGAPI->GetInfo().supportsHWRT);
 
         LoadResources();
     }
@@ -123,6 +125,7 @@ namespace cube
 
         ClearResources();
 
+        mRayTracingDebugView.Shutdown();
         mTextureViewer.Shutdown();
 
         mRenderUtils.Shutdown();
@@ -149,6 +152,7 @@ namespace cube
 
     void Renderer::OnLoopImGUIContent()
     {
+        // TODO: Gather rendering options in a one class.
         if (ImGui::CollapsingHeader("Lighting", ImGuiTreeNodeFlags_DefaultOpen))
         {
             mLightManager.OnLoopImGUIContent();
@@ -185,6 +189,8 @@ namespace cube
             {
                 mTextureViewer.Show();
             }
+
+            ImGui::Checkbox("RayTracing Debug View", &mShowRayTracingDebugView);
         }
 
         mTextureViewer.OnLoopImGUI();
@@ -330,78 +336,30 @@ namespace cube
         if (mIsViewPerspectiveMatrixDirty)
         {
             mViewPerspectiveMatrix = mViewMatrix * mPerspectiveMatrix;
+            mInvViewPerspectiveMatrix = mViewPerspectiveMatrix.Inversed();
             mIsViewPerspectiveMatrixDirty = false;
         }
     }
 
     void Renderer::RenderImpl(RGBuilder& builder)
     {
-        gapi::RasterizerState::FillMode fillMode = mWireframe
-            ? gapi::RasterizerState::FillMode::Line
-            : gapi::RasterizerState::FillMode::Solid;
-
         {
             RG_GPU_EVENT_SCOPE(builder, CUBE_T("Frame"));
 
-            gapi::TextureInfo colorTextureInfo = {
-                .format = mColorFormat,
-                .type = gapi::TextureType::Texture2D,
-                .flags = gapi::TextureFlag::RenderTarget,
+            gapi::Viewport viewport = {
+                .x = 0.0f,
+                .y = 0.0f,
+                .width = static_cast<float>(mViewportWidth),
+                .height = static_cast<float>(mViewportHeight)
+            };
+            gapi::ScissorRect scissor = {
+                .x = 0,
+                .y = 0,
                 .width = mViewportWidth,
                 .height = mViewportHeight
             };
-            RGTextureHandle color = builder.CreateTexture(colorTextureInfo, CUBE_T("ColorBuffer"));
-            gapi::TextureInfo depthTextureInfo = {
-                .format = mDepthStencilFormat,
-                .type = gapi::TextureType::Texture2D,
-                .flags = gapi::TextureFlag::DepthStencil,
-                .width = mViewportWidth,
-                .height = mViewportHeight
-            };
-            RGTextureHandle depthStencil = builder.CreateTexture(depthTextureInfo, CUBE_T("DepthStencilBuffer"));
 
-            RGTextureRTVHandle colorRTV = builder.CreateRTV(color);
-            RGTextureDSVHandle depthStencilDSV = builder.CreateDSV(depthStencil);
-            {
-                RG_GPU_TIMESTAMP_SCOPE(builder, CUBE_T("MainPass"));
-
-                gapi::Viewport viewport = {
-                    .x = 0.0f,
-                    .y = 0.0f,
-                    .width = static_cast<float>(mViewportWidth),
-                    .height = static_cast<float>(mViewportHeight)
-                };
-                gapi::ScissorRect scissor = {
-                    .x = 0,
-                    .y = 0,
-                    .width = mViewportWidth,
-                    .height = mViewportHeight
-                };
-
-                RGShaderParameterListHandle<GlobalShaderParameterList> globalShaderParameterList = builder.CreateShaderParameterList<GlobalShaderParameterList>();
-                globalShaderParameterList->viewPosition = mViewPosition;
-                globalShaderParameterList->viewProjection = mViewPerspectiveMatrix;
-                builder.BindGlobalShaderParameterList(globalShaderParameterList);
-
-                mLightManager.UpdateLightInfoBuffers(builder);
-                mLightManager.BindLightShaderParameterList(builder);
-
-                RGBuilder::RenderPassInfo renderPassInfo;
-                renderPassInfo.colors.push_back({
-                    .color = colorRTV,
-                    .loadOperation = gapi::LoadOperation::Clear,
-                    .storeOperation = gapi::StoreOperation::Store,
-                    .clearColor = { 0.2f, 0.2f, 0.2f, 1.0f }
-                });
-                renderPassInfo.depthStencil = {
-                    .dsv = depthStencilDSV,
-                    .loadOperation = gapi::LoadOperation::Clear,
-                    .storeOperation = gapi::StoreOperation::Store,
-                    .clearDepth = 0.0f
-                };
-                builder.BeginRenderPass(renderPassInfo);
-
-                builder.AddPass(CUBE_T("Init global settings"), [viewport, scissor](gapi::CommandList& commandList)
+            builder.AddPass(CUBE_T("Init global settings"), [viewport, scissor](gapi::CommandList& commandList)
                 {
                     gapi::Viewport vp = viewport;
                     gapi::ScissorRect sr = scissor;
@@ -410,80 +368,44 @@ namespace cube
                     commandList.SetPrimitiveTopology(gapi::PrimitiveTopology::TriangleList);
                 });
 
-                const gapi::RasterizerState mainPassRasterizerState = {
-                    .fillMode = fillMode
-                };
-                const gapi::DepthStencilState mainPassDepthStencilState = {
-                    .enableDepth = true,
-                    .depthFunction = gapi::CompareFunction::Greater
-                };
+            gapi::TextureInfo colorTextureInfo = {
+                .format = mColorFormat,
+                .type = gapi::TextureType::Texture2D,
+                .flags = gapi::TextureFlag::RenderTarget | gapi::TextureFlag::UAV,
+                .width = mViewportWidth,
+                .height = mViewportHeight
+            };
+            RGTextureHandle colorTexture = builder.CreateTexture(colorTextureInfo, CUBE_T("ColorTexture"));
+            gapi::TextureInfo depthTextureInfo = {
+                .format = mDepthStencilFormat,
+                .type = gapi::TextureType::Texture2D,
+                .flags = gapi::TextureFlag::DepthStencil,
+                .width = mViewportWidth,
+                .height = mViewportHeight
+            };
+            RGTextureHandle depthStencil = builder.CreateTexture(depthTextureInfo, CUBE_T("DepthStencilTexture"));
 
-                if (mScene)
-                {
-                    FrameVector<RGBuilder::DrawMeshInfo> drawMeshInfos;
-                    for (const UniquePtr<SceneObject>& sceneObject : mScene->GetSceneObjects())
-                    {
-                        if (SharedPtr<Mesh> mesh = sceneObject->GetMesh())
-                        {
-                            drawMeshInfos.push_back({
-                                .mesh = mesh,
-                                .rasterizerState = mainPassRasterizerState,
-                                .depthStencilState = mainPassDepthStencilState,
-                                .materials = sceneObject->GetMaterials(),
-                                .transformMatrix = sceneObject->GetTransformMatrix() * mGlobalTransformMatrix
-                            });
-                        }
-                    }
+            RGShaderParameterListHandle<GlobalShaderParameterList> globalShaderParameterList = builder.CreateShaderParameterList<GlobalShaderParameterList>();
+            globalShaderParameterList->viewPosition = mViewPosition;
+            globalShaderParameterList->viewSizeAndInvSize = Float4(mViewportWidth, mViewportHeight, 1.0f / mViewportWidth, 1.0f / mViewportHeight);
+            globalShaderParameterList->worldToClip = mViewPerspectiveMatrix;
+            globalShaderParameterList->clipToWorld = mInvViewPerspectiveMatrix;
+            builder.BindGlobalShaderParameterList(globalShaderParameterList);
 
-                    builder.AddDrawMeshPass(CUBE_T("Draw Scene"), drawMeshInfos, {});
-                }
-
-                if (mShowAxis)
-                {
-                    FrameVector<RGBuilder::DrawMeshInfo> drawAxisMeshInfos;
-                    WeakPtr<Material> xAxisMaterial = mXAxisMaterial;
-                    drawAxisMeshInfos.push_back({
-                        .mesh = mBoxMesh,
-                        .rasterizerState = mainPassRasterizerState,
-                        .depthStencilState = mainPassDepthStencilState,
-                        .materials = { &xAxisMaterial, 1 },
-                        .transformMatrix = mXAxisTransformMatrix,
-                    });
-                    WeakPtr<Material> yAxisMaterial = mYAxisMaterial;
-                    drawAxisMeshInfos.push_back({
-                        .mesh = mBoxMesh,
-                        .rasterizerState = mainPassRasterizerState,
-                        .depthStencilState = mainPassDepthStencilState,
-                        .materials = { &yAxisMaterial, 1 },
-                        .transformMatrix = mYAxisTransformMatrix
-                    });
-                    WeakPtr<Material> zAxisMaterial = mZAxisMaterial;
-                    drawAxisMeshInfos.push_back({
-                        .mesh = mBoxMesh,
-                        .rasterizerState = mainPassRasterizerState,
-                        .depthStencilState = mainPassDepthStencilState,
-                        .materials = { &zAxisMaterial, 1 },
-                        .transformMatrix = mZAxisTransformMatrix
-                    });
-                    builder.AddDrawMeshPass(CUBE_T("Draw Axis"), drawAxisMeshInfos, {});
-                }
-
-                mLightManager.UnbindLightShaderParameterList(builder);
-
-                mLightManager.GetEnvironmentMapping().DrawSkybox(builder);
-
-                builder.EndRenderPass();
+            if (!RenderDebugView(builder, colorTexture, depthStencil))
+            {
+                RenderMainPass(builder, colorTexture, depthStencil);
             }
 
             const gapi::TextureInfo tonemappedColorTextureInfo = {
                 .format = mColorFormat,
                 .type = gapi::TextureType::Texture2D,
                 .flags = gapi::TextureFlag::UAV,
-                .width = color->GetTextureInfo().width,
-                .height = color->GetTextureInfo().height
+                .width = colorTexture->GetTextureInfo().width,
+                .height = colorTexture->GetTextureInfo().height
             };
             RGTextureHandle tonemappedColor = builder.CreateTexture(tonemappedColorTextureInfo, CUBE_T("Tonemapped Color"));
-            mTonemap.Execute(builder, color, tonemappedColor);
+            mTonemap.Execute(builder, colorTexture, tonemappedColor);
 
             RGTextureHandle backbuffer = builder.RegisterTexture(mCurrentBackbuffer, gapi::ResourceLayout::Common_Direct, gapi::ResourceLayout::Common_Direct);
             mRenderUtils.CopyTexturePS(builder, tonemappedColor, backbuffer);
@@ -494,6 +416,111 @@ namespace cube
                 mTextureViewer.Update(builder);
             }
         }
+    }
+
+    bool Renderer::RenderDebugView(RGBuilder& builder, RGTextureHandle colorTexture, RGTextureHandle depthStencilTexture)
+    {
+        if (mShowRayTracingDebugView && mScene)
+        {
+            return mRayTracingDebugView.RenderDebugView(builder, *mScene, colorTexture);
+        }
+
+        return false;
+    }
+
+    void Renderer::RenderMainPass(RGBuilder& builder, RGTextureHandle colorTexture, RGTextureHandle depthStencilTexture)
+    {
+        gapi::RasterizerState::FillMode fillMode = mWireframe
+            ? gapi::RasterizerState::FillMode::Line
+            : gapi::RasterizerState::FillMode::Solid;
+
+        RG_GPU_TIMESTAMP_SCOPE(builder, CUBE_T("MainPass"));
+
+        mLightManager.UpdateLightInfoBuffers(builder);
+        mLightManager.BindLightShaderParameterList(builder);
+
+        RGTextureRTVHandle colorRTV = builder.CreateRTV(colorTexture);
+        RGTextureDSVHandle depthStencilDSV = builder.CreateDSV(depthStencilTexture);
+
+        RGBuilder::RenderPassInfo renderPassInfo;
+        renderPassInfo.colors.push_back({
+            .color = colorRTV,
+            .loadOperation = gapi::LoadOperation::Clear,
+            .storeOperation = gapi::StoreOperation::Store,
+            .clearColor = {0.2f, 0.2f, 0.2f, 1.0f}
+        });
+        renderPassInfo.depthStencil = {
+            .dsv = depthStencilDSV,
+            .loadOperation = gapi::LoadOperation::Clear,
+            .storeOperation = gapi::StoreOperation::Store,
+            .clearDepth = 0.0f
+        };
+
+        builder.BeginRenderPass(renderPassInfo);
+
+        const gapi::RasterizerState mainPassRasterizerState = {
+            .fillMode = fillMode
+        };
+        const gapi::DepthStencilState mainPassDepthStencilState = {
+            .enableDepth = true,
+            .depthFunction = gapi::CompareFunction::Greater
+        };
+
+        if (mScene)
+        {
+            FrameVector<RGBuilder::DrawMeshInfo> drawMeshInfos;
+            for (const UniquePtr<SceneObject>& sceneObject : mScene->GetSceneObjects())
+            {
+                if (SharedPtr<Mesh> mesh = sceneObject->GetMesh())
+                {
+                    drawMeshInfos.push_back({
+                        .mesh = mesh,
+                        .rasterizerState = mainPassRasterizerState,
+                        .depthStencilState = mainPassDepthStencilState,
+                        .materials = sceneObject->GetMaterials(),
+                        .transformMatrix = sceneObject->GetTransformMatrix() * mGlobalTransformMatrix,
+                    });
+                }
+            }
+
+            builder.AddDrawMeshPass(CUBE_T("Draw Scene"), drawMeshInfos, {});
+        }
+
+        if (mShowAxis)
+        {
+            FrameVector<RGBuilder::DrawMeshInfo> drawAxisMeshInfos;
+            WeakPtr<Material> xAxisMaterial = mXAxisMaterial;
+            drawAxisMeshInfos.push_back({
+                .mesh = mBoxMesh,
+                .rasterizerState = mainPassRasterizerState,
+                .depthStencilState = mainPassDepthStencilState,
+                .materials = { &xAxisMaterial, 1 },
+                .transformMatrix = mXAxisTransformMatrix,
+            });
+            WeakPtr<Material> yAxisMaterial = mYAxisMaterial;
+            drawAxisMeshInfos.push_back({
+                .mesh = mBoxMesh,
+                .rasterizerState = mainPassRasterizerState,
+                .depthStencilState = mainPassDepthStencilState,
+                .materials = { &yAxisMaterial, 1 },
+                .transformMatrix = mYAxisTransformMatrix
+            });
+            WeakPtr<Material> zAxisMaterial = mZAxisMaterial;
+            drawAxisMeshInfos.push_back({
+                .mesh = mBoxMesh,
+                .rasterizerState = mainPassRasterizerState,
+                .depthStencilState = mainPassDepthStencilState,
+                .materials = { &zAxisMaterial, 1 },
+                .transformMatrix = mZAxisTransformMatrix
+            });
+            builder.AddDrawMeshPass(CUBE_T("Draw Axis"), drawAxisMeshInfos, {});
+        }
+
+        mLightManager.UnbindLightShaderParameterList(builder);
+
+        mLightManager.GetEnvironmentMapping().DrawSkybox(builder);
+
+        builder.EndRenderPass();
     }
 
     void Renderer::LoadResources()

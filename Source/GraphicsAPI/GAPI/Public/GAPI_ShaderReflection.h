@@ -31,7 +31,8 @@ namespace cube
                 Texture,
                 Sampler,
                 CombinedTextureSampler,
-                BindlessHandler
+                AccelerationStructure,
+                BindlessHandler,
             };
 
             String name;
@@ -82,6 +83,8 @@ namespace cube
                 return CUBE_T("Sampler");
             case ShaderParameterReflection::Type::CombinedTextureSampler:
                 return CUBE_T("CombinedTextureSampler");
+            case ShaderParameterReflection::Type::AccelerationStructure:
+                return CUBE_T("AccelerationStructure");
             case ShaderParameterReflection::Type::BindlessHandler:
                 return CUBE_T("BindlessHandler");
             default:

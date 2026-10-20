@@ -5,6 +5,7 @@
 #include "DX12Device.h"
 #include "DX12Types.h"
 #include "GAPI_DX12Shader.h"
+#include "Allocator/AllocatorUtility.h"
 
 namespace cube
 {
@@ -252,16 +253,16 @@ namespace cube
             if (pipelineInfo.vertexShader)
             {
                 DX12Shader* dx12VertexShader = dynamic_cast<DX12Shader*>(pipelineInfo.vertexShader.get());
-                graphicsPSODesc.VS.pShaderBytecode = dx12VertexShader->GetShader().GetData();
-                graphicsPSODesc.VS.BytecodeLength = dx12VertexShader->GetShader().GetSize();
+                graphicsPSODesc.VS.pShaderBytecode = dx12VertexShader->GetShaderByteCode().GetData();
+                graphicsPSODesc.VS.BytecodeLength = dx12VertexShader->GetShaderByteCode().GetSize();
 
                 CUBE_DX12_BOUND_OBJECT(pipelineInfo.vertexShader);
             }
             if (pipelineInfo.pixelShader)
             {
                 DX12Shader* dx12PixelShader = dynamic_cast<DX12Shader*>(pipelineInfo.pixelShader.get());
-                graphicsPSODesc.PS.pShaderBytecode = dx12PixelShader->GetShader().GetData();
-                graphicsPSODesc.PS.BytecodeLength = dx12PixelShader->GetShader().GetSize();
+                graphicsPSODesc.PS.pShaderBytecode = dx12PixelShader->GetShaderByteCode().GetData();
+                graphicsPSODesc.PS.BytecodeLength = dx12PixelShader->GetShaderByteCode().GetSize();
 
                 CUBE_DX12_BOUND_OBJECT(pipelineInfo.pixelShader);
             }
@@ -297,8 +298,8 @@ namespace cube
 
             DX12Shader* dx12ComputeShader = dynamic_cast<DX12Shader*>(pipelineInfo.shader.get());
             CHECK(dx12ComputeShader);
-            computePSODesc.CS.pShaderBytecode = dx12ComputeShader->GetShader().GetData();
-            computePSODesc.CS.BytecodeLength = dx12ComputeShader->GetShader().GetSize();
+            computePSODesc.CS.pShaderBytecode = dx12ComputeShader->GetShaderByteCode().GetData();
+            computePSODesc.CS.BytecodeLength = dx12ComputeShader->GetShaderByteCode().GetSize();
             CUBE_DX12_BOUND_OBJECT(pipelineInfo.shader);
 
             CHECK_HR(device.GetDevice()->CreateComputePipelineState(&computePSODesc, IID_PPV_ARGS(&mPipelineState)));
@@ -312,6 +313,164 @@ namespace cube
         DX12ComputePipeline::~DX12ComputePipeline()
         {
             mPipelineState = nullptr;
+        }
+
+        DX12RayTracingPipeline::DX12RayTracingPipeline(DX12Device& device, const RayTracingPipelineCreateInfo& createInfo)
+            : mDevice(device)
+        {
+            CHECK(mDevice.IsHWRTSupported());
+
+            const RayTracingPipelineInfo& pipelineInfo = createInfo.pipelineInfo;
+
+            // TODO: Make state object builder? - after frame allocator improvement
+            FrameVector<D3D12_STATE_SUBOBJECT> subobjects;
+
+            D3D12_GLOBAL_ROOT_SIGNATURE globalRootSignature;
+            globalRootSignature.pGlobalRootSignature = device.GetShaderParameterHelper().GetRootSignature();
+            subobjects.push_back({
+                .Type = D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE,
+                .pDesc = &globalRootSignature,
+            });
+
+            auto AddShader = [&](Shader* shader, WindowsString& shaderName, D3D12_EXPORT_DESC& exportDesc, D3D12_DXIL_LIBRARY_DESC& libraryDesc)
+            {
+                DX12Shader* dx12Shader = dynamic_cast<DX12Shader*>(shader);
+                CHECK(dx12Shader);
+                shaderName = String_Convert<WindowsString>(dx12Shader->GetReflection().name);
+                exportDesc.Name = shaderName.c_str();
+                exportDesc.ExportToRename = nullptr;
+                exportDesc.Flags = D3D12_EXPORT_FLAG_NONE;
+                libraryDesc.DXILLibrary.pShaderBytecode = dx12Shader->GetShaderByteCode().GetData();
+                libraryDesc.DXILLibrary.BytecodeLength = dx12Shader->GetShaderByteCode().GetSize();
+                libraryDesc.NumExports = 1;
+                libraryDesc.pExports = &exportDesc;
+
+                subobjects.push_back({
+                    .Type = D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY,
+                    .pDesc = &libraryDesc,
+                });
+            };
+
+            int currentShaderTableOffset = 0;
+
+            D3D12_EXPORT_DESC rayGenExportDesc;
+            D3D12_DXIL_LIBRARY_DESC rayGenLibraryDesc;
+            WindowsString rayGenShaderName;
+            AddShader(pipelineInfo.rayGenShader.get(), rayGenShaderName, rayGenExportDesc, rayGenLibraryDesc);
+            mRayGenShaderTableOffset = 0;
+            currentShaderTableOffset = mRayGenShaderTableOffset + D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
+            CUBE_DX12_BOUND_OBJECT(pipelineInfo.rayGenShader);
+
+            D3D12_EXPORT_DESC closestHitExportDesc;
+            D3D12_DXIL_LIBRARY_DESC closestHitLibraryDesc;
+            WindowsString closestHitShaderName;
+            if (pipelineInfo.closestHitShader)
+            {
+                AddShader(pipelineInfo.closestHitShader.get(), closestHitShaderName, closestHitExportDesc, closestHitLibraryDesc);
+                CUBE_DX12_BOUND_OBJECT(pipelineInfo.closestHitShader);
+            }
+
+            D3D12_EXPORT_DESC missExportDesc;
+            D3D12_DXIL_LIBRARY_DESC missLibraryDesc;
+            WindowsString missShaderName;
+            if (pipelineInfo.missShader)
+            {
+                AddShader(pipelineInfo.missShader.get(), missShaderName, missExportDesc, missLibraryDesc);
+                mMissShaderTableOffset = Align(currentShaderTableOffset, D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
+                currentShaderTableOffset = mMissShaderTableOffset + D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
+                CUBE_DX12_BOUND_OBJECT(pipelineInfo.missShader);
+            }
+
+            const bool existAnyHitShader = pipelineInfo.closestHitShader != nullptr;
+            D3D12_HIT_GROUP_DESC hitGroupDesc;
+            WindowsString hitGroupExportName;
+            if (existAnyHitShader)
+            {
+                hitGroupExportName = Format<WindowsString>(WINDOWS_T("{0}_HitGroup"), createInfo.debugName);
+                hitGroupDesc.HitGroupExport = hitGroupExportName.c_str();
+                hitGroupDesc.Type = D3D12_HIT_GROUP_TYPE_TRIANGLES;
+                hitGroupDesc.AnyHitShaderImport = NULL;
+                hitGroupDesc.ClosestHitShaderImport = pipelineInfo.closestHitShader ? closestHitShaderName.c_str() : NULL;
+                hitGroupDesc.IntersectionShaderImport = NULL;
+                mHitGroupShaderTableOffset = Align(currentShaderTableOffset, D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
+                currentShaderTableOffset = mHitGroupShaderTableOffset + D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
+
+                subobjects.push_back({
+                    .Type = D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP,
+                    .pDesc = &hitGroupDesc,
+                });
+            }
+
+            D3D12_RAYTRACING_SHADER_CONFIG shaderConfig;
+            shaderConfig.MaxPayloadSizeInBytes = pipelineInfo.maxPayloadSize;
+            shaderConfig.MaxAttributeSizeInBytes = pipelineInfo.maxAttributeSize;
+            subobjects.push_back({
+                .Type = D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_SHADER_CONFIG,
+                .pDesc = &shaderConfig,
+            });
+
+            D3D12_RAYTRACING_PIPELINE_CONFIG pipelineConfig;
+            pipelineConfig.MaxTraceRecursionDepth = pipelineInfo.maxRecursionDepth;
+            subobjects.push_back({
+                .Type = D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG,
+                .pDesc = &pipelineConfig,
+            });
+
+            D3D12_STATE_OBJECT_DESC stateObjectDesc = {};
+            stateObjectDesc.Type = D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE;
+            stateObjectDesc.NumSubobjects = static_cast<UINT>(subobjects.size());
+            stateObjectDesc.pSubobjects = subobjects.data();
+
+            CHECK_HR(device.GetDevice()->CreateStateObject(&stateObjectDesc, IID_PPV_ARGS(&mStateObject)));
+            SET_DEBUG_NAME_FORMAT(mStateObject, "{0}_RTPSO", createInfo.debugName);
+            CHECK_HR(mStateObject->QueryInterface(IID_PPV_ARGS(&mStateObjectProperties)));
+
+            D3D12_RESOURCE_DESC1 shaderTableBufferDesc = {
+                .Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
+                .Alignment = 0,
+                .Width = static_cast<UINT64>(currentShaderTableOffset),
+                .Height = 1,
+                .DepthOrArraySize = 1,
+                .MipLevels = 1,
+                .Format = DXGI_FORMAT_UNKNOWN,
+                .SampleDesc = {
+                    .Count = 1,
+                    .Quality = 0,
+                },
+                .Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
+                .Flags = D3D12_RESOURCE_FLAG_NONE,
+                .SamplerFeedbackMipRegion = {0, 0, 0},
+            };
+            mShaderTableAllocation = device.GetMemoryAllocator().Allocate(D3D12_HEAP_TYPE_UPLOAD, shaderTableBufferDesc, D3D12_BARRIER_LAYOUT_UNDEFINED, false);
+            SET_DEBUG_NAME_FORMAT(mShaderTableAllocation.resource, "{0}_ShaderTable", createInfo.debugName);
+            mShaderTableAllocation.Map();
+            Byte* pShaderTable = static_cast<Byte*>(mShaderTableAllocation.pMapPtr);
+            {
+                void* rayGenShaderId = mStateObjectProperties->GetShaderIdentifier(rayGenShaderName.c_str());
+                CHECK(rayGenShaderId);
+                memcpy(pShaderTable + mRayGenShaderTableOffset, rayGenShaderId, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+                if (pipelineInfo.closestHitShader)
+                {
+                    void* hitGroupShaderId = mStateObjectProperties->GetShaderIdentifier(hitGroupExportName.c_str());
+                    CHECK(hitGroupShaderId);
+                    memcpy(pShaderTable + mHitGroupShaderTableOffset, hitGroupShaderId, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+                }
+                if (pipelineInfo.missShader)
+                {
+                    void* missShaderId = mStateObjectProperties->GetShaderIdentifier(missShaderName.c_str());
+                    CHECK(missShaderId);
+                    memcpy(pShaderTable + mMissShaderTableOffset, missShaderId, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+                }
+            }
+            mShaderTableAllocation.Unmap();
+        }
+
+        DX12RayTracingPipeline::~DX12RayTracingPipeline()
+        {
+            mDevice.GetMemoryAllocator().Free(mShaderTableAllocation);
+
+            mStateObjectProperties = nullptr;
+            mStateObject = nullptr;
         }
     } // namespace gapi
 } // namespace cube

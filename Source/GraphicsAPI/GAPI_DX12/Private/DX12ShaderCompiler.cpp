@@ -71,6 +71,11 @@ namespace cube
         case gapi::ShaderType::Compute:
             args.push_back(WINDOWS_T("cs_6_6"));
             break;
+        case gapi::ShaderType::RayGen:
+        case gapi::ShaderType::ClosestHit:
+        case gapi::ShaderType::Miss:
+            args.push_back(WINDOWS_T("lib_6_6"));
+            break;
         default:
             compileResult.AddError(Format<FrameString>(CUBE_T("Not supported shader type: {0}"), (int)createInfo.type));
             return {};

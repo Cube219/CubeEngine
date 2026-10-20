@@ -6,6 +6,7 @@ namespace cube
 {
     namespace gapi
     {
+        class BLAS;
         class Buffer;
         class TLAS;
     } // namespace gapi
@@ -26,6 +27,9 @@ namespace cube
         void AddMaterial(SharedPtr<Material> material);
 
         void UpdateScene(RGBuilder& builder, Uint64 renderingFrame);
+
+        SharedPtr<gapi::TLAS> GetTLAS() const { return mTLAS; }
+        Vector<SharedPtr<gapi::BLAS>> GetBLASes() const;
 
     private:
         void UpdateSceneObjects(Uint64 renderingFrame);

@@ -175,4 +175,21 @@ namespace cube
 
         mTLASLastBuildRenderingFrame = renderer->GetCurrentRenderingFrame();
     }
+    
+    Vector<SharedPtr<gapi::BLAS>> Scene::GetBLASes() const
+    {
+        Vector<SharedPtr<gapi::BLAS>> res;
+        for (const UniquePtr<SceneObject>& sceneObject : mSceneObjects)
+        {
+            if (SharedPtr<Mesh> mesh = sceneObject->GetMesh())
+            {
+                if (SharedPtr<BLASResource> blas = mesh->GetBLAS())
+                {
+                    res.push_back(blas->GetGAPIBLAS());
+                }
+            }
+        }
+
+        return res;
+    }
 } // namespace cube

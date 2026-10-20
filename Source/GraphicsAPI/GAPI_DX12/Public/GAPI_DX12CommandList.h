@@ -15,13 +15,9 @@ namespace cube
 
     namespace gapi
     {
-        class Buffer;
-        class ComputePipeline;
+        class DX12RayTracingPipeline;
         class DX12Fence;
         class DX12ShaderParameterHelper;
-        class GraphicsPipeline;
-        class Sampler;
-        class Texture;
 
         class DX12CommandList : public CommandList, public DX12APIObject
         {
@@ -75,6 +71,9 @@ namespace cube
             virtual void BuildBLAS(SharedPtr<BLAS> blas, SharedPtr<Buffer> scratchBuffer, bool update) override;
             virtual void BuildTLAS(SharedPtr<TLAS> tlas, SharedPtr<Buffer> scratchBuffer, SharedPtr<Buffer> instanceDescBuffer, bool update) override;
 
+            virtual void SetRayTracingPipeline(SharedPtr<RayTracingPipeline> rayTracingPipeline) override;
+            virtual void DispatchRay(Uint32 width, Uint32 height, Uint32 depth) override;
+
             virtual void BeginTimestamp(StringView name) override;
             virtual void EndTimestamp() override;
 
@@ -106,6 +105,7 @@ namespace cube
                 Vector<D3D12_RECT> scissors;
                 D3D12_PRIMITIVE_TOPOLOGY primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
                 ID3D12PipelineState* computePipelineState = nullptr;
+                DX12RayTracingPipeline* rayTracingPipeline = nullptr;
 
                 struct ConstantBuffer
                 {
@@ -120,6 +120,7 @@ namespace cube
                     scissors.clear();
                     primitiveTopology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
                     computePipelineState = nullptr;
+                    rayTracingPipeline = nullptr;
                     constantBuffers.clear();
                 }
             };

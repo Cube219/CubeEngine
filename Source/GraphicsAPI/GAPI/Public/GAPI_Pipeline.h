@@ -184,5 +184,31 @@ namespace cube
             ComputePipeline() = default;
             virtual ~ComputePipeline() = default;
         };
+
+        struct RayTracingPipelineInfo
+        {
+            SharedPtr<Shader> rayGenShader;
+            // TODO: Support multiple shaders.
+            SharedPtr<Shader> closestHitShader = nullptr;
+            SharedPtr<Shader> missShader = nullptr;
+
+            Uint32 maxPayloadSize;
+            Uint32 maxAttributeSize;
+            Uint32 maxRecursionDepth = 1;
+        };
+
+        struct RayTracingPipelineCreateInfo
+        {
+            RayTracingPipelineInfo pipelineInfo;
+
+            StringView debugName;
+        };
+
+        class RayTracingPipeline
+        {
+        public:
+            RayTracingPipeline() = default;
+            virtual ~RayTracingPipeline() = default;
+        };
     } // namespace gapi
 } // namespace cube

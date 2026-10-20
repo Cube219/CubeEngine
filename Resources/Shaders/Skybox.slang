@@ -43,7 +43,7 @@ SkyboxPSInput VSMain(uint vertexId : SV_VertexID)
     float3 position = boxVertexPosition[vertexIndex];
 
     SkyboxPSInput output;
-    output.position = mul(float4(position + globalParams.viewPosition, 1), globalParams.viewProjection);
+    output.position = mul(float4(position + globalParams.viewPosition, 1), globalParams.worldToClip);
     // Set z to 0 for early-z optimization.
     output.position.z = 0;
     // Reverse z to convert to right-handed coordinate.

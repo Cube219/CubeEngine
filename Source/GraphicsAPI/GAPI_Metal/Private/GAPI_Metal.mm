@@ -235,6 +235,11 @@ namespace cube
         return std::make_shared<gapi::MetalTLAS>(createInfo, *mMainDevice);
     }
 
+    SharedPtr<gapi::RayTracingPipeline> GAPI_Metal::CreateRayTracingPipeline(const gapi::RayTracingPipelineCreateInfo& createInfo)
+    {
+        return std::make_shared<gapi::MetalRayTracingPipeline>(createInfo, *mMainDevice);
+    }
+
     gapi::TimestampRangeList GAPI_Metal::GetLastTimestampRangeList()
     {
         return mMainDevice->GetTimestampManager().GetLastTimestampRangeList();

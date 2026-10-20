@@ -523,6 +523,11 @@ namespace cube
                                 type = gapi::ShaderParameterReflection::Type::Texture;
                                 break;
                             }
+                            if (baseShape == SLANG_ACCELERATION_STRUCTURE)
+                            {
+                                type = gapi::ShaderParameterReflection::Type::AccelerationStructure;
+                                break;
+                            }
                             CUBE_LOG(Warning, Slang, "Unsupported resource type.");
                             break;
                         }

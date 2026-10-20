@@ -18,22 +18,12 @@ namespace cube
         {
             Vertex,
             Pixel,
-            Compute
+            Compute,
+
+            RayGen,
+            ClosestHit,
+            Miss,
         };
-        inline const Character* ShaderTypeToString(ShaderType shaderType)
-        {
-            switch (shaderType)
-            {
-            case ShaderType::Vertex:
-                return CUBE_T("Vertex");
-            case ShaderType::Pixel:
-                return CUBE_T("Pixel");
-            case ShaderType::Compute:
-                return CUBE_T("Compute");
-            default:
-                return CUBE_T("Unknown");
-            }
-        }
 
         enum class ShaderLanguage
         {
@@ -77,7 +67,7 @@ namespace cube
         struct ShaderCreateInfo
         {
             ShaderType type;
-            ShaderLanguage language;
+            ShaderLanguage language = ShaderLanguage::Slang;
 
             struct ShaderCodeInfo
             {

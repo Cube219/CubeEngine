@@ -144,10 +144,20 @@ namespace cube
 
             mInstances = { createInfo.instances.begin(), createInfo.instances.end() };
             mInstanceDescBufferSize = sizeof(D3D12_RAYTRACING_INSTANCE_DESC) * mInstances.size();
+
+            mSRVDescriptor = device.GetDescriptorManager().GetSRVHeap().Allocate();
+            D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+            srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+            srvDesc.ViewDimension = D3D12_SRV_DIMENSION_RAYTRACING_ACCELERATION_STRUCTURE;
+            srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+            srvDesc.RaytracingAccelerationStructure.Location = GetGPUAddress();
+            device.GetDevice()->CreateShaderResourceView(nullptr, &srvDesc, mSRVDescriptor.cpuHandle);
+            mBindlessId = mSRVDescriptor.index;
         }
 
         DX12TLAS::~DX12TLAS()
         {
+            mDevice.GetDescriptorManager().GetSRVHeap().Free(mSRVDescriptor);
             mDevice.GetMemoryAllocator().Free(mAllocation);
         }
 

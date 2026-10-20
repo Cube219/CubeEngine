@@ -46,6 +46,7 @@ namespace cube
 
         virtual SharedPtr<gapi::BLAS> CreateBLAS(const gapi::BLASCreateInfo& createInfo) override;
         virtual SharedPtr<gapi::TLAS> CreateTLAS(const gapi::TLASCreateInfo& createInfo) override;
+        virtual SharedPtr<gapi::RayTracingPipeline> CreateRayTracingPipeline(const gapi::RayTracingPipelineCreateInfo& createInfo) override;
 
         virtual gapi::TimestampRangeList GetLastTimestampRangeList() override;
         virtual gapi::VRAMStatus GetVRAMUsage() override;

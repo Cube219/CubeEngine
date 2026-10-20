@@ -42,6 +42,8 @@ set(PRIVATE_FILES
     Private/RenderCore/TextureManager.h
     Private/RenderCore/UploadManager.cpp
     Private/RenderCore/UploadManager.h
+    Private/Renderer/DebugView/RayTracingDebugView.cpp
+    Private/Renderer/DebugView/RayTracingDebugView.h
     Private/Renderer/EnvironmentMapping.cpp
     Private/Renderer/EnvironmentMapping.h
     Private/Renderer/Light.cpp

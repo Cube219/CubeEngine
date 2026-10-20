@@ -110,6 +110,9 @@ namespace cube
             virtual void BuildBLAS(SharedPtr<BLAS> blas, SharedPtr<Buffer> scratchBuffer, bool update) override;
             virtual void BuildTLAS(SharedPtr<TLAS> tlas, SharedPtr<Buffer> scratchBuffer, SharedPtr<Buffer> instanceDescBuffer, bool update) override;
 
+            virtual void SetRayTracingPipeline(SharedPtr<RayTracingPipeline> rayTracingPipeline) override;
+            virtual void DispatchRay(Uint32 width, Uint32 height, Uint32 depth) override;
+
             virtual void BeginTimestamp(StringView name) override;
             virtual void EndTimestamp() override;
 

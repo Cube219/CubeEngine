@@ -116,12 +116,16 @@ namespace cube
             Uint64 GetUpdateScratchBufferSize() const { return mUpdateScratchBufferSize; }
             Uint64 GetInstanceDescBufferSize() const { return mInstanceDescBufferSize; }
 
+            Uint64 GetBindlessId() const { return mBindlessId; }
+
             virtual void UpdateInstances(ConstArrayView<BLASInstance> instances) = 0;
 
         protected:
             Uint64 mScratchBufferSize = 0; // Set in child class
             Uint64 mUpdateScratchBufferSize = 0; // Set in child class
             Uint64 mInstanceDescBufferSize = 0; // Set in child class
+
+            Uint64 mBindlessId = -1;
         };
     } // namespace gapi
 } // namespace cube

@@ -5,6 +5,7 @@
 #include "GAPI_Pipeline.h"
 
 #include "DX12APIObject.h"
+#include "DX12MemoryAllocator.h"
 
 namespace cube
 {
@@ -42,6 +43,34 @@ namespace cube
             Uint32 mThreadGroupSizeX;
             Uint32 mThreadGroupSizeY;
             Uint32 mThreadGroupSizeZ;
+
+            Vector<SharedPtr<DX12APIObject>> mBoundObjects;
+        };
+
+        class DX12RayTracingPipeline : public RayTracingPipeline, public DX12APIObject
+        {
+        public:
+            DX12RayTracingPipeline(DX12Device& device, const RayTracingPipelineCreateInfo& createInfo);
+            virtual ~DX12RayTracingPipeline();
+
+            ID3D12StateObject* GetPipelineStateObject() const { return mStateObject.Get(); }
+            D3D12_GPU_VIRTUAL_ADDRESS GetShaderTableGPUAddress() const { return mShaderTableAllocation.resource->GetGPUVirtualAddress(); }
+            int GetRayGenShaderTableOffset() const { return mRayGenShaderTableOffset; }
+            bool HasHitGroupShader() const { return mHitGroupShaderTableOffset != -1; }
+            int GetHitGroupShaderTableOffset() const { return mHitGroupShaderTableOffset; }
+            bool HasMissShader() const { return mMissShaderTableOffset != -1; }
+            int GetMissShaderTableOffset() const { return mMissShaderTableOffset; }
+
+        private:
+            DX12Device& mDevice;
+
+            ComPtr<ID3D12StateObject> mStateObject;
+            ComPtr<ID3D12StateObjectProperties> mStateObjectProperties;
+
+            int mRayGenShaderTableOffset = -1;
+            int mHitGroupShaderTableOffset = -1;
+            int mMissShaderTableOffset = -1;
+            DX12Allocation mShaderTableAllocation;
 
             Vector<SharedPtr<DX12APIObject>> mBoundObjects;
         };

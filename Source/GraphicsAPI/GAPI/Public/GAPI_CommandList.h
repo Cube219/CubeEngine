@@ -18,6 +18,7 @@ namespace cube
         class ComputePipeline;
         class Fence;
         class GraphicsPipeline;
+        class RayTracingPipeline;
         class Sampler;
         class Texture;
         class TextureDSV;
@@ -173,6 +174,9 @@ namespace cube
             virtual void PrepareAccelerationStructureBuild() = 0;
             virtual void BuildBLAS(SharedPtr<BLAS> blas, SharedPtr<Buffer> scratchBuffer, bool update = false) = 0;
             virtual void BuildTLAS(SharedPtr<TLAS> tlas, SharedPtr<Buffer> scratchBuffer, SharedPtr<Buffer> instanceDescBuffer, bool update = false) = 0;
+
+            virtual void SetRayTracingPipeline(SharedPtr<RayTracingPipeline> rayTracingPipeline) = 0;
+            virtual void DispatchRay(Uint32 width, Uint32 height, Uint32 depth) = 0;
 
             virtual void BeginTimestamp(StringView name) = 0;
             virtual void EndTimestamp() = 0;

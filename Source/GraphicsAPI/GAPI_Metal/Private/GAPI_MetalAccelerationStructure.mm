@@ -103,6 +103,8 @@ namespace cube
             mInstances.resize(createInfo.instances.size());
             UpdateInstances(createInfo.instances);
             mInstanceDescBufferSize = sizeof(MTLAccelerationStructureInstanceDescriptor) * createInfo.instances.size();
+
+            mBindlessId = mTLAS.gpuResourceID._impl;
         }}
 
         MetalTLAS::~MetalTLAS()

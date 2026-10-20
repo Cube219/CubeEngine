@@ -3,6 +3,7 @@
 #include "DX12Header.h"
 
 #include "DX12APIObject.h"
+#include "DX12DescriptorManager.h"
 #include "DX12MemoryAllocator.h"
 #include "GAPI_AccelerationStructure.h"
 
@@ -57,6 +58,7 @@ namespace cube
             D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO mPrebuildInfo;
 
             DX12Allocation mAllocation;
+            DX12DescriptorHandle mSRVDescriptor;
         };
     } // namespace gapi
 } // namespace cube

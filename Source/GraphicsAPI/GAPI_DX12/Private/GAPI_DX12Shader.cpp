@@ -8,9 +8,9 @@ namespace cube
     namespace gapi
     {
         DX12Shader::DX12Shader(DX12ShaderCompilerResult&& result, StringView warningMessage, StringView errorMessage, Vector<platform::FilePath>&& dependencyFilePaths)
-            : mShader(std::move(result.shader))
+            : mShaderByteCode(std::move(result.shader))
         {
-            mCreated = mShader.GetSize() > 0;
+            mCreated = mShaderByteCode.GetSize() > 0;
             mWarningMessage = warningMessage;
             mErrorMessage = errorMessage;
             mDependencyFilePaths = std::move(dependencyFilePaths);
@@ -25,7 +25,7 @@ namespace cube
 
         DX12Shader::~DX12Shader()
         {
-            mShader.Release();
+            mShaderByteCode.Release();
         }
     } // namespace gapi
 } // namespace cube

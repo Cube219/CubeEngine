@@ -36,6 +36,8 @@ namespace cube
         struct BLASCreateInfo;
         class TLAS;
         struct TLASCreateInfo;
+        class RayTracingPipeline;
+        struct RayTracingPipelineCreateInfo;
 
         class TextureRTV;
     } // namespace gapi
@@ -91,6 +93,7 @@ namespace cube
 
         virtual SharedPtr<gapi::BLAS> CreateBLAS(const gapi::BLASCreateInfo& createInfo) = 0;
         virtual SharedPtr<gapi::TLAS> CreateTLAS(const gapi::TLASCreateInfo& createInfo) = 0;
+        virtual SharedPtr<gapi::RayTracingPipeline> CreateRayTracingPipeline(const gapi::RayTracingPipelineCreateInfo& createInfo) = 0;
 
         virtual gapi::TimestampRangeList GetLastTimestampRangeList() = 0;
         virtual gapi::VRAMStatus GetVRAMUsage() = 0;

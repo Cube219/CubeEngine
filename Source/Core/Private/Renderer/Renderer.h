@@ -2,8 +2,8 @@
 
 #include "CoreHeader.h"
 
+#include "DebugView/RayTracingDebugView.h"
 #include "DLib.h"
-#include "EnvironmentMapping.h"
 #include "GAPI.h"
 #include "GAPI_Texture.h"
 #include "LightManager.h"
@@ -35,7 +35,9 @@ namespace cube
     {
         CUBE_BEGIN_SHADER_PARAMETER_LIST(GlobalShaderParameterList)
             CUBE_SHADER_PARAMETER(Vector3, viewPosition)
-            CUBE_SHADER_PARAMETER(Matrix, viewProjection)
+            CUBE_SHADER_PARAMETER(Float4, viewSizeAndInvSize)
+            CUBE_SHADER_PARAMETER(Matrix, worldToClip)
+            CUBE_SHADER_PARAMETER(Matrix, clipToWorld)
         CUBE_END_SHADER_PARAMETER_LIST
     };
 
@@ -111,6 +113,9 @@ namespace cube
         void SetGlobalConstantBuffers();
         void RenderImpl(RGBuilder& builder);
 
+        bool RenderDebugView(RGBuilder& builder, RGTextureHandle colorTexture, RGTextureHandle depthStencilTexture);
+        void RenderMainPass(RGBuilder& builder, RGTextureHandle colorTexture, RGTextureHandle depthStencilTexture);
+
         void LoadResources();
         void ClearResources();
 
@@ -133,6 +138,7 @@ namespace cube
         ResourceManager mResourceManager;
 
         TextureViewer mTextureViewer;
+        RayTracingDebugView mRayTracingDebugView;
 
         bool mRenderImGUI;
 
@@ -142,6 +148,7 @@ namespace cube
         Matrix mInverseViewMatrix;
         Matrix mPerspectiveMatrix;
         Matrix mViewPerspectiveMatrix;
+        Matrix mInvViewPerspectiveMatrix;
         bool mIsViewPerspectiveMatrixDirty;
 
         SharedPtr<gapi::CommandList> mCommandList;
@@ -174,5 +181,7 @@ namespace cube
 
         Matrix mZAxisTransformMatrix;
         SharedPtr<Material> mZAxisMaterial;
+
+        bool mShowRayTracingDebugView = false;
     };
 } // namespace cube

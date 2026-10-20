@@ -45,5 +45,19 @@ namespace cube
             id<MTLComputePipelineState> mPipelineState;
             MTLSize mThreadGroupSize;
         };
+
+        class MetalRayTracingPipeline : public RayTracingPipeline
+        {
+        public:
+            MetalRayTracingPipeline(const RayTracingPipelineCreateInfo& createInfo, MetalDevice& device);
+            virtual ~MetalRayTracingPipeline();
+
+            id<MTLComputePipelineState> GetMTLComputePipelineState() const { return mPipelineState; }
+            MTLSize GetThreadGroupSize() const { return mThreadGroupSize; };
+
+        private:
+            id<MTLComputePipelineState> mPipelineState;
+            MTLSize mThreadGroupSize;
+        };
     } // namespace gapi
 } // namespace cube

@@ -25,7 +25,7 @@ PSInput VSMain(uint vertexId : SV_VertexID)
 
     PSInput output;
 
-    output.position = mul(mul(float4(v.position, 1), perObjectParams.transform), globalParams.viewProjection);
+    output.position = mul(mul(float4(v.position, 1), perObjectParams.transform), globalParams.worldToClip);
     output.worldPosition = mul(float4(v.position, 1), perObjectParams.transform);
     output.normal = normalize(mul(v.normal, (float3x3)perObjectParams.invTransposedTransform));
     output.tangent.xyz = normalize(mul(v.tangent.xyz, (float3x3)perObjectParams.transform));

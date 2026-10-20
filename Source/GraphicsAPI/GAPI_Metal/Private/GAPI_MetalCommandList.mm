@@ -799,6 +799,36 @@ namespace cube
             }
         }
 
+        void MetalCommandList::SetRayTracingPipeline(SharedPtr<RayTracingPipeline> rayTracingPipeline)
+        {
+            CHECK(IsWriting());
+            CHECK(mType == CommandListType::Direct);
+            CHECK(!IsInRenderPass());
+
+            MetalRayTracingPipeline* metalRayTracingPipeline = dynamic_cast<MetalRayTracingPipeline*>(rayTracingPipeline.get());
+            CHECK(metalRayTracingPipeline);
+
+            UseComputeEncoder();
+
+            mCurrentEncoderState.SetComputePipelineState(metalRayTracingPipeline->GetMTLComputePipelineState());
+            mCurrentEncoderState.ApplyComputePipelineState(mComputeEncoder);
+
+            mComputeThreadGroupSize = metalRayTracingPipeline->GetThreadGroupSize();
+        }
+
+        void MetalCommandList::DispatchRay(Uint32 width, Uint32 height, Uint32 depth)
+        {
+            CHECK(IsWriting());
+            CHECK(mType == CommandListType::Direct);
+
+            UseComputeEncoder();
+
+            [mComputeEncoder
+                dispatchThreads:MTLSizeMake(width, height, depth)
+                threadsPerThreadgroup:mComputeThreadGroupSize
+            ];
+        }
+
         void MetalCommandList::BeginTimestamp(StringView name)
         {
             CHECK(IsWriting());

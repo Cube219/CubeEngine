@@ -76,6 +76,7 @@ namespace cube
                     break;
                 case ShaderParameterCPUType::BindlessTexture:
                 case ShaderParameterCPUType::BindlessSampler:
+                case ShaderParameterCPUType::BindlessTLAS:
                 case ShaderParameterCPUType::RGBufferSRV:
                 case ShaderParameterCPUType::RGBufferUAV:
                 case ShaderParameterCPUType::RGTextureSRV:
@@ -212,6 +213,13 @@ namespace cube
                     memcpy(dst, ids, sizeof(ids));
                     break;
                 }
+                case ShaderParameterCPUType::BindlessTLAS:
+                {
+                    const BindlessTLAS* bindlessTLAS = reinterpret_cast<const BindlessTLAS*>(src);
+                    Uint64 id = bindlessTLAS->id;
+                    memcpy(dst, &id, sizeof(Uint64));
+                    break;
+                }
                 case ShaderParameterCPUType::RGBufferSRV:
                 {
                     const RGBufferSRVHandle& srv = *reinterpret_cast<const RGBufferSRVHandle*>(src);
@@ -334,6 +342,9 @@ namespace cube
             };
             mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterCPUType::BindlessCombinedTextureSampler)] = {
                 ShaderParameterReflection::Type::CombinedTextureSampler
+            };
+            mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterCPUType::BindlessTLAS)] = {
+                ShaderParameterReflection::Type::AccelerationStructure
             };
             mCompatibleShaderParameterReflectionTypeMap[static_cast<int>(ShaderParameterCPUType::RGBufferSRV)] = {
                 ShaderParameterReflection::Type::Buffer

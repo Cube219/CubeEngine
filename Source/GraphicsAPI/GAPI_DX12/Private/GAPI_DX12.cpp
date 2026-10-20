@@ -327,6 +327,11 @@ namespace cube
         return std::make_shared<gapi::DX12TLAS>(createInfo, *mMainDevice);
     }
 
+    SharedPtr<gapi::RayTracingPipeline> GAPI_DX12::CreateRayTracingPipeline(const gapi::RayTracingPipelineCreateInfo& createInfo)
+    {
+        return std::make_shared<gapi::DX12RayTracingPipeline>(*mMainDevice, createInfo);
+    }
+
     gapi::TimestampRangeList GAPI_DX12::GetLastTimestampRangeList()
     {
         return mMainDevice->GetQueryManager().GetLastTimestampRangeList();

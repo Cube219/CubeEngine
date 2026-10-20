@@ -136,4 +136,9 @@ namespace cube
         Uint64 textureId = -1;
         Uint64 samplerId = -1;
     };
+
+    struct BindlessTLAS
+    {
+        Uint64 id = -1;
+    };
 } // namespace cube

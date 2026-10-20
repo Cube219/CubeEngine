@@ -185,6 +185,7 @@ namespace cube
             CHECK(IsInRenderPass());
 
             mCommandListState.computePipelineState = nullptr;
+            mCommandListState.rayTracingPipeline = nullptr;
             mCommandList->SetPipelineState(dynamic_cast<DX12GraphicsPipeline*>(graphicsPipeline.get())->GetPipelineState());
 
             CUBE_DX12_BOUND_OBJECT(graphicsPipeline);
@@ -495,6 +496,8 @@ namespace cube
             DX12ComputePipeline* dx12ComputePipeline = dynamic_cast<DX12ComputePipeline*>(computePipeline.get());
             CHECK(dx12ComputePipeline);
 
+            mCommandListState.rayTracingPipeline = nullptr;
+
             mCommandList->SetPipelineState(dx12ComputePipeline->GetPipelineState());
             mComputeThreadGroupSizeX = dx12ComputePipeline->GetThreadGroupSizeX();
             mComputeThreadGroupSizeY = dx12ComputePipeline->GetThreadGroupSizeY();
@@ -670,6 +673,56 @@ namespace cube
             CUBE_DX12_BOUND_OBJECT(tlas);
             CUBE_DX12_BOUND_OBJECT(scratchBuffer);
             CUBE_DX12_BOUND_OBJECT(instanceDescBuffer);
+        }
+
+        void DX12CommandList::SetRayTracingPipeline(SharedPtr<RayTracingPipeline> rayTracingPipeline)
+        {
+            CHECK(IsWriting());
+            CHECK(mType == CommandListType::Direct);
+            CHECK(!IsInRenderPass());
+
+            DX12RayTracingPipeline* dx12RayTracingPipeline = dynamic_cast<DX12RayTracingPipeline*>(rayTracingPipeline.get());
+            CHECK(dx12RayTracingPipeline);
+
+            mCommandListState.computePipelineState = nullptr;
+
+            mCommandList->SetPipelineState1(dx12RayTracingPipeline->GetPipelineStateObject());
+            mCommandListState.rayTracingPipeline = dx12RayTracingPipeline;
+
+            CUBE_DX12_BOUND_OBJECT(rayTracingPipeline);
+        }
+
+        void DX12CommandList::DispatchRay(Uint32 width, Uint32 height, Uint32 depth)
+        {
+            CHECK(IsWriting());
+            CHECK(mType == CommandListType::Direct);
+            CHECK(!IsInRenderPass());
+
+            CHECK(mCommandListState.rayTracingPipeline);
+            DX12RayTracingPipeline& dx12RayTracingPipeline = *mCommandListState.rayTracingPipeline;
+
+            D3D12_GPU_VIRTUAL_ADDRESS shaderTableAddress = dx12RayTracingPipeline.GetShaderTableGPUAddress();
+
+            D3D12_DISPATCH_RAYS_DESC dispatchRaysDesc = {};
+            dispatchRaysDesc.RayGenerationShaderRecord.StartAddress = shaderTableAddress + dx12RayTracingPipeline.GetRayGenShaderTableOffset();
+            dispatchRaysDesc.RayGenerationShaderRecord.SizeInBytes = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
+            if (int missShaderTableOffset = dx12RayTracingPipeline.GetMissShaderTableOffset(); missShaderTableOffset >= 0)
+            {
+                dispatchRaysDesc.MissShaderTable.StartAddress = shaderTableAddress + missShaderTableOffset;
+                dispatchRaysDesc.MissShaderTable.SizeInBytes = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
+                dispatchRaysDesc.MissShaderTable.StrideInBytes = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
+            }
+            if (int hitGroupShaderTableOffset = dx12RayTracingPipeline.GetHitGroupShaderTableOffset(); hitGroupShaderTableOffset >= 0)
+            {
+                dispatchRaysDesc.HitGroupTable.StartAddress = shaderTableAddress + hitGroupShaderTableOffset;
+                dispatchRaysDesc.HitGroupTable.SizeInBytes = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
+                dispatchRaysDesc.HitGroupTable.StrideInBytes = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
+            }
+            dispatchRaysDesc.Width = width;
+            dispatchRaysDesc.Height = height;
+            dispatchRaysDesc.Depth = depth;
+
+            mCommandList->DispatchRays(&dispatchRaysDesc);
         }
 
         void DX12CommandList::BeginTimestamp(StringView name)
@@ -862,6 +915,10 @@ namespace cube
             if (mCommandListState.computePipelineState)
             {
                 mCommandList->SetPipelineState(mCommandListState.computePipelineState);
+            }
+            if (mCommandListState.rayTracingPipeline)
+            {
+                mCommandList->SetPipelineState1(mCommandListState.rayTracingPipeline->GetPipelineStateObject());
             }
 
             DX12ShaderParameterHelper& shaderParameterHelper = mDevice.GetShaderParameterHelper();

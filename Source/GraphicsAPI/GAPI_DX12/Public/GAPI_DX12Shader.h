@@ -17,10 +17,10 @@ namespace cube
             DX12Shader(DX12ShaderCompilerResult&& result, StringView warningMessage, StringView errorMessage, Vector<platform::FilePath>&& dependencyFilePaths);
             virtual ~DX12Shader();
 
-            BlobView GetShader() const { return mShader; }
+            BlobView GetShaderByteCode() const { return mShaderByteCode; }
 
         private:
-            Blob mShader;
+            Blob mShaderByteCode;
         };
     } // namespace gapi
 } // namespace cube

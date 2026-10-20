@@ -55,6 +55,7 @@ namespace cube
         BindlessTexture,
         BindlessSampler,
         BindlessCombinedTextureSampler,
+        BindlessTLAS,
         RGBufferSRV,
         RGBufferUAV,
         RGTextureSRV,
@@ -109,6 +110,8 @@ namespace cube
             return CUBE_T("BindlessSampler");
         case ShaderParameterCPUType::BindlessCombinedTextureSampler:
             return CUBE_T("BindlessCombinedTextureSampler");
+        case ShaderParameterCPUType::BindlessTLAS:
+            return CUBE_T("BindlessTLAS");
         case ShaderParameterCPUType::RGBufferSRV:
             return CUBE_T("RGBufferSRV");
         case ShaderParameterCPUType::RGBufferUAV:
@@ -273,6 +276,13 @@ namespace cube
     {
         static constexpr ShaderParameterCPUType type = ShaderParameterCPUType::BindlessCombinedTextureSampler;
         static constexpr Uint32 size = sizeof(BindlessCombinedTextureSampler);
+    };
+
+    template <>
+    struct ShaderParameterCPUTypeInfo<BindlessTLAS>
+    {
+        static constexpr ShaderParameterCPUType type = ShaderParameterCPUType::BindlessTLAS;
+        static constexpr Uint32 size = sizeof(BindlessTLAS);
     };
 
     // ===== ShaderParameterList =====
