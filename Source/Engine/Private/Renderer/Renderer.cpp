@@ -205,8 +205,26 @@ namespace cube
 
         SetGlobalConstantBuffers();
 
-        mSwapChain->AcquireNextImage();
+        if (!mSwapChain->AcquireNextImage())
+        {
+            // No drawable is available (e.g. the window is occluded or minimized).
+            // Skip this frame, but keep Begin/EndRenderingFrame balanced.
+            CUBE_LOG(Info, TMP, "Failed to get drawable");
+            mGAPI->EndRenderingFrame();
+            return;
+        }
+
         mCurrentBackbuffer = mSwapChain->GetCurrentBackbuffer();
+
+        // The drawable size is authoritative. The window/backing scale can change the drawable
+        // size independently of the requested size, so keep the renderer in sync every frame.
+        const gapi::TextureInfo& backbufferInfo = mCurrentBackbuffer->GetInfo();
+        if (backbufferInfo.width != 0 && backbufferInfo.height != 0)
+        {
+            mViewportWidth = backbufferInfo.width;
+            mViewportHeight = backbufferInfo.height;
+        }
+
         // TODO: Merge all command list and submit at one in each frame.
         //   Check ImGUI comment list.
         mCommandList->Reset();
@@ -248,6 +266,29 @@ namespace cube
         if (mRenderImGUI)
         {
             ImGui::Render();
+
+            // The draw data was built with the display size sampled when the ImGUI frame
+            // started, but the drawable is acquired after that, so the window can be resized
+            // in between (e.g. while dragging). The backends clip to the draw data size only,
+            // not to the actual render pass size, so clamp the draw data to the backbuffer
+            // size to keep the scissor rect within the render pass bounds.
+            ImDrawData* imDrawData = ImGui::GetDrawData();
+            const ImVec2 framebufferScale = imDrawData->FramebufferScale;
+            if (framebufferScale.x > 0.0f && framebufferScale.y > 0.0f)
+            {
+                const ImVec2 maxDisplaySize = ImVec2(
+                    ((float)backbufferInfo.width - imDrawData->DisplayPos.x) / framebufferScale.x,
+                    ((float)backbufferInfo.height - imDrawData->DisplayPos.y) / framebufferScale.y);
+
+                if (imDrawData->DisplaySize.x > maxDisplaySize.x)
+                {
+                    imDrawData->DisplaySize.x = maxDisplaySize.x;
+                }
+                if (imDrawData->DisplaySize.y > maxDisplaySize.y)
+                {
+                    imDrawData->DisplaySize.y = maxDisplaySize.y;
+                }
+            }
         }
 
         mGAPI->OnBeforePresent(mCurrentBackbuffer.get());

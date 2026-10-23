@@ -46,7 +46,7 @@ namespace cube
             DX12SwapChain(const DX12SwapChain& other) = delete;
             DX12SwapChain& operator=(const DX12SwapChain& rhs) = delete;
 
-            virtual void AcquireNextImage() override;
+            virtual bool AcquireNextImage() override;
             virtual void Present() override;
 
             virtual void Resize(Uint32 width, Uint32 height) override;

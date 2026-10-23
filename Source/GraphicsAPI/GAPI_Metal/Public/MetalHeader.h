@@ -5,6 +5,7 @@
 
 #include <Metal/Metal.h>
 #include <MetalKit/MetalKit.h>
+#include <QuartzCore/QuartzCore.h>
 
 #ifdef CUBE_MODULE_GAPI_METAL
 #define CUBE_METAL_EXPORT CUBE_DLL_EXPORT

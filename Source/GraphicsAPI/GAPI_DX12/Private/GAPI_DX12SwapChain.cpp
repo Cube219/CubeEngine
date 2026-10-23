@@ -113,7 +113,7 @@ namespace cube
             mSwapChain = nullptr;
         }
 
-        void DX12SwapChain::AcquireNextImage()
+        bool DX12SwapChain::AcquireNextImage()
         {
             Uint64 currentFenceValue = mFenceValues[mCurrentIndex];
 
@@ -124,6 +124,8 @@ namespace cube
             mFence.Wait(currentFenceValue);
 
             mFenceValues[mCurrentIndex] = currentFenceValue + 1;
+
+            return true;
         }
 
         void DX12SwapChain::Present()
