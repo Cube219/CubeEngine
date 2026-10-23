@@ -4,7 +4,9 @@
 
 #include "GAPI.h"
 
-@interface CubeImGUIMTKView : MTKView <MTKViewDelegate>
+@interface CubeMetalView : NSView
+
+- (void)updateDrawableSize;
 
 @end
 
@@ -60,16 +62,16 @@ namespace cube
         virtual gapi::VRAMStatus GetVRAMUsage() override;
 
     private:
+        void InitializeMainView();
         void InitializeImGUI(const ImGUIContext& imGUIInfo);
         void ShutdownImGUI(const ImGUIContext& imGUIInfo);
 
         Vector<MetalDevice*> mDevices;
         MetalDevice* mMainDevice;
-        MTLRenderPassDescriptor* mRenderPassDescriptor;
+
+        CubeMetalView* mMainView = nil;
 
         ImGUIContext mImGUIContext;
-        CubeImGUIMTKView* mImGUIView;
-        id<CAMetalDrawable> mImGUIDrawable;
 
         UniquePtr<gapi::MetalShaderParameterHelper> mShaderParameterHelper;
 

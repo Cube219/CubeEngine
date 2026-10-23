@@ -76,6 +76,7 @@ target_link_libraries(CE-GAPI_Metal
         "-framework GameController"
         "-framework Metal"
         "-framework MetalKit"
+        "-framework QuartzCore"
         imgui
         CE-Logger
         CE-Platform

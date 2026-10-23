@@ -205,8 +205,25 @@ namespace cube
 
         SetGlobalConstantBuffers();
 
-        mSwapChain->AcquireNextImage();
+        if (!mSwapChain->AcquireNextImage())
+        {
+            // No drawable is available (e.g. the window is occluded or minimized).
+            // Skip this frame, but keep Begin/EndRenderingFrame balanced.
+            mGAPI->EndRenderingFrame();
+            return;
+        }
+
         mCurrentBackbuffer = mSwapChain->GetCurrentBackbuffer();
+
+        // The drawable size is authoritative. The window/backing scale can change the drawable
+        // size independently of the requested size, so keep the renderer in sync every frame.
+        const gapi::TextureInfo& backbufferInfo = mCurrentBackbuffer->GetInfo();
+        if (backbufferInfo.width != 0 && backbufferInfo.height != 0)
+        {
+            mViewportWidth = backbufferInfo.width;
+            mViewportHeight = backbufferInfo.height;
+        }
+
         // TODO: Merge all command list and submit at one in each frame.
         //   Check ImGUI comment list.
         mCommandList->Reset();

@@ -23,14 +23,50 @@
 #include "MetalShaderCompiler.h"
 #include "MetalTypes.h"
 
-@implementation CubeImGUIMTKView
+@implementation CubeMetalView
 
-- (void) drawInMTKView:(MTKView* ) view
+- (CALayer*)makeBackingLayer
 {
+    return [CAMetalLayer layer];
 }
 
-- (void) mtkView:(MTKView* ) view drawableSizeWillChange:(CGSize)size
+- (BOOL)isOpaque
 {
+    return YES;
+}
+
+- (void)updateDrawableSize
+{
+    if (![self.layer isKindOfClass:[CAMetalLayer class]])
+    {
+        return;
+    }
+
+    CAMetalLayer* layer = (CAMetalLayer*)self.layer;
+    CGFloat scale = self.window != nil ? self.window.backingScaleFactor : 1.0;
+    CGSize drawableSize = CGSizeMake(self.bounds.size.width * scale, self.bounds.size.height * scale);
+    if (drawableSize.width < 1.0 || drawableSize.height < 1.0)
+    {
+        return;
+    }
+
+    [CATransaction begin];
+    [CATransaction setDisableActions:YES];
+    layer.contentsScale = scale;
+    layer.drawableSize = drawableSize;
+    [CATransaction commit];
+}
+
+- (void)setFrameSize:(NSSize)newSize
+{
+    [super setFrameSize:newSize];
+    [self updateDrawableSize];
+}
+
+- (void)viewDidChangeBackingProperties
+{
+    [super viewDidChangeBackingProperties];
+    [self updateDrawableSize];
 }
 
 @end
@@ -66,6 +102,7 @@ namespace cube
             .scratchBufferAlignment = 1,
         };
 
+        InitializeMainView();
         InitializeImGUI(initInfo.imGUI);
         MetalShaderCompiler::Initialize(mMainDevice);
 
@@ -113,29 +150,32 @@ namespace cube
     {
         if (mImGUIContext.context)
         {
-            // Call Metal_NewFrame at this instead of OnAfterPresent
-            do
-            {
-                mRenderPassDescriptor = mImGUIView.currentRenderPassDescriptor;
-            } while (mRenderPassDescriptor == nil);
-            ImGui_ImplMetal_NewFrame(mRenderPassDescriptor);
+            gapi::MetalTexture* metalBackbuffer = dynamic_cast<gapi::MetalTexture*>(backbuffer);
+            CHECK(metalBackbuffer);
 
-            mImGUIDrawable = mImGUIView.currentDrawable;
+            id<MTLTexture> backbufferTexture = metalBackbuffer->GetMTLTexture();
+            CHECK(backbufferTexture != nil);
+
+            // Draw ImGui into the same drawable the scene was rendered into.
+            // Load the scene color and store the composited result; the swap chain presents it afterwards.
+            MTLRenderPassDescriptor* renderPassDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
+            renderPassDescriptor.colorAttachments[0].texture = backbufferTexture;
+            renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionLoad;
+            renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
+
+            ImGui_ImplMetal_NewFrame(renderPassDescriptor);
 
             id<MTLCommandBuffer> commandBuffer = [mMainDevice->GetMainCommandQueue() commandBuffer];
             commandBuffer.label = @"ImGui command buffer";
 
             ImDrawData* draw_data = ImGui::GetDrawData();
 
-            static ImVec4 clear_color = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
-            mRenderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
-            id <MTLRenderCommandEncoder> renderEncoder = [commandBuffer renderCommandEncoderWithDescriptor:mRenderPassDescriptor];
+            id<MTLRenderCommandEncoder> renderEncoder = [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
             [renderEncoder pushDebugGroup:@"Dear ImGui rendering"];
             ImGui_ImplMetal_RenderDrawData(draw_data, commandBuffer, renderEncoder);
             [renderEncoder popDebugGroup];
             [renderEncoder endEncoding];
 
-            [commandBuffer presentDrawable:mImGUIDrawable];
             [commandBuffer commit];
         }
     }
@@ -144,13 +184,8 @@ namespace cube
     {
         if (mImGUIContext.context)
         {
-            mImGUIDrawable = nil;
-            [mImGUIView draw];
-
-            // Does not call Metal_NewFrame at this point because currentRenderPassDescriptor
-            // in MTKView block the process until available.
             platform::MacOSUtility::DispatchToMainThreadAndWait([this] {
-                ImGui_ImplOSX_NewFrame(mImGUIView);
+                ImGui_ImplOSX_NewFrame(mMainView);
             });
         }
     }
@@ -222,7 +257,7 @@ namespace cube
 
     SharedPtr<gapi::SwapChain> GAPI_Metal::CreateSwapChain(const gapi::SwapChainCreateInfo& info)
     {
-        return std::make_shared<gapi::MetalSwapChain>(*mMainDevice, mImGUIView, info);
+        return std::make_shared<gapi::MetalSwapChain>(*mMainDevice, mMainView, info);
     }
 
     SharedPtr<gapi::BLAS> GAPI_Metal::CreateBLAS(const gapi::BLASCreateInfo& createInfo)
@@ -256,6 +291,22 @@ namespace cube
         return res;
     }
 
+    void GAPI_Metal::InitializeMainView()
+    {
+        platform::MacOSUtility::DispatchToMainThreadAndWait([this] {
+            CubeWindow* window = platform::MacOSPlatform::GetWindow();
+            NSRect windowFrame = window.contentView.bounds;
+
+            mMainView = [[CubeMetalView alloc] initWithFrame:windowFrame];
+            mMainView.wantsLayer = YES;
+            mMainView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+
+            // The swap chain configures the concrete pixel format on creation.
+            [window.contentView addSubview:mMainView];
+            [mMainView updateDrawableSize];
+        });
+    }
+
     void GAPI_Metal::InitializeImGUI(const ImGUIContext& imGUIInfo)
     {
         if (imGUIInfo.context == nullptr)
@@ -275,22 +326,7 @@ namespace cube
         );
 
         platform::MacOSUtility::DispatchToMainThreadAndWait([this] {
-            CubeWindow* window = platform::MacOSPlatform::GetWindow();
-            NSRect windowFrame = window.contentView.bounds;
-            mImGUIView = [[CubeImGUIMTKView alloc]
-                initWithFrame:windowFrame
-                device:mMainDevice->GetMTLDevice()
-            ];
-            mImGUIView.delegate = mImGUIView;
-            mImGUIView.paused = YES;
-            mImGUIView.enableSetNeedsDisplay = NO;
-            mImGUIView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
-            mImGUIView.layer.opaque = NO;
-            [window.contentView addSubview:mImGUIView];
-        });
-
-        platform::MacOSUtility::DispatchToMainThreadAndWait([this] {
-            ImGui_ImplOSX_Init(mImGUIView);
+            ImGui_ImplOSX_Init(mMainView);
 
             // Override ImeDataFn to ensure it runs in main thread. It is called from text input
             // and calls UI-related methods (NSTextInputContext).
@@ -312,27 +348,26 @@ namespace cube
         ImGui_ImplMetal_Init(mMainDevice->GetMTLDevice());
 
         // Start new frame before starting ImGUI loop in Engine class
-        mRenderPassDescriptor = mImGUIView.currentRenderPassDescriptor;
-        ImGui_ImplMetal_NewFrame(mImGUIView.currentRenderPassDescriptor);
         platform::MacOSUtility::DispatchToMainThreadAndWait([this] {
-            ImGui_ImplOSX_NewFrame(mImGUIView);
+            ImGui_ImplOSX_NewFrame(mMainView);
         });
     }
 
     void GAPI_Metal::ShutdownImGUI(const ImGUIContext& imGUIInfo)
     {
-        if (mImGUIContext.context == nullptr)
-        {
-            return;
-        }
-        CUBE_LOG(Info, Metal, "Shutdown ImGUI.");
-
         // Wait until the main queue will flush.
         platform::MacOSUtility::DispatchToMainThreadAndWait([] {});
 
-        mImGUIView = nil;
+        if (mImGUIContext.context != nullptr)
+        {
+            CUBE_LOG(Info, Metal, "Shutdown ImGUI.");
+            ImGui_ImplMetal_Shutdown();
+            ImGui_ImplOSX_Shutdown();
+        }
 
-        ImGui_ImplMetal_Shutdown();
-        ImGui_ImplOSX_Shutdown();
+        platform::MacOSUtility::DispatchToMainThreadAndWait([this] {
+            [mMainView removeFromSuperview];
+            mMainView = nil;
+        });
     }
 } // namespace cube

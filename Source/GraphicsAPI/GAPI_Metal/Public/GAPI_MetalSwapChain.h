@@ -6,10 +6,6 @@
 #include "GAPI_MetalTexture.h"
 #include "GAPI_SwapChain.h"
 
-@interface CubeMTKView : MTKView <MTKViewDelegate>
-
-@end
-
 namespace cube
 {
     class MetalDevice;
@@ -51,10 +47,10 @@ namespace cube
         class MetalSwapChain : public SwapChain
         {
         public:
-            MetalSwapChain(MetalDevice& device, CubeImGUIMTKView* imGUIView, const SwapChainCreateInfo& createInfo);
+            MetalSwapChain(MetalDevice& device, CubeMetalView* view, const SwapChainCreateInfo& createInfo);
             virtual ~MetalSwapChain();
 
-            virtual void AcquireNextImage() override;
+            virtual bool AcquireNextImage() override;
             virtual void Present() override;
 
             virtual void Resize(Uint32 width, Uint32 height) override;
@@ -68,8 +64,8 @@ namespace cube
         private:
             MetalDevice& mDevice;
 
-            CubeMTKView* mView;
-            MTLRenderPassDescriptor* mBackbufferDescriptor;
+            CubeMetalView* mView;
+            CAMetalLayer* mDrawableLayer;
             id<CAMetalDrawable> mCurrentDrawable;
             SharedPtr<MetalBackbufferTexture> mBackbufferTexture;
         };

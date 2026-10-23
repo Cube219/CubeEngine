@@ -28,7 +28,7 @@ namespace cube
             {}
             virtual ~SwapChain() = default;
 
-            virtual void AcquireNextImage() = 0;
+            virtual bool AcquireNextImage() = 0;
             virtual void Present() = 0;
 
             virtual void Resize(Uint32 width, Uint32 height) = 0;

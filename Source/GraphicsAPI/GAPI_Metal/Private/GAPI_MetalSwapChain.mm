@@ -7,18 +7,6 @@
 #include "MetalDevice.h"
 #include "MetalTypes.h"
 
-@implementation CubeMTKView
-
-- (void) drawInMTKView:(MTKView* ) view
-{
-}
-
-- (void) mtkView:(MTKView* ) view drawableSizeWillChange:(CGSize)size
-{
-}
-
-@end
-
 namespace cube
 {
     namespace gapi
@@ -77,6 +65,17 @@ namespace cube
             CHECK_FORMAT(mViewReferenceCount == 0, "You must release all related views before update drawable texture.");
 
             mMTLTexture = texture;
+
+            // The drawable can change size at any time (e.g. window/backing scale changes).
+            // Keep TextureInfo in sync so the render graph and CopyTexturePS use the real size.
+            if (mMTLTexture != nil)
+            {
+                mInfo.width = static_cast<Uint32>(mMTLTexture.width);
+                mInfo.height = static_cast<Uint32>(mMTLTexture.height);
+                mInfo.depth = 1;
+                mInfo.arraySize = 1;
+                mInfo.mipLevels = 1;
+            }
         }
 
         MetalBackbufferRTV::MetalBackbufferRTV(const TextureRTVCreateInfo& createInfo, SharedPtr<MetalTexture> texture, MetalDevice& device)
@@ -94,31 +93,42 @@ namespace cube
 
         // MetalSwapChain
 
-        MetalSwapChain::MetalSwapChain(MetalDevice& device, CubeImGUIMTKView* imGUIView, const SwapChainCreateInfo& createInfo)
+        MetalSwapChain::MetalSwapChain(MetalDevice& device, CubeMetalView* view, const SwapChainCreateInfo& createInfo)
             : SwapChain(createInfo)
             , mDevice(device)
+            , mView(view)
+            , mDrawableLayer(nil)
+            , mCurrentDrawable(nil)
         {
+            CHECK(mView);
+
             platform::MacOSUtility::DispatchToMainThreadAndWait(
-                [this, device = device.GetMTLDevice(), imGUIView,
-                 width = createInfo.width, height = createInfo.height, format = createInfo.backbufferFormat]
+                [this, device = device.GetMTLDevice(),
+                 width = createInfo.width, height = createInfo.height,
+                 format = createInfo.backbufferFormat, vsync = createInfo.vsync]
                 {
-                CubeWindow* window = platform::MacOSPlatform::GetWindow();
-                NSRect windowFrame = window.contentView.bounds;
-                mView = [[CubeMTKView alloc]
-                    initWithFrame:windowFrame
-                    device:device
-                ];
-                mView.delegate = mView;
-                mView.paused = YES;
-                mView.enableSetNeedsDisplay = NO;
-                mView.autoResizeDrawable = NO;
-                mView.framebufferOnly = NO;
-                CGSize size;
-                size.width = width;
-                size.height = height;
-                mView.drawableSize = size;
-                mView.colorPixelFormat = GetMetalElementFormatInfo(format).pixelFormat;
-                [window.contentView addSubview:mView positioned:NSWindowBelow relativeTo:imGUIView];
+                mView.wantsLayer = YES;
+                mView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+                mView.frame = mView.superview != nil
+                    ? mView.superview.bounds
+                    : NSMakeRect(0.0, 0.0, width, height);
+
+                mDrawableLayer = (CAMetalLayer*)mView.layer;
+                CHECK(mDrawableLayer);
+
+                [CATransaction begin];
+                [CATransaction setDisableActions:YES];
+
+                mDrawableLayer.device = device;
+                mDrawableLayer.pixelFormat = GetMetalElementFormatInfo(format).pixelFormat;
+                mDrawableLayer.framebufferOnly = NO;
+                mDrawableLayer.opaque = YES;
+                mDrawableLayer.maximumDrawableCount = 3;
+                mDrawableLayer.displaySyncEnabled = vsync;
+
+                [mView updateDrawableSize];
+
+                [CATransaction commit];
             });
 
             TextureCreateInfo texCreateInfo = {
@@ -137,43 +147,78 @@ namespace cube
 
         MetalSwapChain::~MetalSwapChain()
         {
+            mCurrentDrawable = nil;
+
             platform::MacOSUtility::DispatchToMainThreadAndWait([this] {
+                [mView removeFromSuperview];
                 mView = nil;
+                mDrawableLayer = nil;
             });
         }
 
-        void MetalSwapChain::AcquireNextImage()
+        bool MetalSwapChain::AcquireNextImage()
         {
-            do
+            if (mDrawableLayer == nil)
             {
-                mBackbufferDescriptor = mView.currentRenderPassDescriptor;
-            } while (mBackbufferDescriptor == nil);
+                return false;
+            }
 
-            mCurrentDrawable = mView.currentDrawable;
+            id<CAMetalDrawable> drawable = [mDrawableLayer nextDrawable];
+            if (drawable == nil)
+            {
+                // The window can be occluded or minimized. Skip this frame instead of blocking.
+                return false;
+            }
+
+            mCurrentDrawable = drawable;
             mBackbufferTexture->UpdateDrawableTexture(mCurrentDrawable.texture);
+
+            return true;
         }
 
         void MetalSwapChain::Present()
         {
+            if (mCurrentDrawable == nil)
+            {
+                return;
+            }
+
             id<MTLCommandBuffer> commandBuffer = [mDevice.GetMainCommandQueue() commandBuffer];
+            commandBuffer.label = @"Present command buffer";
             [commandBuffer presentDrawable:mCurrentDrawable];
             [commandBuffer commit];
-            mCurrentDrawable = nil;
 
-            [mView draw];
+            mCurrentDrawable = nil;
         }
 
         void MetalSwapChain::Resize(Uint32 width, Uint32 height)
         {
-            CGSize newSize;
-            newSize.width = width;
-            newSize.height = height;
-            [mView setDrawableSize:newSize];
+            if (width == 0 || height == 0)
+            {
+                return;
+            }
+
+            platform::MacOSUtility::DispatchToMainThreadAndWait([this, width, height] {
+                [CATransaction begin];
+                [CATransaction setDisableActions:YES];
+
+                mView.frame = mView.superview != nil
+                    ? mView.superview.bounds
+                    : NSMakeRect(0.0, 0.0, width, height);
+                [mView updateDrawableSize];
+
+                [CATransaction commit];
+            });
         }
 
         void MetalSwapChain::SetVsync(bool vsync)
         {
-            // TODO: It is possible?
+            platform::MacOSUtility::DispatchToMainThreadAndWait([this, vsync] {
+                if (mDrawableLayer != nil)
+                {
+                    mDrawableLayer.displaySyncEnabled = vsync;
+                }
+            });
         }
     } // namespace gapi
 } // namespace cube
