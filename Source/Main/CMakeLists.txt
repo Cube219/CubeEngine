@@ -14,7 +14,7 @@ target_link_libraries(CE-Main
     PRIVATE
         CE-Platform
         CE-GAPI
-        CE-Core
+        CE-Engine
 )
 
 # Add GAPI dependencies to avoid omitting GAPI compilation

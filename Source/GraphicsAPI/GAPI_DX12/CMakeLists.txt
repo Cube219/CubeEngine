@@ -76,7 +76,7 @@ target_precompile_headers(CE-GAPI_DX12
 )
 target_link_libraries(CE-GAPI_DX12
     PUBLIC
-        CE-Base
+        CE-Core
     PRIVATE
         dxagility
         dxguid.lib
@@ -85,11 +85,10 @@ target_link_libraries(CE-GAPI_DX12
         dxc
         imgui
         winpixeventruntime
-        CE-Logger
         CE-Platform
         CE-GAPI
         CE-GAPI_Base
-        CE-Core
+        CE-Engine
 )
 target_compile_definitions(CE-GAPI_DX12
     PRIVATE

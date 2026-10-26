@@ -70,18 +70,17 @@ target_include_directories(CE-GAPI_Metal
 )
 target_link_libraries(CE-GAPI_Metal
     PUBLIC
-        CE-Base
+        CE-Core
     PRIVATE
         "-framework AppKit"
         "-framework GameController"
         "-framework Metal"
         "-framework MetalKit"
         imgui
-        CE-Logger
         CE-Platform
         CE-GAPI
         CE-GAPI_Base
-        CE-Core
+        CE-Engine
 )
 target_compile_definitions(CE-GAPI_Metal
     PRIVATE

@@ -23,12 +23,11 @@ target_include_directories(CE-GAPI_Base
 )
 target_link_libraries(CE-GAPI_Base
     PUBLIC
-        CE-Base
-        CE-GAPI
         CE-Core
+        CE-GAPI
+        CE-Engine
     PRIVATE
         slang
-        CE-Logger
         CE-Platform
 )
 

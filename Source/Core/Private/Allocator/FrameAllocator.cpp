@@ -1,7 +1,8 @@
 #include "Allocator/FrameAllocator.h"
 
+#include <cstdlib>
+
 #include "Allocator/AllocatorUtility.h"
-#include "Platform.h"
 
 namespace cube
 {
@@ -21,7 +22,7 @@ namespace cube
             return;
         }
 
-        mStartPtr = platform::Platform::Allocate(size);
+        mStartPtr = malloc(size);
 
         mCurrentPtr = mStartPtr;
     }
@@ -33,7 +34,7 @@ namespace cube
             return;
         }
 
-        platform::Platform::Free(mStartPtr);
+        free(mStartPtr);
     }
 
     void* FrameAllocator::MemoryBlock::Allocate(Uint64 size)

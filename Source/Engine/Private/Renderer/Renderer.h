@@ -1,0 +1,187 @@
+#pragma once
+
+#include "EngineHeader.h"
+
+#include "DebugView/RayTracingDebugView.h"
+#include "DLib.h"
+#include "GAPI.h"
+#include "GAPI_Texture.h"
+#include "LightManager.h"
+#include "Matrix.h"
+#include "RenderCore/Pipeline.h"
+#include "RenderCore/ResourceManager.h"
+#include "RenderCore/SamplerManager.h"
+#include "RenderCore/Shader.h"
+#include "RenderCore/ShaderParameter.h"
+#include "RenderCore/Texture.h"
+#include "RenderCore/TextureManager.h"
+#include "RenderCore/UploadManager.h"
+#include "RenderUtils.h"
+#include "TextureViewer.h"
+#include "Tonemap.h"
+#include "Vector.h"
+
+namespace cube
+{
+    class GraphicsPipeline;
+    class Material;
+    class Mesh;
+    class MeshData;
+    class RGBuilder;
+    class Scene;
+    class Shader;
+
+    class GlobalShaderParameterList : public ShaderParameterList
+    {
+        CUBE_BEGIN_SHADER_PARAMETER_LIST(GlobalShaderParameterList)
+            CUBE_SHADER_PARAMETER(Vector3, viewPosition)
+            CUBE_SHADER_PARAMETER(Float4, viewSizeAndInvSize)
+            CUBE_SHADER_PARAMETER(Matrix, worldToClip)
+            CUBE_SHADER_PARAMETER(Matrix, clipToWorld)
+        CUBE_END_SHADER_PARAMETER_LIST
+    };
+
+    class ObjectShaderParameterList : public ShaderParameterList
+    {
+        CUBE_BEGIN_SHADER_PARAMETER_LIST(ObjectShaderParameterList)
+            CUBE_SHADER_PARAMETER(Matrix, transform)
+            CUBE_SHADER_PARAMETER(Matrix, invTransform)
+            CUBE_SHADER_PARAMETER(Matrix, invTransposedTransform)
+            CUBE_SHADER_PARAMETER(RGBufferSRVHandle, vertexBuffer)
+            CUBE_SHADER_PARAMETER(bool, useFP16)
+        CUBE_END_SHADER_PARAMETER_LIST
+    };
+
+    class SubMeshShaderParameterList : public ShaderParameterList
+    {
+        CUBE_BEGIN_SHADER_PARAMETER_LIST(SubMeshShaderParameterList)
+            CUBE_SHADER_PARAMETER(int, vertexBufferOffset)
+        CUBE_END_SHADER_PARAMETER_LIST
+    };
+
+    class Renderer
+    {
+    public:
+        Renderer();
+        ~Renderer() = default;
+
+        void Initialize(gapi::GAPIName gAPIName, const ImGUIContext& imGUIContext, Uint32 numGPUSync = 3);
+        void Shutdown(const ImGUIContext& imGUIContext);
+
+        void OnLoopImGUIContent();
+        void RenderAndPresent();
+
+        void OnResize(Uint32 width, Uint32 height);
+
+        GAPI& GetGAPI() const { return *mGAPI; }
+        ShaderParameterListManager& GetShaderParameterListManager() { return mShaderParameterListManager; }
+        ShaderManager& GetShaderManager() { return mShaderManager; }
+        TextureManager& GetTextureManager() { return mTextureManager; }
+        SamplerManager& GetSamplerManager() { return mSamplerManager; }
+        PipelineManager& GetPipelineManager() { return mPipelineManager; }
+        UploadManager& GetUploadManager() { return mUploadManager; }
+        ResourceManager& GetResourceManager() { return mResourceManager; }
+
+        TextureViewer& GetTextureViewer() { return mTextureViewer; }
+        RenderUtils& GetRenderUtils() { return mRenderUtils; }
+
+        bool IsDrawInWireframe() const { return mWireframe; }
+
+        SharedPtr<Mesh> GetBoxMesh() const { return mBoxMesh; }
+        SharedPtr<Material> GetDefaultMaterial() const { return mDefaultMaterial; }
+        SharedPtr<TextureResource> GetDummyBlackTexture2D() const { return mDummyBlackTexture2D; }
+        SharedPtr<TextureResource> GetDummyBlackTextureCube() const { return mDummyBlackTextureCube; }
+        SharedPtr<TextureResource> GetDummyWhiteTexture2D() const { return mDummyWhiteTexture2D; }
+
+        gapi::ElementFormat GetBackbufferFormat() const { return mBackbufferFormat; }
+        gapi::ElementFormat GetDepthStencilFormat() const { return mDepthStencilFormat; }
+
+        const Matrix& GetGlobalTransformMatrix() const { return mGlobalTransformMatrix; }
+        const Matrix& GetViewMatrix() const { return mViewMatrix; }
+        const Matrix& GetInverseViewMatrix() const { return mInverseViewMatrix; }
+
+        void SetGlobalTransformMatrix(const Vector3& position, const Vector3& rotation, const Vector3& scale);
+        void SetViewMatrix(const Vector3& eye, const Vector3& target, const Vector3& upDir);
+        void SetPerspectiveMatrix(float fovAngleY, float aspectRatio, float nearZ, float farZ);
+
+        float GetGPUTimeMS() const;
+        Uint64 GetCurrentRenderingFrame() const { return mCurrentRenderingFrame; };
+
+        void SetScene(SharedPtr<Scene> scene);
+
+    private:
+        void SetGlobalConstantBuffers();
+        void RenderImpl(RGBuilder& builder);
+
+        bool RenderDebugView(RGBuilder& builder, RGTextureHandle colorTexture, RGTextureHandle depthStencilTexture);
+        void RenderMainPass(RGBuilder& builder, RGTextureHandle colorTexture, RGTextureHandle depthStencilTexture);
+
+        void LoadResources();
+        void ClearResources();
+
+        SharedPtr<platform::DLib> mGAPI_DLib;
+        SharedPtr<GAPI> mGAPI;
+
+        Uint32 mNumGPUSync;
+        Uint64 mCurrentRenderingFrame;
+
+        UploadManager mUploadManager;
+        ShaderParameterListManager mShaderParameterListManager;
+        ShaderManager mShaderManager;
+        TextureManager mTextureManager;
+        SamplerManager mSamplerManager;
+        PipelineManager mPipelineManager;
+        LightManager mLightManager;
+
+        Tonemap mTonemap;
+        RenderUtils mRenderUtils;
+        ResourceManager mResourceManager;
+
+        TextureViewer mTextureViewer;
+        RayTracingDebugView mRayTracingDebugView;
+
+        bool mRenderImGUI;
+
+        // TODO: Move separate class.
+        Vector3 mViewPosition;
+        Matrix mViewMatrix;
+        Matrix mInverseViewMatrix;
+        Matrix mPerspectiveMatrix;
+        Matrix mViewPerspectiveMatrix;
+        Matrix mInvViewPerspectiveMatrix;
+        bool mIsViewPerspectiveMatrixDirty;
+
+        SharedPtr<gapi::CommandList> mCommandList;
+
+        Uint32 mViewportWidth;
+        Uint32 mViewportHeight;
+        SharedPtr<gapi::SwapChain> mSwapChain;
+        SharedPtr<gapi::Texture> mCurrentBackbuffer;
+        gapi::ElementFormat mBackbufferFormat;
+        gapi::ElementFormat mColorFormat;
+        gapi::ElementFormat mDepthStencilFormat;
+
+        // TODO: Move to scene class.
+        Matrix mGlobalTransformMatrix;
+        SharedPtr<Material> mDefaultMaterial;
+        SharedPtr<Scene> mScene;
+
+        SharedPtr<TextureResource> mDummyBlackTexture2D;
+        SharedPtr<TextureResource> mDummyWhiteTexture2D;
+        SharedPtr<TextureResource> mDummyBlackTextureCube;
+
+        bool mShowAxis = true;
+        bool mWireframe = false;
+        SharedPtr<Mesh> mBoxMesh;
+        Matrix mXAxisTransformMatrix;
+        SharedPtr<Material> mXAxisMaterial;
+
+        Matrix mYAxisTransformMatrix;
+        SharedPtr<Material> mYAxisMaterial;
+
+        Matrix mZAxisTransformMatrix;
+        SharedPtr<Material> mZAxisMaterial;
+
+        bool mShowRayTracingDebugView = false;
+    };
+} // namespace cube

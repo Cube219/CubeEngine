@@ -3,85 +3,88 @@ cmake_minimum_required(VERSION 3.19)
 set(PUBLIC_FILES
     Public/Allocator/AllocatorUtility.h
     Public/Allocator/FrameAllocator.h
-    Public/RenderCore/RenderGraphTypes.h
-    Public/RenderCore/RenderTypes.h
-    Public/RenderCore/ShaderParameter.h
+    Public/MatrixImpl/MatrixArray.inl
+    Public/MatrixImpl/MatrixAVX2.inl
+    Public/MatrixImpl/MatrixSSE.inl
+    Public/MatrixImpl/MatrixUtilityArray.inl
+    Public/MatrixImpl/MatrixUtilityAVX2.inl
+    Public/MatrixImpl/MatrixUtilitySSE.inl
+    Public/QuaternionImpl/QuaternionArray.inl
+    Public/QuaternionImpl/QuaternionAVX2.inl
+    Public/QuaternionImpl/QuaternionNEON.inl
+    Public/QuaternionImpl/QuaternionSSE.inl
+    Public/VectorImpl/VectorArray.inl
+    Public/VectorImpl/VectorAVX2.inl
+    Public/VectorImpl/VectorSSE.inl
+    Public/Async.h
+    Public/Allocator.h
+    Public/Blob.h
+    Public/Checker.h
     Public/CoreHeader.h
-    Public/Engine.h
-)
-set(PRIVATE_FILES
-    Private/Allocator/FrameAllocator.cpp
-    Private/RenderCore/AccelerationStructure.cpp
-    Private/RenderCore/AccelerationStructure.h
-    Private/RenderCore/Material.cpp
-    Private/RenderCore/Material.h
-    Private/RenderCore/Mesh.cpp
-    Private/RenderCore/Mesh.h
-    Private/RenderCore/Buffer.cpp
-    Private/RenderCore/Buffer.h
-    Private/RenderCore/MeshHelper.cpp
-    Private/RenderCore/MeshHelper.h
-    Private/RenderCore/Pipeline.cpp
-    Private/RenderCore/Pipeline.h
-    Private/RenderCore/RenderGraph.cpp
-    Private/RenderCore/RenderGraph.h
-    Private/RenderCore/RenderProfiling.cpp
-    Private/RenderCore/RenderProfiling.h
-    Private/RenderCore/Resource.cpp
-    Private/RenderCore/Resource.h
-    Private/RenderCore/ResourceManager.cpp
-    Private/RenderCore/ResourceManager.h
-    Private/RenderCore/SamplerManager.cpp
-    Private/RenderCore/SamplerManager.h
-    Private/RenderCore/Shader.cpp
-    Private/RenderCore/Shader.h
-    Private/RenderCore/ShaderParameter.cpp
-    Private/RenderCore/Texture.cpp
-    Private/RenderCore/Texture.h
-    Private/RenderCore/TextureManager.cpp
-    Private/RenderCore/TextureManager.h
-    Private/RenderCore/UploadManager.cpp
-    Private/RenderCore/UploadManager.h
-    Private/Renderer/DebugView/RayTracingDebugView.cpp
-    Private/Renderer/DebugView/RayTracingDebugView.h
-    Private/Renderer/EnvironmentMapping.cpp
-    Private/Renderer/EnvironmentMapping.h
-    Private/Renderer/Light.cpp
-    Private/Renderer/Light.h
-    Private/Renderer/LightManager.cpp
-    Private/Renderer/LightManager.h
-    Private/Renderer/Renderer.cpp
-    Private/Renderer/Renderer.h
-    Private/Renderer/RenderUtils.cpp
-    Private/Renderer/RenderUtils.h
-    Private/Renderer/TextureViewer.cpp
-    Private/Renderer/TextureViewer.h
-    Private/Renderer/Tonemap.cpp
-    Private/Renderer/Tonemap.h
-    Private/Scene/Scene.cpp
-    Private/Scene/Scene.h
-    Private/Scene/SceneObject.cpp
-    Private/Scene/SceneObject.h
-    Private/Systems/CameraSystem.cpp
-    Private/Systems/CameraSystem.h
-    Private/Systems/ModelLoader/IModelLoader.h
-    Private/Systems/ModelLoader/GLTFModelLoader.cpp
-    Private/Systems/ModelLoader/GLTFModelLoader.h
-    Private/Systems/ModelLoader/ObjModelLoader.cpp
-    Private/Systems/ModelLoader/ObjModelLoader.h
-    Private/Systems/ModelLoaderSystem.cpp
-    Private/Systems/ModelLoaderSystem.h
-    Private/Systems/StatsSystem.cpp
-    Private/Systems/StatsSystem.h
-    Private/Engine.cpp
+    Public/CubeMath.h
+    Public/CubeString.h
+    Public/Defines.h
+    Public/Event.h
+    Public/Flags.h
+    Public/Format.h
+    Public/KeyCode.h
+    Public/Logger.h
+    Public/Matrix.h
+    Public/MatrixUtility.h
+    Public/Mouse.h
+    Public/Quaternion.h
+    Public/Types.h
+    Public/Vector.h
 )
 
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${PUBLIC_FILES} ${PRIVATE_FILES})
+set(PRIVATE_FILES
+    Private/Allocator/FrameAllocator.cpp
+    Private/Checker.cpp
+    Private/CubeFormat.cpp
+    Private/CubeString.cpp
+    Private/Logger.cpp
+)
+
+set(PRECOMPILE_HEADER_FILES
+    Public/Async.h
+    Public/Allocator.h
+    Public/Blob.h
+    Public/CubeMath.h
+    Public/CubeString.h
+    Public/Defines.h
+    Public/Event.h
+    Public/Flags.h
+    Public/Format.h
+    Public/KeyCode.h
+    Public/Matrix.h
+    Public/MatrixUtility.h
+    Public/Mouse.h
+    Public/Quaternion.h
+    Public/Types.h
+    Public/Vector.h
+)
+
+if(PLATFORM_WINDOWS)
+    set(PLATFORM_PUBLIC_FILES
+        Public/Windows/WindowsDefines.h
+    )
+    set(PLATFORM_PRIVATE_FILES
+    )
+elseif(PLATFORM_MACOS)
+    set(PLATFORM_PUBLIC_FILES
+        Public/MacOS/MacOSDefines.h
+    )
+    set(PLATFORM_PRIVATE_FILES
+    )
+endif()
+
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${PUBLIC_FILES} ${PRIVATE_FILES} ${PLATFORM_PUBLIC_FILES} ${PLATFORM_PRIVATE_FILES})
 
 # Target settings
 add_library(CE-Core SHARED
     ${GLOBAL_FILES}
     ${PUBLIC_FILES} ${PRIVATE_FILES}
+    ${PLATFORM_PUBLIC_FILES} ${PLATFORM_PRIVATE_FILES}
 )
 target_include_directories(CE-Core
     PUBLIC
@@ -89,18 +92,17 @@ target_include_directories(CE-Core
     PRIVATE
         Private
 )
-target_link_libraries(CE-Core
+target_precompile_headers(CE-Core
     PUBLIC
-        CE-Base
-        CE-Logger
-        CE-Platform
-        CE-GAPI
-    PRIVATE
-        imgui
-        tinygltf
-        tinyobjloader
+        ${PRECOMPILE_HEADER_FILES}
 )
 target_compile_definitions(CE-Core
     PRIVATE
         CUBE_MODULE_CORE
+)
+
+# Third-party
+target_link_libraries(CE-Core
+    PUBLIC
+        fmt::fmt
 )

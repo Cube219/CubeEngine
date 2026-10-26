@@ -1,0 +1,102 @@
+cmake_minimum_required(VERSION 3.19)
+
+set(PUBLIC_FILES
+    Public/RenderCore/RenderGraphTypes.h
+    Public/RenderCore/RenderTypes.h
+    Public/RenderCore/ShaderParameter.h
+    Public/Engine.h
+    Public/EngineHeader.h
+)
+set(PRIVATE_FILES
+    Private/RenderCore/AccelerationStructure.cpp
+    Private/RenderCore/AccelerationStructure.h
+    Private/RenderCore/Material.cpp
+    Private/RenderCore/Material.h
+    Private/RenderCore/Mesh.cpp
+    Private/RenderCore/Mesh.h
+    Private/RenderCore/Buffer.cpp
+    Private/RenderCore/Buffer.h
+    Private/RenderCore/MeshHelper.cpp
+    Private/RenderCore/MeshHelper.h
+    Private/RenderCore/Pipeline.cpp
+    Private/RenderCore/Pipeline.h
+    Private/RenderCore/RenderGraph.cpp
+    Private/RenderCore/RenderGraph.h
+    Private/RenderCore/RenderProfiling.cpp
+    Private/RenderCore/RenderProfiling.h
+    Private/RenderCore/Resource.cpp
+    Private/RenderCore/Resource.h
+    Private/RenderCore/ResourceManager.cpp
+    Private/RenderCore/ResourceManager.h
+    Private/RenderCore/SamplerManager.cpp
+    Private/RenderCore/SamplerManager.h
+    Private/RenderCore/Shader.cpp
+    Private/RenderCore/Shader.h
+    Private/RenderCore/ShaderParameter.cpp
+    Private/RenderCore/Texture.cpp
+    Private/RenderCore/Texture.h
+    Private/RenderCore/TextureManager.cpp
+    Private/RenderCore/TextureManager.h
+    Private/RenderCore/UploadManager.cpp
+    Private/RenderCore/UploadManager.h
+    Private/Renderer/DebugView/RayTracingDebugView.cpp
+    Private/Renderer/DebugView/RayTracingDebugView.h
+    Private/Renderer/EnvironmentMapping.cpp
+    Private/Renderer/EnvironmentMapping.h
+    Private/Renderer/Light.cpp
+    Private/Renderer/Light.h
+    Private/Renderer/LightManager.cpp
+    Private/Renderer/LightManager.h
+    Private/Renderer/Renderer.cpp
+    Private/Renderer/Renderer.h
+    Private/Renderer/RenderUtils.cpp
+    Private/Renderer/RenderUtils.h
+    Private/Renderer/TextureViewer.cpp
+    Private/Renderer/TextureViewer.h
+    Private/Renderer/Tonemap.cpp
+    Private/Renderer/Tonemap.h
+    Private/Scene/Scene.cpp
+    Private/Scene/Scene.h
+    Private/Scene/SceneObject.cpp
+    Private/Scene/SceneObject.h
+    Private/Systems/CameraSystem.cpp
+    Private/Systems/CameraSystem.h
+    Private/Systems/ModelLoader/IModelLoader.h
+    Private/Systems/ModelLoader/GLTFModelLoader.cpp
+    Private/Systems/ModelLoader/GLTFModelLoader.h
+    Private/Systems/ModelLoader/ObjModelLoader.cpp
+    Private/Systems/ModelLoader/ObjModelLoader.h
+    Private/Systems/ModelLoaderSystem.cpp
+    Private/Systems/ModelLoaderSystem.h
+    Private/Systems/StatsSystem.cpp
+    Private/Systems/StatsSystem.h
+    Private/Engine.cpp
+)
+
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${PUBLIC_FILES} ${PRIVATE_FILES})
+
+# Target settings
+add_library(CE-Engine SHARED
+    ${GLOBAL_FILES}
+    ${PUBLIC_FILES} ${PRIVATE_FILES}
+)
+target_include_directories(CE-Engine
+    PUBLIC
+        Public
+    PRIVATE
+        Private
+)
+target_link_libraries(CE-Engine
+    PUBLIC
+        CE-Core
+        CE-Platform
+        CE-GAPI
+    PRIVATE
+        imgui
+        tinygltf
+        tinyobjloader
+)
+target_compile_definitions(CE-Engine
+    PRIVATE
+        CUBE_MODULE_ENGINE
+)

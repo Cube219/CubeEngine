@@ -80,8 +80,7 @@ target_precompile_headers(CE-Platform
 )
 target_link_libraries(CE-Platform
     PUBLIC
-        CE-Base
-        CE-Logger
+        CE-Core
 )
 if(PLATFORM_WINDOWS)
     target_link_libraries(CE-Platform

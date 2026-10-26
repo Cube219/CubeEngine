@@ -1,0 +1,27 @@
+#pragma once
+
+#include "EngineHeader.h"
+
+#include "Allocator/FrameAllocator.h"
+#include "Mesh.h"
+
+namespace cube
+{
+    class MeshData;
+
+    class MeshHelper
+    {
+    public:
+        static SharedPtr<MeshData> GenerateBoxMeshData();
+        static SharedPtr<MeshData> GenerateCylinderMeshData();
+        static SharedPtr<MeshData> GenerateCapsuleMeshData();
+        static SharedPtr<MeshData> GenerateSphereMeshData();
+        static SharedPtr<MeshData> GeneratePlaneMeshData();
+
+        static void SetNormalVector(ArrayView<Vertex> inOutVertices, ArrayView<Index> inOutIndices);
+        static void CalculateTangentVectors(ArrayView<Vertex> inOutVertices, ConstArrayView<Index> indices);
+
+    private:
+        static void SubDivide(ArrayView<Vertex> inOutVertices, ArrayView<Index> inOutIndices);
+    };
+} // namespace cube

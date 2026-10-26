@@ -147,7 +147,7 @@ The codebase is organized into layered modules with clear dependency relationshi
 ```
 CE-Main (executable)
     ↓
-CE-Core (rendering engine)
+CE-Engine (rendering engine)
     ↓
 CE-GAPI (abstract graphics API)
     ├── CE-GAPI_DX12 (DirectX 12 backend)
@@ -155,12 +155,10 @@ CE-GAPI (abstract graphics API)
     ↓
 CE-Platform (OS abstraction)
     ↓
-CE-Base (foundation) + CE-Logger
+CE-Core (foundation + logger/checker)
 ```
 
-**CE-Base** (`Source/Base/`): Foundation library providing math (Vector, Matrix), types (SharedPtr, UniquePtr, CubeString), utilities (Event, Flags, Allocator), and platform defines.
-
-**CE-Logger** (`Source/Logger/`): Logging and assertion framework used by all modules.
+**CE-Core** (`Source/Core/`): Foundation shared library providing math (Vector, Matrix), types (SharedPtr, UniquePtr, CubeString), string formatting, utilities (Event, Flags, Allocator, FrameAllocator), platform defines, and the logging/assertion framework (Logger, Checker). It is built as a shared library so that Logger/Checker state, the format memory block and the thread frame allocators are shared by all modules. Its initialization (Logger, Checker, frame allocator) is done in `Engine::Initialize`.
 
 **CE-Platform** (`Source/Platform/`): Platform abstraction for Window management, input handling (keyboard/mouse), memory allocation, dynamic library loading (DLib), and cursor control. Has platform-specific implementations in `Public/Windows/` and `Public/MacOS/`.
 
@@ -172,7 +170,7 @@ CE-Base (foundation) + CE-Logger
 
 **CE-GAPI_Metal** (`Source/GraphicsAPI/GAPI_Metal/`): Metal API implementation with MetalDevice, MetalShaderCompiler, MetalTimestampManager, etc. Written in Objective-C++ (.mm files) with ARC enabled.
 
-**CE-Core** (`Source/Core/`): High-level rendering engine with Engine (lifecycle), Renderer (rendering pipeline), resource managers (ShaderManager, TextureManager, SamplerManager), rendering components (Material, Mesh, RenderObject), and support systems (CameraSystem, ModelLoaderSystem, StatsSystem).
+**CE-Engine** (`Source/Engine/`): High-level rendering engine with Engine (lifecycle), Renderer (rendering pipeline), resource managers (ShaderManager, TextureManager, SamplerManager), rendering components (Material, Mesh, RenderObject), and support systems (CameraSystem, ModelLoaderSystem, StatsSystem).
 
 **CE-Main** (`Source/Main/`): Entry point executable with platform-specific main functions (WinMain for Windows, main for macOS).
 
@@ -256,7 +254,7 @@ The `ShaderParameterListManager` pools constant buffers with multi-buffering (co
 
 ### Memory Management
 
-- Use `SharedPtr<T>` and `UniquePtr<T>` from `Source/Base/Public/EngineBase.h` instead of raw pointers
+- Use `SharedPtr<T>` and `UniquePtr<T>` from `Source/Core/Public/Types.h` instead of raw pointers
 - Platform-specific aligned allocation via `Platform::AllocAligned()` and `Platform::FreeAligned()`
 - DX12 backend uses D3D12MemoryAllocator for GPU memory
 - Metal backend uses automatic Metal resource management
@@ -332,12 +330,14 @@ Models are loaded via:
 | Purpose | Path |
 |---------|------|
 | Main entry point | `Source/Main/main.cpp` |
-| Engine interface | `Source/Core/Public/Engine.h` |
-| Renderer implementation | `Source/Core/Private/Renderer/Renderer.h` |
+| Engine interface | `Source/Engine/Public/Engine.h` |
+| Renderer implementation | `Source/Engine/Private/Renderer/Renderer.h` |
 | GAPI interface | `Source/GraphicsAPI/GAPI/Public/GAPI.h` |
 | Platform interface | `Source/Platform/Public/Platform.h` |
-| Math types | `Source/Base/Public/Math/` |
-| Shader parameters DSL | `Source/Core/Public/RenderCore/ShaderParameter.h` |
+| Math types | `Source/Core/Public/` (`Vector.h`, `Matrix.h`, `Quaternion.h`) |
+| Logger / Checker | `Source/Core/Public/Logger.h`, `Source/Core/Public/Checker.h` |
+| Frame allocator | `Source/Core/Public/Allocator/FrameAllocator.h` |
+| Shader parameters DSL | `Source/Engine/Public/RenderCore/ShaderParameter.h` |
 | DX12 implementation | `Source/GraphicsAPI/GAPI_DX12/Private/` |
 | Metal implementation | `Source/GraphicsAPI/GAPI_Metal/Private/` |
 | Shaders | `Resources/Shaders/` |

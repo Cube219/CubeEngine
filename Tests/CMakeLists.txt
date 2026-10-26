@@ -11,7 +11,7 @@ add_executable(CE-Tests ${TEST_FILES})
 
 target_link_libraries(CE-Tests
     PRIVATE
-        CE-Base
+        CE-Core
         GTest::gtest_main
 )
 
