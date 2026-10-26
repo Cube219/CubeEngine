@@ -17,22 +17,6 @@
 
 namespace cube
 {
-    class FrameAllocatorAdapter : public IAllocator
-    {
-    public:
-        void* Allocate(SizeType n) override
-        {
-            return GetMyThreadFrameAllocator().Allocate(n);
-        }
-
-        void Free(void* ptr, SizeType n) override
-        {
-            GetMyThreadFrameAllocator().Free(ptr);
-        }
-    };
-
-    FrameAllocatorAdapter frameAllocatorAdapter;
-
     class EngineLoggerExtension : public ILoggerExtension
     {
     public:
@@ -122,7 +106,7 @@ namespace cube
 
         GetMyThreadFrameAllocator().Initialize("Main thread frame allocator", 100u * 1024 * 1024); // 100 MiB
 
-        Logger::Init(&frameAllocatorAdapter);
+        Logger::Init();
         Logger::SetFilePathSeparator(platform::FileSystem::GetSeparator());
         Logger::RegisterExtension<EngineLoggerExtension>();
 
@@ -138,6 +122,8 @@ namespace cube
 
         if (!mCommandLineArgs.empty())
         {
+            FrameAllocationScope scope;
+
             FrameAnsiString params;
             for (const auto& [key, value] : mCommandLineArgs)
             {

@@ -25,6 +25,8 @@ namespace cube
 
         void DX12ShaderParameterHelper::Initialize()
         {
+            FrameAllocationScope scope;
+
             FrameVector<D3D12_ROOT_PARAMETER1> parameters;
 
             parameters.reserve(mMaxNumRegister * mMaxNumSpace);

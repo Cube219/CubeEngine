@@ -1,16 +1,19 @@
 #pragma once
 
+#include <source_location>
+
 #include "CoreHeader.h"
 
 #include "CubeString.h"
 
 #ifndef CUBE_FRAME_ALLOCATOR_TRACK_ALLOCATION
-#define CUBE_FRAME_ALLOCATOR_TRACK_ALLOCATION _DEBUG
+#define CUBE_FRAME_ALLOCATOR_TRACK_ALLOCATION CUBE_DEBUG
 #endif
 
 namespace cube
 {
     class FrameAllocator;
+    class FrameAllocationScope;
 
     CUBE_CORE_EXPORT FrameAllocator& GetMyThreadFrameAllocator();
 
@@ -53,7 +56,11 @@ namespace cube
 
             void DiscardAllocations();
 
+            bool Contains(void* ptr) const;
+
         private:
+            friend class FrameAllocator;
+
             Uint64 mSize;
 
             void* mStartPtr;
@@ -67,7 +74,7 @@ namespace cube
         FrameAllocator(const FrameAllocator& other) = delete;
         FrameAllocator& operator=(const FrameAllocator& rhs) = delete;
 
-        void Initialize(const char* debugName, Uint64 blockSize = 1 * 1024 * 1024); // 1 MiB
+        void Initialize(const char* debugName, Uint64 blockSize = 10 * 1024 * 1024); // 10 MiB
         void Shutdown();
 
         bool IsInitialized() const { return mInitialized; }
@@ -80,9 +87,18 @@ namespace cube
 
         void DiscardAllocations();
 
+        void PushAllocationScope(FrameAllocationScope& scope);
+        void PopAllocationScope(FrameAllocationScope& scope);
+
     private:
         void EnsureInitialization();
         void AllocateAdditionalBlock(Uint64 size);
+        void LogAdditionalBlockAllocation(Uint64 size);
+
+#if CUBE_FRAME_ALLOCATOR_TRACK_ALLOCATION
+        void AddAllocationInfo(void* ptr);
+        bool ValidateAndRemoveAllocationInfo(void* ptr);
+#endif
 
         bool mInitialized;
         Uint64 mBlockSize;
@@ -90,7 +106,19 @@ namespace cube
 
         Vector<MemoryBlock> mAdditionalMemBlocks;
 
-#ifdef CUBE_FRAME_ALLOCATOR_TRACK_ALLOCATION
+        struct AllocationScopeSnapshot
+        {
+            FrameAllocationScope* scope;
+            void* memoryBlockCurrentPtr;
+            Vector<void*> additionalMemoryBlockCurrentPtrs;
+
+#if CUBE_FRAME_ALLOCATOR_TRACK_ALLOCATION
+            Set<void*> currentScopedAllocationPtrs;
+#endif
+        };
+        Vector<AllocationScopeSnapshot> mCurrentAllocationScopeSnapshots;
+
+#if CUBE_FRAME_ALLOCATOR_TRACK_ALLOCATION
         Uint64 mAllocatedSize = 0;
         const char* mDebugName;
 #endif
@@ -124,6 +152,8 @@ namespace cube
                 mpAllocator->FreeAligned(p);
             }
 
+            FrameAllocator* GetFrameAllocator() const { return mpAllocator; }
+
         private:
             template <typename U>
             friend class StdAllocator;
@@ -141,13 +171,30 @@ namespace cube
     template <typename T1, typename T2>
     bool operator==(const FrameAllocator::StdAllocator<T1>& lhs, const FrameAllocator::StdAllocator<T2>& rhs) noexcept
     {
-        return true;
+        return lhs.GetFrameAllocator() == rhs.GetFrameAllocator();
     }
     template <typename T1, typename T2>
     bool operator!=(const FrameAllocator::StdAllocator<T1>& lhs, const FrameAllocator::StdAllocator<T2>& rhs) noexcept
     {
-        return false;
+        return !(lhs == rhs);
     }
+
+    class CUBE_CORE_EXPORT FrameAllocationScope
+    {
+    public:
+        FrameAllocationScope(std::source_location location = std::source_location::current());
+        FrameAllocationScope(FrameAllocator& allocator, std::source_location location = std::source_location::current());
+        ~FrameAllocationScope();
+
+        FrameAllocationScope(const FrameAllocationScope& other) = delete;
+        FrameAllocationScope& operator=(const FrameAllocationScope& rhs) = delete;
+
+        const std::source_location& GetLocation() const { return mLocation; }
+
+    private:
+        FrameAllocator& mAllocator;
+        std::source_location mLocation;
+    };
 
     // Define strings with frame allocator
     template <typename Char>

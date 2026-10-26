@@ -169,6 +169,8 @@ namespace cube
 
         void DX12TLAS::WriteInstanceDescs(DX12Buffer& instanceBuffer)
         {
+            FrameAllocationScope scope;
+
             FrameVector<D3D12_RAYTRACING_INSTANCE_DESC> dx12InstanceDescs;
             dx12InstanceDescs.reserve(mInstances.size());
             for (BLASInstance& blasInstance : mInstances)

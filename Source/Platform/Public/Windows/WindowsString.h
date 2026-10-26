@@ -4,12 +4,16 @@
 
 #include "PlatformHeader.h"
 
+#include "Allocator/FrameAllocator.h"
+
 namespace cube
 {
 #define WINDOWS_T(text) L ## text
     using WindowsCharacter = wchar_t;
     using WindowsString = std::basic_string<WindowsCharacter>;
     using WindowsStringView = std::basic_string_view<WindowsCharacter>;
+
+    using FrameWindowsString = TFrameString<WindowsCharacter>;
 
     namespace string_internal
     {

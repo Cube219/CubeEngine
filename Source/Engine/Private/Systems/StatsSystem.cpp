@@ -147,6 +147,9 @@ namespace cube
                 const float timeMS = static_cast<float>(
                     static_cast<double>(timestampRange.endTime - timestampRange.beginTime) / static_cast<double>(mTimestampRanges.frequency)  * 1000.0f
                 );
+
+                FrameAllocationScope scope;
+
                 ImGui::BulletText("%s: %.4fms", String_Convert<FrameAnsiString>(timestampRange.name).c_str(), timeMS);
             }
         }

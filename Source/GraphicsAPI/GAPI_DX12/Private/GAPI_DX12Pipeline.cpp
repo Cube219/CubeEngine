@@ -322,7 +322,8 @@ namespace cube
 
             const RayTracingPipelineInfo& pipelineInfo = createInfo.pipelineInfo;
 
-            // TODO: Make state object builder? - after frame allocator improvement
+            FrameAllocationScope scope;
+
             FrameVector<D3D12_STATE_SUBOBJECT> subobjects;
 
             D3D12_GLOBAL_ROOT_SIGNATURE globalRootSignature;
@@ -332,11 +333,11 @@ namespace cube
                 .pDesc = &globalRootSignature,
             });
 
-            auto AddShader = [&](Shader* shader, WindowsString& shaderName, D3D12_EXPORT_DESC& exportDesc, D3D12_DXIL_LIBRARY_DESC& libraryDesc)
+            auto AddShader = [&](Shader* shader, FrameWindowsString& shaderName, D3D12_EXPORT_DESC& exportDesc, D3D12_DXIL_LIBRARY_DESC& libraryDesc)
             {
                 DX12Shader* dx12Shader = dynamic_cast<DX12Shader*>(shader);
                 CHECK(dx12Shader);
-                shaderName = String_Convert<WindowsString>(dx12Shader->GetReflection().name);
+                shaderName = String_Convert<FrameWindowsString>(dx12Shader->GetReflection().name);
                 exportDesc.Name = shaderName.c_str();
                 exportDesc.ExportToRename = nullptr;
                 exportDesc.Flags = D3D12_EXPORT_FLAG_NONE;
@@ -355,7 +356,7 @@ namespace cube
 
             D3D12_EXPORT_DESC rayGenExportDesc;
             D3D12_DXIL_LIBRARY_DESC rayGenLibraryDesc;
-            WindowsString rayGenShaderName;
+            FrameWindowsString rayGenShaderName;
             AddShader(pipelineInfo.rayGenShader.get(), rayGenShaderName, rayGenExportDesc, rayGenLibraryDesc);
             mRayGenShaderTableOffset = 0;
             currentShaderTableOffset = mRayGenShaderTableOffset + D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
@@ -363,7 +364,7 @@ namespace cube
 
             D3D12_EXPORT_DESC closestHitExportDesc;
             D3D12_DXIL_LIBRARY_DESC closestHitLibraryDesc;
-            WindowsString closestHitShaderName;
+            FrameWindowsString closestHitShaderName;
             if (pipelineInfo.closestHitShader)
             {
                 AddShader(pipelineInfo.closestHitShader.get(), closestHitShaderName, closestHitExportDesc, closestHitLibraryDesc);
@@ -372,7 +373,7 @@ namespace cube
 
             D3D12_EXPORT_DESC missExportDesc;
             D3D12_DXIL_LIBRARY_DESC missLibraryDesc;
-            WindowsString missShaderName;
+            FrameWindowsString missShaderName;
             if (pipelineInfo.missShader)
             {
                 AddShader(pipelineInfo.missShader.get(), missShaderName, missExportDesc, missLibraryDesc);
@@ -383,10 +384,10 @@ namespace cube
 
             const bool existAnyHitShader = pipelineInfo.closestHitShader != nullptr;
             D3D12_HIT_GROUP_DESC hitGroupDesc;
-            WindowsString hitGroupExportName;
+            FrameWindowsString hitGroupExportName;
             if (existAnyHitShader)
             {
-                hitGroupExportName = Format<WindowsString>(WINDOWS_T("{0}_HitGroup"), createInfo.debugName);
+                hitGroupExportName = Format<FrameWindowsString>(WINDOWS_T("{0}_HitGroup"), createInfo.debugName);
                 hitGroupDesc.HitGroupExport = hitGroupExportName.c_str();
                 hitGroupDesc.Type = D3D12_HIT_GROUP_TYPE_TRIANGLES;
                 hitGroupDesc.AnyHitShaderImport = NULL;

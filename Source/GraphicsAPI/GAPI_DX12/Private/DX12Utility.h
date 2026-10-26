@@ -32,7 +32,7 @@ namespace cube
 
 #define SET_DEBUG_NAME(object, name) \
     { \
-        using FrameWindowsString = TFrameString<WindowsCharacter>; \
+        cube::FrameAllocationScope scope; \
         FrameWindowsString str = String_Convert<FrameWindowsString>(name); \
         if (!str.empty()) \
         { \
@@ -42,7 +42,7 @@ namespace cube
 
 #define SET_DEBUG_NAME_FORMAT(object, format, ...) \
     { \
-        using FrameWindowsString = TFrameString<WindowsCharacter>; \
+        cube::FrameAllocationScope scope; \
         FrameWindowsString str = Format<FrameWindowsString>(WINDOWS_T(format), ##__VA_ARGS__); \
         object->SetPrivateData(WKPDID_D3DDebugObjectNameW, str.size() * sizeof(WindowsCharacter), str.c_str()); \
     }

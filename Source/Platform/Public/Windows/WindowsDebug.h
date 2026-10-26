@@ -34,7 +34,7 @@ namespace cube
             static void CreateAndShowLoggerWindow();
 
         private:
-            static void ShowDebugMessageBox(const WindowsString& title, const WindowsString& msg);
+            static void ShowDebugMessageBox(const WindowsString& title, WindowsStringView msg);
 
             static bool mIsTestMode;
         };

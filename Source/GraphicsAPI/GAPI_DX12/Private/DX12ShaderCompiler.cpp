@@ -52,7 +52,7 @@ namespace cube
 
     DX12ShaderCompilerResult DX12ShaderCompiler::CompileFromHLSL(const gapi::ShaderCreateInfo& createInfo, gapi::ShaderCompileResult& compileResult)
     {
-        using FrameWindowsString = TFrameString<WindowsCharacter>;
+        FrameAllocationScope scope;
 
         FrameVector<const WindowsCharacter*> args;
         args.push_back(WINDOWS_T("-E"));
@@ -174,17 +174,21 @@ namespace cube
         if (compileResult.isSuccess)
         {
 #if CUBE_DX12_SLANG_PRINT_HLSL
-            FrameString pathList;
-            for (auto& codeInfo : createInfo.shaderCodeInfos)
             {
-                if (!pathList.empty())
+                FrameAllocationScope scope;
+
+                FrameString pathList;
+                for (auto& codeInfo : createInfo.shaderCodeInfos)
                 {
-                    pathList.push_back(CUBE_T('\n'));
+                    if (!pathList.empty())
+                    {
+                        pathList.push_back(CUBE_T('\n'));
+                    }
+                    pathList += codeInfo.path.ToString();
                 }
-                pathList += codeInfo.path.ToString();
-            }
-            FrameAnsiString shaderCode((const char*)shader.GetData(), shader.GetSize() / sizeof(char));
-            CUBE_LOG(Info, DX12, "Compiled HLSL code from\n\t{0}:\n{1}", pathList, shaderCode);
+                FrameAnsiString shaderCode((const char*)shader.GetData(), shader.GetSize() / sizeof(char));
+                CUBE_LOG(Info, DX12, "Compiled HLSL code from\n\t{0}:\n{1}", pathList, shaderCode);
+        }
 #endif
 
             DX12ShaderCompilerResult result;

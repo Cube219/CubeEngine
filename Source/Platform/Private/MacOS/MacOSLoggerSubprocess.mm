@@ -200,8 +200,11 @@ namespace cube
                 return;
             }
 
-            MacOSString osStr = String_Convert<MacOSString>(str);
             const Uint8 colorByte = static_cast<Uint8>(colorCategory);
+
+            FrameAllocationScope scope;
+
+            FrameMacOSString osStr = String_Convert<FrameMacOSString>(str);
             const Uint32 length = static_cast<Uint32>(osStr.size());
 
             NSMutableData* data = [NSMutableData dataWithCapacity:5 + length];

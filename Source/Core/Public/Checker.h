@@ -36,9 +36,21 @@ namespace cube
         template <typename... Args>
         static void ProcessFailedCheckFormatting(const char* fullFileName, int lineNum, StringView expr, StringView format, Args&&... args)
         {
-            Logger::LoggerString msg = Format<Logger::LoggerString>(format, std::forward<Args>(args)...);
-            Logger::LoggerString exprAndMsg = Format<Logger::LoggerString>(CUBE_T("{} / {}"), expr, msg);
-            ProcessFailedCheck(fullFileName, lineNum, exprAndMsg);
+            if (GetMyThreadFrameAllocator().IsInitialized())
+            {
+                FrameAllocationScope scope;
+
+                FrameString msg = Format<FrameString>(format, std::forward<Args>(args)...);
+                FrameString exprAndMsg = Format<FrameString>(CUBE_T("{0} / {1}"), expr, msg);
+                ProcessFailedCheck(fullFileName, lineNum, exprAndMsg);
+            }
+            else
+            {
+                // Use the default allocator if the frame allocator is not initialized.
+                String msg = Format<String>(format, std::forward<Args>(args)...);
+                String exprAndMsg = Format<String>(CUBE_T("{0} / {1}"), expr, msg);
+                ProcessFailedCheck(fullFileName, lineNum, exprAndMsg);
+            }
         }
 
         CUBE_CORE_EXPORT static void ProcessFailedCheck(const char* fullFileName, int lineNum, StringView exprAndMsg);

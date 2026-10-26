@@ -13,6 +13,27 @@ namespace cube
 {
     namespace platform
     {
+        template <StringViewable SrcT>
+        void AssignNormalizedPathNSString(NSString* __strong& dst, const SrcT& src)
+        {
+            FrameAllocationScope scope;
+
+            FrameMacOSString macPath = String_Convert<FrameMacOSString>(src);
+            for (MacOSCharacter& ch : macPath)
+            {
+                if (ch == MACOS_T('\\'))
+                {
+                    ch = MACOS_T('/');
+                }
+            }
+            if (macPath.size() > 1 && macPath.back() == MACOS_T('/'))
+            {
+                macPath.pop_back();
+            }
+
+            dst = [NSString stringWithUTF8String:macPath.data()];
+        }
+
         // ===== MacOSFilePath =====
 
         MacOSFilePath::MacOSFilePath()
@@ -57,36 +78,12 @@ namespace cube
 
         MacOSFilePath::MacOSFilePath(StringView path)
         {
-            MacOSString macPath = String_Convert<MacOSString>(path);
-            for (MacOSCharacter& ch : macPath)
-            {
-                if (ch == MACOS_T('\\'))
-                {
-                    ch = MACOS_T('/');
-                }
-            }
-            if (macPath.size() > 1 && macPath.back() == MACOS_T('/'))
-            {
-                macPath.pop_back();
-            }
-            mPath = [NSString stringWithUTF8String:macPath.data()];
+            AssignNormalizedPathNSString(mPath, path);
         }
 
         MacOSFilePath::MacOSFilePath(AnsiStringView path)
         {
-            MacOSString macPath = String_Convert<MacOSString>(path);
-            for (MacOSCharacter& ch : macPath)
-            {
-                if (ch == MACOS_T('\\'))
-                {
-                    ch = MACOS_T('/');
-                }
-            }
-            if (macPath.size() > 1 && macPath.back() == MACOS_T('/'))
-            {
-                macPath.pop_back();
-            }
-            mPath = [NSString stringWithUTF8String:macPath.data()];
+            AssignNormalizedPathNSString(mPath, path);
         }
 
         String MacOSFilePath::ToString() const

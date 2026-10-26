@@ -16,6 +16,8 @@ namespace cube
     using MacOSString = std::basic_string<MacOSCharacter>;
     using MacOSStringView = std::basic_string_view<MacOSCharacter>;
 
+    using FrameMacOSString = TFrameString<MacOSCharacter>;
+
     namespace string_internal
     {
 #if CUBE_SUPPORT_UNICODE_CHARACTER
@@ -37,12 +39,15 @@ namespace cube
             // to match __strong locals (e.g. the 'res' temporary inside String_Convert).
             static void ConvertAndAppend(NSString* __strong& dst, const SrcStringViewable& src)
             {
-                FormatString<U8Character> u8Src;
+                // Use the format scratch allocator.
+                FrameAllocator& formatScratchAllocator = format::internal::GetMyThreadFormatScratchAllocator();
+                FrameAllocationScope scope(formatScratchAllocator);
+
+                FrameAllocator::StdAllocator<U8Character> scratchAllocator(formatScratchAllocator);
+                TFrameString<U8Character> u8Src(scratchAllocator);
                 String_ConvertAndAppend(u8Src, src);
 
                 dst = [NSString stringWithUTF8String:u8Src.data()];
-
-                format::internal::DiscardFormatAllocations();
             }
         };
 

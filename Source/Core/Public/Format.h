@@ -6,6 +6,7 @@
 
 #include "CoreHeader.h"
 
+#include "Allocator/FrameAllocator.h"
 #include "CubeString.h"
 #include "Types.h"
 
@@ -15,43 +16,8 @@ namespace cube
     {
         namespace internal
         {
-            CUBE_CORE_EXPORT void* AllocateFormat(Uint64 n);
-            CUBE_CORE_EXPORT void* AllocateFormat(Uint64 n, Uint64 alignment);
+            CUBE_CORE_EXPORT FrameAllocator& GetMyThreadFormatScratchAllocator();
 
-            CUBE_CORE_EXPORT void DiscardFormatAllocations();
-        } // namespace internal
-    } // namespace format
-
-    // Format uses thread_local memory block (thlFormatMemoryBlock) which exists only in CE-Core.
-    // AllocateFormat and DiscardFormatAllocations are exported, so all modules share the same block per thread.
-    // Visibility of format template functions is still hidden to keep their instantiations in each dylib.
-    template <typename T>
-    class CUBE_DLL_HIDDEN FormatAllocator
-    {
-    public:
-        using value_type = T;
-
-        FormatAllocator(const char* pName = nullptr) {}
-        template <typename U>
-        FormatAllocator(const FormatAllocator<U>& other) noexcept {}
-
-        T* allocate(size_t n)
-        {
-            return (T*)format::internal::AllocateFormat(sizeof(T) * n, alignof(T));
-        }
-
-        void deallocate(T* p, size_t n)
-        {
-            // Do nothing
-        }
-    };
-    template <typename Char>
-    using FormatString = std::basic_string<Char, std::char_traits<Char>, FormatAllocator<Char>>;
-
-    namespace format
-    {
-        namespace internal
-        {
             // ----- Convert different string types -----
             // Not has converter or conversion is not needed (Not string type or same string type)
             template <typename DstChar, typename SrcType>
@@ -68,22 +34,19 @@ namespace cube
                 requires
                     string_internal::Converter<std::basic_string<DstChar>, SrcType>::Available &&
                     string_internal::Converter<std::basic_string<DstChar>, SrcType>::NeedConvert
-            CUBE_DLL_HIDDEN fmt::basic_string_view<DstChar> ConvertIfStringTypeIsDifferent(const SrcType& value)
+            CUBE_DLL_HIDDEN TFrameString<DstChar> ConvertIfStringTypeIsDifferent(const SrcType& value)
             {
-                // temp string will be deallocated when DiscardFormatAllocations() is called.
-                // (At the end of formatting)
-                void* tempMem = AllocateFormat(sizeof(FormatString<DstChar>));
-                FormatString<DstChar>* temp = new(tempMem) FormatString<DstChar>;
+                FrameAllocator::StdAllocator<DstChar> scratchAllocator(GetMyThreadFormatScratchAllocator());
+                TFrameString<DstChar> converted(scratchAllocator);
 
-                String_ConvertAndAppend(*temp, value);
+                String_ConvertAndAppend(converted, value);
 
-                fmt::basic_string_view<DstChar> view(temp->data(), temp->size());
-                return view;
+                return converted;
             }
 
             // ----- Custom format functions -----
             template <typename Char>
-            using custom_memory_buffer = fmt::basic_memory_buffer<Char, fmt::inline_buffer_size, FormatAllocator<Char>>;
+            using custom_memory_buffer = fmt::basic_memory_buffer<Char, fmt::inline_buffer_size, FrameAllocator::StdAllocator<Char>>;
 
             // fmt::vformat that support custom character and allocator
             template <typename Char, typename StringAllocator, typename... Args>
@@ -91,14 +54,10 @@ namespace cube
                 fmt::basic_string_view<Char> format_str,
                 const Args&... args)
             {
-                auto buffer = custom_memory_buffer<Char>();
+                auto buffer = custom_memory_buffer<Char>(FrameAllocator::StdAllocator<Char>(GetMyThreadFormatScratchAllocator()));
                 fmt::detail::vformat_to(buffer, format_str, fmt::make_format_args<fmt::buffered_context<Char>>(args...));
 
-                std::basic_string<Char, std::char_traits<Char>, StringAllocator> res(buffer.data(), buffer.size());
-
-                DiscardFormatAllocations();
-
-                return res;
+                return std::basic_string<Char, std::char_traits<Char>, StringAllocator>(buffer.data(), buffer.size());
             }
         } // namespace internal
     } // namespace format
@@ -111,6 +70,8 @@ namespace cube
     {
         using Char = typename OutputString::value_type;
         using Allocator = typename OutputString::allocator_type;
+
+        FrameAllocationScope scope(format::internal::GetMyThreadFormatScratchAllocator());
 
         return format::internal::cube_vformat<Char, Allocator>(fmt::basic_string_view(formatStr.data(), formatStr.size()), format::internal::ConvertIfStringTypeIsDifferent<Char>(args)...);
     }
@@ -128,6 +89,18 @@ namespace cube
             auto&& buf = fmt::detail::get_buffer<Char>(ctx.out());
             auto fmtStr = format::internal::ConvertIfStringTypeIsDifferent<Char>(fmt);
             fmt::detail::vformat_to<Char>(buf, fmtStr, fmt::make_format_args<FormatContext>(format::internal::ConvertIfStringTypeIsDifferent<Char>(args)...), {});
+
+            return fmt::detail::get_iterator(buf, ctx.out());
+        }
+
+    private:
+        // TODO: Remove this if not needed
+        // Receive the converted values as lvalue because fmt::make_format_args cannot receive rvalue.
+        template <typename FormatContext, typename FormatStr, typename... ConvertedArgs>
+        auto cube_format_converted(FormatContext& ctx, const FormatStr& fmtStr, const ConvertedArgs&... args) const
+        {
+            auto&& buf = fmt::detail::get_buffer<Char>(ctx.out());
+            fmt::detail::vformat_to<Char>(buf, fmtStr, fmt::make_format_args<FormatContext>(args...), {});
 
             return fmt::detail::get_iterator(buf, ctx.out());
         }

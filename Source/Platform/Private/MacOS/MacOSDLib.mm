@@ -40,7 +40,9 @@ namespace cube
                 return nullptr;
             }
 
-            MacOSString macName = String_Convert<MacOSString>(name);
+            FrameAllocationScope scope;
+
+            FrameMacOSString macName = String_Convert<FrameMacOSString>(name);
             void *pFunction = dlsym(mHandle, macName.c_str());
             if (pFunction == nullptr)
             {

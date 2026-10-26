@@ -102,6 +102,8 @@ namespace cube
         compileResult.Reset();
         ComPtr<slang::IBlob> diagnosticBlob;
 
+        FrameAllocationScope scope;
+
         slang::TargetDesc targetDesc = {
             .profile = mGlobalSession->findProfile(options.profile)
         };

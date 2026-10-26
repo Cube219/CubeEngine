@@ -28,7 +28,9 @@ namespace cube
 
         void MacOSDebug::PrintToDebugConsole(StringView str, PrintColorCategory colorCategory)
         {
-            MacOSString osStr = String_Convert<MacOSString>(str);
+            FrameAllocationScope scope;
+
+            FrameMacOSString osStr = String_Convert<FrameMacOSString>(str);
 
             std::cout << osStr << std::endl;
 

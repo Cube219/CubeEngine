@@ -5,38 +5,18 @@
 
 namespace cube
 {
-    IAllocator* Logger::mCurrentAllocator = nullptr;
-    IAllocator* Logger::mAllocator = nullptr;
-    IAllocator* Logger::mDefaultAllocator = nullptr;
+    bool Logger::mIsInitialized = false;
     char Logger::mFilePathSeparator = '\\';
     Vector<UniquePtr<ILoggerExtension>> Logger::mExtensions;
 
-    class DefaultLoggerAllocator : public IAllocator
+    void Logger::Init()
     {
-    public:
-        void* Allocate(SizeType n) override
-        {
-            return malloc(n);
-        }
-
-        void Free(void* ptr, SizeType n) override
-        {
-            free(ptr);
-        }
-    };
-    DefaultLoggerAllocator defaultLoggerAllocator;
-
-    void Logger::Init(IAllocator* loggerAllocator)
-    {
-        mAllocator = loggerAllocator;
-        mDefaultAllocator = &defaultLoggerAllocator;
-
-        mCurrentAllocator = loggerAllocator;
+        mIsInitialized = true;
     }
 
     bool Logger::IsInitialized()
     {
-        return mAllocator != nullptr;
+        return mIsInitialized;
     }
 
     void Logger::SetFilePathSeparator(char separator)
@@ -77,21 +57,25 @@ namespace cube
 
         auto now = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
 
-        LoggerString res = Format<LoggerString>(CUBE_T("{0} [{1:%Y-%m-%d %H:%M:%S} / {2}] : {3}"), prefix, now, category, msg);
+        auto writeToExtensions = [type](StringView formattedLog) {
+            for (auto& extension : mExtensions)
+            {
+                extension->WriteFormattedLog(type, formattedLog);
+            }
+        };
 
-        for (auto& extension : mExtensions)
+        if (GetMyThreadFrameAllocator().IsInitialized())
         {
-            extension->WriteFormattedLog(type, res);
+            FrameAllocationScope scope;
+
+            FrameString res = Format<FrameString>(CUBE_T("{0} [{1:%Y-%m-%d %H:%M:%S} / {2}] : {3}"), prefix, now, category, msg);
+            writeToExtensions(res);
         }
-    }
-
-    void Logger::UseDefaultAllocator()
-    {
-        mCurrentAllocator = mDefaultAllocator;
-    }
-
-    void Logger::UseLoggerAllocator()
-    {
-        mCurrentAllocator = mAllocator;
+        else
+        {
+            // Use the default allocator if the frame allocator is not initialized.
+            String res = Format<String>(CUBE_T("{0} [{1:%Y-%m-%d %H:%M:%S} / {2}] : {3}"), prefix, now, category, msg);
+            writeToExtensions(res);
+        }
     }
 } // namespace cube

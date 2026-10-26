@@ -2,7 +2,7 @@
 
 #include "CoreHeader.h"
 
-#include "Allocator.h"
+#include "Allocator/FrameAllocator.h"
 #include "Format.h"
 
 namespace cube
@@ -22,38 +22,14 @@ namespace cube
         virtual void WriteFormattedLog(LogType type, StringView formattedLog) = 0;
     };
 
-    // TODO: Thread-safe logging/allocation system (Using queue?)
+    // TODO: Thread-safe logging system (Using queue?)
     class Logger
     {
-    public:
-        template <typename T>
-        class StdAllocator
-        {
-        public:
-            using value_type = T;
-
-            StdAllocator(const char* pName = nullptr) {}
-            template <typename U>
-            StdAllocator(const StdAllocator<U>& other) noexcept {}
-
-            T* allocate(size_t n)
-            {
-                return (T*)Logger::mCurrentAllocator->Allocate(sizeof(T) * n);
-            }
-
-            void deallocate(T* p, size_t n)
-            {
-                Logger::mCurrentAllocator->Free(p, n);
-            }
-        };
-
-        using LoggerString = std::basic_string<Character, std::char_traits<Character>, StdAllocator<Character>>;
-
     public:
         Logger(const Logger& other) = delete;
         Logger& operator=(const Logger& other) = delete;
 
-        CUBE_CORE_EXPORT static void Init(IAllocator* loggerAllocator);
+        CUBE_CORE_EXPORT static void Init();
         CUBE_CORE_EXPORT static bool IsInitialized();
 
         template <typename LoggerExtension>
@@ -67,36 +43,30 @@ namespace cube
         template <typename... Args>
         static void WriteLogFormatting(LogType type, const char* fullFileName, int lineNum, StringView category, StringView format, Args&&... args)
         {
-            LoggerString str = Format<LoggerString>(format, std::forward<Args>(args)...);
-            WriteLog(type, fullFileName, lineNum, category, str);
+            if (GetMyThreadFrameAllocator().IsInitialized())
+            {
+                FrameAllocationScope scope;
+
+                FrameString str = Format<FrameString>(format, std::forward<Args>(args)...);
+                WriteLog(type, fullFileName, lineNum, category, str);
+            }
+            else
+            {
+                // Use the default allocator if the frame allocator is not initialized.
+                String str = Format<String>(format, std::forward<Args>(args)...);
+                WriteLog(type, fullFileName, lineNum, category, str);
+            }
         }
         CUBE_CORE_EXPORT static void WriteLog(LogType type, const char* fullFileName, int lineNum, StringView category, StringView msg);
-
-        CUBE_CORE_EXPORT static void UseDefaultAllocator();
-        CUBE_CORE_EXPORT static void UseLoggerAllocator();
 
     private:
         Logger() = default;
 
         static const char* SplitFileName(const char* fullPath);
 
-        CUBE_CORE_EXPORT static IAllocator* mCurrentAllocator;
-        static IAllocator* mAllocator;
-        static IAllocator* mDefaultAllocator;
+        static bool mIsInitialized;
         static char mFilePathSeparator;
         CUBE_CORE_EXPORT static Vector<UniquePtr<ILoggerExtension>> mExtensions;
-    };
-
-    struct LoggerUseDefaultAllocatorScope
-    {
-        LoggerUseDefaultAllocatorScope()
-        {
-            Logger::UseDefaultAllocator();
-        }
-        ~LoggerUseDefaultAllocatorScope()
-        {
-            Logger::UseLoggerAllocator();
-        }
     };
 } // namespace cube
 

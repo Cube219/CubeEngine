@@ -245,7 +245,10 @@ namespace cube
 
             desc.inputPrimitiveTopology = ConvertToMTLPrimitiveTopologyClass(pipelineInfo.primitiveTopologyType);
             desc.supportIndirectCommandBuffers = false;
-            desc.label = String_Convert<NSString*>(Format<FrameString>(CUBE_T("{0} (RenderPipelineState)"), info.debugName));
+            {
+                FrameAllocationScope scope;
+                desc.label = String_Convert<NSString*>(Format<FrameString>(CUBE_T("{0} (RenderPipelineState)"), info.debugName));
+            }
 
             NSError* error = nil;
             mPipelineState = [device.GetMTLDevice() newRenderPipelineStateWithDescriptor:desc error:&error];
@@ -279,7 +282,10 @@ namespace cube
                 backStencilDesc.writeMask = pipelineInfo.depthStencilState.stencilWriteMask;
                 depthStencilDesc.backFaceStencil = backStencilDesc;
             }
-            depthStencilDesc.label = String_Convert<NSString*>(Format<FrameString>(CUBE_T("{0} (DepthStencilState)"), info.debugName));
+            {
+                FrameAllocationScope scope;
+                depthStencilDesc.label = String_Convert<NSString*>(Format<FrameString>(CUBE_T("{0} (DepthStencilState)"), info.debugName));
+            }
 
             mDepthStencilState = [device.GetMTLDevice() newDepthStencilStateWithDescriptor:depthStencilDesc];
             CHECK(mDepthStencilState);

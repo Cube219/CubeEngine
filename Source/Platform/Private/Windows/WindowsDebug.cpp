@@ -25,8 +25,9 @@ namespace cube
 
         void WindowsDebug::PrintToDebugConsole(StringView str, PrintColorCategory colorCategory)
         {
-            // TODO: Use custom allocator (logger allocator?)
-            WindowsString winStr = String_Convert<WindowsString>(str);
+            FrameAllocationScope scope;
+
+            FrameWindowsString winStr = String_Convert<FrameWindowsString>(str);
 
             std::wcout << winStr << std::endl;
             OutputDebugString(winStr.c_str());
@@ -35,16 +36,18 @@ namespace cube
 
         void WindowsDebug::ProcessFatalError(StringView msg)
         {
-            // TODO: Use custom allocator (logger allocator?)
-            ShowDebugMessageBox(WINDOWS_T("Fatal error"), String_Convert<WindowsString>(msg));
+            FrameAllocationScope scope;
+
+            ShowDebugMessageBox(WINDOWS_T("Fatal error"), String_Convert<FrameWindowsString>(msg));
         }
 
         void WindowsDebug::ProcessFailedCheck(const char* fileName, int lineNum, StringView formattedMsg)
         {
             if (!WindowsDebug::IsDebuggerAttached())
             {
-                // TODO: Use custom allocator (logger allocator?)
-                ShowDebugMessageBox(WINDOWS_T("Check failed"), String_Convert<WindowsString>(formattedMsg));
+                FrameAllocationScope scope;
+
+                ShowDebugMessageBox(WINDOWS_T("Check failed"), String_Convert<FrameWindowsString>(formattedMsg));
             }
 
             if (mIsTestMode)
@@ -85,14 +88,16 @@ namespace cube
             IMAGEHLP_MODULE64 moduleInfo = {};
             moduleInfo.SizeOfStruct = sizeof(IMAGEHLP_MODULE64);
 
-            AnsiString str;
+            FrameAllocationScope scope;
+
+            FrameAnsiString str;
             // Skip one stack frame
             //     - WindowsDebug::DumpStackTrace()
             for (WORD i = 1; i < NumFrames; ++i)
             {
                 UINT64 pc = (UINT64)backTrace[i];
 
-                AnsiString moduleName;
+                FrameAnsiString moduleName;
                 if (SymGetModuleInfo64(process, pc, &moduleInfo))
                 {
                     moduleName = WindowsFileSystem::SplitFileNameFromFullPath(moduleInfo.ImageName);
@@ -102,7 +107,7 @@ namespace cube
                     moduleName = "???";
                 }
 
-                AnsiString fileName;
+                FrameAnsiString fileName;
                 Uint32 lineNum = 0;
                 if (SymGetLineFromAddr64(process, pc, &displacement, &lineInfo))
                 {
@@ -140,17 +145,17 @@ namespace cube
                     fileName = "???";
                 }
 
-                AnsiString functionName;
+                FrameAnsiString functionName;
                 if (SymFromAddr(process, pc, nullptr, symbol))
                 {
-                    functionName = AnsiString(symbol->Name);
+                    functionName = FrameAnsiString(symbol->Name);
                 }
                 else
                 {
                     functionName = "???";
                 }
 
-                str += Format<AnsiString>("{}!{}() - {}:{}\n", moduleName, functionName, fileName, lineNum);
+                str += Format<FrameAnsiString>("{}!{}() - {}:{}\n", moduleName, functionName, fileName, lineNum);
 
                 if (functionName == "WinMain")
                 {
@@ -206,15 +211,16 @@ namespace cube
             }
         }
 
-        void WindowsDebug::ShowDebugMessageBox(const WindowsString& title, const WindowsString& msg)
+        void WindowsDebug::ShowDebugMessageBox(const WindowsString& title, WindowsStringView msg)
         {
             if (mIsTestMode)
             {
                 return;
             }
 
-            // TODO: Use custom allocator (logger allocator?)
-            WindowsString winStr = Format<WindowsString>(WINDOWS_T("{0}\n\n(Press Retry to debug the application)"), msg);
+            FrameAllocationScope scope;
+
+            FrameWindowsString winStr = Format<FrameWindowsString>(WINDOWS_T("{0}\n\n(Press Retry to debug the application)"), msg);
 
             int nCode = MessageBox(NULL, winStr.c_str(), title.c_str(),
                                    MB_TASKMODAL | MB_ICONHAND | MB_ABORTRETRYIGNORE | MB_SETFOREGROUND);
@@ -301,18 +307,20 @@ namespace cube
 
             void HandleFatalException(StringView exceptionTypeName, StringView details)
             {
-                String msg = Format<String>(CUBE_T("Unhandled exception: {0}\n{1}"), exceptionTypeName, details);
+                FrameAllocationScope scope;
+
+                FrameString msg = Format<FrameString>(CUBE_T("Unhandled exception: {0}\n{1}"), exceptionTypeName, details);
 
                 LogExceptionMessage(msg);
 
                 String stackTrace = WindowsDebug::DumpStackTrace();
                 if (!stackTrace.empty())
                 {
-                    String stackMsg = Format<String>(CUBE_T("Stack trace:\n{0}"), stackTrace);
+                    FrameString stackMsg = Format<FrameString>(CUBE_T("Stack trace:\n{0}"), stackTrace);
                     LogExceptionMessage(stackMsg);
                 }
 
-                String fullMsg = Format<String>(CUBE_T("{0}\n\n{1}"), msg, stackTrace);
+                FrameString fullMsg = Format<FrameString>(CUBE_T("{0}\n\n{1}"), msg, stackTrace);
                 WindowsDebug::ProcessFatalError(fullMsg);
             }
 
@@ -321,12 +329,14 @@ namespace cube
                 DWORD exceptionCode = ep->ExceptionRecord->ExceptionCode;
                 StringView exceptionName = GetExceptionCodeString(exceptionCode);
 
-                String details = Format<String>(CUBE_T("Code: 0x{0:x}"), exceptionCode);
+                FrameAllocationScope scope;
+
+                FrameString details = Format<FrameString>(CUBE_T("Code: 0x{0:x}"), exceptionCode);
 
                 if (exceptionCode == EXCEPTION_ACCESS_VIOLATION)
                 {
                     StringView accessType = (ep->ExceptionRecord->ExceptionInformation[0] == 0) ? CUBE_T("Read") : CUBE_T("Write");
-                    details = Format<String>(
+                    details = Format<FrameString>(
                         CUBE_T("Code: 0x{0:x}\n{1} at address 0x{2:x}"),
                         exceptionCode,
                         accessType,
@@ -366,7 +376,9 @@ namespace cube
                     break;
                 }
 
-                String details = Format<String>(CUBE_T("Signal: {0} ({1})"), signalName, signal);
+                FrameAllocationScope scope;
+
+                FrameString details = Format<FrameString>(CUBE_T("Signal: {0} ({1})"), signalName, signal);
                 HandleFatalException(signalName, details);
 
                 if (WindowsDebug::IsTestMode())
@@ -379,15 +391,17 @@ namespace cube
             {
                 StringView exceptionName = CUBE_T("std::terminate");
 
-                String details = String(CUBE_T("Uncaught C++ exception"));
+                FrameAllocationScope scope;
+
+                FrameString details = FrameString(CUBE_T("Uncaught C++ exception"));
                 try
                 {
                     std::rethrow_exception(std::current_exception());
                 }
                 catch (const std::exception& e)
                 {
-                    String whatStr = String_Convert<String>(e.what());
-                    details = Format<String>(CUBE_T("Uncaught C++ exception: {0}"), whatStr);
+                    FrameString whatStr = String_Convert<FrameString>(e.what());
+                    details = Format<FrameString>(CUBE_T("Uncaught C++ exception: {0}"), whatStr);
                 }
                 catch (...)
                 {
@@ -403,7 +417,9 @@ namespace cube
 
             void InvalidParameterHandler(const wchar_t* expression, const wchar_t* function, const wchar_t* file, unsigned int line, uintptr_t pReserved)
             {
-                WindowsString winMsg = Format<WindowsString>(
+                FrameAllocationScope scope;
+
+                FrameWindowsString winMsg = Format<FrameWindowsString>(
                     WINDOWS_T("Invalid parameter\nExpression: {0}\nFunction: {1}\nFile: {2}:{3}"),
                     expression ? expression : WINDOWS_T("(null)"),
                     function ? function : WINDOWS_T("(null)"),
@@ -411,12 +427,12 @@ namespace cube
                     line
                 );
 
-                WindowsDebug::PrintToDebugConsole(String_Convert<String>(winMsg), PrintColorCategory::Error);
+                WindowsDebug::PrintToDebugConsole(String_Convert<FrameString>(winMsg), PrintColorCategory::Error);
 
                 String stackTrace = WindowsDebug::DumpStackTrace();
                 if (!stackTrace.empty())
                 {
-                    String stackMsg = Format<String>(CUBE_T("Stack trace:\n{0}"), stackTrace);
+                    FrameString stackMsg = Format<FrameString>(CUBE_T("Stack trace:\n{0}"), stackTrace);
                     LogExceptionMessage(stackMsg);
                 }
 

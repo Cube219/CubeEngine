@@ -11,9 +11,12 @@ namespace cube
     {
         WindowsDLib::WindowsDLib(const FilePath& path)
         {
-            WindowsString fullPath = Format<WindowsString>(WINDOWS_T("{0}.dll"), path.GetNativePath());
+            FrameAllocationScope scope;
+
+            FrameWindowsString fullPath = Format<FrameWindowsString>(WINDOWS_T("{0}.dll"), path.GetNativePath());
 
             mDLib = LoadLibrary(fullPath.c_str());
+
             if (mDLib == nullptr)
             {
                 CUBE_LOG(Warning, WindowsDLib, "Failed to load a DLib. ({0}.dll) (ErrorCode: {1})", path.ToString(), GetLastError());
@@ -36,7 +39,9 @@ namespace cube
                 return nullptr;
             }
 
-            AnsiString aName = String_Convert<AnsiString>(name);
+            FrameAllocationScope scope;
+
+            FrameAnsiString aName = String_Convert<FrameAnsiString>(name);
             auto pFunction = GetProcAddress(mDLib, aName.c_str());
             if (pFunction == nullptr)
             {

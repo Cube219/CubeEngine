@@ -135,6 +135,8 @@ namespace cube
         {
             CHECK(IsWriting());
 
+            FrameAllocationScope scope;
+
             FrameVector<D3D12_VIEWPORT> d3d12Viewports(viewports.size());
             for (int i = 0; i < viewports.size(); ++i)
             {
@@ -156,6 +158,8 @@ namespace cube
         void DX12CommandList::SetScissors(ConstArrayView<ScissorRect> scissors)
         {
             CHECK(IsWriting());
+
+            FrameAllocationScope scope;
 
             FrameVector<D3D12_RECT> d3d12Rects(scissors.size());
             for (int i = 0; i < scissors.size(); ++i)
@@ -196,6 +200,8 @@ namespace cube
             CHECK(IsWriting());
             CHECK(!IsInRenderPass());
             CHECK(mType == CommandListType::Direct);
+
+            FrameAllocationScope scope;
 
             FrameVector<D3D12_CPU_DESCRIPTOR_HANDLE> rtvHandles(colors.size());
             for (int i = 0; i < colors.size(); ++i)
@@ -369,6 +375,8 @@ namespace cube
         void DX12CommandList::SetResourceBarrier(ConstArrayView<ResourceBarrier> barriers)
         {
             CHECK(IsWriting());
+
+            FrameAllocationScope scope;
 
             FrameVector<D3D12_BUFFER_BARRIER> bufferBarriers;
             bufferBarriers.reserve(barriers.size());

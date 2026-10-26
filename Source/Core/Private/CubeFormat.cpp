@@ -1,73 +1,21 @@
 #include "Format.h"
 
-#include <iostream>
-
 namespace cube
 {
     namespace format
     {
         namespace internal
         {
-            constexpr Uint64 blockSize = 256 * 1024; // 256KiB
-            struct FormatMemoryBlock
+            thread_local FrameAllocator thlFormatScratchAllocator;
+
+            FrameAllocator& GetMyThreadFormatScratchAllocator()
             {
-                FormatMemoryBlock()
+                if (!thlFormatScratchAllocator.IsInitialized())
                 {
-                    startPtr = block;
-                    currentPtr = startPtr;
+                    thlFormatScratchAllocator.Initialize("Format scratch allocator", 256 * 1024); // 256 KiB
                 }
 
-                char block[blockSize];
-                void* startPtr;
-                void* currentPtr;
-            };
-
-            thread_local FormatMemoryBlock thlFormatMemoryBlock;
-
-            template <typename T>
-            T Align(T offset, T alignment)
-            {
-                return (offset + (alignment - 1)) & ~(alignment - 1);
-            }
-
-            void* AllocateFormat(Uint64 n)
-            {
-                Uint64 allocatedSize = (Uint64)thlFormatMemoryBlock.currentPtr - (Uint64)thlFormatMemoryBlock.startPtr;
-                if (allocatedSize + n > blockSize)
-                {
-                    std::wcout << L"CubeFormat: Failed to allocate memory from FormatAllocator. (blockSize: " << blockSize << " / allocatedSize: " << allocatedSize << " / sizeToAllocate: " << n << ")" << std::endl;
-                    return nullptr;
-                }
-
-                void* ptr = thlFormatMemoryBlock.currentPtr;
-                thlFormatMemoryBlock.currentPtr = (Uint8*)thlFormatMemoryBlock.currentPtr + n;
-
-                return ptr;
-            }
-
-            void* AllocateFormat(Uint64 n, Uint64 alignment)
-            {
-                Uint64 currentOffset = (Uint64)thlFormatMemoryBlock.currentPtr;
-
-                Uint64 alignedOffset = Align(currentOffset, alignment);
-                Uint8 alignGap = (Uint8)(alignedOffset - currentOffset);
-
-                Uint64 allocatedSize = currentOffset - (Uint64)thlFormatMemoryBlock.startPtr;
-                if (allocatedSize + alignGap + n > blockSize)
-                {
-                    std::wcout << L"CubeFormat: Failed to allocate memory from FormatAllocator. (blockSize: " << blockSize << " / allocatedSize: " << allocatedSize << " / sizeToAllocate: " << alignGap + n << ")" << std::endl;
-                    return nullptr;
-                }
-
-                void* ptr = (void*)alignedOffset;
-                thlFormatMemoryBlock.currentPtr = (Uint8*)thlFormatMemoryBlock.currentPtr + alignGap + n;
-
-                return ptr;
-            }
-
-            void DiscardFormatAllocations()
-            {
-                thlFormatMemoryBlock.currentPtr = thlFormatMemoryBlock.startPtr;
+                return thlFormatScratchAllocator;
             }
         } // namespace internal
     } // namespace format

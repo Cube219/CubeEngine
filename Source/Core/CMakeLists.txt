@@ -17,7 +17,6 @@ set(PUBLIC_FILES
     Public/VectorImpl/VectorAVX2.inl
     Public/VectorImpl/VectorSSE.inl
     Public/Async.h
-    Public/Allocator.h
     Public/Blob.h
     Public/Checker.h
     Public/CoreHeader.h
@@ -47,7 +46,6 @@ set(PRIVATE_FILES
 
 set(PRECOMPILE_HEADER_FILES
     Public/Async.h
-    Public/Allocator.h
     Public/Blob.h
     Public/CubeMath.h
     Public/CubeString.h
