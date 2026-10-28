@@ -2,10 +2,10 @@
 
 #include "Checker.h"
 #include "Logger.h"
-#include "MacOS/MacOSPlatform.h"
-#include "MacOS/MacOSUtility.h"
 #include "MetalDevice.h"
 #include "MetalTypes.h"
+#include "Platform/MacOS/MacOSPlatform.h"
+#include "Platform/MacOS/MacOSUtility.h"
 
 @implementation CubeMTKView
 

@@ -28,7 +28,6 @@ target_link_libraries(CE-GAPI_Base
         CE-Engine
     PRIVATE
         slang
-        CE-Platform
 )
 
 # Copy third-party DLibs

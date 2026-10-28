@@ -5,7 +5,7 @@
 #include "DX12Types.h"
 #include "DX12Utility.h"
 #include "GAPI_DX12Texture.h"
-#include "Windows/WindowsPlatform.h"
+#include "Platform/Windows/WindowsPlatform.h"
 
 namespace cube
 {

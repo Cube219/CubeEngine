@@ -77,7 +77,6 @@ target_link_libraries(CE-GAPI_Metal
         "-framework Metal"
         "-framework MetalKit"
         imgui
-        CE-Platform
         CE-GAPI
         CE-GAPI_Base
         CE-Engine

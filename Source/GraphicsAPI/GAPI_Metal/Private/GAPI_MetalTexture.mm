@@ -2,10 +2,10 @@
 
 #include "Checker.h"
 #include "GAPI_Resource.h"
-#include "MacOS/MacOSString.h"
 #include "MetalDevice.h"
 #include "MetalTypes.h"
-#include "Platform.h"
+#include "Platform/MacOS/MacOSString.h"
+#include "Platform/Platform.h"
 
 namespace cube
 {

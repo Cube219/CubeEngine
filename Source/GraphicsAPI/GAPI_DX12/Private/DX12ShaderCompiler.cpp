@@ -4,8 +4,8 @@
 
 #include "DX12Device.h"
 #include "GAPI_Shader.h"
+#include "Platform/Windows/WindowsString.h"
 #include "SlangHelper.h"
-#include "Windows/WindowsString.h"
 
 #ifndef CUBE_DX12_SLANG_PRINT_HLSL
 #define CUBE_DX12_SLANG_PRINT_HLSL 0

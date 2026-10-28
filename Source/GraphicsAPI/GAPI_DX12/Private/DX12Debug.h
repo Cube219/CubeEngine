@@ -4,7 +4,7 @@
 
 #include <dxgidebug.h>
 
-#include "DLib.h"
+#include "Platform/DLib.h"
 
 namespace cube
 {

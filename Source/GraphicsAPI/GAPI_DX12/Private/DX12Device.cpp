@@ -1,7 +1,7 @@
 #include "DX12Device.h"
 
 #include "DX12Utility.h"
-#include "Windows/WindowsString.h"
+#include "Platform/Windows/WindowsString.h"
 
 namespace cube
 {

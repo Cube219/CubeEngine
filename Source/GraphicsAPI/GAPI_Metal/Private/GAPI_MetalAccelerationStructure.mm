@@ -3,9 +3,9 @@
 #include "Allocator/FrameAllocator.h"
 #include "Checker.h"
 #include "GAPI_MetalBuffer.h"
-#include "MacOS/MacOSString.h"
 #include "MetalDevice.h"
 #include "MetalTypes.h"
+#include "Platform/MacOS/MacOSString.h"
 
 namespace cube
 {

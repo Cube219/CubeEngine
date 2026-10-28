@@ -153,14 +153,12 @@ CE-GAPI (abstract graphics API)
     ├── CE-GAPI_DX12 (DirectX 12 backend)
     └── CE-GAPI_Metal (Metal backend)
     ↓
-CE-Platform (OS abstraction)
-    ↓
-CE-Core (foundation + logger/checker)
+CE-Core (foundation + platform abstraction + logger/checker)
 ```
 
-**CE-Core** (`Source/Core/`): Foundation shared library providing math (Vector, Matrix), types (SharedPtr, UniquePtr, CubeString), string formatting, utilities (Event, Flags, Allocator, FrameAllocator), platform defines, and the logging/assertion framework (Logger, Checker). It is built as a shared library so that Logger/Checker state, the format memory block and the thread frame allocators are shared by all modules. Its initialization (Logger, Checker, frame allocator) is done in `Engine::Initialize`.
+**CE-Core** (`Source/Core/`): Foundation shared library providing math (Vector, Matrix), types (SharedPtr, UniquePtr, CubeString), string formatting, utilities (Event, Flags, Allocator, FrameAllocator), platform defines, the platform abstraction layer, and the logging/assertion framework (Logger, Checker). It is built as a shared library so that Logger/Checker state, platform state, the format memory block and the thread frame allocators are shared by all modules. Logger and Checker need no initialization: they output directly through `platform::Debug` (console print, stack trace, failed-check dialog). The frame allocator is initialized in `Engine::Initialize`.
 
-**CE-Platform** (`Source/Platform/`): Platform abstraction for Window management, input handling (keyboard/mouse), memory allocation, dynamic library loading (DLib), and cursor control. Has platform-specific implementations in `Public/Windows/` and `Public/MacOS/`.
+**Platform abstraction** (`Source/Core/Public/Platform/`, namespace `cube::platform`): Part of CE-Core. Window management, input handling (keyboard/mouse), memory allocation, dynamic library loading (DLib), file system, debug utilities, and cursor control. Include as `"Platform/Platform.h"`, `"Platform/FileSystem.h"`, etc. Platform-specific headers are in `Public/Platform/Windows/` and `Public/Platform/MacOS/`, implementations in `Private/Platform/Windows/` and `Private/Platform/MacOS/`.
 
 **CE-GAPI** (`Source/GraphicsAPI/GAPI/`): Abstract graphics API interface defining Buffer, Texture, CommandList, Fence, Pipeline, Sampler, Shader, SwapChain, etc.
 
@@ -201,11 +199,12 @@ This design allows compiling both backends and selecting at runtime, or omitting
 
 Platform code uses a **base class + using alias** pattern:
 
-- `Public/Platform.h` defines `BasePlatform` with static interface functions (all with `NOT_IMPLEMENTED()` bodies)
+- `Source/Core/Public/Platform/Platform.h` defines `BasePlatform` with static interface functions (all with `NOT_IMPLEMENTED()` bodies)
 - Platform-specific classes (e.g., `MacOSPlatform`, `WindowsPlatform`) inherit from the base class and hide base methods with their own implementations
-- Platform headers define `using Platform = MacOSPlatform;` (or `WindowsPlatform`), selected via `#if defined(CUBE_PLATFORM_MACOS)` / `CUBE_PLATFORM_WINDOWS` at the bottom of `Public/Platform.h`
+- Platform headers define `using Platform = MacOSPlatform;` (or `WindowsPlatform`), selected via `#if defined(CUBE_PLATFORM_MACOS)` / `CUBE_PLATFORM_WINDOWS` at the bottom of `Platform/Platform.h`
 - The same pattern applies to other platform classes: `BaseDLib`/`DLib`, `BaseDebug`/`Debug`, `BaseFileSystem`/`FileSystem`
-- Platform-specific code in `Public/Windows/` (C++) and `Public/MacOS/` (Objective-C++)
+- Platform-specific code in `Source/Core/{Public,Private}/Platform/Windows/` (C++) and `Source/Core/{Public,Private}/Platform/MacOS/` (Objective-C++)
+- Platform headers include `Checker.h` (for `NOT_IMPLEMENTED()`), so `Logger.h`/`Checker.h` must not include platform headers; include them only from `Logger.cpp`/`Checker.cpp`
 - **ODR padding for macOS classes with member variables**: When a macOS platform class holds Objective-C types (e.g., `NSString*`), those members are only visible under `#ifdef __OBJC__`. To prevent ODR (One Definition Rule) violations, a matching `void*` padding member must be provided in the `#else` branch so the class layout is identical in both Objective-C++ and plain C++ translation units. See `MacOSFilePath` for an example.
 
 Key differences:
@@ -262,15 +261,17 @@ The `ShaderParameterListManager` pools constant buffers with multi-buffering (co
 ### Precompiled Headers
 
 Most modules use precompiled headers for faster builds, except:
-- Platform module (macOS Objective-C++ incompatibility)
+- Core's macOS platform sources (`Private/Platform/MacOS/*.mm`, Objective-C++ incompatibility)
 - GAPI_Metal module (Objective-C++ incompatibility)
+
+Core's precompiled headers are `PUBLIC` (propagated to all dependent modules), so do not add platform headers (e.g., ones including `<Windows.h>`) to them.
 
 ### Platform-Specific Code
 
 When adding platform-specific functionality:
 1. Add platform check: `#if defined(CUBE_PLATFORM_WINDOWS)` or `#if defined(CUBE_PLATFORM_MACOS)`
-2. For Platform module: implement in `Public/Windows/WindowsPlatform_*.cpp` or `Public/MacOS/MacOSPlatform_*.mm`
-3. For macOS Objective-C++ files: use `.mm` extension. ARC is enabled per-source via `set_source_files_properties(<file> PROPERTIES COMPILE_FLAGS "-fobjc-arc")` in the module's CMakeLists.txt (see `Source/GraphicsAPI/GAPI_Metal/CMakeLists.txt` and `Source/Platform/CMakeLists.txt`). Do not call `retain`, `release`, `autorelease`, or `dispatch_release` — they will not compile.
+2. For platform abstraction: declare in `Source/Core/Public/Platform/{Windows,MacOS}/` and implement in `Source/Core/Private/Platform/Windows/*.cpp` or `Source/Core/Private/Platform/MacOS/*.mm`
+3. For macOS Objective-C++ files: use `.mm` extension. ARC is enabled per-source via `set_source_files_properties(<file> PROPERTIES COMPILE_FLAGS "-fobjc-arc")` in the module's CMakeLists.txt (see `Source/GraphicsAPI/GAPI_Metal/CMakeLists.txt` and `Source/Core/CMakeLists.txt`). Do not call `retain`, `release`, `autorelease`, or `dispatch_release` — they will not compile.
 
 ### Shader Development
 
@@ -333,7 +334,7 @@ Models are loaded via:
 | Engine interface | `Source/Engine/Public/Engine.h` |
 | Renderer implementation | `Source/Engine/Private/Renderer/Renderer.h` |
 | GAPI interface | `Source/GraphicsAPI/GAPI/Public/GAPI.h` |
-| Platform interface | `Source/Platform/Public/Platform.h` |
+| Platform interface | `Source/Core/Public/Platform/Platform.h` |
 | Math types | `Source/Core/Public/` (`Vector.h`, `Matrix.h`, `Quaternion.h`) |
 | Logger / Checker | `Source/Core/Public/Logger.h`, `Source/Core/Public/Checker.h` |
 | Frame allocator | `Source/Core/Public/Allocator/FrameAllocator.h` |

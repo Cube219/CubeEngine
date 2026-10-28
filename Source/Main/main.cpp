@@ -1,6 +1,6 @@
 #include "Engine.h"
 #include "GAPI.h"
-#include "Platform.h"
+#include "Platform/Platform.h"
 
 #ifdef CUBE_PLATFORM_WINDOWS
 

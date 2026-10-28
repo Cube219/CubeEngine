@@ -12,7 +12,7 @@ if(PLATFORM_MACOS)
 endif()
 target_link_libraries(CE-Main
     PRIVATE
-        CE-Platform
+        CE-Core
         CE-GAPI
         CE-Engine
 )

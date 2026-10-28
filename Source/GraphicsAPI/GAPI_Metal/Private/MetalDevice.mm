@@ -1,8 +1,8 @@
 #include "MetalDevice.h"
 
 #include "Logger.h"
-#include "MacOS/MacOSString.h"
-#include "Platform.h"
+#include "Platform/MacOS/MacOSString.h"
+#include "Platform/Platform.h"
 
 namespace cube
 {

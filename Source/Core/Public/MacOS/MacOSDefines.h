@@ -9,7 +9,7 @@
 #define CUBE_VECTOR_USE_SSE 0
 #define CUBE_VECTOR_USE_NEON 1
 
-#ifdef CUBE_DEBUG
+#if CUBE_DEBUG
 
 #define CUBE_DEBUG_BREAK __builtin_debugtrap();
 

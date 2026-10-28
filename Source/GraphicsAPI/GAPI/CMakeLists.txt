@@ -38,5 +38,4 @@ target_include_directories(CE-GAPI
 target_link_libraries(CE-GAPI
     PUBLIC
         CE-Core
-        CE-Platform
 )

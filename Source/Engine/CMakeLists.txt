@@ -89,7 +89,6 @@ target_include_directories(CE-Engine
 target_link_libraries(CE-Engine
     PUBLIC
         CE-Core
-        CE-Platform
         CE-GAPI
     PRIVATE
         imgui

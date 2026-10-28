@@ -2,9 +2,9 @@
 
 #include "Allocator/AllocatorUtility.h"
 #include "Checker.h"
-#include "MacOS/MacOSString.h"
 #include "MetalDevice.h"
 #include "MetalTypes.h"
+#include "Platform/MacOS/MacOSString.h"
 
 namespace cube
 {

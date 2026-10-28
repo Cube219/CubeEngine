@@ -7,9 +7,9 @@
 #include "GAPI_MetalFence.h"
 #include "GAPI_MetalPipeline.h"
 #include "GAPI_MetalTexture.h"
-#include "MacOS/MacOSString.h"
 #include "MetalDevice.h"
 #include "MetalUtility.h"
+#include "Platform/MacOS/MacOSString.h"
 #include "RenderCore/RenderTypes.h"
 
 namespace cube

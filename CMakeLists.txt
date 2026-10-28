@@ -81,7 +81,6 @@ if(PLATFORM_MACOS)
 endif()
 
 add_subdirectory("Source/Core")
-add_subdirectory("Source/Platform")
 add_subdirectory("Source/GraphicsAPI")
 add_subdirectory("Source/Engine")
 add_subdirectory("Source/Main")

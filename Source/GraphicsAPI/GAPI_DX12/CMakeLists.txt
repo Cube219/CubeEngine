@@ -85,7 +85,6 @@ target_link_libraries(CE-GAPI_DX12
         dxc
         imgui
         winpixeventruntime
-        CE-Platform
         CE-GAPI
         CE-GAPI_Base
         CE-Engine

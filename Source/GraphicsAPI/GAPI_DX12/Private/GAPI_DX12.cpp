@@ -20,7 +20,7 @@
 #include "GAPI_DX12SwapChain.h"
 #include "GAPI_DX12Texture.h"
 #include "Logger.h"
-#include "Windows/WindowsPlatform.h"
+#include "Platform/Windows/WindowsPlatform.h"
 
 // D3D12 Agility SDK parameters are set in CE-Main/main.cpp.
 

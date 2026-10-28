@@ -17,11 +17,11 @@
 #include "GAPI_MetalSwapChain.h"
 #include "GAPI_MetalTexture.h"
 #include "Logger.h"
-#include "MacOS/MacOSPlatform.h"
-#include "MacOS/MacOSUtility.h"
 #include "MetalDevice.h"
 #include "MetalShaderCompiler.h"
 #include "MetalTypes.h"
+#include "Platform/MacOS/MacOSPlatform.h"
+#include "Platform/MacOS/MacOSUtility.h"
 
 @implementation CubeImGUIMTKView
 

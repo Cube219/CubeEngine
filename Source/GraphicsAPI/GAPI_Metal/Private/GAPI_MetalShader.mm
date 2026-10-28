@@ -3,8 +3,8 @@
 #include "Allocator/FrameAllocator.h"
 #include "Checker.h"
 #include "Logger.h"
-#include "MacOS/MacOSString.h"
 #include "MetalDevice.h"
+#include "Platform/MacOS/MacOSString.h"
 
 namespace cube
 {

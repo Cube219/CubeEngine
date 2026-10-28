@@ -1,0 +1,425 @@
+#ifdef CUBE_PLATFORM_MACOS
+
+#include "Platform/MacOS/MacOSDebug.h"
+
+#include <cxxabi.h>
+#include <exception>
+#include <execinfo.h>
+#include <iostream>
+#include <signal.h>
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#include <mach-o/dyld.h>
+
+#include "Checker.h"
+#include "Platform/MacOS/MacOSLoggerSubprocess.h"
+#include "Platform/MacOS/MacOSPlatform.h"
+#include "Platform/MacOS/MacOSString.h"
+#include "Platform/MacOS/MacOSUtility.h"
+
+namespace cube
+{
+    namespace platform
+    {
+        bool MacOSDebug::mIsDebugBreakSetFromDebugMessageAlert = false;
+        bool MacOSDebug::mIsForceTerminationSetFromDebugMessageAlert = false;
+
+        bool MacOSDebug::mIsTestMode = false;
+
+        void MacOSDebug::PrintToDebugConsole(StringView str, PrintColorCategory colorCategory)
+        {
+            FrameAllocationScope scope;
+
+            FrameMacOSString osStr = String_Convert<FrameMacOSString>(str);
+
+            std::cout << osStr << std::endl;
+
+#if CUBE_MACOS_USE_LOGGER_WINDOW
+            MacOSLoggerSubprocess::Send(str, colorCategory);
+#endif
+        }
+
+        void MacOSDebug::ProcessFatalError(StringView msg)
+        {
+            ShowDebugMessageAlert(CUBE_T("Fatal error!"), msg);
+        }
+
+        void MacOSDebug::ProcessFailedCheck(const char* fileName, int lineNum, StringView formattedMsg)
+        {
+            if (!MacOSDebug::IsDebuggerAttached())
+            {
+                ShowDebugMessageAlert(CUBE_T("Check failed!"), formattedMsg);
+            }
+            else
+            {
+                // Sync to main thread to print messages in debug console.
+                MacOSUtility::DispatchToMainThreadAndWait([]() {});
+            }
+
+            if (mIsTestMode)
+            {
+                // Force terminate in test mode.
+                platform::MacOSPlatform::ForceTerminateMainLoopThread();
+                exit(3);
+            }
+        }
+
+        constexpr int MAX_NUM_FRAMES = 128;
+        constexpr int MAX_NAME_LENGTH = 1024;
+
+        String MacOSDebug::DumpStackTrace(bool removeBeforeProjectFolderPath)
+        { @autoreleasepool {
+            void* callStack[MAX_NUM_FRAMES];
+            int numFrames = backtrace(callStack, MAX_NUM_FRAMES);
+
+            struct StackFrameInfo
+            {
+                uintptr_t address;
+                U8String str;
+            };
+            Vector<StackFrameInfo> stackFrames(numFrames);
+            for (int i = 0; i < numFrames; ++i)
+            {
+                stackFrames[i].address = (uintptr_t)callStack[i];
+            }
+
+            auto GetLibPathAndAddress = [](uintptr_t address, uintptr_t& outLibAddress) -> const char*
+            {
+                for (Uint32 i = 0; i < _dyld_image_count(); ++i)
+                {
+                    const mach_header* header = _dyld_get_image_header(i);
+                    intptr_t slide = _dyld_get_image_vmaddr_slide(i);
+
+                    // Cast header and calculate the segment size to determine address range
+                    if (header->magic == MH_MAGIC_64)
+                    {
+                        load_command* cmd = (load_command*)((char*)header + sizeof(mach_header_64));
+                        for (Uint32 j = 0; j < header->ncmds; ++j)
+                        {
+                            if (cmd->cmd == LC_SEGMENT_64)
+                            {
+                                segment_command_64* segCmd = (segment_command_64*)cmd;
+                                uintptr_t segStart = slide + segCmd->vmaddr;
+                                uintptr_t segEnd = segStart + segCmd->vmsize;
+
+                                if (segStart <= address && address < segEnd)
+                                {
+                                    outLibAddress = segStart;
+                                    return _dyld_get_image_name(i);
+                                }
+                            }
+                            cmd = (load_command*)((char*)cmd + cmd->cmdsize);
+                        }
+                    }
+                }
+                return nullptr;
+            };
+
+            // Find library mapping in each stack frame
+            struct MappedInfo
+            {
+                const char* libPath;
+                Vector<StackFrameInfo*> pStackFrames;
+                NSTask* task;
+                NSPipe* pipe;
+            };
+            Map<uintptr_t, MappedInfo> mapLibAddress;
+            for (int i = 0; i < numFrames; ++i)
+            {
+                StackFrameInfo& stackFrame = stackFrames[i];
+
+                uintptr_t libAddress;
+                const char* libPath = GetLibPathAndAddress(stackFrame.address, libAddress);
+                if (libPath)
+                {
+                    MappedInfo& mappedInfo = mapLibAddress[libAddress];
+                    mappedInfo.libPath = libPath;
+                    mappedInfo.pStackFrames.push_back(&stackFrame);
+                }
+                else
+                {
+                    stackFrame.str = CUBE_U8_T("Unknown");
+                }
+            }
+
+            // Collect stack frame infos using atos
+            for (auto& [libAddress, mappedInfo] : mapLibAddress)
+            {
+                NSString* libPathStr = [NSString stringWithUTF8String:mappedInfo.libPath];
+                NSString* libAddressStr = [NSString stringWithFormat:@"0x%lx", libAddress];
+
+                mappedInfo.task = [[NSTask alloc] init];
+                mappedInfo.task.launchPath = @"/usr/bin/atos";
+
+                NSMutableArray* args = [NSMutableArray arrayWithArray:@[@"-o", libPathStr, @"-l", libAddressStr]];
+                for (StackFrameInfo* pStackFrame : mappedInfo.pStackFrames)
+                {
+                    [args addObject:[NSString stringWithFormat:@"0x%lx", pStackFrame->address]];
+                }
+                mappedInfo.task.arguments = args;
+
+                mappedInfo.pipe = [NSPipe pipe];
+                mappedInfo.task.standardOutput = mappedInfo.pipe;
+                [mappedInfo.task launch];
+            }
+            for (auto& [libAddress, mappedInfo] : mapLibAddress)
+            {
+                // It calls UIKit functions (I don't know why).
+                MacOSUtility::DispatchToMainThreadAndWait([task = mappedInfo.task]{
+                    [task waitUntilExit];
+                });
+
+                NSData* data = [[mappedInfo.pipe fileHandleForReading] readDataToEndOfFile];
+                NSArray* outputArray = [
+                    [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding]
+                    componentsSeparatedByString:@"\n"
+                ];
+
+                for (int i = 0; i < mappedInfo.pStackFrames.size(); ++i)
+                {
+                    mappedInfo.pStackFrames[i]->str = [outputArray[i] UTF8String];
+                }
+            }
+
+            // Skip one stack frame
+            //     - MacOSDebug::DumpStackTrace()
+            String res;
+            for (int i = 1; i < numFrames; ++i)
+            {
+                res += Format(CUBE_T("    {}\n"), stackFrames[i].str);
+                if (stackFrames[i].str.empty())
+                {
+                    stackFrames[i].str = CUBE_U8_T("    Unknown");
+                }
+            }
+
+            return res;
+        }}
+
+        bool MacOSDebug::IsDebuggerAttached()
+        {
+            // Ignore debugger to continue the program.
+            if (mIsTestMode)
+            {
+                return false;
+            }
+
+            // Set up the mib (Management Information Base)
+            int mib[4];
+            mib[0] = CTL_KERN;
+            mib[1] = KERN_PROC;
+            mib[2] = KERN_PROC_PID;
+            mib[3] = getpid();
+
+            kinfo_proc info;
+            info.kp_proc.p_flag = 0;
+            size_t size = sizeof(info);
+
+            if (sysctl(mib, 4, &info, &size, NULL, 0) == -1)
+            {
+                perror("sysctl");
+                return false;
+            }
+
+            // Check for the P_TRACED flag, which indicates the process is being debugged
+            return ((info.kp_proc.p_flag & P_TRACED) != 0);
+        }
+
+        void MacOSDebug::SetTestMode(bool enable)
+        {
+            mIsTestMode = enable;
+        }
+
+        bool MacOSDebug::IsTestMode()
+        {
+            return mIsTestMode;
+        }
+
+        void MacOSDebug::ShowDebugMessageAlert(StringView title, StringView msg)
+        {
+            if (mIsTestMode)
+            {
+                return;
+            }
+
+            MacOSUtility::DispatchToMainThreadAndWait([title, msg]() {
+                ShowDebugMessageAlert_MainThread(title, msg);
+            });
+            // Dispatch and wait to ensure the alert modal is closed.
+            MacOSUtility::DispatchToMainThreadAndWait([]() {});
+
+            if (mIsDebugBreakSetFromDebugMessageAlert)
+            {
+                mIsDebugBreakSetFromDebugMessageAlert = false;
+                CUBE_DEBUG_BREAK
+            }
+
+            if (mIsForceTerminationSetFromDebugMessageAlert)
+            {
+                platform::MacOSPlatform::ForceTerminateMainLoopThread();
+                exit(3);
+            }
+        }
+
+        void MacOSDebug::ShowDebugMessageAlert_MainThread(StringView title, StringView msg)
+        {
+            CHECK_MACOS_MAIN_THREAD()
+
+            @autoreleasepool {
+                NSTextView* textView = [[NSTextView alloc] initWithFrame:NSMakeRect(0, 0, 400, 600)];
+                [textView setEditable:NO];
+                [textView setSelectable:YES];
+
+                NSAttributedString* attrText = [[NSAttributedString alloc]
+                    initWithString:String_Convert<NSString*>(msg)
+                    attributes:@{
+                        NSForegroundColorAttributeName: [NSColor textColor],
+                        NSBackgroundColorAttributeName: [NSColor textBackgroundColor],
+                        NSFontAttributeName: [NSFont fontWithName:@"Menlo" size:12]
+                    }
+                ];
+                [textView.textStorage setAttributedString: attrText];
+
+                NSScrollView* scrollView = [[NSScrollView alloc] initWithFrame:NSMakeRect(0, 0, 400, 600)];
+                [scrollView setDocumentView:textView];
+                [scrollView setHasVerticalScroller:YES];
+                [scrollView setHasHorizontalScroller:YES];
+                // Scroll to bottom
+                [textView scrollRangeToVisible:NSMakeRange(msg.size(), 0)];
+
+                NSAlert* alert = [[NSAlert alloc] init];
+                [alert setMessageText:String_Convert<NSString*>(title)];
+                [alert setAccessoryView:scrollView];
+                [alert setAlertStyle:NSAlertStyleCritical];
+                [alert addButtonWithTitle:@"Exit"];
+                [alert addButtonWithTitle:@"Ignore"];
+                [alert addButtonWithTitle:@"Debug"];
+
+                NSModalResponse response = [alert runModal];
+                // Defer the logics to close the alert modal first.
+                switch (response)
+                {
+                case NSAlertFirstButtonReturn: // Exit
+                    mIsForceTerminationSetFromDebugMessageAlert = true;
+                    break;
+                case NSAlertSecondButtonReturn: // Ignore
+                    break;
+                case NSAlertThirdButtonReturn: // Debug
+                    mIsDebugBreakSetFromDebugMessageAlert = true;
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
+
+        namespace
+        {
+            void LogExceptionMessage(StringView msg)
+            {
+                CUBE_LOG(Error, MacOSDebug, "{0}", msg);
+            }
+
+            void HandleFatalException(StringView exceptionTypeName, StringView details)
+            {
+                String msg = Format<String>(CUBE_T("Unhandled exception: {0}\n{1}"), exceptionTypeName, details);
+
+                LogExceptionMessage(msg);
+
+                String stackTrace = MacOSDebug::DumpStackTrace();
+                if (!stackTrace.empty())
+                {
+                    String stackMsg = Format<String>(CUBE_T("Stack trace:\n{0}"), stackTrace);
+                    LogExceptionMessage(stackMsg);
+                }
+
+                String fullMsg = Format<String>(CUBE_T("{0}\n\n{1}"), msg, stackTrace);
+                MacOSDebug::ProcessFatalError(fullMsg);
+            }
+
+            StringView GetSignalName(int sig)
+            {
+                switch (sig)
+                {
+                case SIGSEGV:
+                    return CUBE_T("SIGSEGV");
+                case SIGBUS:
+                    return CUBE_T("SIGBUS");
+                case SIGILL:
+                    return CUBE_T("SIGILL");
+                case SIGFPE:
+                    return CUBE_T("SIGFPE");
+                case SIGABRT:
+                    return CUBE_T("SIGABRT");
+                case SIGTRAP:
+                    return CUBE_T("SIGTRAP");
+                default:
+                    return CUBE_T("Unknown Signal");
+                }
+            }
+
+            void CrashSignalHandler(int sig)
+            {
+                StringView signalName = GetSignalName(sig);
+                String details = Format<String>(CUBE_T("Signal: {0} ({1})"), signalName, sig);
+
+                HandleFatalException(signalName, details);
+
+                if (MacOSDebug::IsTestMode())
+                {
+                    platform::MacOSPlatform::ForceTerminateMainLoopThread();
+                    _exit(3);
+                }
+
+                signal(sig, SIG_DFL);
+                raise(sig);
+            }
+
+            void TerminateHandler()
+            {
+                StringView exceptionName = CUBE_T("std::terminate");
+
+                String details = CUBE_T("Uncaught C++ exception");
+                std::type_info* t = abi::__cxa_current_exception_type();
+                if (t != nullptr)
+                {
+                    details = Format<String>(CUBE_T("Uncaught C++ exception of type: {0}"), t->name());
+
+                    try
+                    {
+                        std::rethrow_exception(std::current_exception());
+                    }
+                    catch (const std::exception& e)
+                    {
+                        details = Format<String>(CUBE_T("Uncaught C++ exception: {0}"), e.what());
+                    }
+                    catch (...)
+                    {
+                    }
+                }
+
+                HandleFatalException(exceptionName, details);
+
+                if (MacOSDebug::IsTestMode())
+                {
+                    platform::MacOSPlatform::ForceTerminateMainLoopThread();
+                    _exit(3);
+                }
+            }
+        } // namespace
+
+        void MacOSDebug::InstallCrashHandlers()
+        {
+            signal(SIGSEGV, &CrashSignalHandler);
+            signal(SIGBUS, &CrashSignalHandler);
+            signal(SIGILL, &CrashSignalHandler);
+            signal(SIGFPE, &CrashSignalHandler);
+            signal(SIGABRT, &CrashSignalHandler);
+            signal(SIGTRAP, &CrashSignalHandler);
+
+            std::set_terminate(&TerminateHandler);
+        }
+    } // namespace platform
+} // namespace cube
+
+#endif // CUBE_PLATFORM_MACOS

@@ -15,7 +15,7 @@
 #define CUBE_DLL_EXPORT __declspec(dllexport)
 #define CUBE_DLL_IMPORT __declspec(dllimport)
 
-#ifdef CUBE_DEBUG
+#if CUBE_DEBUG
 
 // Include debug related headers to use CUBE_DEBUG_BREAK in other source files
 #include <Windows.h>

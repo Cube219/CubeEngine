@@ -14,31 +14,12 @@ namespace cube
         Error
     };
 
-    class ILoggerExtension
-    {
-    public:
-        virtual ~ILoggerExtension() = default;
-
-        virtual void WriteFormattedLog(LogType type, StringView formattedLog) = 0;
-    };
-
     // TODO: Thread-safe logging system (Using queue?)
     class Logger
     {
     public:
         Logger(const Logger& other) = delete;
         Logger& operator=(const Logger& other) = delete;
-
-        CUBE_CORE_EXPORT static void Init();
-        CUBE_CORE_EXPORT static bool IsInitialized();
-
-        template <typename LoggerExtension>
-        static void RegisterExtension()
-        {
-            mExtensions.push_back(std::make_unique<LoggerExtension>());
-        }
-
-        CUBE_CORE_EXPORT static void SetFilePathSeparator(char separator);
 
         template <typename... Args>
         static void WriteLogFormatting(LogType type, const char* fullFileName, int lineNum, StringView category, StringView format, Args&&... args)
@@ -61,12 +42,6 @@ namespace cube
 
     private:
         Logger() = default;
-
-        static const char* SplitFileName(const char* fullPath);
-
-        static bool mIsInitialized;
-        static char mFilePathSeparator;
-        CUBE_CORE_EXPORT static Vector<UniquePtr<ILoggerExtension>> mExtensions;
     };
 } // namespace cube
 

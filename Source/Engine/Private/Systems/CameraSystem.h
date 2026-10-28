@@ -4,7 +4,7 @@
 
 #include "Event.h"
 #include "Matrix.h"
-#include "Platform.h"
+#include "Platform/Platform.h"
 #include "Vector.h"
 
 namespace cube

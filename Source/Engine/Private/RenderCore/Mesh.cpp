@@ -7,10 +7,10 @@
 #include "GAPI_AccelerationStructure.h"
 #include "GAPI_Buffer.h"
 #include "GAPI_CommandList.h"
-#include "Platform.h"
-#include "Renderer/Renderer.h"
-#include "RenderCore/ResourceManager.h"
+#include "Platform/Platform.h"
 #include "RenderCore/RenderGraph.h"
+#include "RenderCore/ResourceManager.h"
+#include "Renderer/Renderer.h"
 #include "UploadManager.h"
 
 namespace cube

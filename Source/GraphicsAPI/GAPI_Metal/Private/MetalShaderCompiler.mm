@@ -4,8 +4,8 @@
 #include "Checker.h"
 #include "GAPI_Shader.h"
 #include "Logger.h"
-#include "MacOS/MacOSString.h"
 #include "MetalDevice.h"
+#include "Platform/MacOS/MacOSString.h"
 #include "SlangHelper.h"
 
 #ifndef CUBE_METAL_SLANG_PRINT_MSL

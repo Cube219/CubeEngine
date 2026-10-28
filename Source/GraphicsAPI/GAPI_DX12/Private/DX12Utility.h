@@ -5,7 +5,7 @@
 #include "Allocator/FrameAllocator.h"
 #include "Checker.h"
 #include "Logger.h"
-#include "Windows/WindowsString.h"
+#include "Platform/Windows/WindowsString.h"
 
 namespace cube
 {

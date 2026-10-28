@@ -5,11 +5,10 @@
 #include "implot.h"
 
 #include "Allocator/FrameAllocator.h"
-#include "Checker.h"
-#include "FileSystem.h"
 #include "Logger.h"
-#include "Platform.h"
-#include "PlatformDebug.h"
+#include "Platform/FileSystem.h"
+#include "Platform/Platform.h"
+#include "Platform/PlatformDebug.h"
 #include "Renderer/Renderer.h"
 #include "Systems/CameraSystem.h"
 #include "Systems/ModelLoaderSystem.h"
@@ -17,47 +16,6 @@
 
 namespace cube
 {
-    class EngineLoggerExtension : public ILoggerExtension
-    {
-    public:
-        void WriteFormattedLog(LogType logType, StringView formattedLog) override
-        {
-            platform::PrintColorCategory colorCategory;
-            switch (logType)
-            {
-            case LogType::Warning:
-                colorCategory = platform::PrintColorCategory::Warning;
-                break;
-            case LogType::Error:
-                colorCategory = platform::PrintColorCategory::Error;
-                break;
-            case LogType::Info:
-            default:
-                colorCategory = platform::PrintColorCategory::Default;
-                break;
-            }
-            platform::Debug::PrintToDebugConsole(formattedLog, colorCategory);
-        }
-    };
-
-#if CUBE_USE_CHECK
-    class EngineCheckerExtension : public ICheckerExtension
-    {
-    public:
-        void ProcessFailedCheck(const char* fullFileName, int lineNum, StringView exprAndMsg) override
-        {
-            String stackTrace = platform::Debug::DumpStackTrace();
-            const char* fileName = platform::FileSystem::SplitFileNameFromFullPath(fullFileName);
-
-            String formattedMsg = Format(CUBE_T("Check failed!\n\n{0}\n    In {1}:{2}\n    {3}"), stackTrace, fileName, lineNum, exprAndMsg);
-            Logger::WriteLogFormatting(LogType::Error, fullFileName, lineNum, CUBE_T("Checker"), formattedMsg);
-
-            Checker::SetIsDebuggerAttached(platform::Debug::IsDebuggerAttached());
-            platform::Debug::ProcessFailedCheck(fileName, lineNum, formattedMsg);
-        }
-    };
-#endif // CUBE_USE_CHECK
-
     EventFunction<void()> Engine::mOnClosingEventFunc;
     EventFunction<void()> Engine::mOnLoopEventFunc;
     EventFunction<void(Uint32, Uint32)> Engine::mOnResizeEventFunc;
@@ -106,17 +64,9 @@ namespace cube
 
         GetMyThreadFrameAllocator().Initialize("Main thread frame allocator", 100u * 1024 * 1024); // 100 MiB
 
-        Logger::Init();
-        Logger::SetFilePathSeparator(platform::FileSystem::GetSeparator());
-        Logger::RegisterExtension<EngineLoggerExtension>();
-
         platform::Platform::SetPostLoopMainThreadFunction([]() {
             GetMyThreadFrameAllocator().DiscardAllocations();
         });
-
-#if CUBE_USE_CHECK
-        Checker::RegisterExtension<EngineCheckerExtension>();
-#endif // CUBE_USE_CHECK
 
         CUBE_LOG(Info, Engine, "Initialize CubeEngine.");
 

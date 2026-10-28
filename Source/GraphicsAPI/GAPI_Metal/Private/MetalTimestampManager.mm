@@ -1,8 +1,8 @@
 #include "MetalTimestampManager.h"
 
 #include "Checker.h"
-#include "MacOS/MacOSString.h"
 #include "MetalDevice.h"
+#include "Platform/MacOS/MacOSString.h"
 
 namespace cube
 {

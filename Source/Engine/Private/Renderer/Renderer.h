@@ -3,11 +3,11 @@
 #include "EngineHeader.h"
 
 #include "DebugView/RayTracingDebugView.h"
-#include "DLib.h"
 #include "GAPI.h"
 #include "GAPI_Texture.h"
 #include "LightManager.h"
 #include "Matrix.h"
+#include "Platform/DLib.h"
 #include "RenderCore/Pipeline.h"
 #include "RenderCore/ResourceManager.h"
 #include "RenderCore/SamplerManager.h"

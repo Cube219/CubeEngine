@@ -2,8 +2,8 @@
 
 #include "Checker.h"
 #include "Logger.h"
-#include "Platform.h"
-#include "PlatformDebug.h"
+#include "Platform/Platform.h"
+#include "Platform/PlatformDebug.h"
 
 #include "DX12Device.h"
 #include "Engine.h"

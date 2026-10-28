@@ -13,25 +13,11 @@ namespace cube
 {
 #if CUBE_USE_CHECK
 
-    class ICheckerExtension
-    {
-    public:
-        virtual ~ICheckerExtension() = default;
-
-        virtual void ProcessFailedCheck(const char* fullFileName, int lineNum, StringView exprAndMsg) = 0;
-    };
-
     class Checker
     {
     public:
         Checker(const Checker& other) = delete;
         Checker& operator=(const Checker& other) = delete;
-
-        template <typename CheckerExtension>
-        static void RegisterExtension()
-        {
-            mExtensions.push_back(std::make_unique<CheckerExtension>());
-        }
 
         template <typename... Args>
         static void ProcessFailedCheckFormatting(const char* fullFileName, int lineNum, StringView expr, StringView format, Args&&... args)
@@ -55,11 +41,6 @@ namespace cube
 
         CUBE_CORE_EXPORT static void ProcessFailedCheck(const char* fullFileName, int lineNum, StringView exprAndMsg);
 
-        static void SetIsDebuggerAttached(bool isAttached)
-        {
-            mIsDebuggerAttached = isAttached;
-        }
-
         static bool IsDebuggerAttached()
         {
             return mIsDebuggerAttached;
@@ -67,8 +48,6 @@ namespace cube
 
     private:
         Checker() = default;
-
-        CUBE_CORE_EXPORT static Vector<UniquePtr<ICheckerExtension>> mExtensions;
 
         CUBE_CORE_EXPORT static bool mIsDebuggerAttached;
     };

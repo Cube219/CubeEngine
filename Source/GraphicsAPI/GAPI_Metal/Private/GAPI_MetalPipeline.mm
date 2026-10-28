@@ -4,10 +4,10 @@
 #include "Checker.h"
 #include "GAPI_MetalShader.h"
 #include "GAPI_Pipeline.h"
-#include "MacOS/MacOSString.h"
 #include "MetalDevice.h"
 #include "MetalTypes.h"
 #include "MetalUtility.h"
+#include "Platform/MacOS/MacOSString.h"
 
 namespace cube
 {
