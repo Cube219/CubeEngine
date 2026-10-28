@@ -108,9 +108,9 @@ namespace cube
             inOutParameterListInfo.totalBufferSize = totalBufferSize;
         }
 
-        void MetalShaderParameterHelper::WriteParametersToGPUBuffer(SharedPtr<Buffer> buffer, const ShaderParameterListInfo& parameterListInfo, const void* pParameterList) const
+        void MetalShaderParameterHelper::WriteParameterListToBuffer(void* pBuffer, const ShaderParameterListInfo& parameterListInfo, const void* pParameterList) const
         {
-            Byte* bufferPtr = reinterpret_cast<Byte*>(buffer->Map());
+            Byte* bufferPtr = reinterpret_cast<Byte*>(pBuffer);
 
             for (const ShaderParameterInfo& paramInfo : parameterListInfo.parameterInfos)
             {
@@ -123,7 +123,7 @@ namespace cube
                 {
                     CHECK_PARAMS(paramInfo.sizeInGPU >= sizeof(bool));
                     bool value = *reinterpret_cast<const bool*>(src);
-                    memcpy(dst, &value, sizeof(Uint32));
+                    memcpy(dst, &value, sizeof(bool));
                     break;
                 }
                 case ShaderParameterCPUType::Int:
@@ -224,7 +224,7 @@ namespace cube
                 {
                     const RGBufferSRVHandle& srv = *reinterpret_cast<const RGBufferSRVHandle*>(src);
                     CHECK_FORMAT(srv.IsValid(), "Null srv in shader parameter '{0}'.", paramInfo.name);
-                    CHECK_FORMAT(srv->IsResourceCreated(), "RGBufferSRV '{0}' is not created. Maybe call WriteAllParametersToGPUBuffer outside of RGBuilder?", paramInfo.name);
+                    CHECK_FORMAT(srv->IsResourceCreated(), "RGBufferSRV '{0}' is not created. Maybe call WriteAllParameterListToBuffer outside of RGBuilder?", paramInfo.name);
 
                     Uint64 id = srv->GetSRV()->GetBindlessId();
                     memcpy(dst, &id, sizeof(Uint64));
@@ -234,7 +234,7 @@ namespace cube
                 {
                     const RGBufferUAVHandle& uav = *reinterpret_cast<const RGBufferUAVHandle*>(src);
                     CHECK_FORMAT(uav.IsValid(), "Null uav in shader parameter '{0}'.", paramInfo.name);
-                    CHECK_FORMAT(uav->IsResourceCreated(), "RGBufferUAV '{0}' is not created. Maybe call WriteAllParametersToGPUBuffer outside of RGBuilder?", paramInfo.name);
+                    CHECK_FORMAT(uav->IsResourceCreated(), "RGBufferUAV '{0}' is not created. Maybe call WriteAllParameterListToBuffer outside of RGBuilder?", paramInfo.name);
 
                     Uint64 id = uav->GetUAV()->GetBindlessId();
                     memcpy(dst, &id, sizeof(Uint64));
@@ -244,7 +244,7 @@ namespace cube
                 {
                     const RGTextureSRVHandle& srv = *reinterpret_cast<const RGTextureSRVHandle*>(src);
                     CHECK_FORMAT(srv.IsValid(), "Null srv in shader parameter '{0}'.", paramInfo.name);
-                    CHECK_FORMAT(srv->IsResourceCreated(), "RGTextureSRV '{0}' is not created. Maybe call WriteAllParametersToGPUBuffer outside of RGBuilder?", paramInfo.name);
+                    CHECK_FORMAT(srv->IsResourceCreated(), "RGTextureSRV '{0}' is not created. Maybe call WriteAllParameterListToBuffer outside of RGBuilder?", paramInfo.name);
 
                     Uint64 id = srv->GetSRV()->GetBindlessId();
                     memcpy(dst, &id, sizeof(Uint64));
@@ -254,7 +254,7 @@ namespace cube
                 {
                     const RGTextureUAVHandle& uav = *reinterpret_cast<const RGTextureUAVHandle*>(src);
                     CHECK_FORMAT(uav.IsValid(), "Null uav in shader parameter '{0}'.", paramInfo.name);
-                    CHECK_FORMAT(uav->IsResourceCreated(), "RGTextureUAV '{0}' is not created. Maybe call WriteAllParametersToGPUBuffer outside of RGBuilder?", paramInfo.name);
+                    CHECK_FORMAT(uav->IsResourceCreated(), "RGTextureUAV '{0}' is not created. Maybe call WriteAllParameterListToBuffer outside of RGBuilder?", paramInfo.name);
 
                     Uint64 id = uav->GetUAV()->GetBindlessId();
                     memcpy(dst, &id, sizeof(Uint64));
@@ -265,8 +265,6 @@ namespace cube
                     break;
                 }
             }
-
-            buffer->Unmap();
         }
 
         void MetalShaderParameterHelper::InitializeCompatibleShaderParameterReflectionTypeMap()

@@ -103,7 +103,7 @@ namespace cube
 
         mInfo = {
             .apiName = gapi::GAPIName::DX12,
-            .constantBufferAlignment = 256,
+            .constantBufferAlignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT,
             .supportsDirectMapInBuffer = mMainDevice->IsGPUUploadHeapSupported(),
             .supportsDirectMapInTexture = false, // Direct-mapping textures is possible, but inefficient because swizzling is performed on the CPU side.
             .needsToOptimizeTextureContentsUsingCommandList = false,

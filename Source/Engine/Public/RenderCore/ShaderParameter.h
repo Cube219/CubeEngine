@@ -10,13 +10,13 @@
 #include "RenderCore/RenderTypes.h"
 
 #ifndef CUBE_CHECK_PARAMETERS
-#define CUBE_CHECK_PARAMETERS 1
+#define CUBE_CHECK_PARAMETERS CUBE_DEBUG
 #endif
 
 #if CUBE_CHECK_PARAMETERS
 #define CHECK_PARAMS(x) CHECK(x)
 #else
-#define CHECK_PARAMS()
+#define CHECK_PARAMS(x)
 #endif
 
 namespace cube
@@ -308,11 +308,13 @@ namespace cube
         Uint32 totalBufferSize;
     };
 
-    struct ShaderParameterListPooledBuffer
+    struct ShaderParameterListBufferSubAllocation
     {
-        SharedPtr<gapi::Buffer> buffer;
-        SharedPtr<gapi::BufferSRV> srv;
-        Uint32 poolIndex;
+        SharedPtr<gapi::Buffer> gpuBuffer;
+        Uint64 offset = 0;
+        Uint64 size = 0;
+
+        void* stageSubAllocationPtr = nullptr;
     };
 
     class ShaderParameterList
@@ -321,11 +323,10 @@ namespace cube
         ShaderParameterList(const ShaderParameterList& other) = delete;
         ShaderParameterList& operator=(const ShaderParameterList& rhs) = delete;
 
-        SharedPtr<gapi::Buffer> GetBuffer() const { return mPooledBuffer.buffer; }
-        SharedPtr<gapi::BufferSRV> GetSRV() const { return mPooledBuffer.srv; }
+        const ShaderParameterListBufferSubAllocation& GetBufferSubAllocation() const { return mAllocation; }
         ShaderParameterListManager& GetManager() const { return mManager; }
 
-        virtual void WriteAllParametersToGPUBuffer() = 0;
+        virtual void WriteAllParameterListToBuffer() = 0;
 
     protected:
         // Only manager can create shader parameter list
@@ -336,8 +337,7 @@ namespace cube
 
         ShaderParameterListManager& mManager;
 
-        Uint32 mGPUSyncIndex;
-        ShaderParameterListPooledBuffer mPooledBuffer;
+        ShaderParameterListBufferSubAllocation mAllocation;
     };
 
 #define CUBE_BEGIN_SHADER_PARAMETER_LIST(parameterListType) \
@@ -403,10 +403,10 @@ public: \
         ParameterIterHelperEnd::InitializeParameterInfo(infos); \
         shaderParemeterHelper.UpdateShaderParameterListInfo(infos); \
     } \
-    virtual void WriteAllParametersToGPUBuffer() override \
+    virtual void WriteAllParameterListToBuffer() override \
     { \
-        mManager.GetShaderParameterHelper().WriteParametersToGPUBuffer( \
-            mPooledBuffer.buffer, \
+        mManager.GetShaderParameterHelper().WriteParameterListToBuffer( \
+            GetBufferSubAllocation().stageSubAllocationPtr, \
             ShaderParameterListManager::GetShaderParameterListInfo<ParameterListType>(), \
             this); \
     }
@@ -474,12 +474,13 @@ public: \
         ShaderParameterListManager() = default;
         ~ShaderParameterListManager() = default;
 
-        void Initialize(GAPI* gapi, Uint32 numGPUSync);
+        void Initialize(GAPI* gapi, Uint32 numGPUSync, Uint64 defaultConstantBufferSize = 10 * 1024 * 1024);
         void Shutdown();
 
         const gapi::ShaderParameterHelper& GetShaderParameterHelper() const { return *mShaderParameterHelper; }
 
         void MoveNextFrame();
+        void FlushToGPUBuffer();
 
         template <typename T>
             requires std::derived_from<T, ShaderParameterList>
@@ -498,13 +499,10 @@ public: \
     private:
         friend class ShaderParameterList;
 
-        struct ShaderParameterListBufferPool;
-
         void AllocateShaderParameterList(ShaderParameterList* parameterList, const ShaderParameterListInfo& parameterListInfo);
 
-        // TODO: Use whole buffer in each frame and suballocate?
-        ShaderParameterListPooledBuffer AllocateBuffer(Uint32 size, StringView debugName);
-        void FreeBuffer(ShaderParameterList& parameterList);
+        ShaderParameterListBufferSubAllocation Allocate(Uint32 size, StringView debugName);
+        void Free(ShaderParameterListBufferSubAllocation& allocation);
 
         GAPI* mGAPI;
         Uint32 mConstantBufferAlignment;
@@ -513,25 +511,16 @@ public: \
 
         Uint32 mCurrentIndex;
 
-        struct ShaderParameterListBufferPool
+        struct ShaderParameterListGPUBuffer
         {
-            Vector<SharedPtr<gapi::Buffer>> buffers;
-            Vector<SharedPtr<gapi::BufferSRV>> srvs;
-            MultiMap<Uint32, Uint32> pooledBufferIndices;
-            Vector<Uint32> freedBufferIndices;
+            SharedPtr<gapi::Buffer> constantBuffer;
+            Byte* stageBufferPtr = nullptr;
+            Uint64 bufferSize = 0;
+            Uint64 currentOffset = 0;
 
-            void CheckConsistency();
-
-            void Clear()
-            {
-                CheckConsistency();
-
-                srvs.clear();
-                buffers.clear();
-                pooledBufferIndices.clear();
-                freedBufferIndices.clear();
-            }
+            Byte* gpuMappedPtr = nullptr;
+            Uint64 flushedOffset = 0;
         };
-        Vector<ShaderParameterListBufferPool> mBufferPools;
+        Vector<ShaderParameterListGPUBuffer> mGPUBuffers;
     };
 } // namespace cube

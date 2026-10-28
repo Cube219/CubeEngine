@@ -20,7 +20,7 @@ namespace cube
             void Shutdown();
 
             virtual void UpdateShaderParameterListInfo(ShaderParameterListInfo& inOutParameterListInfo) const override;
-            virtual void WriteParametersToGPUBuffer(SharedPtr<Buffer> buffer, const ShaderParameterListInfo& parameterListInfo, const void* pParameterList) const override;
+            virtual void WriteParameterListToBuffer(void* pBuffer, const ShaderParameterListInfo& parameterListInfo, const void* pParameterList) const override;
             virtual const Vector<Vector<ShaderParameterReflection::Type>>& GetCompatibleShaderParameterReflectionTypeMap() const override { return mCompatibleShaderParameterReflectionTypeMap; }
 
             int GetMaxNumRegister() const { return mMaxNumRegister; }

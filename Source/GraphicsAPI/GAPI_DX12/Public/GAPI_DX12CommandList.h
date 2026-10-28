@@ -46,7 +46,7 @@ namespace cube
             void Draw(Uint32 numVertices, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance) override;
             void DrawIndexed(Uint32 numIndices, Uint32 baseIndex, Uint32 baseVertex, Uint32 numInstances, Uint32 baseInstance) override;
 
-            virtual void SetConstantBuffer(Uint32 index, SharedPtr<BufferSRV> constantBuffer) override;
+            virtual void SetConstantBuffer(Uint32 index, SharedPtr<Buffer> constantBuffer, Uint64 offset) override;
             virtual void UnsetConstantBuffer(Uint32 index) override;
 
             virtual void UseResource(SharedPtr<BufferSRV> srv) override;
@@ -109,8 +109,8 @@ namespace cube
 
                 struct ConstantBuffer
                 {
-                    SharedPtr<BufferSRV> buffer;
-                    bool isSet = false;
+                    SharedPtr<Buffer> buffer;
+                    Uint64 offset = 0;
                 };
                 Map<Uint32, ConstantBuffer> constantBuffers;
 

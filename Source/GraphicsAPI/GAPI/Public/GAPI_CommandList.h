@@ -148,7 +148,7 @@ namespace cube
             virtual void Draw(Uint32 numVertices, Uint32 baseVertex, Uint32 numInstances = 1, Uint32 baseInstance = 0) = 0;
             virtual void DrawIndexed(Uint32 numIndices, Uint32 baseIndex, Uint32 baseVertex, Uint32 numInstances = 1, Uint32 baseInstance = 0) = 0;
 
-            virtual void SetConstantBuffer(Uint32 index, SharedPtr<BufferSRV> constantBuffer) = 0;
+            virtual void SetConstantBuffer(Uint32 index, SharedPtr<Buffer> constantBuffer, Uint64 offset = 0) = 0;
             virtual void UnsetConstantBuffer(Uint32 index) = 0;
 
             virtual void UseResource(SharedPtr<BufferSRV> srv) = 0;

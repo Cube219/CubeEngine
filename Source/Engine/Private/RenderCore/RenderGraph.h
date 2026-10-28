@@ -386,8 +386,8 @@ namespace cube
 
         struct ShaderParameterListBindInfo
         {
-            SharedPtr<gapi::Buffer> GPUBuffer = nullptr;
-            SharedPtr<gapi::BufferSRV> srv = nullptr;
+            SharedPtr<gapi::Buffer> gpuBuffer = nullptr;
+            Uint64 offset = 0;
             int bindIndex = -1;
         };
         struct
@@ -395,14 +395,16 @@ namespace cube
             SharedPtr<GraphicsPipeline> boundGraphicsPipeline;
             SharedPtr<ComputePipeline> boundComputePipeline;
 
-            Map<String, ShaderParameterListBindInfo> shaderParameterListBindInfos;
+            Map<String, ShaderParameterListBindInfo> boundShaderParameterListInfos;
+            Vector<String> boundShaderParameterListNameByIndex;
 
             void Reset()
             {
                 boundGraphicsPipeline = nullptr;
                 boundComputePipeline = nullptr;
 
-                shaderParameterListBindInfos.clear();
+                boundShaderParameterListInfos.clear();
+                boundShaderParameterListNameByIndex.clear();
             }
         } mExecuteState;
 

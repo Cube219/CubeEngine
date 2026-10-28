@@ -294,15 +294,15 @@ namespace cube
             mCommandList->DrawIndexedInstanced(numIndices, numInstances, baseIndex, baseVertex, baseInstance);
         }
 
-        void DX12CommandList::SetConstantBuffer(Uint32 index, SharedPtr<BufferSRV> constantBuffer)
+        void DX12CommandList::SetConstantBuffer(Uint32 index, SharedPtr<Buffer> constantBuffer, Uint64 offset)
         {
             CHECK(IsWriting());
-            CHECK(constantBuffer->GetBuffer()->GetType() == BufferType::Constant);
+            CHECK(constantBuffer->GetType() == BufferType::Constant);
 
-            const DX12BufferSRV* dx12SRV = dynamic_cast<DX12BufferSRV*>(constantBuffer.get());
-            CHECK(dx12SRV);
+            const DX12Buffer* dx12ConstantBuffer = dynamic_cast<DX12Buffer*>(constantBuffer.get());
+            CHECK(dx12ConstantBuffer);
 
-            D3D12_GPU_VIRTUAL_ADDRESS gpuAddress = dx12SRV->GetGPUAddress();
+            D3D12_GPU_VIRTUAL_ADDRESS gpuAddress = dx12ConstantBuffer->GetGPUAddress() + offset;
 
             // Register space index is used in Slang's ParameterBlock.
             DX12ShaderParameterHelper& shaderParameterHelper = mDevice.GetShaderParameterHelper();
@@ -312,7 +312,7 @@ namespace cube
 
             mCommandListState.constantBuffers[index] = {
                 .buffer = constantBuffer,
-                .isSet = true
+                .offset = offset,
             };
 
             CUBE_DX12_BOUND_OBJECT(constantBuffer);
@@ -932,14 +932,12 @@ namespace cube
             DX12ShaderParameterHelper& shaderParameterHelper = mDevice.GetShaderParameterHelper();
             for (auto& [index, constantBuffer] : mCommandListState.constantBuffers)
             {
-                const DX12BufferSRV* dx12SRV = dynamic_cast<DX12BufferSRV*>(constantBuffer.buffer.get());
-                CHECK(dx12SRV);
-                D3D12_GPU_VIRTUAL_ADDRESS gpuAddress = dx12SRV->GetGPUAddress();
+                const DX12Buffer* dx12ConstantBuffer = dynamic_cast<DX12Buffer*>(constantBuffer.buffer.get());
+                CHECK(dx12ConstantBuffer);
+                D3D12_GPU_VIRTUAL_ADDRESS gpuAddress = dx12ConstantBuffer->GetGPUAddress() + constantBuffer.offset;
 
                 mCommandList->SetGraphicsRootConstantBufferView(index * shaderParameterHelper.GetMaxNumRegister(), gpuAddress);
                 mCommandList->SetComputeRootConstantBufferView(index * shaderParameterHelper.GetMaxNumRegister(), gpuAddress);
-
-                constantBuffer.isSet = true;
             }
         }
 

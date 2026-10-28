@@ -123,15 +123,15 @@ namespace cube
             primitiveType = ConvertToMTLPrimitiveType(newPrimitiveTopology);
         }
 
-        void MetalEncoderState::SetConstantBuffer(SharedPtr<BufferSRV> srv, Uint32 index)
+        void MetalEncoderState::SetConstantBuffer(Uint32 index, SharedPtr<Buffer> buffer, Uint64 offset)
         {
-            MetalBufferSRV* metalSRV = dynamic_cast<MetalBufferSRV*>(srv.get());
-            CHECK(metalSRV);
-            CHECK(metalSRV->GetBuffer()->GetType() == BufferType::Constant);
+            MetalBuffer* metalBuffer = dynamic_cast<MetalBuffer*>(buffer.get());
+            CHECK(metalBuffer);
+            CHECK(metalBuffer->GetType() == BufferType::Constant);
 
             ConstantBuffer& constantBuffer = constantBuffers[index];
-            constantBuffer.buffer = metalSRV->GetParentMTLBuffer();
-            constantBuffer.offset = metalSRV->GetOffset();
+            constantBuffer.mtlBuffer = metalBuffer->GetMTLBuffer();
+            constantBuffer.offset = offset;
             constantBuffer.isSet = false;
         }
 
@@ -151,8 +151,8 @@ namespace cube
             {
                 if (forceAll || !constantBuffer.isSet)
                 {
-                    [encoder setVertexBuffer:constantBuffer.buffer offset:constantBuffer.offset atIndex:index];
-                    [encoder setFragmentBuffer:constantBuffer.buffer offset:constantBuffer.offset atIndex:index];
+                    [encoder setVertexBuffer:constantBuffer.mtlBuffer offset:constantBuffer.offset atIndex:index];
+                    [encoder setFragmentBuffer:constantBuffer.mtlBuffer offset:constantBuffer.offset atIndex:index];
                     constantBuffer.isSet = true;
                 }
             }
@@ -164,7 +164,7 @@ namespace cube
             {
                 if (forceAll || !constantBuffer.isSet)
                 {
-                    [computeEncoder setBuffer:constantBuffer.buffer offset:constantBuffer.offset atIndex:index];
+                    [computeEncoder setBuffer:constantBuffer.mtlBuffer offset:constantBuffer.offset atIndex:index];
                     constantBuffer.isSet = true;
                 }
             }
@@ -457,13 +457,13 @@ namespace cube
             ];
         }
 
-        void MetalCommandList::SetConstantBuffer(Uint32 index, SharedPtr<BufferSRV> constantBuffer)
+        void MetalCommandList::SetConstantBuffer(Uint32 index, SharedPtr<Buffer> constantBuffer, Uint64 offset)
         {
             CHECK(IsWriting());
 
             RestoreBoundPipelineState();
 
-            mCurrentEncoderState.SetConstantBuffer(constantBuffer, index);
+            mCurrentEncoderState.SetConstantBuffer(index, constantBuffer, offset);
             if (IsInRenderPass())
             {
                 mCurrentEncoderState.ApplyConstantBuffers(mRenderEncoder);

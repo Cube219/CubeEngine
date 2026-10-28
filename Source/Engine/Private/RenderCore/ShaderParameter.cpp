@@ -1,5 +1,6 @@
 #include "RenderCore/ShaderParameter.h"
 
+#include "Allocator/AllocatorUtility.h"
 #include "Allocator/FrameAllocator.h"
 #include "GAPI.h"
 
@@ -66,16 +67,35 @@ namespace cube
 
     ShaderParameterList::~ShaderParameterList()
     {
-        mManager.FreeBuffer(*this);
+        mManager.Free(mAllocation);
     }
 
-    void ShaderParameterListManager::Initialize(GAPI* gapi, Uint32 numGPUSync)
+    void ShaderParameterListManager::Initialize(GAPI* gapi, Uint32 numGPUSync, Uint64 defaultConstantBufferSize)
     {
         mGAPI = gapi;
         mConstantBufferAlignment = mGAPI->GetInfo().constantBufferAlignment;
         mShaderParameterHelper = &mGAPI->GetShaderParameterHelper();
         mCompatibleShaderParameterReflectionTypeMap = mShaderParameterHelper->GetCompatibleShaderParameterReflectionTypeMap();
-        mBufferPools.resize(numGPUSync);
+        mGPUBuffers.resize(numGPUSync);
+        for (Uint32 i = 0; i < numGPUSync; ++i)
+        {
+            ShaderParameterListGPUBuffer& gpuBuffer = mGPUBuffers[i];
+
+            gpuBuffer.stageBufferPtr = (Byte*)malloc(defaultConstantBufferSize);
+            gpuBuffer.bufferSize = defaultConstantBufferSize;
+            gpuBuffer.currentOffset = 0;
+
+            gpuBuffer.constantBuffer = mGAPI->CreateBuffer(gapi::BufferCreateInfo{
+                .usage = gapi::ResourceUsage::CPUtoGPU,
+                .bufferInfo = gapi::BufferInfo{
+                    .type = gapi::BufferType::Constant,
+                    .size = defaultConstantBufferSize,
+                },
+                .debugName = Format<FrameString>(CUBE_T("ShaderConstantBuffer_{0}"), i)
+            });
+            gpuBuffer.gpuMappedPtr = (Byte*)gpuBuffer.constantBuffer->Map();
+            gpuBuffer.flushedOffset = 0;
+        }
 
         mCurrentIndex = 0;
 
@@ -84,25 +104,31 @@ namespace cube
 
     void ShaderParameterListManager::Shutdown()
     {
-        for (ShaderParameterListBufferPool& pool : mBufferPools)
+        for (ShaderParameterListGPUBuffer& gpuBuffer : mGPUBuffers)
         {
-            pool.Clear();
+            gpuBuffer.constantBuffer->Unmap();
+            free(gpuBuffer.stageBufferPtr);
         }
-        mBufferPools.clear();
+        mGPUBuffers.clear();
     }
 
     void ShaderParameterListManager::MoveNextFrame()
     {
-        mCurrentIndex = (mCurrentIndex + 1) % mBufferPools.size();
+        CHECK_FORMAT(mGPUBuffers[mCurrentIndex].currentOffset == mGPUBuffers[mCurrentIndex].flushedOffset, "Not all shader parameter data are flushed to GPU. Use FlushToGPUBuffer before submit command list.");
 
-        ShaderParameterListBufferPool& pool = mBufferPools[mCurrentIndex];
-        pool.CheckConsistency();
+        mCurrentIndex = (mCurrentIndex + 1) % mGPUBuffers.size();
 
-        for (Uint32 index : pool.freedBufferIndices)
-        {
-            pool.pooledBufferIndices.emplace((Uint32)(pool.buffers[index]->GetSize()), index);
-        }
-        pool.freedBufferIndices.clear();
+        ShaderParameterListGPUBuffer& gpuBuffer = mGPUBuffers[mCurrentIndex];
+        gpuBuffer.currentOffset = 0;
+        gpuBuffer.flushedOffset = 0;
+    }
+
+    void ShaderParameterListManager::FlushToGPUBuffer()
+    {
+        ShaderParameterListGPUBuffer& gpuBuffer = mGPUBuffers[mCurrentIndex];
+
+        memcpy(gpuBuffer.gpuMappedPtr + gpuBuffer.flushedOffset, gpuBuffer.stageBufferPtr + gpuBuffer.flushedOffset, gpuBuffer.currentOffset - gpuBuffer.flushedOffset);
+        gpuBuffer.flushedOffset = gpuBuffer.currentOffset;
     }
 
     bool ShaderParameterListManager::ValidateShader(const gapi::ShaderReflection& shaderReflection)
@@ -203,87 +229,39 @@ namespace cube
 
     void ShaderParameterListManager::AllocateShaderParameterList(ShaderParameterList* parameterList, const ShaderParameterListInfo& parameterListInfo)
     {
-        Uint32 bufferSize = parameterListInfo.totalBufferSize;
-        const Uint32 alignment = mConstantBufferAlignment;
-        if ((bufferSize & (alignment - 1)) != 0)
-        {
-            bufferSize = (bufferSize + (alignment - 1)) & ~(alignment - 1);
-        }
-
-        parameterList->mGPUSyncIndex = mCurrentIndex;
-        parameterList->mPooledBuffer = AllocateBuffer(bufferSize, parameterListInfo.name);
+        parameterList->mAllocation = Allocate(parameterListInfo.totalBufferSize, parameterListInfo.name);
     }
 
-    ShaderParameterListPooledBuffer ShaderParameterListManager::AllocateBuffer(Uint32 size, StringView debugName)
+    ShaderParameterListBufferSubAllocation ShaderParameterListManager::Allocate(Uint32 size, StringView debugName)
     {
-        ShaderParameterListBufferPool& pool = mBufferPools[mCurrentIndex];
+        ShaderParameterListGPUBuffer& gpuBuffer = mGPUBuffers[mCurrentIndex];
 
-        if (auto it = pool.pooledBufferIndices.lower_bound(size); it != pool.pooledBufferIndices.end())
+        Uint64 alignedOffset = Align(gpuBuffer.currentOffset, (Uint64)mConstantBufferAlignment);
+
+        if (alignedOffset + size > gpuBuffer.bufferSize)
         {
-            Uint32 index = it->second;
-            SharedPtr<gapi::Buffer> buffer = pool.buffers[index];
-            SharedPtr<gapi::BufferSRV> srv = pool.srvs[index];
-            pool.pooledBufferIndices.erase(it);
-
-            buffer->SetDebugName(debugName);
-            return { .buffer = buffer, .srv = srv, .poolIndex = index };
+            NO_ENTRY_FORMAT("Insufficient shader parameter buffer. Try to increase it.");
+            return {};
         }
 
-        SharedPtr<gapi::Buffer> buffer = mGAPI->CreateBuffer({
-            .usage = gapi::ResourceUsage::CPUtoGPU,
-            .bufferInfo = {
-                .type = gapi::BufferType::Constant,
-                .size = size,
-            },
-            .debugName = debugName
-        });
-        pool.buffers.push_back(buffer);
-        SharedPtr<gapi::BufferSRV> srv = buffer->CreateSRV({});
-        pool.srvs.push_back(srv);
+        void* stageBufferPtr = gpuBuffer.stageBufferPtr + alignedOffset;
+        gpuBuffer.currentOffset = alignedOffset + size;
 
-        return {
-            .buffer = buffer,
-            .srv = srv,
-            .poolIndex = static_cast<Uint32>(pool.buffers.size()) - 1
+        return ShaderParameterListBufferSubAllocation{
+            .gpuBuffer = gpuBuffer.constantBuffer,
+            .offset = alignedOffset,
+            .size = size,
+            .stageSubAllocationPtr = stageBufferPtr,
         };
     }
 
-    void ShaderParameterListManager::FreeBuffer(ShaderParameterList& parameterList)
+    void ShaderParameterListManager::Free(ShaderParameterListBufferSubAllocation& allocation)
     {
-        if (mCurrentIndex != parameterList.mGPUSyncIndex)
+        if (allocation.gpuBuffer != mGPUBuffers[mCurrentIndex].constantBuffer)
         {
-            CUBE_LOG(Warning, Renderer, "Mismatch GPU sync index at allocation and freeing in {0}. They should be the same GPU sync index.");
+            CUBE_LOG(Warning, Renderer, "Mismatch GPU buffer at allocation and freeing. The suballocation should be released in the same frame it was allocated.");
         }
 
-        ShaderParameterListBufferPool& pool = mBufferPools[parameterList.mGPUSyncIndex];
-        CHECK(parameterList.mPooledBuffer.buffer);
-        CHECK(parameterList.mPooledBuffer.buffer == pool.buffers[parameterList.mPooledBuffer.poolIndex]);
-        CHECK(parameterList.mPooledBuffer.srv == pool.srvs[parameterList.mPooledBuffer.poolIndex]);
-        pool.freedBufferIndices.push_back(parameterList.mPooledBuffer.poolIndex);
-
-        parameterList.mPooledBuffer = { .buffer = nullptr, .srv = nullptr, .poolIndex = 0 };
-    }
-
-    void ShaderParameterListManager::ShaderParameterListBufferPool::CheckConsistency()
-    {
-        CHECK(buffers.size() == srvs.size());
-        CHECK(buffers.size() == freedBufferIndices.size() + pooledBufferIndices.size());
-
-        Vector<bool> mark(buffers.size(), false);
-        for (const auto& [_, index] : pooledBufferIndices)
-        {
-            CHECK_FORMAT(!mark[index], "Duplicated index! {0}", index);
-            mark[index] = true;
-        }
-        for (Uint32 index : freedBufferIndices)
-        {
-            CHECK_FORMAT(!mark[index], "Duplicated index! {0}", index);
-            mark[index] = true;
-        }
-
-        for (Uint32 i = 0; i < mark.size(); ++i)
-        {
-            CHECK_FORMAT(mark[i], "Not pooled index! {0}", i);
-        }
+        allocation = {};
     }
 } // namespace cube

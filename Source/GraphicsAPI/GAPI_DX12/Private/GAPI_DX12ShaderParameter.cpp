@@ -193,9 +193,9 @@ namespace cube
             inOutParameterListInfo.totalBufferSize = totalBufferSize;
         }
 
-        void DX12ShaderParameterHelper::WriteParametersToGPUBuffer(SharedPtr<Buffer> buffer, const ShaderParameterListInfo& parameterListInfo, const void* pParameterList) const
+        void DX12ShaderParameterHelper::WriteParameterListToBuffer(void* pBuffer, const ShaderParameterListInfo& parameterListInfo, const void* pParameterList) const
         {
-            Byte* bufferPtr = reinterpret_cast<Byte*>(buffer->Map());
+            Byte* bufferPtr = reinterpret_cast<Byte*>(pBuffer);
 
             for (const ShaderParameterInfo& paramInfo : parameterListInfo.parameterInfos)
             {
@@ -285,7 +285,7 @@ namespace cube
                 {
                     const RGBufferSRVHandle& srv = *reinterpret_cast<const RGBufferSRVHandle*>(src);
                     CHECK_FORMAT(srv.IsValid(), "Null srv in shader parameter '{0}'.", paramInfo.name);
-                    CHECK_FORMAT(srv->IsResourceCreated(), "RGBufferSRV '{0}' is not created. Maybe call WriteAllParametersToGPUBuffer outside of RGBuilder?", paramInfo.name);
+                    CHECK_FORMAT(srv->IsResourceCreated(), "RGBufferSRV '{0}' is not created. Maybe call WriteAllParameterListToBuffer outside of RGBuilder?", paramInfo.name);
 
                     Uint32 uint2[2] = { static_cast<Uint32>(srv->GetSRV()->GetBindlessId()), static_cast<Uint32>(-1) };
                     memcpy(dst, uint2, sizeof(uint2));
@@ -295,7 +295,7 @@ namespace cube
                 {
                     const RGBufferUAVHandle& uav = *reinterpret_cast<const RGBufferUAVHandle*>(src);
                     CHECK_FORMAT(uav.IsValid(), "Null uav in shader parameter '{0}'.", paramInfo.name);
-                    CHECK_FORMAT(uav->IsResourceCreated(), "RGBufferUAV '{0}' is not created. Maybe call WriteAllParametersToGPUBuffer outside of RGBuilder?", paramInfo.name);
+                    CHECK_FORMAT(uav->IsResourceCreated(), "RGBufferUAV '{0}' is not created. Maybe call WriteAllParameterListToBuffer outside of RGBuilder?", paramInfo.name);
 
                     Uint32 uint2[2] = { static_cast<Uint32>(uav->GetUAV()->GetBindlessId()), static_cast<Uint32>(-1) };
                     memcpy(dst, uint2, sizeof(uint2));
@@ -305,7 +305,7 @@ namespace cube
                 {
                     const RGTextureSRVHandle& srv = *reinterpret_cast<const RGTextureSRVHandle*>(src);
                     CHECK_FORMAT(srv.IsValid(), "Null srv in shader parameter '{0}'.", paramInfo.name);
-                    CHECK_FORMAT(srv->IsResourceCreated(), "RGTextureSRV '{0}' is not created. Maybe call WriteAllParametersToGPUBuffer outside of RGBuilder?", paramInfo.name);
+                    CHECK_FORMAT(srv->IsResourceCreated(), "RGTextureSRV '{0}' is not created. Maybe call WriteAllParameterListToBuffer outside of RGBuilder?", paramInfo.name);
 
                     Uint32 uint2[2] = { static_cast<Uint32>(srv->GetSRV()->GetBindlessId()), static_cast<Uint32>(-1) };
                     memcpy(dst, uint2, sizeof(uint2));
@@ -315,7 +315,7 @@ namespace cube
                 {
                     const RGTextureUAVHandle& uav = *reinterpret_cast<const RGTextureUAVHandle*>(src);
                     CHECK_FORMAT(uav.IsValid(), "Null uav in shader parameter '{0}'.", paramInfo.name);
-                    CHECK_FORMAT(uav->IsResourceCreated(), "RGTextureUAV '{0}' is not created. Maybe call WriteAllParametersToGPUBuffer outside of RGBuilder?", paramInfo.name);
+                    CHECK_FORMAT(uav->IsResourceCreated(), "RGTextureUAV '{0}' is not created. Maybe call WriteAllParameterListToBuffer outside of RGBuilder?", paramInfo.name);
 
                     Uint32 uint2[2] = { static_cast<Uint32>(uav->GetUAV()->GetBindlessId()), static_cast<Uint32>(-1) };
                     memcpy(dst, uint2, sizeof(uint2));
@@ -343,8 +343,6 @@ namespace cube
                     break;
                 }
             }
-
-            buffer->Unmap();
         }
 
         void DX12ShaderParameterHelper::InitializeCompatibleShaderParameterReflectionTypeMap()

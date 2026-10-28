@@ -56,7 +56,7 @@ namespace cube
 
         mInfo = {
             .apiName = gapi::GAPIName::Metal,
-            .constantBufferAlignment = 4,
+            .constantBufferAlignment = 32,
             // All non-transient Metal resources use MTLStorageModeShared (mappable).
             .supportsDirectMapInBuffer = true,
             .supportsDirectMapInTexture = true,

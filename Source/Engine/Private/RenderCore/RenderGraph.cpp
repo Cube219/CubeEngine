@@ -990,21 +990,26 @@ namespace cube
     {
         CHECK(mPhase == Phase::Executing);
 
-        // Register shader parameter lists in the pass.
+        // Register shader parameter lists.
         for (RGShaderParameterListBaseHandle& params : pass.shaderParameterLists)
         {
             const Character* name = params->mParameterListInfo.name;
-            auto findIt = mExecuteState.shaderParameterListBindInfos.find(name);
-            if (findIt == mExecuteState.shaderParameterListBindInfos.end())
+            auto findIt = mExecuteState.boundShaderParameterListInfos.find(name);
+            if (findIt == mExecuteState.boundShaderParameterListInfos.end())
             {
-                findIt = mExecuteState.shaderParameterListBindInfos.insert({ name, {} }).first;
+                findIt = mExecuteState.boundShaderParameterListInfos.insert({ name, {} }).first;
             }
 
-            SharedPtr<ShaderParameterList> parameterList = params->mParameterList;
-            if (findIt->second.GPUBuffer != parameterList->GetBuffer())
+            const ShaderParameterListBufferSubAllocation& bufferSubAllocation = params->mParameterList->GetBufferSubAllocation();
+            if (findIt->second.gpuBuffer != bufferSubAllocation.gpuBuffer || findIt->second.offset != bufferSubAllocation.offset)
             {
-                // Reset bind index because it is a new buffer.
-                findIt->second = { parameterList->GetBuffer(), parameterList->GetSRV(), -1 };
+                // Reset the bind index because the bound buffer suballocation has changed.
+                findIt->second = ShaderParameterListBindInfo
+                {
+                    .gpuBuffer = bufferSubAllocation.gpuBuffer,
+                    .offset = bufferSubAllocation.offset,
+                    .bindIndex = -1,
+                };
             }
         }
 
@@ -1022,11 +1027,26 @@ namespace cube
         {
             for (const gapi::ShaderParameterBlockReflection& block : pReflection->blocks)
             {
-                if (auto findIt = mExecuteState.shaderParameterListBindInfos.find(block.typeName); findIt != mExecuteState.shaderParameterListBindInfos.end())
+                if (auto findIt = mExecuteState.boundShaderParameterListInfos.find(block.typeName); findIt != mExecuteState.boundShaderParameterListInfos.end())
                 {
                     if (findIt->second.bindIndex != block.index)
                     {
-                        commandList.SetConstantBuffer(block.index, findIt->second.srv);
+                        if (mExecuteState.boundShaderParameterListNameByIndex.size() <= block.index)
+                        {
+                            mExecuteState.boundShaderParameterListNameByIndex.resize(block.index + 1);
+                        }
+                        if (mExecuteState.boundShaderParameterListNameByIndex[block.index] != block.typeName)
+                        {
+                            String& oldBoundParamListName = mExecuteState.boundShaderParameterListNameByIndex[block.index];
+                            if (!oldBoundParamListName.empty())
+                            {
+                                mExecuteState.boundShaderParameterListInfos[oldBoundParamListName].bindIndex = -1;
+                            }
+                        }
+
+                        commandList.SetConstantBuffer(block.index, findIt->second.gpuBuffer, findIt->second.offset);
+
+                        mExecuteState.boundShaderParameterListNameByIndex[block.index] = block.typeName;
                         findIt->second.bindIndex = block.index;
                     }
                 }
@@ -1250,9 +1270,11 @@ namespace cube
         {
             if (RGShaderParameterListBaseHandle shaderParameterList = resource.Cast<RGShaderParameterListBase>(); shaderParameterList.IsValid())
             {
-                shaderParameterList->mParameterList->WriteAllParametersToGPUBuffer();
+                shaderParameterList->mParameterList->WriteAllParameterListToBuffer();
             }
         }
+
+        mRenderer.GetShaderParameterListManager().FlushToGPUBuffer();
     }
 
     void RGBuilder::ResolveBarriers()

@@ -118,6 +118,8 @@ namespace cube
             : BufferSRV(createInfo, metalBuffer)
             , mParentMTLBuffer(metalBuffer->GetMTLBuffer())
         {
+            CHECK_FORMAT(metalBuffer->GetType() != BufferType::Constant, "Cannot create SRV for constant buffer because it is not used as a view in this engine. Use MTLBuffer and offset instead.");
+
             // Slang uses texture_buffer in Buffer.
             if (metalBuffer->GetType() == BufferType::Typed)
             { @autoreleasepool {
@@ -155,6 +157,8 @@ namespace cube
             : BufferUAV(createInfo, metalBuffer)
             , mParentMTLBuffer(metalBuffer->GetMTLBuffer())
         {
+            CHECK_FORMAT(metalBuffer->GetType() != BufferType::Constant, "Cannot create UAV for constant buffer.");
+
             // Slang uses texture_buffer in RWBuffer.
             if (metalBuffer->GetType() == BufferType::Typed)
             { @autoreleasepool {

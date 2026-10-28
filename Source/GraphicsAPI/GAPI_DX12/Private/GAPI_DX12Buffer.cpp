@@ -183,44 +183,35 @@ namespace cube
         {
             const BufferInfo& bufferInfo = dx12Buffer->GetInfo();
 
+            CHECK_FORMAT(bufferInfo.type != BufferType::Constant, "Cannot create SRV for constant buffer because it is not needed to use CPU/GPU descriptor in this engine. Use GPU address and offset instead.");
+
             mSRVDescriptor = device.GetDescriptorManager().GetSRVHeap().Allocate();
             mGPUAddress = dx12Buffer->GetGPUAddress() + mFirstElement * bufferInfo.stride;
 
-            if (bufferInfo.type == BufferType::Constant)
+            DXGI_FORMAT format;
+            if (bufferInfo.type == BufferType::Structured)
             {
-                const D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {
-                    .BufferLocation = mGPUAddress,
-                    .SizeInBytes = static_cast<UINT>(mNumElements)
-                };
-                mDevice.GetDevice()->CreateConstantBufferView(&cbvDesc, mSRVDescriptor.cpuHandle);
+                format = DXGI_FORMAT_UNKNOWN;
+            }
+            else if (bufferInfo.type == BufferType::Raw)
+            {
+                format = DXGI_FORMAT_R32_TYPELESS;
             }
             else
             {
-                DXGI_FORMAT format;
-                if (bufferInfo.type == BufferType::Structured)
-                {
-                    format = DXGI_FORMAT_UNKNOWN;
-                }
-                else if (bufferInfo.type == BufferType::Raw)
-                {
-                    format = DXGI_FORMAT_R32_TYPELESS;
-                }
-                else
-                {
-                    format = GetDX12ElementFormatInfo(createInfo.typedFormat).format;
-                }
-
-                D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-                srvDesc.Format = format;
-                srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-                srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-                srvDesc.Buffer.FirstElement = mFirstElement;
-                srvDesc.Buffer.NumElements = static_cast<UINT>(mNumElements);
-                srvDesc.Buffer.StructureByteStride = bufferInfo.type == BufferType::Structured ? bufferInfo.stride : 0;
-                srvDesc.Buffer.Flags = bufferInfo.type == BufferType::Raw ? D3D12_BUFFER_SRV_FLAG_RAW : D3D12_BUFFER_SRV_FLAG_NONE;
-
-                device.GetDevice()->CreateShaderResourceView(dx12Buffer->GetResource(), &srvDesc, mSRVDescriptor.cpuHandle);
+                format = GetDX12ElementFormatInfo(createInfo.typedFormat).format;
             }
+
+            D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+            srvDesc.Format = format;
+            srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+            srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+            srvDesc.Buffer.FirstElement = mFirstElement;
+            srvDesc.Buffer.NumElements = static_cast<UINT>(mNumElements);
+            srvDesc.Buffer.StructureByteStride = bufferInfo.type == BufferType::Structured ? bufferInfo.stride : 0;
+            srvDesc.Buffer.Flags = bufferInfo.type == BufferType::Raw ? D3D12_BUFFER_SRV_FLAG_RAW : D3D12_BUFFER_SRV_FLAG_NONE;
+
+            device.GetDevice()->CreateShaderResourceView(dx12Buffer->GetResource(), &srvDesc, mSRVDescriptor.cpuHandle);
 
             mBindlessId = mSRVDescriptor.index;
         }
@@ -235,6 +226,8 @@ namespace cube
             , mDevice(device)
         {
             const BufferInfo& bufferInfo = dx12Buffer->GetInfo();
+
+            CHECK_FORMAT(bufferInfo.type != BufferType::Constant, "Cannot create UAV for constant buffer.");
 
             mUAVDescriptor = device.GetDescriptorManager().GetSRVHeap().Allocate();
             mGPUAddress = dx12Buffer->GetGPUAddress() + mFirstElement * bufferInfo.stride;
