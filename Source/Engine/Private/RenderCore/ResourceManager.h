@@ -21,6 +21,8 @@ namespace cube
         void QueueBLASBuild(SharedPtr<BLASResource> blas);
         void ExecuteBLASBuilds(RGBuilder& builder);
 
+        bool HasBLASBuildTask() const { return !mBLASesToBuild.empty(); }
+
     private:
         Renderer& mRenderer;
 

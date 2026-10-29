@@ -41,13 +41,19 @@ namespace cube
 
             void WriteInstanceDescriptor(MetalBuffer* instanceDescBuffer);
 
+            id<MTLResidencySet> GetTLASAndBLASInstancesResidencySet() const { return mTLASAndBLASInstancesResidencySet; }
+
         private:
+            void UpdateResidencySet();
+
             MetalDevice& mDevice;
 
             Vector<BLASInstance> mInstances;
             MTLInstanceAccelerationStructureDescriptor* mInstanceDescriptor;
 
             id<MTLAccelerationStructure> mTLAS;
+
+            id<MTLResidencySet> mTLASAndBLASInstancesResidencySet;
         };
     } // namespace gapi
 } // namespace cube

@@ -59,12 +59,13 @@ namespace cube
 
     bool RayTracingDebugView::RenderDebugView(RGBuilder& builder, const Scene& scene, RGTextureHandle colorTexture)
     {
-        if (!mIsSupported)
+        RayTracingScene* rayTracingScene = scene.GetRayTracingScene();
+        if (!mIsSupported || !rayTracingScene)
         {
             return false;
         }
 
-        SharedPtr<gapi::TLAS> tlas = scene.GetTLAS();
+        SharedPtr<gapi::TLAS> tlas = rayTracingScene->GetTLAS();
         if (!tlas)
         {
             return false;
@@ -74,15 +75,7 @@ namespace cube
         const Uint32 height = colorTexture->GetTextureInfo().height;
 
         RGTextureUAVHandle colorTextureUAV = builder.CreateUAV(colorTexture);
-        RGAccelerationStructureHandle rgTLAS = builder.RegisterAccelerationStructure(scene.GetTLAS());
-
-        auto blases = scene.GetBLASes();
-        FrameVector<RGAccelerationStructureHandle> rgBLASes;
-        rgBLASes.reserve(blases.size());
-        for (SharedPtr<gapi::BLAS>& blas : blases)
-        {
-            rgBLASes.push_back(builder.RegisterAccelerationStructure(blas));
-        }
+        RGTLASHandle rgTLAS = builder.RegisterTLAS(tlas);
 
         auto shaderParameters = builder.CreateShaderParameterList<RayTracingDebugViewShaderParameterList>();
         shaderParameters->bufferSizeAndInvSize = Float4(width, height, 1.0f / width, 1.0f / height);
@@ -101,13 +94,9 @@ namespace cube
             {
                 commandList.DispatchThreads(width, height, 1);
             },
-            [rgTLAS, rgBLASes](RGBuilder& builder)
+            [rgTLAS](RGBuilder& builder)
             {
-                builder.UseResource(rgTLAS, gapi::ResourceAccessFlag::ReadAccelerationStructure, gapi::ResourceSyncFlag::Compute);
-                for (RGAccelerationStructureHandle blas : rgBLASes)
-                {
-                    builder.UseResource(blas, gapi::ResourceAccessFlag::ReadAccelerationStructure, gapi::ResourceSyncFlag::Compute);
-                }
+                builder.UseResource(rgTLAS);
             });
 
         return true;

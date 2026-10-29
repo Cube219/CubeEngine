@@ -93,7 +93,7 @@ namespace cube
             return rgParameterList;
         }
 
-        RGAccelerationStructureHandle RegisterAccelerationStructure(SharedPtr<gapi::AccelerationStructure> accelerationStructure);
+        RGTLASHandle RegisterTLAS(SharedPtr<gapi::TLAS> tlas);
 
     private:
         Vector<RGResourceHandle> mResources;
@@ -109,7 +109,7 @@ namespace cube
             gapi::ResourceLayout dstLayout;
         };
         Map<gapi::Texture*, RegisteredTextureInfo> mRegisteredTextureInfos;
-        Map<gapi::AccelerationStructure*, RGAccelerationStructureHandle> mRegisteredAccelerationStructures;
+        Map<gapi::TLAS*, RGTLASHandle> mRegisteredTLASes;
 
         // Caches to avoid creating duplicate views with the same parameters.
         // The view type is encoded into the cache key, so each base map can hold every view kind.
@@ -345,7 +345,7 @@ namespace cube
         void UseResource(RGBufferHandle rgBuffer, gapi::ResourceAccessFlags accesses, gapi::ResourceSyncFlags syncs);
         void UseResource(RGTextureHandle rgTexture, gapi::SubresourceRangeInput range, gapi::ResourceAccessFlags accesses, gapi::ResourceLayout layout, gapi::ResourceSyncFlags syncs);
 
-        void UseResource(RGAccelerationStructureHandle rgAccelerationStructure, gapi::ResourceAccessFlags accesses, gapi::ResourceSyncFlags syncs);
+        void UseResource(RGTLASHandle rgTLAS);
 
         void SkipUAVBarrier(RGBufferUAVHandle rgUAV);
         void SkipUAVBarrier(RGTextureUAVHandle rgUAV);

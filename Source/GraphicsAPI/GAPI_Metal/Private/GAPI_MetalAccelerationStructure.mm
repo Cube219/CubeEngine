@@ -63,6 +63,7 @@ namespace cube
             mUpdateScratchBufferSize = sizes.refitScratchBufferSize;
 
             mBLAS = [mDevice.GetMTLDevice() newAccelerationStructureWithSize:sizes.accelerationStructureSize];
+            CHECK(mBLAS);
             mBLAS.label = String_Convert<NSString*>(createInfo.debugName);
         }}
 
@@ -98,7 +99,15 @@ namespace cube
             mUpdateScratchBufferSize = sizes.refitScratchBufferSize;
 
             mTLAS = [mDevice.GetMTLDevice() newAccelerationStructureWithSize:sizes.accelerationStructureSize];
+            CHECK(mTLAS);
             mTLAS.label = String_Convert<NSString*>(createInfo.debugName);
+
+            MTLResidencySetDescriptor* residencySetDesc = [[MTLResidencySetDescriptor alloc] init];
+            residencySetDesc.label = @"TLAS and BLAS residency set";
+            residencySetDesc.initialCapacity = mInstances.size() + 1;
+            NSError* error;
+            mTLASAndBLASInstancesResidencySet = [mDevice.GetMTLDevice() newResidencySetWithDescriptor:residencySetDesc error:nil];
+            CHECK(mTLASAndBLASInstancesResidencySet);
 
             mInstances.resize(createInfo.instances.size());
             UpdateInstances(createInfo.instances);
@@ -109,6 +118,7 @@ namespace cube
 
         MetalTLAS::~MetalTLAS()
         {
+            mTLASAndBLASInstancesResidencySet = nil;
             mTLAS = nil;
             mInstances.clear();
         }
@@ -127,6 +137,8 @@ namespace cube
                 [mtlAccelerationStructures addObject:metalBLAS->GetMTLAccelerationStructure()];
             }
             mInstanceDescriptor.instancedAccelerationStructures = mtlAccelerationStructures;
+
+            UpdateResidencySet();
         }
 
         void MetalTLAS::WriteInstanceDescriptor(MetalBuffer* instanceDescBuffer)
@@ -160,6 +172,25 @@ namespace cube
             MTLAccelerationStructureInstanceDescriptor* pDstData = (MTLAccelerationStructureInstanceDescriptor*)instanceDescBuffer->Map();
             memcpy(pDstData, mtlInstanceDescs.data(), sizeof(MTLAccelerationStructureInstanceDescriptor) * mtlInstanceDescs.size());
             instanceDescBuffer->Unmap();
+        }
+
+        void MetalTLAS::UpdateResidencySet()
+        {
+            [mTLASAndBLASInstancesResidencySet removeAllAllocations];
+
+            [mTLASAndBLASInstancesResidencySet addAllocation:mTLAS];
+            FrameSet<MetalBLAS*> registeredBLASSet;
+            for (BLASInstance& blasInstance : mInstances)
+            {
+                MetalBLAS* metalBLAS = dynamic_cast<MetalBLAS*>(blasInstance.blas.get());
+                if (registeredBLASSet.find(metalBLAS) == registeredBLASSet.end())
+                {
+                    [mTLASAndBLASInstancesResidencySet addAllocation:metalBLAS->GetMTLAccelerationStructure()];
+                    registeredBLASSet.insert(metalBLAS);
+                }
+            }
+
+            [mTLASAndBLASInstancesResidencySet commit];
         }
     } // namespace gapi
 } // namespace cube

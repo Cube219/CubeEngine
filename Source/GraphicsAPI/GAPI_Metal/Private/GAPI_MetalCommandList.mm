@@ -561,6 +561,16 @@ namespace cube
             }
         }
 
+        void MetalCommandList::UseTLASWithBLASInstancesReadOnly(SharedPtr<TLAS> tlas)
+        {
+            CHECK(IsWriting());
+
+            MetalTLAS* metalTLAS = dynamic_cast<MetalTLAS*>(tlas.get());
+            CHECK(metalTLAS);
+
+            [mCommandBuffer useResidencySet:metalTLAS->GetTLASAndBLASInstancesResidencySet()];
+        }
+
         void MetalCommandList::SetResourceBarrier(ResourceBarrier barrier)
         {
             CHECK(IsWriting());
@@ -927,11 +937,14 @@ namespace cube
                     usage:usage
                 ];
             }
+            else if (mASEncoder)
+            {
+                // Do nothing. The acceleration structure encoder does not need UseResource.
+            }
             else
             {
                 NO_ENTRY_FORMAT("You must set render pass or compute pipeline before UseResource.");
             }
-            // Currently acceleration structure encoder does not need to use UseResource function.
 
             mCachedUseResources[resource] = usage;
         }

@@ -54,7 +54,7 @@ endif()
 if(PLATFORM_MACOS)
     add_definitions(-DCUBE_PLATFORM_MACOS)
     
-    set (CMAKE_OSX_DEPLOYMENT_TARGET 14.0)
+    set (CMAKE_OSX_DEPLOYMENT_TARGET 15.0)
     
     add_compile_options(-Wno-invalid-offsetof)
 endif()

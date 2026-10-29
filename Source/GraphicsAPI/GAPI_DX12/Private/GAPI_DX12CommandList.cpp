@@ -367,6 +367,14 @@ namespace cube
             CUBE_DX12_BOUND_OBJECT(accelerationStructure);
         }
 
+        void DX12CommandList::UseTLASWithBLASInstancesReadOnly(SharedPtr<TLAS> tlas)
+        {
+            CHECK(IsWriting());
+
+            // Just bind the object
+            CUBE_DX12_BOUND_OBJECT(tlas);
+        }
+
         void DX12CommandList::SetResourceBarrier(ResourceBarrier barrier)
         {
             SetResourceBarrier({ &barrier, 1 });

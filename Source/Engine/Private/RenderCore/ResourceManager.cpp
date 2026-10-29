@@ -72,17 +72,24 @@ namespace cube
                     indexBuffer = builder.RegisterBuffer(gapiIndexBuffer);
                 }
 
-                RGAccelerationStructureHandle rgBLAS = builder.RegisterAccelerationStructure(blas->GetGAPIBLAS());
-
                 builder.AddPass(Format<FrameString>(CUBE_T("{0}"), blas->GetGAPIBLAS()->GetDebugName()),
                 [gapiBLAS = blas->GetGAPIBLAS(), scratchBuffer](gapi::CommandList& commandList)
                 {
                     commandList.PrepareAccelerationStructureBuild();
+
+                    commandList.UseResource(gapiBLAS, true);
+                    commandList.SetResourceBarrier(gapi::ResourceBarrier{
+                        .resourceType = gapi::ResourceBarrier::ResourceType::AccelerationStructure,
+                        .accelerationStructure = gapiBLAS,
+                        .syncSrc = gapi::ResourceSyncFlag::None,
+                        .syncDst = gapi::ResourceSyncFlag::BuildAccelerationStructure,
+                        .accessSrc = gapi::ResourceAccessFlag::NoAccess,
+                        .accessDst = gapi::ResourceAccessFlag::WriteAccelerationStructure,
+                    });
                     commandList.BuildBLAS(gapiBLAS, scratchBuffer->GetGAPIBuffer());
                 },
-                [rgBLAS, vertexBuffer, indexBuffer, scratchBuffer](RGBuilder& builder)
+                [vertexBuffer, indexBuffer, scratchBuffer](RGBuilder& builder)
                 {
-                    builder.UseResource(rgBLAS, gapi::ResourceAccessFlag::WriteAccelerationStructure, gapi::ResourceSyncFlag::BuildAccelerationStructure);
                     builder.UseResource(vertexBuffer, gapi::ResourceAccessFlag::SRV, gapi::ResourceSyncFlag::BuildAccelerationStructure);
                     if (indexBuffer.IsValid())
                     {

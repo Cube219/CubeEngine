@@ -217,6 +217,9 @@ namespace cube
     template <typename T>
     using FrameVector = std::vector<T, FrameAllocator::StdAllocator<T>>;
 
+    template <typename Key>
+    using FrameSet = std::set<Key, std::less<Key>, FrameAllocator::StdAllocator<Key>>;
+
     template <typename Key, typename Value>
     using FrameMap = std::map<Key, Value, std::less<Key>, FrameAllocator::StdAllocator<std::pair<const Key, Value>>>;
 

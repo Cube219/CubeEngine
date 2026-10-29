@@ -54,6 +54,7 @@ namespace cube
             virtual void UseResource(SharedPtr<TextureSRV> srv) override;
             virtual void UseResource(SharedPtr<TextureUAV> uav) override;
             virtual void UseResource(SharedPtr<AccelerationStructure> accelerationStructure, bool write) override;
+            virtual void UseTLASWithBLASInstancesReadOnly(SharedPtr<TLAS> tlas) override;
 
             virtual void SetResourceBarrier(ResourceBarrier barrier) override;
             virtual void SetResourceBarrier(ConstArrayView<ResourceBarrier> barriers) override;

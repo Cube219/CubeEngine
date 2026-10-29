@@ -156,6 +156,7 @@ namespace cube
             virtual void UseResource(SharedPtr<TextureSRV> srv) = 0;
             virtual void UseResource(SharedPtr<TextureUAV> uav) = 0;
             virtual void UseResource(SharedPtr<AccelerationStructure> accelerationStructure, bool write) = 0;
+            virtual void UseTLASWithBLASInstancesReadOnly(SharedPtr<TLAS> tlas) = 0;
 
             virtual void SetResourceBarrier(ResourceBarrier barrier) = 0;
             virtual void SetResourceBarrier(ConstArrayView<ResourceBarrier> barriers) = 0;

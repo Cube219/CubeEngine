@@ -448,21 +448,21 @@ namespace cube
     };
 
     // ===== Acceleration structure =====
-    class RGAccelerationStructure : public RGResource
+    class RGTLAS : public RGResource
     {
     public:
-        SharedPtr<gapi::AccelerationStructure> GetGAPIAccelerationStructure() const { return mAccelerationStructure; }
+        SharedPtr<gapi::TLAS> GetGAPITLAS() const { return mTLAS; }
 
         virtual void CreateResource(GAPI& gapi) override;
-        virtual bool IsResourceCreated() const override { return mAccelerationStructure != nullptr; }
+        virtual bool IsResourceCreated() const override { return mTLAS != nullptr; }
 
     private:
         friend class RGBuilder;
 
-        RGAccelerationStructure(int index, SharedPtr<gapi::AccelerationStructure> accelerationStructure);
-        virtual ~RGAccelerationStructure() = default;
+        RGTLAS(int index, SharedPtr<gapi::TLAS> tlas);
+        virtual ~RGTLAS() = default;
 
-        SharedPtr<gapi::AccelerationStructure> mAccelerationStructure;
+        SharedPtr<gapi::TLAS> mTLAS;
     };
-    using RGAccelerationStructureHandle = RGResourceHandler<RGAccelerationStructure>;
+    using RGTLASHandle = RGResourceHandler<RGTLAS>;
 } // namespace cube

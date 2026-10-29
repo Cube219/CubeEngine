@@ -251,16 +251,16 @@ namespace cube
     {
     }
 
-    void RGAccelerationStructure::CreateResource(GAPI& gapi)
+    void RGTLAS::CreateResource(GAPI& gapi)
     {
-        CHECK(mAccelerationStructure);
+        CHECK(mTLAS);
     }
 
-    RGAccelerationStructure::RGAccelerationStructure(int index, SharedPtr<gapi::AccelerationStructure> accelerationStructure)
-        : RGResource(index, accelerationStructure->GetDebugName())
-        , mAccelerationStructure(accelerationStructure)
+    RGTLAS::RGTLAS(int index, SharedPtr<gapi::TLAS> tlas)
+        : RGResource(index, tlas->GetDebugName())
+        , mTLAS(tlas)
     {
-        // Acceleration structure does not support transient.
+        // TLAS does not support transient.
         mIsTransient = false;
     }
 
@@ -477,22 +477,22 @@ namespace cube
         return mDummyWhiteTexture2D;
     }
 
-    RGAccelerationStructureHandle RGBuilder::RegisterAccelerationStructure(SharedPtr<gapi::AccelerationStructure> accelerationStructure)
+    RGTLASHandle RGBuilder::RegisterTLAS(SharedPtr<gapi::TLAS> tlas)
     {
-        if (auto findIt = mRegisteredAccelerationStructures.find(accelerationStructure.get()); findIt != mRegisteredAccelerationStructures.end())
+        if (auto findIt = mRegisteredTLASes.find(tlas.get()); findIt != mRegisteredTLASes.end())
         {
             return findIt->second;
         }
 
-        RGAccelerationStructureHandle rgAccelerationStructure(new RGAccelerationStructure(mResources.size(), accelerationStructure));
-        mResources.push_back(rgAccelerationStructure);
+        RGTLASHandle rgTLAS(new RGTLAS(mResources.size(), tlas));
+        mResources.push_back(rgTLAS);
 
-        mRegisteredAccelerationStructures.insert({
-            accelerationStructure.get(),
-            rgAccelerationStructure
+        mRegisteredTLASes.insert({
+            tlas.get(),
+            rgTLAS
         });
 
-        return rgAccelerationStructure;
+        return rgTLAS;
     }
 
     void RGBuilder::BeginRenderPass(const RenderPassInfo& info)
@@ -807,18 +807,17 @@ namespace cube
         });
     }
 
-    void RGBuilder::UseResource(RGAccelerationStructureHandle rgAccelerationStructure, gapi::ResourceAccessFlags accesses, gapi::ResourceSyncFlags syncs)
+    void RGBuilder::UseResource(RGTLASHandle rgTLAS)
     {
         CHECK(mPhase == Phase::TrackingResources);
-        CHECK(rgAccelerationStructure.IsValid());
-
-        CHECK(accesses.IsSet(gapi::ResourceAccessFlag::ReadAccelerationStructure) || accesses.IsSet(gapi::ResourceAccessFlag::WriteAccelerationStructure));
+        CHECK(rgTLAS.IsValid());
 
         RGPass& pass = mPasses[mTrackingResourcesState.passIndex];
         pass.resourceUsages.push_back({
-            .rgResourceIndex = rgAccelerationStructure->mIndex,
-            .syncs = syncs,
-            .accesses = accesses,
+            .rgResourceIndex = rgTLAS->mIndex,
+            // Note: TLAS does not need a barrier.
+            .syncs = gapi::ResourceSyncFlag::None,
+            .accesses = gapi::ResourceAccessFlag::NoAccess,
             .layout = gapi::ResourceLayout::Undefined,
         });
     }
@@ -1106,10 +1105,9 @@ namespace cube
                 {
                     commandList.UseResource(rgBufferUAV->GetUAV());
                 }
-                else if (RGAccelerationStructureHandle rgAccelerationStructure = rgResource.Cast<RGAccelerationStructure>(); rgAccelerationStructure.IsValid())
+                else if (RGTLASHandle rgTLAS = rgResource.Cast<RGTLAS>(); rgTLAS.IsValid())
                 {
-                    const bool hasWrite = resourceUsage.accesses.IsSet(gapi::ResourceAccessFlag::WriteAccelerationStructure);
-                    commandList.UseResource(rgAccelerationStructure->GetGAPIAccelerationStructure(), hasWrite);
+                    commandList.UseTLASWithBLASInstancesReadOnly(rgTLAS->GetGAPITLAS());
                 }
             }
         }
@@ -1341,21 +1339,6 @@ namespace cube
                     .layoutDst = layout,
                 };
             }
-            gapi::ResourceBarrier EmitAccelerationStructureBarrier(SharedPtr<gapi::AccelerationStructure> accelerationStructure) const
-            {
-                CHECK(resourceType == gapi::ResourceType::AccelerationStructure);
-
-                return gapi::ResourceBarrier{
-                    .resourceType = gapi::ResourceBarrier::ResourceType::AccelerationStructure,
-                    .accelerationStructure = accelerationStructure,
-                    .syncSrc = lastSyncs,
-                    .syncDst = syncs,
-                    .accessSrc = lastAccesses,
-                    .accessDst = accesses,
-                    .layoutSrc = gapi::ResourceLayout::Undefined,
-                    .layoutDst = gapi::ResourceLayout::Undefined,
-                };
-            }
             void MoveNext(int newPassIndex, gapi::ResourceAccessFlags newAccesses, gapi::ResourceLayout newLayout)
             {
                 lastSyncs = syncs;
@@ -1456,33 +1439,6 @@ namespace cube
                     }
                 };
 
-                auto TryResolveAccelerationStructure = [&](RGAccelerationStructureHandle rgAccelerationStructure)
-                {
-                    SharedPtr<gapi::AccelerationStructure> accelerationStructure = rgAccelerationStructure->GetGAPIAccelerationStructure();
-
-                    FrameVector<SubresourcePendingBarrier>& pendingSubresourceBarriers = pendingBarriersByResource[rgAccelerationStructure->mIndex];
-                    if (pendingSubresourceBarriers.empty())
-                    {
-                        pendingSubresourceBarriers.push_back({
-                            .resourceType = gapi::ResourceType::AccelerationStructure,
-                        });
-                    }
-
-                    SubresourcePendingBarrier& pendingBarrier = pendingSubresourceBarriers[0];
-                    const bool sameASWrite = pendingBarrier.accesses.IsSet(gapi::ResourceAccessFlag::WriteAccelerationStructure)
-                        && resourceUsage.accesses.IsSet(gapi::ResourceAccessFlag::WriteAccelerationStructure);
-                    const bool needUAVBarrier = !resourceUsage.skipUAVBarrier && sameASWrite;
-                    if (needUAVBarrier || pendingBarrier.accesses != resourceUsage.accesses)
-                    {
-                        if (pendingBarrier.firstPassIndex != -1)
-                        {
-                            mPasses[pendingBarrier.firstPassIndex].barriers.push_back(pendingBarrier.EmitAccelerationStructureBarrier(accelerationStructure));
-                        }
-                        pendingBarrier.MoveNext(mTrackingResourcesState.passIndex, resourceUsage.accesses, gapi::ResourceLayout::Undefined);
-                    }
-                    pendingBarrier.syncs |= resourceUsage.syncs;
-                };
-
                 if (RGBufferViewHandle bufferView = resource.Cast<RGBufferView>(); bufferView.IsValid())
                 {
                     TryResolveBuffer(bufferView->mRGBuffer);
@@ -1499,9 +1455,10 @@ namespace cube
                 {
                     TryResolveTexture(texture, resourceUsage.subresourceRange);
                 }
-                else if (RGAccelerationStructureHandle accelerationStructure = resource.Cast<RGAccelerationStructure>(); accelerationStructure.IsValid())
+                else if (RGTLASHandle tlas = resource.Cast<RGTLAS>(); tlas.IsValid())
                 {
-                    TryResolveAccelerationStructure(accelerationStructure);
+                    // TLAS does not need barriers because it is only read after it is built.
+                    // (See RayTracingScene::UpdateTLAS.)
                 }
                 else
                 {
@@ -1518,7 +1475,6 @@ namespace cube
 
             RGBufferHandle rgBuffer = rgResource.Cast<RGBuffer>();
             RGTextureHandle rgTexture = rgResource.Cast<RGTexture>();
-            RGAccelerationStructureHandle rgAccelerationStructure = rgResource.Cast<RGAccelerationStructure>();
             gapi::ResourceLayout dstLayout = gapi::ResourceLayout::Undefined;
             if (rgTexture.IsValid() && !(rgTexture->IsTransient()))
             {
@@ -1563,16 +1519,6 @@ namespace cube
                         }
                     }
                 }
-                else if (rgAccelerationStructure.IsValid())
-                {
-                    if (pendingBarrier.firstPassIndex != -1)
-                    {
-                        mPasses[pendingBarrier.firstPassIndex].barriers.push_back(pendingBarrier.EmitAccelerationStructureBarrier(rgAccelerationStructure->GetGAPIAccelerationStructure()));
-                    }
-                    // NOTE: It is okay to skip the barrier after the last pass because RGBuilder submits
-                    // the command list right after writing the last pass.
-                    // (An implicit global barrier is inserted between submitted command lists.)
-                }
                 else
                 {
                     NO_ENTRY();
@@ -1591,7 +1537,7 @@ namespace cube
 
         mPasses.clear();
         mLastPass = {};
-        mRegisteredAccelerationStructures.clear();
+        mRegisteredTLASes.clear();
         mRegisteredTextureInfos.clear();
         mRegisteredBufferInfos.clear();
         mCachedBufferViews.clear();
