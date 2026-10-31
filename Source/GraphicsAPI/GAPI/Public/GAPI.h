@@ -11,33 +11,35 @@ namespace cube
 {
     namespace gapi
     {
-        class GraphicsPipeline;
-        struct GraphicsPipelineCreateInfo;
+        class BLAS;
+        struct BLASCreateInfo;
+        class Buffer;
+        struct BufferCreateInfo;
         class ComputePipeline;
         struct ComputePipelineCreateInfo;
+        class CommandList;
+        struct CommandListCreateInfo;
+        class Fence;
+        struct FenceCreateInfo;
+        class GraphicsPipeline;
+        struct GraphicsPipelineCreateInfo;
+        struct HitGroupCreateInfo;
+        class HitGroup;
+        class RayTracingPipeline;
+        struct RayTracingPipelineCreateInfo;
         class Sampler;
         struct SamplerCreateInfo;
         class Shader;
         struct ShaderCreateInfo;
         struct ShaderCompileResult;
         class ShaderParameterHelper;
-        class Buffer;
-        struct BufferCreateInfo;
+        class SwapChain;
+        struct SwapChainCreateInfo;
         class Texture;
         struct TextureInfo;
         struct TextureCreateInfo;
-        class CommandList;
-        struct CommandListCreateInfo;
-        class Fence;
-        struct FenceCreateInfo;
-        class SwapChain;
-        struct SwapChainCreateInfo;
-        class BLAS;
-        struct BLASCreateInfo;
         class TLAS;
         struct TLASCreateInfo;
-        class RayTracingPipeline;
-        struct RayTracingPipelineCreateInfo;
 
         class TextureRTV;
     } // namespace gapi
@@ -93,6 +95,7 @@ namespace cube
 
         virtual SharedPtr<gapi::BLAS> CreateBLAS(const gapi::BLASCreateInfo& createInfo) = 0;
         virtual SharedPtr<gapi::TLAS> CreateTLAS(const gapi::TLASCreateInfo& createInfo) = 0;
+        virtual SharedPtr<gapi::HitGroup> CreateHitGroup(const gapi::HitGroupCreateInfo& createInfo) = 0;
         virtual SharedPtr<gapi::RayTracingPipeline> CreateRayTracingPipeline(const gapi::RayTracingPipelineCreateInfo& createInfo) = 0;
 
         virtual gapi::TimestampRangeList GetLastTimestampRangeList() = 0;

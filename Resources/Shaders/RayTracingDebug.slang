@@ -1,5 +1,6 @@
 import Common;
 import Global;
+import RayTracingCommon;
 
 ParameterBlock<GlobalShaderParameterList> globalParams;
 
@@ -10,15 +11,20 @@ struct RayTracingDebugViewShaderParameterList
     Bindless<RWTexture2D> outColorTexture;
 };
 
-[shader("compute")]
-[numthreads(8, 8, 1)]
-void RayTracingDebugViewCS(
-    uint3 threadId : SV_DispatchThreadID,
-    ParameterBlock<RayTracingDebugViewShaderParameterList> params
+struct Payload
+{
+    float4 color;
+};
+
+CUBE_RAY_TRACING_RAY_GEN_ENTRY(
+    RayTracingDebugViewRGS,
+    ParameterBlock<RayTracingDebugViewShaderParameterList>, params
 )
 {
-    const uint2 bufferPixel = threadId.xy;
-    const float2 bufferUV = (float2(bufferPixel) + 0.5f) * params.bufferSizeAndInvSize.zw;
+    CUBE_RAY_TRACING_RAY_GEN_INIT()
+
+    const uint2 bufferPixel = DispatchRaysIndex().xy;
+    const float2 bufferUV = (float2(bufferPixel) + 0.5f) / DispatchRaysDimensions().xy;
     const float2 ndc = (bufferUV - 0.5f) * float2(2.0f, -2.0f);
 
     float4 rayStartNDC = float4(ndc.xy, 0.0f, 1.0f);
@@ -36,15 +42,33 @@ void RayTracingDebugViewCS(
     ray.TMin = 0.001f;
     ray.TMax = length(rayEndPos - rayStartPos);
 
-    RayQuery<RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH> rayQuery;
-    rayQuery.TraceRayInline(params.tlas, 0, 0xFF, ray);
-    rayQuery.Proceed();
-    if (rayQuery.CommittedStatus() == COMMITTED_TRIANGLE_HIT)
-    {
-        params.outColorTexture[bufferPixel] = { 1.0f, 0.0f, 0.0f, 1.0f };
-    }
-    else
-    {
-        params.outColorTexture[bufferPixel] = { 0.0f, 0.0f, 0.0f, 1.0f };
-    }
+    Payload payload;
+    TraceRay(params.tlas,
+        0,
+        0xFF,
+        0,
+        1,
+        0,
+        ray,
+        payload
+    );
+
+    params.outColorTexture[bufferPixel] = payload.color;
+}
+
+CUBE_RAY_TRACING_CLOSEST_HIT_ENTRY(
+    RayTracingDebugViewCHS,
+    Payload, payload,
+    BuiltInTriangleIntersectionAttributes, attr
+)
+{
+    payload.color = { 1.0f, 0.0f, 0.0f, 1.0f };
+}
+
+CUBE_RAY_TRACING_MISS_ENTRY(
+    RayTracingDebugViewMS,
+    Payload, payload
+)
+{
+    payload.color = { 0.0f, 0.0f, 0.0f, 1.0f };
 }

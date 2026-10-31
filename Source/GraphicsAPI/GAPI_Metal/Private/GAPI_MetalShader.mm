@@ -32,5 +32,13 @@ namespace cube
             mFunction = nil;
             mLibrary = nil;
         }
+
+        MetalHitGroup::MetalHitGroup(const HitGroupCreateInfo& createInfo, MetalDevice& device)
+        {
+        }
+
+        MetalHitGroup::~MetalHitGroup()
+        {
+        }
     } // namespace gapi
 } // namespace cube

@@ -115,6 +115,12 @@ namespace cube
             compileOption.target = gapi::ShaderLanguage::Metal;
         }
 
+        if (createInfo.type == gapi::ShaderType::RayGen && compileOption.target == gapi::ShaderLanguage::MetalLib)
+        {
+            // RayGen shader use intrinsic functions, which does not support binary target. (See RayTracingCommon.slang)
+            compileOption.target = gapi::ShaderLanguage::Metal;
+        }
+
         gapi::ShaderReflection reflection;
         Blob shader = SlangHelper::Compile(createInfo, compileOption, compileResult, &reflection);
 

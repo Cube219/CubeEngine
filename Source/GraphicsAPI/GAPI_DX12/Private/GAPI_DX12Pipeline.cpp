@@ -315,6 +315,20 @@ namespace cube
             mPipelineState = nullptr;
         }
 
+        class StateObjectBuilder
+        {
+        public:
+            template <typename T>
+            T& Allocate()
+            {
+                
+            }
+        private:
+
+
+            FrameVector<Byte> memoryBuffer;
+        };
+
         DX12RayTracingPipeline::DX12RayTracingPipeline(DX12Device& device, const RayTracingPipelineCreateInfo& createInfo)
             : mDevice(device)
         {
@@ -472,6 +486,11 @@ namespace cube
 
             mStateObjectProperties = nullptr;
             mStateObject = nullptr;
+        }
+
+        void DX12CreateRayTracingStateObject(FrameVector<D3D12_STATE_SUBOBJECT>& subobjects, Uint32 MaxPayloadSize, Uint32 MaxAttributeSize, Uint32 MaxTraceRecursionDepth)
+        {
+
         }
     } // namespace gapi
 } // namespace cube

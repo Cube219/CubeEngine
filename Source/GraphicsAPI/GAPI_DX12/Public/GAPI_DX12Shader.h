@@ -9,6 +9,8 @@
 
 namespace cube
 {
+    class DX12Device;
+
     namespace gapi
     {
         class DX12Shader : public Shader, public DX12APIObject
@@ -21,6 +23,21 @@ namespace cube
 
         private:
             Blob mShaderByteCode;
+
+            Blob mClosestHitShaderByteCode;
+            Blob mAnyHitShaderByteCode;
+        };
+
+        class DX12HitGroup : public HitGroup, public DX12APIObject
+        {
+        public:
+            DX12HitGroup(const HitGroupCreateInfo& createInfo, DX12Device& device);
+            virtual ~DX12HitGroup();
+
+        private:
+            DX12Device& mDevice;
+
+            Vector<SharedPtr<DX12APIObject>> mBoundObjects;
         };
     } // namespace gapi
 } // namespace cube

@@ -22,17 +22,25 @@ namespace cube
         RayTracingDebugView(Renderer& renderer);
         ~RayTracingDebugView();
         
-        void Initialize(bool supportHWRT);
+        void Initialize(bool supportHWRT, bool supportRayTracingPipeline);
         void Shutdown();
 
         bool RenderDebugView(RGBuilder& builder, const Scene& scene, RGTextureHandle colorTexture);
 
     private:
+        bool RenderDebugViewRTPipeline(RGBuilder& builder, const Scene& scene, RGTextureHandle colorTexture);
+        bool RenderDebugViewInline(RGBuilder& builder, const Scene& scene, RGTextureHandle colorTexture);
+
         Renderer& mRenderer;
 
         bool mIsSupported;
+        bool mUseRayTracingPipeline;
 
-        SharedPtr<Shader> mRayTracingDebugViewShader;
-        ComputePipelineInfo mRayTracingDebugViewPipelineInfo;
+        SharedPtr<Shader> mRayTracingDebugViewRayGenShader;
+        SharedPtr<Shader> mRayTracingDebugViewClosestHitShader;
+        SharedPtr<Shader> mRayTracingDebugViewMissShader;
+
+        SharedPtr<Shader> mRayTracingDebugViewInlineShader;
+        ComputePipelineInfo mRayTracingDebugViewInlinePipelineInfo;
     };
 } // namespace cube

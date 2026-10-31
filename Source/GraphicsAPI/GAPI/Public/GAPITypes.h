@@ -179,6 +179,7 @@ namespace cube
 
             bool supportsHWRT = false;
             Uint32 scratchBufferAlignment = 1;
+            bool supportRayTracingPipeline = false;
         };
     } // namespace gapi
 } // namespace cube

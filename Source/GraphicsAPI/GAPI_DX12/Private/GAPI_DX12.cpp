@@ -103,12 +103,16 @@ namespace cube
 
         mInfo = {
             .apiName = gapi::GAPIName::DX12,
+            
             .constantBufferAlignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT,
+
             .supportsDirectMapInBuffer = mMainDevice->IsGPUUploadHeapSupported(),
             .supportsDirectMapInTexture = false, // Direct-mapping textures is possible, but inefficient because swizzling is performed on the CPU side.
             .needsToOptimizeTextureContentsUsingCommandList = false,
+
             .supportsHWRT = mMainDevice->IsHWRTSupported(),
             .scratchBufferAlignment = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT,
+            .supportRayTracingPipeline = false,
         };
 
         InitializeImGUI(initInfo.imGUI);
@@ -325,6 +329,11 @@ namespace cube
     SharedPtr<gapi::TLAS> GAPI_DX12::CreateTLAS(const gapi::TLASCreateInfo& createInfo)
     {
         return std::make_shared<gapi::DX12TLAS>(createInfo, *mMainDevice);
+    }
+
+    SharedPtr<gapi::HitGroup> GAPI_DX12::CreateHitGroup(const gapi::HitGroupCreateInfo& createInfo)
+    {
+        return std::make_shared<gapi::DX12HitGroup>(createInfo, *mMainDevice);
     }
 
     SharedPtr<gapi::RayTracingPipeline> GAPI_DX12::CreateRayTracingPipeline(const gapi::RayTracingPipelineCreateInfo& createInfo)

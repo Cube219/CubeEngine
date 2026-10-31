@@ -19,6 +19,8 @@ namespace cube
         gapi::ShaderLanguage language = gapi::ShaderLanguage::Slang;
 
         AnsiString entryPoint;
+        AnsiString hitGroupClosestHitEntryPoint;
+        AnsiString hitGroupAnyHitEntryPoint;
 
         Vector<gapi::PreprocessorDefine> defines;
     };

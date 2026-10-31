@@ -74,5 +74,9 @@ namespace cube
 
             Vector<SharedPtr<DX12APIObject>> mBoundObjects;
         };
+
+        void DX12CreateRayTracingStateObject(
+            FrameVector<D3D12_STATE_SUBOBJECT>& subobjects,
+            Uint32 MaxPayloadSize, Uint32 MaxAttributeSize, Uint32 MaxTraceRecursionDepth);
     } // namespace gapi
 } // namespace cube

@@ -326,6 +326,7 @@ namespace cube
 
         MetalRayTracingPipeline::MetalRayTracingPipeline(const RayTracingPipelineCreateInfo& createInfo, MetalDevice& device)
         { @autoreleasepool {
+#if 0
             CHECK(device.IsHWRTSupported());
 
             MetalShader* metalRayGenShader = dynamic_cast<MetalShader*>(createInfo.pipelineInfo.rayGenShader.get());
@@ -368,6 +369,7 @@ namespace cube
             CHECK(mPipelineState);
 
             mThreadGroupSize = MTLSizeMake(metalRayGenShader->GetThreadGroupSizeX(), metalRayGenShader->GetThreadGroupSizeY(), metalRayGenShader->GetThreadGroupSizeZ());
+#endif
         }}
 
         MetalRayTracingPipeline::~MetalRayTracingPipeline()

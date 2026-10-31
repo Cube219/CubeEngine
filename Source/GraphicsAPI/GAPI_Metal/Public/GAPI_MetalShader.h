@@ -23,5 +23,12 @@ namespace cube
             id<MTLLibrary> mLibrary;
             id<MTLFunction> mFunction;
         };
+
+        class MetalHitGroup : public HitGroup
+        {
+        public:
+            MetalHitGroup(const HitGroupCreateInfo& createInfo, MetalDevice& device);
+            virtual ~MetalHitGroup();
+        };
     } // namespace gapi
 } // namespace cube

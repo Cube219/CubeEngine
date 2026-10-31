@@ -22,6 +22,7 @@ namespace cube
 
             RayGen,
             ClosestHit,
+            AnyHit,
             Miss,
         };
 
@@ -102,6 +103,7 @@ namespace cube
             const Vector<platform::FilePath>& GetDependencyFilePaths() const { return mDependencyFilePaths; }
 
             Uint64 GetContentHash() const { return mContentHash; }
+            Uint64 GetShaderId() const { return mShaderId; }
 
         protected:
             bool mCreated;
@@ -118,6 +120,8 @@ namespace cube
 
             // Content hash of the compiled shader. Populated by backends from compile result.
             Uint64 mContentHash = 0;
+
+            Uint64 mShaderId = 0;
         };
 
         struct ShaderCompileResult
@@ -158,6 +162,24 @@ namespace cube
                     error += Format(CUBE_T("{0}\n"), message);
                 }
             }
+        };
+
+        struct HitGroupCreateInfo
+        {
+            SharedPtr<Shader> closestHitShader;
+            SharedPtr<Shader> anyHitShader;
+        };
+
+        class HitGroup
+        {
+        public:
+            HitGroup() = default;
+            virtual ~HitGroup() = default;
+
+            Uint64 GetShaderId() const { return mShaderId; }
+
+        private:
+            Uint64 mShaderId = 0;
         };
     } // namespace gapi
 } // namespace cube

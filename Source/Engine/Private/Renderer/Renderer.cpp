@@ -112,7 +112,7 @@ namespace cube
         mRenderUtils.Initialize();
 
         mTextureViewer.Initialize(mNumGPUSync);
-        mRayTracingDebugView.Initialize(mGAPI->GetInfo().supportsHWRT);
+        mRayTracingDebugView.Initialize(mGAPI->GetInfo().supportsHWRT, mGAPI->GetInfo().supportRayTracingPipeline);
 
         LoadResources();
     }

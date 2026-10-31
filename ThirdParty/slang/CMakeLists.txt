@@ -32,33 +32,13 @@ target_include_directories(slang
 if(PLATFORM_WINDOWS)
     set_target_properties(slang PROPERTIES
         IMPORTED_LOCATION
-            ${slang_SOURCE_DIR}/bin/slang.dll
-        IMPORTED_IMPLIB
-            ${slang_SOURCE_DIR}/lib/slang.lib
-    )
-endif()
-if(PLATFORM_MACOS)
-    set_target_properties(slang PROPERTIES
-        IMPORTED_LOCATION
-            ${slang_SOURCE_DIR}/lib/libslang.dylib
-    )
-endif()
-
-add_library(slang-compiler SHARED IMPORTED GLOBAL)
-target_include_directories(slang-compiler
-    INTERFACE
-        ${slang_SOURCE_DIR}/include
-)
-if(PLATFORM_WINDOWS)
-    set_target_properties(slang-compiler PROPERTIES
-        IMPORTED_LOCATION
             ${slang_SOURCE_DIR}/bin/slang-compiler.dll
         IMPORTED_IMPLIB
             ${slang_SOURCE_DIR}/lib/slang-compiler.lib
     )
 endif()
 if(PLATFORM_MACOS)
-    set_target_properties(slang-compiler PROPERTIES
+    set_target_properties(slang PROPERTIES
         IMPORTED_LOCATION
             ${slang_SOURCE_DIR}/lib/libslang-compiler.dylib
     )

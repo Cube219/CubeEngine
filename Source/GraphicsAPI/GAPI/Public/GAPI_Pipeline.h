@@ -188,8 +188,7 @@ namespace cube
         struct RayTracingPipelineInfo
         {
             SharedPtr<Shader> rayGenShader;
-            // TODO: Support multiple shaders.
-            SharedPtr<Shader> closestHitShader = nullptr;
+            SharedPtr<HitGroup> hitGroup;
             SharedPtr<Shader> missShader = nullptr;
 
             Uint32 maxPayloadSize;

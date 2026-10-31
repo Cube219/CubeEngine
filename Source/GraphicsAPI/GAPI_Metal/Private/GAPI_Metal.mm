@@ -64,6 +64,7 @@ namespace cube
 
             .supportsHWRT = mMainDevice->IsHWRTSupported(),
             .scratchBufferAlignment = 1,
+            .supportRayTracingPipeline = false,
         };
 
         InitializeImGUI(initInfo.imGUI);
@@ -233,6 +234,11 @@ namespace cube
     SharedPtr<gapi::TLAS> GAPI_Metal::CreateTLAS(const gapi::TLASCreateInfo& createInfo)
     {
         return std::make_shared<gapi::MetalTLAS>(createInfo, *mMainDevice);
+    }
+
+    SharedPtr<gapi::HitGroup> GAPI_Metal::CreateHitGroup(const gapi::HitGroupCreateInfo& createInfo)
+    {
+        return std::make_shared<gapi::MetalHitGroup>(createInfo, *mMainDevice);
     }
 
     SharedPtr<gapi::RayTracingPipeline> GAPI_Metal::CreateRayTracingPipeline(const gapi::RayTracingPipelineCreateInfo& createInfo)

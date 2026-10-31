@@ -27,7 +27,7 @@ namespace cube
     {
     }
 
-    void RayTracingDebugView::Initialize(bool supportHWRT)
+    void RayTracingDebugView::Initialize(bool supportHWRT, bool supportRayTracingPipeline)
     {
         mIsSupported = supportHWRT;
         if (!mIsSupported)
@@ -35,29 +35,93 @@ namespace cube
             return;
         }
 
-        platform::FilePath rayTracingDebugShaderFilePath = Engine::GetShaderDirectoryPath() / CUBE_T("RayTracingDebug.slang");
+        mUseRayTracingPipeline = supportRayTracingPipeline;
+        if (mUseRayTracingPipeline)
+        {
+            platform::FilePath rayTracingDebugShaderFilePath = Engine::GetShaderDirectoryPath() / CUBE_T("RayTracingDebug.slang");
 
-        mRayTracingDebugViewShader = mRenderer.GetShaderManager().CreateShader(ShaderCreateInfo{
-            .shaderInfo = ShaderInfo{
-                .type = gapi::ShaderType::Compute,
-                .entryPoint = "RayTracingDebugViewCS",
-            },
-            .filePaths = { &rayTracingDebugShaderFilePath, 1 },
-            .debugName = CUBE_T("RayTracingDebugViewCS"),
-        });
-        CHECK(mRayTracingDebugViewShader);
-        mRayTracingDebugViewPipelineInfo = ComputePipelineInfo{
-            .shader = mRayTracingDebugViewShader,
-        };
+            mRayTracingDebugViewRayGenShader = mRenderer.GetShaderManager().CreateShader(ShaderCreateInfo{
+                .shaderInfo = ShaderInfo{
+                    .type = gapi::ShaderType::RayGen,
+                    .entryPoint = "RayTracingDebugViewRGS",
+                },
+                .filePaths = { &rayTracingDebugShaderFilePath, 1 },
+                .debugName = CUBE_T("RayTracingDebugViewRGS"),
+            });
+            CHECK(mRayTracingDebugViewRayGenShader);
+
+            mRayTracingDebugViewClosestHitShader = mRenderer.GetShaderManager().CreateShader(ShaderCreateInfo{
+                .shaderInfo = ShaderInfo{
+                    .type = gapi::ShaderType::ClosestHit,
+                    .hitGroupClosestHitEntryPoint = "RayTracingDebugViewCHS",
+                },
+                .filePaths = { &rayTracingDebugShaderFilePath, 1 },
+                .debugName = CUBE_T("RayTracingDebugViewCHS"),
+            });
+            CHECK(mRayTracingDebugViewClosestHitShader);
+
+            mRayTracingDebugViewMissShader = mRenderer.GetShaderManager().CreateShader(ShaderCreateInfo{
+                .shaderInfo = ShaderInfo{
+                    .type = gapi::ShaderType::Miss,
+                    .entryPoint = "RayTracingDebugViewMS",
+                },
+                .filePaths = { &rayTracingDebugShaderFilePath, 1 },
+                .debugName = CUBE_T("RayTracingDebugViewMS"),
+            });
+            CHECK(mRayTracingDebugViewMissShader);
+        }
+        else
+        {
+            platform::FilePath rayTracingDebugInlineShaderFilePath = Engine::GetShaderDirectoryPath() / CUBE_T("RayTracingDebugInline.slang");
+
+            mRayTracingDebugViewInlineShader = mRenderer.GetShaderManager().CreateShader(ShaderCreateInfo{
+                .shaderInfo = ShaderInfo{
+                    .type = gapi::ShaderType::Compute,
+                    .entryPoint = "RayTracingDebugViewCS",
+                },
+                .filePaths = { &rayTracingDebugInlineShaderFilePath, 1 },
+                .debugName = CUBE_T("RayTracingDebugViewCS"),
+                });
+            CHECK(mRayTracingDebugViewInlineShader);
+            mRayTracingDebugViewInlinePipelineInfo = ComputePipelineInfo{
+                .shader = mRayTracingDebugViewInlineShader,
+            };
+        }
     }
 
     void RayTracingDebugView::Shutdown()
     {
-        mRayTracingDebugViewPipelineInfo = {};
-        mRayTracingDebugViewShader = nullptr;
+        mRayTracingDebugViewMissShader = nullptr;
+        mRayTracingDebugViewClosestHitShader = nullptr;
+        mRayTracingDebugViewRayGenShader = nullptr;
+
+        mRayTracingDebugViewInlinePipelineInfo = {};
+        mRayTracingDebugViewInlineShader = nullptr;
     }
 
     bool RayTracingDebugView::RenderDebugView(RGBuilder& builder, const Scene& scene, RGTextureHandle colorTexture)
+    {
+        if (!mIsSupported)
+        {
+            return false;
+        }
+
+        if (mUseRayTracingPipeline)
+        {
+            return RenderDebugViewRTPipeline(builder, scene, colorTexture);
+        }
+        else
+        {
+            return RenderDebugViewInline(builder, scene, colorTexture);
+        }
+    }
+
+    bool RayTracingDebugView::RenderDebugViewRTPipeline(RGBuilder& builder, const Scene& scene, RGTextureHandle colorTexture)
+    {
+        return false;
+    }
+
+    bool RayTracingDebugView::RenderDebugViewInline(RGBuilder& builder, const Scene& scene, RGTextureHandle colorTexture)
     {
         RayTracingScene* rayTracingScene = scene.GetRayTracingScene();
         if (!mIsSupported || !rayTracingScene)
@@ -82,13 +146,13 @@ namespace cube
         shaderParameters->tlas = BindlessTLAS{ .id = tlas->GetBindlessId() };
         shaderParameters->outColorTexture = colorTextureUAV;
 
-        SharedPtr<ComputePipeline> rayTracingDebugViewPipeline = mRenderer.GetPipelineManager().GetOrCreateComputePipeline(ComputePipelineCreateInfo{
-            .pipelineInfo = mRayTracingDebugViewPipelineInfo,
-            .debugName = CUBE_T("RayTracingDebugViewPipeline"),
+        SharedPtr<ComputePipeline> rayTracingDebugViewInlinePipeline = mRenderer.GetPipelineManager().GetOrCreateComputePipeline(ComputePipelineCreateInfo{
+            .pipelineInfo = mRayTracingDebugViewInlinePipelineInfo,
+            .debugName = CUBE_T("RayTracingDebugViewInlinePipeline"),
         });
 
-        builder.AddPass(CUBE_T("RayTracingDebugView"),
-            rayTracingDebugViewPipeline,
+        builder.AddPass(CUBE_T("RayTracingDebugViewInline"),
+            rayTracingDebugViewInlinePipeline,
             shaderParameters,
             [width, height](gapi::CommandList& commandList)
             {
@@ -97,7 +161,8 @@ namespace cube
             [rgTLAS](RGBuilder& builder)
             {
                 builder.UseResource(rgTLAS);
-            });
+            }
+        );
 
         return true;
     }
